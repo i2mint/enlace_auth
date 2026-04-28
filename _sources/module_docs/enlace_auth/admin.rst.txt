@@ -1,0 +1,4 @@
+enlace_auth.admin
+=================
+.. automodule:: enlace_auth.admin
+   :members:

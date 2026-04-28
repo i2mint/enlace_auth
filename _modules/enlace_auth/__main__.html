@@ -1,0 +1,284 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>enlace_auth.__main__ &mdash; enlace_auth 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            enlace_auth
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth.html">enlace_auth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/__main__.html">enlace_auth.__main__</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/admin.html">enlace_auth.admin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/admin/routes.html">enlace_auth.admin.routes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth.html">enlace_auth.auth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/cookies.html">enlace_auth.auth.cookies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/middleware.html">enlace_auth.auth.middleware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/oauth.html">enlace_auth.auth.oauth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/passwords.html">enlace_auth.auth.passwords</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/routes.html">enlace_auth.auth.routes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/sessions.html">enlace_auth.auth.sessions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/config.html">enlace_auth.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/diagnostics.html">enlace_auth.diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/plugin.html">enlace_auth.plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/stores.html">enlace_auth.stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/stores/backends.html">enlace_auth.stores.backends</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/stores/middleware.html">enlace_auth.stores.middleware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/stores/prefixed.html">enlace_auth.stores.prefixed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/stores/validation.html">enlace_auth.stores.validation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">enlace_auth</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">enlace_auth.__main__</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for enlace_auth.__main__</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;CLI for enlace_auth.</span>
+
+<span class="sd">Operator helpers for the auth subsystem. These were originally part of the</span>
+<span class="sd">``enlace`` CLI; they moved here when auth was extracted.</span>
+
+<span class="sd">Usage::</span>
+
+<span class="sd">    enlace-auth init</span>
+<span class="sd">    enlace-auth generate-signing-key</span>
+<span class="sd">    enlace-auth hash-password</span>
+<span class="sd">    enlace-auth list-sessions [--json]</span>
+<span class="sd">    enlace-auth revoke-session &lt;session_id&gt;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">json_module</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">secrets</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">getpass</span><span class="w"> </span><span class="kn">import</span> <span class="n">getpass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argh</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">PlatformConfig</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">coerce_auth_config</span>
+
+
+<div class="viewcode-block" id="init">
+<a class="viewcode-back" href="../../module_docs/enlace_auth/__main__.html#enlace_auth.__main__.init">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Print a starter ``[auth]`` block for platform.toml.</span>
+
+<span class="sd">    Copy the output into your ``platform.toml`` and edit the paths and env</span>
+<span class="sd">    var names as needed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s2">&quot;# Copy into your platform.toml and edit as needed.</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;[auth]</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;enabled = true</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s1">&#39;session_cookie_name = &quot;enlace_session&quot;</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="s2">&quot;session_max_age_seconds = 86400</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s1">&#39;signing_key_env = &quot;ENLACE_SIGNING_KEY&quot;</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="s1">&#39;admin_emails_env = &quot;ENLACE_ADMIN_EMAILS&quot;</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="s2">&quot;secure_cookies = true</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;[auth.stores]</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s1">&#39;backend = &quot;file&quot;</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="s1">&#39;path = &quot;~/.enlace/platform_store&quot;</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;[stores.user_data]</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s1">&#39;backend = &quot;file&quot;</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="s1">&#39;path = &quot;~/.enlace/user_data&quot;</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;# Then in your launcher:</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;#   from enlace import build_backend</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;#   from enlace_auth import plugin as auth_plugin</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;#   app = build_backend(config, plugins=[auth_plugin])</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;# Or with the bundled factory: ENLACE_PLUGINS=enlace_auth:plugin</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="generate_signing_key">
+<a class="viewcode-back" href="../../module_docs/enlace_auth/__main__.html#enlace_auth.__main__.generate_signing_key">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_signing_key</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Print a URL-safe 32-byte signing key suitable for ENLACE_SIGNING_KEY.&quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">secrets</span><span class="o">.</span><span class="n">token_urlsafe</span><span class="p">(</span><span class="mi">32</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="hash_password">
+<a class="viewcode-back" href="../../module_docs/enlace_auth/__main__.html#enlace_auth.__main__.hash_password">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">hash_password</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Prompt for a password and print its argon2id hash.</span>
+
+<span class="sd">    Use the output as the value of an app&#39;s ``shared_password_env`` variable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.passwords</span><span class="w"> </span><span class="kn">import</span> <span class="n">hash_password</span> <span class="k">as</span> <span class="n">_hash</span>
+
+    <span class="n">pw</span> <span class="o">=</span> <span class="n">getpass</span><span class="p">(</span><span class="s2">&quot;Password: &quot;</span><span class="p">)</span>
+    <span class="n">confirm</span> <span class="o">=</span> <span class="n">getpass</span><span class="p">(</span><span class="s2">&quot;Confirm:  &quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">pw</span> <span class="o">!=</span> <span class="n">confirm</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Passwords did not match.&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">_hash</span><span class="p">(</span><span class="n">pw</span><span class="p">))</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_session_store</span><span class="p">(</span><span class="n">toml_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;platform.toml&quot;</span><span class="p">)):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a SessionStore pointing at the configured platform store.&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">SessionStore</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.stores</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_file_store_factory</span>
+
+    <span class="n">config</span> <span class="o">=</span> <span class="n">PlatformConfig</span><span class="o">.</span><span class="n">from_toml</span><span class="p">(</span><span class="n">toml_path</span><span class="p">)</span>
+    <span class="n">auth</span> <span class="o">=</span> <span class="n">coerce_auth_config</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">auth</span><span class="p">)</span>
+    <span class="n">factory</span> <span class="o">=</span> <span class="n">make_file_store_factory</span><span class="p">(</span><span class="n">auth</span><span class="o">.</span><span class="n">stores</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">SessionStore</span><span class="p">(</span><span class="n">factory</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="list_sessions">
+<a class="viewcode-back" href="../../module_docs/enlace_auth/__main__.html#enlace_auth.__main__.list_sessions">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_sessions</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">json</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">toml</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;platform.toml&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;List active sessions from the platform store.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        json: Output as JSON.</span>
+<span class="sd">        toml: Path to platform.toml (default: ./platform.toml).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sessions</span> <span class="o">=</span> <span class="n">_load_session_store</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">toml</span><span class="p">))</span><span class="o">.</span><span class="n">list_all</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">json</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="n">json_module</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+                <span class="p">[{</span><span class="s2">&quot;session_id&quot;</span><span class="p">:</span> <span class="n">sid</span><span class="p">,</span> <span class="o">**</span><span class="n">info</span><span class="p">}</span> <span class="k">for</span> <span class="n">sid</span><span class="p">,</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">sessions</span><span class="p">],</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">sessions</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No active sessions.&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">for</span> <span class="n">sid</span><span class="p">,</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">sessions</span><span class="p">:</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;user_id&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;?&quot;</span>
+        <span class="n">email</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;email&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;-&quot;</span>
+        <span class="n">created</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;created_at&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sid</span><span class="si">}</span><span class="s2">  user=</span><span class="si">{</span><span class="n">user</span><span class="si">}</span><span class="s2">  email=</span><span class="si">{</span><span class="n">email</span><span class="si">}</span><span class="s2">  created_at=</span><span class="si">{</span><span class="n">created</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="revoke_session">
+<a class="viewcode-back" href="../../module_docs/enlace_auth/__main__.html#enlace_auth.__main__.revoke_session">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">revoke_session</span><span class="p">(</span><span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">toml</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;platform.toml&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Delete a session by id.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        session_id: The session id to revoke.</span>
+<span class="sd">        toml: Path to platform.toml (default: ./platform.toml).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ok</span> <span class="o">=</span> <span class="n">_load_session_store</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">toml</span><span class="p">))</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Revoked </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No session named </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">argh</span><span class="o">.</span><span class="n">dispatch_commands</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">init</span><span class="p">,</span>
+            <span class="n">generate_signing_key</span><span class="p">,</span>
+            <span class="n">hash_password</span><span class="p">,</span>
+            <span class="n">list_sessions</span><span class="p">,</span>
+            <span class="n">revoke_session</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright NO COPYRIGHT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

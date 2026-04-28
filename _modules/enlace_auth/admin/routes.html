@@ -1,0 +1,286 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>enlace_auth.admin.routes &mdash; enlace_auth 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/toggleprompt.js?v=d7ede5d2"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            enlace_auth
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth.html">enlace_auth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/__main__.html">enlace_auth.__main__</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/admin.html">enlace_auth.admin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/admin/routes.html">enlace_auth.admin.routes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth.html">enlace_auth.auth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/cookies.html">enlace_auth.auth.cookies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/middleware.html">enlace_auth.auth.middleware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/oauth.html">enlace_auth.auth.oauth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/passwords.html">enlace_auth.auth.passwords</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/routes.html">enlace_auth.auth.routes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/sessions.html">enlace_auth.auth.sessions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/config.html">enlace_auth.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/diagnostics.html">enlace_auth.diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/plugin.html">enlace_auth.plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/stores.html">enlace_auth.stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/stores/backends.html">enlace_auth.stores.backends</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/stores/middleware.html">enlace_auth.stores.middleware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/stores/prefixed.html">enlace_auth.stores.prefixed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/stores/validation.html">enlace_auth.stores.validation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">enlace_auth</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">enlace_auth.admin.routes</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for enlace_auth.admin.routes</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Admin HTTP routes: user CRUD, password reset, app policy view.</span>
+
+<span class="sd">Endpoints (all under ``/_admin/api/``):</span>
+
+<span class="sd">- ``GET    /users``                — list registered users</span>
+<span class="sd">- ``POST   /users``                — create a user (admin-created)</span>
+<span class="sd">- ``DELETE /users/{email}``        — delete a user (refuses last admin)</span>
+<span class="sd">- ``POST   /users/{email}/password`` — admin reset another user&#39;s password</span>
+<span class="sd">- ``GET    /apps``                 — list apps with their access policy</span>
+
+<span class="sd">Self-service ``POST /auth/me/password`` (change own password) lives in</span>
+<span class="sd">``enlace_auth.auth.routes`` so it&#39;s reachable to any authenticated user — it</span>
+<span class="sd">is NOT under ``/_admin`` because the admin access rule would block non-admins.</span>
+
+<span class="sd">Access control:</span>
+
+<span class="sd">- ``/_admin/*`` is gated by ``PlatformAuthMiddleware`` via the access rule the</span>
+<span class="sd">  plugin installs (``allowed_users=admin_emails``). By the time a request</span>
+<span class="sd">  reaches this router, the caller is an admin.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">MutableMapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Request</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">EmailStr</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.passwords</span><span class="w"> </span><span class="kn">import</span> <span class="n">hash_password</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_CreateUserBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">email</span><span class="p">:</span> <span class="n">EmailStr</span>
+    <span class="n">password</span><span class="p">:</span> <span class="nb">str</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_ResetPasswordBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">password</span><span class="p">:</span> <span class="nb">str</span>
+
+
+<div class="viewcode-block" id="make_admin_router">
+<a class="viewcode-back" href="../../../module_docs/enlace_auth/admin/routes.html#enlace_auth.admin.make_admin_router">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_admin_router</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">user_store</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">,</span>
+    <span class="n">session_store</span><span class="p">,</span>  <span class="c1"># SessionStore — kept loose to avoid import cycles</span>
+    <span class="n">admin_emails</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+    <span class="n">apps</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">(),</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">APIRouter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a FastAPI router exposing ``/_admin/api/*`` endpoints.</span>
+
+<span class="sd">    ``admin_emails`` is captured by closure so the router can enforce</span>
+<span class="sd">    last-admin protection on delete. The middleware handles the broader</span>
+<span class="sd">    &quot;must be an admin to see /_admin&quot; check.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">admin_set</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">admin_emails</span><span class="p">)</span>
+    <span class="n">apps_snapshot</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">apps</span><span class="p">)</span>
+
+    <span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/_admin/api&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_require_admin</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">email</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="s2">&quot;user_email&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">admin_set</span><span class="p">:</span>
+            <span class="c1"># Defense in depth — the middleware should have already blocked</span>
+            <span class="c1"># this, but a misconfigured access rule shouldn&#39;t expose admin.</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Admin only&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/users&quot;</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">list_users</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">_require_admin</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">email</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">user_store</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">record</span> <span class="o">=</span> <span class="n">user_store</span><span class="p">[</span><span class="n">email</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="n">email</span><span class="p">,</span>
+                    <span class="s2">&quot;created_at&quot;</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;created_at&quot;</span><span class="p">),</span>
+                    <span class="s2">&quot;is_admin&quot;</span><span class="p">:</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">admin_set</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;users&quot;</span><span class="p">:</span> <span class="n">items</span><span class="p">}</span>
+
+    <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/users&quot;</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">create_user</span><span class="p">(</span>
+        <span class="n">body</span><span class="p">:</span> <span class="n">_CreateUserBody</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">_require_admin</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">email</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">email</span> <span class="ow">in</span> <span class="n">user_store</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">409</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Email already registered&quot;</span><span class="p">)</span>
+        <span class="n">user_store</span><span class="p">[</span><span class="n">email</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;password_hash&quot;</span><span class="p">:</span> <span class="n">hash_password</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">password</span><span class="p">),</span>
+            <span class="s2">&quot;created_at&quot;</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;ok&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="n">email</span><span class="p">}</span>
+
+    <span class="nd">@router</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">&quot;/users/</span><span class="si">{email}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">delete_user</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">actor</span> <span class="o">=</span> <span class="n">_require_admin</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="c1"># Last-admin protection: can&#39;t delete the only admin user that</span>
+        <span class="c1"># actually exists in the user store.</span>
+        <span class="k">if</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">admin_set</span><span class="p">:</span>
+            <span class="n">existing_admins</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">user_store</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">admin_set</span><span class="p">]</span>
+            <span class="n">existing_lower</span> <span class="o">=</span> <span class="p">{</span><span class="n">e</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">existing_admins</span><span class="p">}</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">existing_admins</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">existing_lower</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                    <span class="n">status_code</span><span class="o">=</span><span class="mi">409</span><span class="p">,</span>
+                    <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Cannot delete the last admin user&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">user_store</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;User not found&quot;</span><span class="p">)</span>
+        <span class="c1"># Defensive: actor deleting themselves still returns ok, but their</span>
+        <span class="c1"># session will fail on next request. Clients should refresh.</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">actor</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;ok&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="n">target</span><span class="p">}</span>
+
+    <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/users/</span><span class="si">{email}</span><span class="s2">/password&quot;</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">admin_reset_password</span><span class="p">(</span>
+        <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">_ResetPasswordBody</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">_require_admin</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="n">user_store</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;User not found&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Corrupt user record&quot;</span><span class="p">)</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+        <span class="n">record</span><span class="p">[</span><span class="s2">&quot;password_hash&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hash_password</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">password</span><span class="p">)</span>
+        <span class="n">user_store</span><span class="p">[</span><span class="n">target</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;ok&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="n">target</span><span class="p">}</span>
+
+    <span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/apps&quot;</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">list_apps</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">_require_admin</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">app</span> <span class="ow">in</span> <span class="n">apps_snapshot</span><span class="p">:</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">app</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="s2">&quot;display_name&quot;</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">&quot;display_name&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">app</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="s2">&quot;access&quot;</span><span class="p">:</span> <span class="n">app</span><span class="o">.</span><span class="n">access</span><span class="p">,</span>
+                    <span class="s2">&quot;allowed_users&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">&quot;allowed_users&quot;</span><span class="p">,</span> <span class="p">[])),</span>
+                    <span class="s2">&quot;route_prefix&quot;</span><span class="p">:</span> <span class="n">app</span><span class="o">.</span><span class="n">route_prefix</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;apps&quot;</span><span class="p">:</span> <span class="n">items</span><span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">router</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright NO COPYRIGHT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

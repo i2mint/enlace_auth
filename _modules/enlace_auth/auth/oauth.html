@@ -1,0 +1,295 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>enlace_auth.auth.oauth &mdash; enlace_auth 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/toggleprompt.js?v=d7ede5d2"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            enlace_auth
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth.html">enlace_auth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/__main__.html">enlace_auth.__main__</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/admin.html">enlace_auth.admin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/admin/routes.html">enlace_auth.admin.routes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth.html">enlace_auth.auth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/cookies.html">enlace_auth.auth.cookies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/middleware.html">enlace_auth.auth.middleware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/oauth.html">enlace_auth.auth.oauth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/passwords.html">enlace_auth.auth.passwords</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/routes.html">enlace_auth.auth.routes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/sessions.html">enlace_auth.auth.sessions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/config.html">enlace_auth.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/diagnostics.html">enlace_auth.diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/plugin.html">enlace_auth.plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/stores.html">enlace_auth.stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/stores/backends.html">enlace_auth.stores.backends</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/stores/middleware.html">enlace_auth.stores.middleware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/stores/prefixed.html">enlace_auth.stores.prefixed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/stores/validation.html">enlace_auth.stores.validation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">enlace_auth</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">enlace_auth.auth.oauth</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for enlace_auth.auth.oauth</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;OAuth2/OIDC login via Authlib.</span>
+
+<span class="sd">Lazy import — ``authlib`` lives behind the ``enlace[oauth]`` extra. Providers</span>
+<span class="sd">are configured in ``platform.toml`` under ``[auth.oauth.{name}]`` with</span>
+<span class="sd">``client_id_env`` / ``client_secret_env`` pointing at env vars (secrets never</span>
+<span class="sd">in TOML). On callback we create a local session — the upstream tokens are</span>
+<span class="sd">discarded because we use OAuth for identity only, not API access.</span>
+
+<span class="sd">Built-in provider presets for Google and GitHub auto-fill the well-known</span>
+<span class="sd">endpoints; other providers need explicit URLs in the config.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">Response</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.cookies</span><span class="w"> </span><span class="kn">import</span> <span class="n">sign_cookie</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.sessions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SessionStore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">OAuthProviderConfig</span>
+
+<span class="n">_PROVIDER_PRESETS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;google&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;server_metadata_url&quot;</span><span class="p">:</span> <span class="s2">&quot;https://accounts.google.com/.well-known/openid-configuration&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;scopes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;openid&quot;</span><span class="p">,</span> <span class="s2">&quot;profile&quot;</span><span class="p">,</span> <span class="s2">&quot;email&quot;</span><span class="p">],</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;github&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;authorize_url&quot;</span><span class="p">:</span> <span class="s2">&quot;https://github.com/login/oauth/authorize&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;token_url&quot;</span><span class="p">:</span> <span class="s2">&quot;https://github.com/login/oauth/access_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;userinfo_url&quot;</span><span class="p">:</span> <span class="s2">&quot;https://api.github.com/user&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;scopes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;read:user&quot;</span><span class="p">,</span> <span class="s2">&quot;user:email&quot;</span><span class="p">],</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_import_authlib</span><span class="p">():</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">authlib.integrations.starlette_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">OAuth</span>  <span class="c1"># type: ignore</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;authlib is required for OAuth. Install via `pip install enlace[oauth]`.&quot;</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+    <span class="k">return</span> <span class="n">OAuth</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_oauth_registry</span><span class="p">(</span><span class="n">providers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">OAuthProviderConfig</span><span class="p">]):</span>
+    <span class="n">OAuth</span> <span class="o">=</span> <span class="n">_import_authlib</span><span class="p">()</span>
+    <span class="n">oauth</span> <span class="o">=</span> <span class="n">OAuth</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">cfg</span> <span class="ow">in</span> <span class="n">providers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">preset</span> <span class="o">=</span> <span class="n">_PROVIDER_PRESETS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">client_id</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">client_id_env</span><span class="p">)</span>
+        <span class="n">client_secret</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">client_secret_env</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">client_id</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">client_secret</span><span class="p">:</span>
+            <span class="c1"># Skip providers whose env vars aren&#39;t set; `enlace check` surfaces this.</span>
+            <span class="k">continue</span>
+        <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;client_id&quot;</span><span class="p">:</span> <span class="n">client_id</span><span class="p">,</span>
+            <span class="s2">&quot;client_secret&quot;</span><span class="p">:</span> <span class="n">client_secret</span><span class="p">,</span>
+            <span class="s2">&quot;client_kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;scope&quot;</span><span class="p">:</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">scopes</span> <span class="ow">or</span> <span class="n">preset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scopes&quot;</span><span class="p">,</span> <span class="p">[])),</span>
+            <span class="p">},</span>
+        <span class="p">}</span>
+        <span class="n">smu</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">server_metadata_url</span> <span class="ow">or</span> <span class="n">preset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;server_metadata_url&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">smu</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;server_metadata_url&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">smu</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">authorize_url</span> <span class="ow">or</span> <span class="n">preset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;authorize_url&quot;</span><span class="p">):</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;authorize_url&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">authorize_url</span> <span class="ow">or</span> <span class="n">preset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="s2">&quot;authorize_url&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">token_url</span> <span class="ow">or</span> <span class="n">preset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;token_url&quot;</span><span class="p">):</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;access_token_url&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">token_url</span> <span class="ow">or</span> <span class="n">preset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;token_url&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">userinfo_url</span> <span class="ow">or</span> <span class="n">preset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;userinfo_url&quot;</span><span class="p">):</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;userinfo_endpoint&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">userinfo_url</span> <span class="ow">or</span> <span class="n">preset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="s2">&quot;userinfo_url&quot;</span>
+                <span class="p">)</span>
+        <span class="n">oauth</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">oauth</span>
+
+
+<div class="viewcode-block" id="make_oauth_router">
+<a class="viewcode-back" href="../../../module_docs/enlace_auth/auth/oauth.html#enlace_auth.auth.oauth.make_oauth_router">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_oauth_router</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">providers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">OAuthProviderConfig</span><span class="p">],</span>
+    <span class="n">session_store</span><span class="p">:</span> <span class="n">SessionStore</span><span class="p">,</span>
+    <span class="n">user_store</span><span class="p">,</span>  <span class="c1"># MutableMapping[email -&gt; {...}]</span>
+    <span class="n">signing_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">cookie_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;enlace_session&quot;</span><span class="p">,</span>
+    <span class="n">session_max_age</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">86400</span><span class="p">,</span>
+    <span class="n">secure_cookies</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">APIRouter</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build an OAuth router or return None if no providers are configured.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">providers</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">oauth</span> <span class="o">=</span> <span class="n">_build_oauth_registry</span><span class="p">(</span><span class="n">providers</span><span class="p">)</span>
+    <span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/auth&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_session_cookie</span><span class="p">(</span><span class="n">response</span><span class="p">:</span> <span class="n">Response</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">signed</span> <span class="o">=</span> <span class="n">sign_cookie</span><span class="p">(</span><span class="n">session_id</span><span class="p">,</span> <span class="n">signing_key</span><span class="p">,</span> <span class="n">salt</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cookie_name</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">signed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Path=/&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;HttpOnly&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;Max-Age=</span><span class="si">{</span><span class="n">session_max_age</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SameSite=Lax&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">secure_cookies</span><span class="p">:</span>
+            <span class="n">attrs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Secure&quot;</span><span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;set-cookie&quot;</span><span class="p">,</span> <span class="s2">&quot;; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">attrs</span><span class="p">))</span>
+
+    <span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/login/</span><span class="si">{provider}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">login</span><span class="p">(</span><span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">):</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">oauth</span><span class="p">,</span> <span class="n">provider</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Unknown provider &#39;</span><span class="si">{</span><span class="n">provider</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+            <span class="p">)</span>
+        <span class="n">redirect_uri</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">url_for</span><span class="p">(</span><span class="s2">&quot;oauth_callback&quot;</span><span class="p">,</span> <span class="n">provider</span><span class="o">=</span><span class="n">provider</span><span class="p">))</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">authorize_redirect</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">redirect_uri</span><span class="p">)</span>
+
+    <span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/callback/</span><span class="si">{provider}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;oauth_callback&quot;</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">callback</span><span class="p">(</span><span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">):</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">oauth</span><span class="p">,</span> <span class="n">provider</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Unknown provider &#39;</span><span class="si">{</span><span class="n">provider</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+            <span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">token</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">authorize_access_token</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">401</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;OAuth failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+        <span class="n">email</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">userinfo</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;userinfo&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">userinfo</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">userinfo</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">email</span> <span class="o">=</span> <span class="n">userinfo</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;email&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">email</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s2">&quot;userinfo&quot;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">info</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">userinfo</span><span class="p">(</span><span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">email</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;email&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">email</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">401</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;No email from OAuth provider&quot;</span><span class="p">)</span>
+
+        <span class="n">email</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">email</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">user_store</span><span class="p">:</span>
+            <span class="n">user_store</span><span class="p">[</span><span class="n">email</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;password_hash&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;created_at&quot;</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
+                <span class="s2">&quot;oauth_provider&quot;</span><span class="p">:</span> <span class="n">provider</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="n">session_id</span> <span class="o">=</span> <span class="n">session_store</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">email</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">)</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">Response</span><span class="p">(</span>
+            <span class="n">content</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;</span><span class="se">{{</span><span class="s1">&quot;ok&quot;:true,&quot;email&quot;:&quot;</span><span class="si">{</span><span class="n">email</span><span class="si">}</span><span class="s1">&quot;</span><span class="se">}}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">media_type</span><span class="o">=</span><span class="s2">&quot;application/json&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">_set_session_cookie</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="n">session_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">resp</span>
+
+    <span class="k">return</span> <span class="n">router</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright NO COPYRIGHT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

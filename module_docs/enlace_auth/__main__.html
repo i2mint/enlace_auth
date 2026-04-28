@@ -1,0 +1,199 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>enlace_auth.__main__ &mdash; enlace_auth 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="enlace_auth.admin" href="admin.html" />
+    <link rel="prev" title="enlace_auth" href="../enlace_auth.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            enlace_auth
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../enlace_auth.html">enlace_auth</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">enlace_auth.__main__</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#enlace_auth.__main__.generate_signing_key"><code class="docutils literal notranslate"><span class="pre">generate_signing_key()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#enlace_auth.__main__.hash_password"><code class="docutils literal notranslate"><span class="pre">hash_password()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#enlace_auth.__main__.init"><code class="docutils literal notranslate"><span class="pre">init()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#enlace_auth.__main__.list_sessions"><code class="docutils literal notranslate"><span class="pre">list_sessions()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#enlace_auth.__main__.revoke_session"><code class="docutils literal notranslate"><span class="pre">revoke_session()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="admin.html">enlace_auth.admin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="admin/routes.html">enlace_auth.admin.routes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auth.html">enlace_auth.auth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auth/cookies.html">enlace_auth.auth.cookies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auth/middleware.html">enlace_auth.auth.middleware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auth/oauth.html">enlace_auth.auth.oauth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auth/passwords.html">enlace_auth.auth.passwords</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auth/routes.html">enlace_auth.auth.routes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auth/sessions.html">enlace_auth.auth.sessions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html">enlace_auth.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="diagnostics.html">enlace_auth.diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plugin.html">enlace_auth.plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stores.html">enlace_auth.stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stores/backends.html">enlace_auth.stores.backends</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stores/middleware.html">enlace_auth.stores.middleware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stores/prefixed.html">enlace_auth.stores.prefixed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stores/validation.html">enlace_auth.stores.validation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">enlace_auth</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">enlace_auth.__main__</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/module_docs/enlace_auth/__main__.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-enlace_auth.__main__">
+<span id="enlace-auth-main"></span><h1>enlace_auth.__main__<a class="headerlink" href="#module-enlace_auth.__main__" title="Link to this heading"></a></h1>
+<p>CLI for enlace_auth.</p>
+<p>Operator helpers for the auth subsystem. These were originally part of the
+<code class="docutils literal notranslate"><span class="pre">enlace</span></code> CLI; they moved here when auth was extracted.</p>
+<p>Usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">enlace</span><span class="o">-</span><span class="n">auth</span> <span class="n">init</span>
+<span class="n">enlace</span><span class="o">-</span><span class="n">auth</span> <span class="n">generate</span><span class="o">-</span><span class="n">signing</span><span class="o">-</span><span class="n">key</span>
+<span class="n">enlace</span><span class="o">-</span><span class="n">auth</span> <span class="nb">hash</span><span class="o">-</span><span class="n">password</span>
+<span class="n">enlace</span><span class="o">-</span><span class="n">auth</span> <span class="nb">list</span><span class="o">-</span><span class="n">sessions</span> <span class="p">[</span><span class="o">--</span><span class="n">json</span><span class="p">]</span>
+<span class="n">enlace</span><span class="o">-</span><span class="n">auth</span> <span class="n">revoke</span><span class="o">-</span><span class="n">session</span> <span class="o">&lt;</span><span class="n">session_id</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.__main__.generate_signing_key">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.__main__.</span></span><span class="sig-name descname"><span class="pre">generate_signing_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/enlace_auth/__main__.html#generate_signing_key"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.__main__.generate_signing_key" title="Link to this definition"></a></dt>
+<dd><p>Print a URL-safe 32-byte signing key suitable for ENLACE_SIGNING_KEY.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.__main__.hash_password">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.__main__.</span></span><span class="sig-name descname"><span class="pre">hash_password</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/enlace_auth/__main__.html#hash_password"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.__main__.hash_password" title="Link to this definition"></a></dt>
+<dd><p>Prompt for a password and print its argon2id hash.</p>
+<p>Use the output as the value of an app’s <code class="docutils literal notranslate"><span class="pre">shared_password_env</span></code> variable.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.__main__.init">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.__main__.</span></span><span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/enlace_auth/__main__.html#init"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.__main__.init" title="Link to this definition"></a></dt>
+<dd><p>Print a starter <code class="docutils literal notranslate"><span class="pre">[auth]</span></code> block for platform.toml.</p>
+<p>Copy the output into your <code class="docutils literal notranslate"><span class="pre">platform.toml</span></code> and edit the paths and env
+var names as needed.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.__main__.list_sessions">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.__main__.</span></span><span class="sig-name descname"><span class="pre">list_sessions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">json</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">toml</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'platform.toml'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/enlace_auth/__main__.html#list_sessions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.__main__.list_sessions" title="Link to this definition"></a></dt>
+<dd><p>List active sessions from the platform store.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>json</strong> – Output as JSON.</p></li>
+<li><p><strong>toml</strong> – Path to platform.toml (default: ./platform.toml).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.__main__.revoke_session">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.__main__.</span></span><span class="sig-name descname"><span class="pre">revoke_session</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">toml</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'platform.toml'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/enlace_auth/__main__.html#revoke_session"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.__main__.revoke_session" title="Link to this definition"></a></dt>
+<dd><p>Delete a session by id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>session_id</strong> – The session id to revoke.</p></li>
+<li><p><strong>toml</strong> – Path to platform.toml (default: ./platform.toml).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../enlace_auth.html" class="btn btn-neutral float-left" title="enlace_auth" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="admin.html" class="btn btn-neutral float-right" title="enlace_auth.admin" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright NO COPYRIGHT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

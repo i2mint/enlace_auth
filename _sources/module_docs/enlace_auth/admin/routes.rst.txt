@@ -1,0 +1,4 @@
+enlace_auth.admin.routes
+========================
+.. automodule:: enlace_auth.admin.routes
+   :members:
