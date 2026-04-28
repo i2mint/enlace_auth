@@ -20,11 +20,12 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Iterable, Optional
+from typing import Iterable
 
 from enlace import doctor as _doctor
 from enlace.base import PlatformConfig
 from enlace.doctor import FAIL, PASS, SKIP, Check
+
 from enlace_auth.config import coerce_auth_config
 
 
