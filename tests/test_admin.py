@@ -103,7 +103,9 @@ def test_admin_blocked_for_non_admin_user(admin_client):
 def test_admin_can_list_users(admin_client):
     csrf = _csrf(admin_client)
     # Register the admin then a regular user.
-    assert _register(admin_client, "boss@example.com", "bosspw1!", csrf).status_code == 200
+    assert (
+        _register(admin_client, "boss@example.com", "bosspw1!", csrf).status_code == 200
+    )
     # Admin must already be logged in via the register response — check listing.
     r = admin_client.get("/_admin/api/users")
     assert r.status_code == 200, r.text

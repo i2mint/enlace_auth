@@ -31,7 +31,9 @@ def _make_app(providers, user_store, session_store):
     fake_registry = MagicMock()
     fake_registry.google = fake_client
 
-    with patch("enlace_auth.auth.oauth._build_oauth_registry", return_value=fake_registry):
+    with patch(
+        "enlace_auth.auth.oauth._build_oauth_registry", return_value=fake_registry
+    ):
         router = make_oauth_router(
             providers=providers,
             session_store=session_store,

@@ -87,9 +87,7 @@ def make_admin_router(
         return {"users": items}
 
     @router.post("/users")
-    async def create_user(
-        body: _CreateUserBody, request: Request
-    ) -> dict[str, Any]:
+    async def create_user(body: _CreateUserBody, request: Request) -> dict[str, Any]:
         _require_admin(request)
         email = body.email.lower()
         if email in user_store:

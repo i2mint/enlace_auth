@@ -112,9 +112,7 @@ def check_oauth_importable(config: PlatformConfig) -> Iterable[Check]:
                 "installed. Install with `pip install enlace_auth[oauth]`.",
             )
         ]
-    return [
-        Check("oauth_import", PASS, f"authlib importable; providers: {providers}")
-    ]
+    return [Check("oauth_import", PASS, f"authlib importable; providers: {providers}")]
 
 
 def check_csrf(

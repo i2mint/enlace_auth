@@ -112,9 +112,7 @@ def _fake_http(map_: dict):
     return _get
 
 
-def test_csrf_probe_catches_spa_fallthrough(
-    clean_env, single_app_dir, monkeypatch
-):
+def test_csrf_probe_catches_spa_fallthrough(clean_env, single_app_dir, monkeypatch):
     """The canonical regression: /auth/csrf returns the SPA's index.html."""
     clean_env.setenv(_KEY_ENV, _GOOD_KEY)
     cfg = _auth_enabled_config(single_app_dir)
@@ -153,9 +151,7 @@ def test_csrf_probe_catches_spa_fallthrough(
     assert not report.ok
 
 
-def test_csrf_probe_accepts_valid_json(
-    clean_env, single_app_dir, monkeypatch
-):
+def test_csrf_probe_accepts_valid_json(clean_env, single_app_dir, monkeypatch):
     clean_env.setenv(_KEY_ENV, _GOOD_KEY)
     cfg = _auth_enabled_config(single_app_dir)
 

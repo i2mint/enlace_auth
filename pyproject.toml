@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "enlace_auth"
-version = "0.1.0"
+version = "0.1.1"
 description = "Authentication, sessions, admin dashboard, and per-user stores for the enlace platform"
 readme = "README.md"
 requires-python = ">=3.10"
