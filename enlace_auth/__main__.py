@@ -21,7 +21,6 @@ from getpass import getpass
 from pathlib import Path
 
 import argh
-
 from enlace.base import PlatformConfig
 
 from enlace_auth.config import coerce_auth_config

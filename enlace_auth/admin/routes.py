@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import MutableMapping
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr
@@ -108,7 +108,8 @@ def make_admin_router(
         # actually exists in the user store.
         if target in admin_set:
             existing_admins = [e for e in user_store if e.lower() in admin_set]
-            if len(existing_admins) <= 1 and target in {e.lower() for e in existing_admins}:
+            existing_lower = {e.lower() for e in existing_admins}
+            if len(existing_admins) <= 1 and target in existing_lower:
                 raise HTTPException(
                     status_code=409,
                     detail="Cannot delete the last admin user",

@@ -26,7 +26,7 @@ import logging
 import os
 from typing import TYPE_CHECKING, Optional
 
-from enlace_auth.config import AuthConfig, coerce_auth_config, coerce_stores_map
+from enlace_auth.config import coerce_auth_config, coerce_stores_map
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -137,8 +137,9 @@ def wire(parent: "FastAPI", config) -> None:
     protected_user_apps: set[str] = set()
     for app in getattr(config, "apps", []):
         h: Optional[str] = None
-        if app.access == "protected:shared" and getattr(app, "shared_password_env", None):
-            h = os.environ.get(app.shared_password_env)
+        shared_env = getattr(app, "shared_password_env", None)
+        if app.access == "protected:shared" and shared_env:
+            h = os.environ.get(shared_env)
             if h:
                 shared_hashes[app.name] = h
         if app.access == "protected:user":

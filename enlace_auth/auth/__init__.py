@@ -13,7 +13,11 @@ Public helpers:
 """
 
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
-from enlace_auth.auth.middleware import AccessRule, CSRFMiddleware, PlatformAuthMiddleware
+from enlace_auth.auth.middleware import (
+    AccessRule,
+    CSRFMiddleware,
+    PlatformAuthMiddleware,
+)
 from enlace_auth.auth.passwords import hash_password, verify_password
 from enlace_auth.auth.routes import make_auth_router
 from enlace_auth.auth.sessions import SessionStore
