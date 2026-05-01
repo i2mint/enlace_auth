@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.plugin &mdash; enlace_auth 0.1.0 documentation</title>
+  <title>enlace_auth.plugin &mdash; enlace_auth 0.1.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/documentation_options.js?v=a58bc63e"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -333,11 +333,26 @@
     <span class="p">)</span>
     <span class="n">parent</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">admin_router</span><span class="p">)</span>
 
+    <span class="c1"># CSRF exempt prefixes: the default exempts /api/ (asgi-mode sub-app APIs</span>
+    <span class="c1"># mounted at the conventional prefix). Non-asgi modes (process/external)</span>
+    <span class="c1"># proxy to a black-box upstream that can&#39;t participate in enlace&#39;s</span>
+    <span class="c1"># double-submit flow, so their entire mount prefix must also be exempt.</span>
+    <span class="n">csrf_exempt</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;/auth/callback&quot;</span><span class="p">,</span> <span class="s2">&quot;/auth/login/&quot;</span><span class="p">,</span> <span class="s2">&quot;/api/&quot;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">app</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;apps&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">&quot;mode&quot;</span><span class="p">,</span> <span class="s2">&quot;asgi&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;process&quot;</span><span class="p">,</span> <span class="s2">&quot;external&quot;</span><span class="p">):</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">route_prefix</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">prefix</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">):</span>
+                <span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+            <span class="k">if</span> <span class="n">prefix</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">csrf_exempt</span><span class="p">:</span>
+                <span class="n">csrf_exempt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
     <span class="c1"># Register middleware in the order requests traverse them:</span>
     <span class="c1"># outermost = first added last. FastAPI/Starlette runs middleware in</span>
     <span class="c1"># reverse insertion order, so the last `add_middleware` call is the</span>
     <span class="c1"># outermost wrapper. We want: auth (outermost) -&gt; store -&gt; csrf -&gt; app.</span>
-    <span class="n">parent</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span><span class="n">CSRFMiddleware</span><span class="p">,</span> <span class="n">signing_key</span><span class="o">=</span><span class="n">signing_key</span><span class="p">)</span>
+    <span class="n">parent</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span>
+        <span class="n">CSRFMiddleware</span><span class="p">,</span> <span class="n">signing_key</span><span class="o">=</span><span class="n">signing_key</span><span class="p">,</span> <span class="n">exempt_prefixes</span><span class="o">=</span><span class="n">csrf_exempt</span>
+    <span class="p">)</span>
     <span class="n">parent</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span><span class="n">StoreInjectionMiddleware</span><span class="p">,</span> <span class="n">base_store</span><span class="o">=</span><span class="n">user_data_backend</span><span class="p">)</span>
     <span class="n">parent</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span>
         <span class="n">PlatformAuthMiddleware</span><span class="p">,</span>
