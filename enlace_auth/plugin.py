@@ -234,11 +234,26 @@ def wire(parent: "FastAPI", config) -> None:
     )
     parent.include_router(admin_router)
 
+    # CSRF exempt prefixes: the default exempts /api/ (asgi-mode sub-app APIs
+    # mounted at the conventional prefix). Non-asgi modes (process/external)
+    # proxy to a black-box upstream that can't participate in enlace's
+    # double-submit flow, so their entire mount prefix must also be exempt.
+    csrf_exempt = ["/auth/callback", "/auth/login/", "/api/"]
+    for app in getattr(config, "apps", []):
+        if getattr(app, "mode", "asgi") in ("process", "external"):
+            prefix = app.route_prefix
+            if not prefix.endswith("/"):
+                prefix = prefix + "/"
+            if prefix not in csrf_exempt:
+                csrf_exempt.append(prefix)
+
     # Register middleware in the order requests traverse them:
     # outermost = first added last. FastAPI/Starlette runs middleware in
     # reverse insertion order, so the last `add_middleware` call is the
     # outermost wrapper. We want: auth (outermost) -> store -> csrf -> app.
-    parent.add_middleware(CSRFMiddleware, signing_key=signing_key)
+    parent.add_middleware(
+        CSRFMiddleware, signing_key=signing_key, exempt_prefixes=csrf_exempt
+    )
     parent.add_middleware(StoreInjectionMiddleware, base_store=user_data_backend)
     parent.add_middleware(
         PlatformAuthMiddleware,
