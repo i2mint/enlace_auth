@@ -38,7 +38,7 @@ def _make_platform_toml(tmp_path: Path) -> Path:
 
             [auth.stores]
             backend = "file"
-            path = "{tmp_path / 'platform_store'}"
+            path = "{tmp_path / "platform_store"}"
             """
         ).strip()
     )
