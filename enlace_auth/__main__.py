@@ -10,6 +10,8 @@ Usage::
     enlace-auth hash-password
     enlace-auth list-sessions [--json]
     enlace-auth revoke-session <session_id>
+    enlace-auth list-users [--json]
+    enlace-auth set-password <email>
 """
 
 from __future__ import annotations
@@ -89,6 +91,16 @@ def _load_session_store(toml_path: Path = Path("platform.toml")):
     return SessionStore(factory("sessions"))
 
 
+def _load_user_store(toml_path: Path = Path("platform.toml")):
+    """Open the platform's user store (email -> {password_hash, ...})."""
+    from enlace_auth.stores import make_file_store_factory
+
+    config = PlatformConfig.from_toml(toml_path)
+    auth = coerce_auth_config(config.auth)
+    factory = make_file_store_factory(auth.stores.path)
+    return factory("users")
+
+
 def list_sessions(*, json: bool = False, toml: str = "platform.toml"):
     """List active sessions from the platform store.
 
@@ -129,6 +141,76 @@ def revoke_session(session_id: str, *, toml: str = "platform.toml"):
         sys.exit(1)
 
 
+def list_users(*, json: bool = False, toml: str = "platform.toml"):
+    """List registered users from the platform store.
+
+    Args:
+        json: Output as JSON.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    store = _load_user_store(Path(toml))
+    rows = []
+    for email in list(store):
+        try:
+            rec = store[email]
+        except KeyError:
+            continue
+        rows.append(
+            {
+                "email": email,
+                "created_at": rec.get("created_at") if isinstance(rec, dict) else None,
+                "has_password": (
+                    isinstance(rec, dict) and bool(rec.get("password_hash"))
+                ),
+            }
+        )
+    if json:
+        print(json_module.dumps(rows, indent=2))
+        return
+    if not rows:
+        print("No users.")
+        return
+    for r in rows:
+        created = r["created_at"] or 0
+        flag = "ok" if r["has_password"] else "NO HASH"
+        print(f"{r['email']}  created_at={created:.0f}  {flag}")
+
+
+def set_password(email: str, *, toml: str = "platform.toml"):
+    """Set (or reset) a user's password. Prompts twice for the new value.
+
+    Args:
+        email: Email of the user to update. Must already exist in the store.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    from enlace_auth.auth.passwords import hash_password as _hash
+
+    store = _load_user_store(Path(toml))
+    key = email.lower()
+    try:
+        record = store[key]
+    except KeyError:
+        print(f"No user {key!r} in store.", file=sys.stderr)
+        sys.exit(1)
+    if not isinstance(record, dict):
+        print(f"Corrupt user record for {key!r}.", file=sys.stderr)
+        sys.exit(1)
+
+    pw = getpass("New password: ")
+    confirm = getpass("Confirm:      ")
+    if pw != confirm:
+        print("Passwords did not match.", file=sys.stderr)
+        sys.exit(1)
+    if not pw:
+        print("Empty password rejected.", file=sys.stderr)
+        sys.exit(1)
+
+    updated = dict(record)
+    updated["password_hash"] = _hash(pw)
+    store[key] = updated
+    print(f"Password updated for {key}.")
+
+
 def main():
     argh.dispatch_commands(
         [
@@ -137,6 +219,8 @@ def main():
             hash_password,
             list_sessions,
             revoke_session,
+            list_users,
+            set_password,
         ]
     )
 

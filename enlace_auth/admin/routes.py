@@ -8,6 +8,11 @@ Endpoints (all under ``/_admin/api/``):
 - ``POST   /users/{email}/password`` — admin reset another user's password
 - ``GET    /apps``                 — list apps with their access policy
 
+A minimal HTML dashboard is also mounted at ``GET /_admin/`` (and
+``/_admin/index.html``); it consumes the JSON endpoints above. The HTML
+lives next to this file at ``static/index.html`` and is served via
+``importlib.resources`` so it ships in the wheel without any build step.
+
 Self-service ``POST /auth/me/password`` (change own password) lives in
 ``enlace_auth.auth.routes`` so it's reachable to any authenticated user — it
 is NOT under ``/_admin`` because the admin access rule would block non-admins.
@@ -23,9 +28,11 @@ from __future__ import annotations
 
 import time
 from collections.abc import MutableMapping
+from importlib.resources import files
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, EmailStr
 
 from enlace_auth.auth.passwords import hash_password
@@ -153,5 +160,27 @@ def make_admin_router(
                 }
             )
         return {"apps": items}
+
+    return router
+
+
+def make_admin_ui_router() -> APIRouter:
+    """Build a FastAPI router that serves the bundled HTML dashboard.
+
+    Mounted at ``/_admin/``; gated by the same admin access rule as the API,
+    so unauthenticated browsers get redirected to login by the auth
+    middleware before they ever reach this handler.
+    """
+    router = APIRouter(prefix="/_admin")
+
+    # Read once at startup — the HTML is small (~5 KB) and never changes
+    # at runtime, so caching the string avoids hitting importlib.resources
+    # on every request.
+    html = (files("enlace_auth.admin") / "static" / "index.html").read_text()
+
+    @router.get("/", response_class=HTMLResponse, include_in_schema=False)
+    @router.get("/index.html", response_class=HTMLResponse, include_in_schema=False)
+    async def admin_index() -> HTMLResponse:
+        return HTMLResponse(html)
 
     return router

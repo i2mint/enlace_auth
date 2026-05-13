@@ -208,3 +208,49 @@ def test_last_admin_protection(admin_client):
     r = admin_client.delete("/_admin/api/users/boss@example.com", headers=csrf)
     assert r.status_code == 409
     assert "last admin" in r.json()["detail"].lower()
+
+
+# --------------------------------------------------------------------------
+# Dashboard UI (bundled HTML served at /_admin/)
+# --------------------------------------------------------------------------
+
+
+def test_admin_dashboard_blocked_for_anonymous_browser(admin_client):
+    """Browser hitting /_admin/ without a session gets redirected to login,
+    not an HTML page leak.
+    """
+    r = admin_client.get(
+        "/_admin/", headers={"Accept": "text/html"}, follow_redirects=False
+    )
+    assert r.status_code == 303
+    assert "login_required=1" in r.headers["location"]
+
+
+def test_admin_dashboard_blocked_for_non_admin(admin_client):
+    csrf = _csrf(admin_client)
+    _register(admin_client, "alice@example.com", "secretpw1", csrf)
+    # Logged in as alice (not in admin_emails) — should NOT see the dashboard.
+    r = admin_client.get(
+        "/_admin/", headers={"Accept": "text/html"}, follow_redirects=False
+    )
+    assert r.status_code == 303
+
+
+def test_admin_dashboard_served_to_admin(admin_client):
+    csrf = _csrf(admin_client)
+    _register(admin_client, "boss@example.com", "bosspw1!", csrf)
+    r = admin_client.get("/_admin/", headers={"Accept": "text/html"})
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/html")
+    # Sanity-check the bundled HTML actually loaded — the dashboard fetches
+    # /_admin/api/users on page load.
+    assert "/_admin/api" in r.text
+    assert "enlace · admin" in r.text
+
+
+def test_admin_dashboard_index_html_alias(admin_client):
+    csrf = _csrf(admin_client)
+    _register(admin_client, "boss@example.com", "bosspw1!", csrf)
+    r = admin_client.get("/_admin/index.html", headers={"Accept": "text/html"})
+    assert r.status_code == 200
+    assert "enlace · admin" in r.text

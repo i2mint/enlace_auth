@@ -225,7 +225,8 @@ def wire(parent: "FastAPI", config) -> None:
     )
     parent.include_router(store_router)
 
-    # Admin router.
+    # Admin router (API + UI). UI is only mounted when there is at least one
+    # admin email; otherwise the dashboard would be unreachable anyway.
     admin_router = make_admin_router(
         user_store=user_backend,
         session_store=session_store,
@@ -233,6 +234,10 @@ def wire(parent: "FastAPI", config) -> None:
         apps=list(getattr(config, "apps", [])),
     )
     parent.include_router(admin_router)
+    if admin_emails:
+        from enlace_auth.admin.routes import make_admin_ui_router
+
+        parent.include_router(make_admin_ui_router())
 
     # CSRF exempt prefixes: the default exempts /api/ (asgi-mode sub-app APIs
     # mounted at the conventional prefix). Non-asgi modes (process/external)
