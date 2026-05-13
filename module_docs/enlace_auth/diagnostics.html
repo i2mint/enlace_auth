@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.diagnostics &mdash; enlace_auth 0.1.1 documentation</title>
+  <title>enlace_auth.diagnostics &mdash; enlace_auth 0.1.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -15,9 +15,9 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=a58bc63e"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/documentation_options.js?v=92734c54"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../_static/copybutton.js?v=f281be69"></script>
@@ -61,10 +61,7 @@
 <li class="toctree-l1"><a class="reference internal" href="auth/routes.html">enlace_auth.auth.routes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="auth/sessions.html">enlace_auth.auth.sessions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config.html">enlace_auth.config</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">enlace_auth.diagnostics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#enlace_auth.diagnostics.check_csrf"><code class="docutils literal notranslate"><span class="pre">check_csrf()</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">enlace_auth.diagnostics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="plugin.html">enlace_auth.plugin</a></li>
 <li class="toctree-l1"><a class="reference internal" href="stores.html">enlace_auth.stores</a></li>
 <li class="toctree-l1"><a class="reference internal" href="stores/backends.html">enlace_auth.stores.backends</a></li>
@@ -97,32 +94,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-enlace_auth.diagnostics">
-<span id="enlace-auth-diagnostics"></span><h1>enlace_auth.diagnostics<a class="headerlink" href="#module-enlace_auth.diagnostics" title="Link to this heading"></a></h1>
-<p>Auth-specific doctor checks that plug into <code class="docutils literal notranslate"><span class="pre">enlace.doctor.run_doctor</span></code>.</p>
-<p>Usage:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace.doctor</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_doctor</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.diagnostics</span><span class="w"> </span><span class="kn">import</span> <span class="n">static_checks</span><span class="p">,</span> <span class="n">http_checks</span>
-
-<span class="n">report</span> <span class="o">=</span> <span class="n">run_doctor</span><span class="p">(</span>
-    <span class="n">config</span><span class="p">,</span>
-    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;http://localhost:8000&quot;</span><span class="p">,</span>
-    <span class="n">extra_static_checks</span><span class="o">=</span><span class="n">static_checks</span><span class="p">,</span>
-    <span class="n">extra_http_checks</span><span class="o">=</span><span class="n">http_checks</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-<p>These checks were previously hard-wired into <code class="docutils literal notranslate"><span class="pre">enlace.doctor</span></code> itself; they
-moved here when auth was extracted from enlace.</p>
-<dl class="py function">
-<dt class="sig sig-object py" id="enlace_auth.diagnostics.check_csrf">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.diagnostics.</span></span><span class="sig-name descname"><span class="pre">check_csrf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PlatformConfig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Check</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/enlace_auth/diagnostics.html#check_csrf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.diagnostics.check_csrf" title="Link to this definition"></a></dt>
-<dd><p>GET /auth/csrf must return JSON with a ‘csrf’ key.</p>
-<p>This is THE check that catches the i2mint/enlace#11 regression: when auth
-is silently disabled, the SPA catch-all returns <code class="docutils literal notranslate"><span class="pre">&lt;!doctype</span> <span class="pre">html&gt;</span></code>
-instead of JSON.</p>
-</dd></dl>
-
+  <section id="enlace-auth-diagnostics">
+<h1>enlace_auth.diagnostics<a class="headerlink" href="#enlace-auth-diagnostics" title="Link to this heading"></a></h1>
 </section>
 
 

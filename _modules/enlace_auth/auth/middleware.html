@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.auth.middleware &mdash; enlace_auth 0.1.1 documentation</title>
+  <title>enlace_auth.auth.middleware &mdash; enlace_auth 0.1.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -14,9 +14,9 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=a58bc63e"></script>
-      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/documentation_options.js?v=92734c54"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/toggleprompt.js?v=d7ede5d2"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../../_static/copybutton.js?v=f281be69"></script>
@@ -104,10 +104,17 @@
 <span class="sd">   treated as ``protected:user``.</span>
 <span class="sd">4. For ``public`` / ``local``, pass through with ``user_id=None``.</span>
 <span class="sd">5. For ``protected:shared``, look for a per-app signed cookie; on failure</span>
-<span class="sd">   return 401.</span>
+<span class="sd">   return 401 (JSON) or redirect browsers to ``login_redirect_path``.</span>
 <span class="sd">6. For ``protected:user``, look for the platform session cookie, load the</span>
 <span class="sd">   session from ``SessionStore``, set ``user_id`` / ``user_email``; on</span>
-<span class="sd">   failure return 401.</span>
+<span class="sd">   failure return 401 (JSON) or redirect browsers to ``login_redirect_path``.</span>
+
+<span class="sd">Browser vs. API deny behavior: GET/HEAD navigations that look like a browser</span>
+<span class="sd">(``Accept`` header contains ``text/html``) get a 303 redirect to the login</span>
+<span class="sd">page with ``?login_required=1&amp;next=&lt;original-path&gt;``, so the user lands</span>
+<span class="sd">somewhere meaningful instead of seeing a raw JSON error. Non-HTML requests</span>
+<span class="sd">(XHR, fetch with ``Accept: application/json``, curl, etc.) keep getting the</span>
+<span class="sd">machine-readable 401.</span>
 
 <span class="sd">Design notes:</span>
 <span class="sd">- Pure ASGI three-callable pattern. Never ``BaseHTTPMiddleware`` (see</span>
@@ -142,7 +149,7 @@
 
 
 <div class="viewcode-block" id="AccessRule">
-<a class="viewcode-back" href="../../../module_docs/enlace_auth/auth/middleware.html#enlace_auth.auth.AccessRule">[docs]</a>
+<a class="viewcode-back" href="../../../module_docs/enlace_auth/auth/middleware.html#enlace_auth.auth.middleware.AccessRule">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AccessRule</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Auth policy for a single mount prefix.&quot;&quot;&quot;</span>
@@ -232,12 +239,56 @@
     <span class="k">await</span> <span class="n">send</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;http.response.body&quot;</span><span class="p">,</span> <span class="s2">&quot;body&quot;</span><span class="p">:</span> <span class="n">data</span><span class="p">})</span>
 
 
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_send_redirect</span><span class="p">(</span><span class="n">send</span><span class="p">,</span> <span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">await</span> <span class="n">send</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;http.response.start&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="mi">303</span><span class="p">,</span>
+            <span class="s2">&quot;headers&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">(</span><span class="sa">b</span><span class="s2">&quot;location&quot;</span><span class="p">,</span> <span class="n">location</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;latin-1&quot;</span><span class="p">)),</span>
+                <span class="p">(</span><span class="sa">b</span><span class="s2">&quot;content-type&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;text/html; charset=utf-8&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="sa">b</span><span class="s2">&quot;cache-control&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;no-store&quot;</span><span class="p">),</span>
+            <span class="p">],</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="k">await</span> <span class="n">send</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;http.response.body&quot;</span><span class="p">,</span> <span class="s2">&quot;body&quot;</span><span class="p">:</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="p">})</span>
+
+
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_reject_websocket</span><span class="p">(</span><span class="n">send</span><span class="p">):</span>
     <span class="k">await</span> <span class="n">send</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;websocket.close&quot;</span><span class="p">,</span> <span class="s2">&quot;code&quot;</span><span class="p">:</span> <span class="mi">1008</span><span class="p">})</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_wants_html</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;True if the request looks like a browser HTML navigation.</span>
+
+<span class="sd">    Heuristic: GET/HEAD with an ``Accept`` header that prefers ``text/html``.</span>
+<span class="sd">    XHR/fetch calls typically send ``Accept: application/json`` (or ``*/*``</span>
+<span class="sd">    with ``X-Requested-With`` / ``Sec-Fetch-Mode: cors``), so they still get</span>
+<span class="sd">    the JSON 401.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;method&quot;</span><span class="p">,</span> <span class="s2">&quot;GET&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;HEAD&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;headers&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;accept&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;text/html&quot;</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_redirect_target</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">login_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the login-redirect URL, preserving the original path as ``next``.&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">quote</span>
+
+    <span class="n">raw_path</span> <span class="o">=</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;path&quot;</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;/&quot;</span>
+    <span class="n">raw_qs</span> <span class="o">=</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;query_string&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span>
+    <span class="n">nxt</span> <span class="o">=</span> <span class="n">raw_path</span>
+    <span class="k">if</span> <span class="n">raw_qs</span><span class="p">:</span>
+        <span class="n">nxt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">raw_path</span><span class="si">}</span><span class="s2">?</span><span class="si">{</span><span class="n">raw_qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;latin-1&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">sep</span> <span class="o">=</span> <span class="s2">&quot;&amp;&quot;</span> <span class="k">if</span> <span class="s2">&quot;?&quot;</span> <span class="ow">in</span> <span class="n">login_path</span> <span class="k">else</span> <span class="s2">&quot;?&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">login_path</span><span class="si">}{</span><span class="n">sep</span><span class="si">}</span><span class="s2">login_required=1&amp;next=</span><span class="si">{</span><span class="n">quote</span><span class="p">(</span><span class="n">nxt</span><span class="p">,</span><span class="w"> </span><span class="n">safe</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+
+
 <div class="viewcode-block" id="PlatformAuthMiddleware">
-<a class="viewcode-back" href="../../../module_docs/enlace_auth/auth/middleware.html#enlace_auth.auth.PlatformAuthMiddleware">[docs]</a>
+<a class="viewcode-back" href="../../../module_docs/enlace_auth/auth/middleware.html#enlace_auth.auth.middleware.PlatformAuthMiddleware">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PlatformAuthMiddleware</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Pure-ASGI auth middleware. See module docstring for behavior.&quot;&quot;&quot;</span>
 
@@ -251,6 +302,7 @@
         <span class="n">cookie_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;enlace_session&quot;</span><span class="p">,</span>
         <span class="n">max_age</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">86400</span><span class="p">,</span>
         <span class="n">auth_path_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;/auth&quot;</span><span class="p">,</span>
+        <span class="n">login_redirect_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">app</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_rules</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">access_rules</span><span class="p">)</span>
@@ -259,6 +311,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_cookie</span> <span class="o">=</span> <span class="n">cookie_name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_max_age</span> <span class="o">=</span> <span class="n">max_age</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_auth_prefix</span> <span class="o">=</span> <span class="n">auth_path_prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_login_redirect</span> <span class="o">=</span> <span class="n">login_redirect_path</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">scope</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;http&quot;</span><span class="p">,</span> <span class="s2">&quot;websocket&quot;</span><span class="p">):</span>
@@ -370,6 +423,9 @@
         <span class="k">if</span> <span class="n">scope</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;websocket&quot;</span><span class="p">:</span>
             <span class="k">await</span> <span class="n">_reject_websocket</span><span class="p">(</span><span class="n">send</span><span class="p">)</span>
             <span class="k">return</span>
+        <span class="k">if</span> <span class="n">_wants_html</span><span class="p">(</span><span class="n">scope</span><span class="p">):</span>
+            <span class="k">await</span> <span class="n">_send_redirect</span><span class="p">(</span><span class="n">send</span><span class="p">,</span> <span class="n">_redirect_target</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_login_redirect</span><span class="p">))</span>
+            <span class="k">return</span>
         <span class="k">await</span> <span class="n">_send_json_response</span><span class="p">(</span>
             <span class="n">send</span><span class="p">,</span> <span class="mi">401</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;detail&quot;</span><span class="p">:</span> <span class="s2">&quot;Not authenticated&quot;</span><span class="p">,</span> <span class="s2">&quot;auth&quot;</span><span class="p">:</span> <span class="n">kind</span><span class="p">}</span>
         <span class="p">)</span></div>
@@ -385,7 +441,7 @@
 
 
 <div class="viewcode-block" id="CSRFMiddleware">
-<a class="viewcode-back" href="../../../module_docs/enlace_auth/auth/middleware.html#enlace_auth.auth.CSRFMiddleware">[docs]</a>
+<a class="viewcode-back" href="../../../module_docs/enlace_auth/auth/middleware.html#enlace_auth.auth.middleware.CSRFMiddleware">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CSRFMiddleware</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Signed double-submit CSRF for state-changing requests.</span>
 

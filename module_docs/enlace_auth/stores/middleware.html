@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.stores.middleware &mdash; enlace_auth 0.1.1 documentation</title>
+  <title>enlace_auth.stores.middleware &mdash; enlace_auth 0.1.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -15,9 +15,9 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=a58bc63e"></script>
-      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/documentation_options.js?v=92734c54"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/toggleprompt.js?v=d7ede5d2"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../../_static/copybutton.js?v=f281be69"></script>
@@ -65,11 +65,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../plugin.html">enlace_auth.plugin</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../stores.html">enlace_auth.stores</a></li>
 <li class="toctree-l1"><a class="reference internal" href="backends.html">enlace_auth.stores.backends</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">enlace_auth.stores.middleware</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#enlace_auth.stores.middleware.StoreInjectionMiddleware"><code class="docutils literal notranslate"><span class="pre">StoreInjectionMiddleware</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#enlace_auth.stores.middleware.make_store_router"><code class="docutils literal notranslate"><span class="pre">make_store_router()</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">enlace_auth.stores.middleware</a></li>
 <li class="toctree-l1"><a class="reference internal" href="prefixed.html">enlace_auth.stores.prefixed</a></li>
 <li class="toctree-l1"><a class="reference internal" href="validation.html">enlace_auth.stores.validation</a></li>
 </ul>
@@ -98,31 +94,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-enlace_auth.stores.middleware">
-<span id="enlace-auth-stores-middleware"></span><h1>enlace_auth.stores.middleware<a class="headerlink" href="#module-enlace_auth.stores.middleware" title="Link to this heading"></a></h1>
-<p>Store injection middleware and per-app store router.</p>
-<p><code class="docutils literal notranslate"><span class="pre">StoreInjectionMiddleware</span></code> runs after the auth middleware. It reads
-<code class="docutils literal notranslate"><span class="pre">scope[&quot;state&quot;][&quot;user_id&quot;]</span></code> and <code class="docutils literal notranslate"><span class="pre">scope[&quot;state&quot;][&quot;app_id&quot;]</span></code> (the latter set
-by the per-mount wrapper in <code class="docutils literal notranslate"><span class="pre">enlace.compose</span></code>) and attaches a
-<code class="docutils literal notranslate"><span class="pre">PrefixedStore(base,</span> <span class="pre">f&quot;{user_id}/{app_id}/&quot;)</span></code> to <code class="docutils literal notranslate"><span class="pre">scope[&quot;state&quot;][&quot;store&quot;]</span></code>.</p>
-<p>If either id is missing, <code class="docutils literal notranslate"><span class="pre">store</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code> — apps are expected to handle
-that case gracefully (they do so naturally by providing a dict fallback in
-standalone mode).</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="enlace_auth.stores.middleware.StoreInjectionMiddleware">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">enlace_auth.stores.middleware.</span></span><span class="sig-name descname"><span class="pre">StoreInjectionMiddleware</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">app</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_store</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MutableMapping</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/enlace_auth/stores/middleware.html#StoreInjectionMiddleware"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.stores.middleware.StoreInjectionMiddleware" title="Link to this definition"></a></dt>
-<dd><p>Pure-ASGI middleware that injects <code class="docutils literal notranslate"><span class="pre">request.state.store</span></code>.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="enlace_auth.stores.middleware.make_store_router">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.stores.middleware.</span></span><span class="sig-name descname"><span class="pre">make_store_router</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_store_getter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">MutableMapping</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protected_apps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">APIRouter</span></span></span><a class="reference internal" href="../../../_modules/enlace_auth/stores/middleware.html#make_store_router"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.stores.middleware.make_store_router" title="Link to this definition"></a></dt>
-<dd><p>Return a router exposing <code class="docutils literal notranslate"><span class="pre">/api/{app_id}/store/{key}</span></code> endpoints.</p>
-<p>Only apps whose name is in <code class="docutils literal notranslate"><span class="pre">protected_apps</span></code> (i.e. <code class="docutils literal notranslate"><span class="pre">protected:user</span></code>
-access level) can have their store accessed this way. The router assumes
-<code class="docutils literal notranslate"><span class="pre">PlatformAuthMiddleware</span></code> has already set <code class="docutils literal notranslate"><span class="pre">request.state.user_id</span></code>.</p>
-</dd></dl>
-
+  <section id="enlace-auth-stores-middleware">
+<h1>enlace_auth.stores.middleware<a class="headerlink" href="#enlace-auth-stores-middleware" title="Link to this heading"></a></h1>
 </section>
 
 

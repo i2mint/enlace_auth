@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.auth.routes &mdash; enlace_auth 0.1.1 documentation</title>
+  <title>enlace_auth.auth.routes &mdash; enlace_auth 0.1.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -15,9 +15,9 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=a58bc63e"></script>
-      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/documentation_options.js?v=92734c54"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/toggleprompt.js?v=d7ede5d2"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../../_static/copybutton.js?v=f281be69"></script>
@@ -58,10 +58,7 @@
 <li class="toctree-l1"><a class="reference internal" href="middleware.html">enlace_auth.auth.middleware</a></li>
 <li class="toctree-l1"><a class="reference internal" href="oauth.html">enlace_auth.auth.oauth</a></li>
 <li class="toctree-l1"><a class="reference internal" href="passwords.html">enlace_auth.auth.passwords</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">enlace_auth.auth.routes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#enlace_auth.auth.routes.make_auth_router"><code class="docutils literal notranslate"><span class="pre">make_auth_router()</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">enlace_auth.auth.routes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sessions.html">enlace_auth.auth.sessions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config.html">enlace_auth.config</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../diagnostics.html">enlace_auth.diagnostics</a></li>
@@ -97,17 +94,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-enlace_auth.auth.routes">
-<span id="enlace-auth-auth-routes"></span><h1>enlace_auth.auth.routes<a class="headerlink" href="#module-enlace_auth.auth.routes" title="Link to this heading"></a></h1>
-<p>Auth HTTP routes: register, login, logout, shared-login, csrf.</p>
-<p>OAuth routes live in <code class="docutils literal notranslate"><span class="pre">enlace.auth.oauth</span></code> and are attached separately so the
-Authlib dependency stays lazy.</p>
-<dl class="py function">
-<dt class="sig sig-object py" id="enlace_auth.auth.routes.make_auth_router">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.routes.</span></span><span class="sig-name descname"><span class="pre">make_auth_router</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">*,</span> <span class="pre">session_store:</span> <span class="pre">~enlace_auth.auth.sessions.SessionStore,</span> <span class="pre">user_store,</span> <span class="pre">signing_key:</span> <span class="pre">str,</span> <span class="pre">cookie_name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'enlace_session',</span> <span class="pre">session_max_age:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">86400,</span> <span class="pre">secure_cookies:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">shared_password_for:</span> <span class="pre">~typing.Callable[[str],</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">APIRouter</span></span></span><a class="reference internal" href="../../../_modules/enlace_auth/auth/routes.html#make_auth_router"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.routes.make_auth_router" title="Link to this definition"></a></dt>
-<dd><p>Build a FastAPI router exposing <code class="docutils literal notranslate"><span class="pre">/auth/*</span></code> endpoints.</p>
-</dd></dl>
-
+  <section id="enlace-auth-auth-routes">
+<h1>enlace_auth.auth.routes<a class="headerlink" href="#enlace-auth-auth-routes" title="Link to this heading"></a></h1>
 </section>
 
 

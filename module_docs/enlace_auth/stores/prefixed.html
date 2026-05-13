@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.stores.prefixed &mdash; enlace_auth 0.1.1 documentation</title>
+  <title>enlace_auth.stores.prefixed &mdash; enlace_auth 0.1.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -15,9 +15,9 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=a58bc63e"></script>
-      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/documentation_options.js?v=92734c54"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/toggleprompt.js?v=d7ede5d2"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../../_static/copybutton.js?v=f281be69"></script>
@@ -66,10 +66,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../stores.html">enlace_auth.stores</a></li>
 <li class="toctree-l1"><a class="reference internal" href="backends.html">enlace_auth.stores.backends</a></li>
 <li class="toctree-l1"><a class="reference internal" href="middleware.html">enlace_auth.stores.middleware</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">enlace_auth.stores.prefixed</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#enlace_auth.stores.prefixed.PrefixedStore"><code class="docutils literal notranslate"><span class="pre">PrefixedStore</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">enlace_auth.stores.prefixed</a></li>
 <li class="toctree-l1"><a class="reference internal" href="validation.html">enlace_auth.stores.validation</a></li>
 </ul>
 
@@ -97,20 +94,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-enlace_auth.stores.prefixed">
-<span id="enlace-auth-stores-prefixed"></span><h1>enlace_auth.stores.prefixed<a class="headerlink" href="#module-enlace_auth.stores.prefixed" title="Link to this heading"></a></h1>
-<p>PrefixedStore — MutableMapping wrapper that scopes keys under a prefix.</p>
-<p>The per-user injection pattern: a single base store is shared across all users
-and apps, but each request sees a <code class="docutils literal notranslate"><span class="pre">PrefixedStore(base,</span> <span class="pre">f&quot;{user_id}/{app_id}/&quot;)</span></code>
-so keys can’t collide across tenants.</p>
-<p>Keys the caller passes are validated via <code class="docutils literal notranslate"><span class="pre">sanitize_key</span></code>; the prefix itself is
-sanitized at construction (each slash-separated segment).</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="enlace_auth.stores.prefixed.PrefixedStore">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">enlace_auth.stores.prefixed.</span></span><span class="sig-name descname"><span class="pre">PrefixedStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MutableMapping</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/enlace_auth/stores/prefixed.html#PrefixedStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.stores.prefixed.PrefixedStore" title="Link to this definition"></a></dt>
-<dd><p>Transparently prepend a prefix to every key operation on a base store.</p>
-</dd></dl>
-
+  <section id="enlace-auth-stores-prefixed">
+<h1>enlace_auth.stores.prefixed<a class="headerlink" href="#enlace-auth-stores-prefixed" title="Link to this heading"></a></h1>
 </section>
 
 

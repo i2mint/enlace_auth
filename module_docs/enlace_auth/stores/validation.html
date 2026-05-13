@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.stores.validation &mdash; enlace_auth 0.1.1 documentation</title>
+  <title>enlace_auth.stores.validation &mdash; enlace_auth 0.1.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -15,9 +15,9 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=a58bc63e"></script>
-      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/documentation_options.js?v=92734c54"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/toggleprompt.js?v=d7ede5d2"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../../_static/copybutton.js?v=f281be69"></script>
@@ -66,10 +66,7 @@
 <li class="toctree-l1"><a class="reference internal" href="backends.html">enlace_auth.stores.backends</a></li>
 <li class="toctree-l1"><a class="reference internal" href="middleware.html">enlace_auth.stores.middleware</a></li>
 <li class="toctree-l1"><a class="reference internal" href="prefixed.html">enlace_auth.stores.prefixed</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">enlace_auth.stores.validation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#enlace_auth.stores.validation.sanitize_key"><code class="docutils literal notranslate"><span class="pre">sanitize_key()</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">enlace_auth.stores.validation</a></li>
 </ul>
 
         </div>
@@ -96,22 +93,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-enlace_auth.stores.validation">
-<span id="enlace-auth-stores-validation"></span><h1>enlace_auth.stores.validation<a class="headerlink" href="#module-enlace_auth.stores.validation" title="Link to this heading"></a></h1>
-<p>Key sanitization for user-supplied store keys.</p>
-<p>Blocks the standard path-traversal attack surface: <code class="docutils literal notranslate"><span class="pre">..</span></code> segments, backslashes,
-null bytes, control characters, absolute paths, and URL-encoded variants. Keys
-that survive sanitization are still filesystem-safe and can be composed into a
-prefix without risk of escaping the tenant namespace.</p>
-<dl class="py function">
-<dt class="sig sig-object py" id="enlace_auth.stores.validation.sanitize_key">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.stores.validation.</span></span><span class="sig-name descname"><span class="pre">sanitize_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../../../_modules/enlace_auth/stores/validation.html#sanitize_key"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.stores.validation.sanitize_key" title="Link to this definition"></a></dt>
-<dd><p>Return <code class="docutils literal notranslate"><span class="pre">key</span></code> unchanged if safe for use as a store path component.</p>
-<p>Raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> with a specific reason if the key is unsafe. The goal
-is fail-fast: we want the caller to see exactly why a key was rejected, not
-a silently rewritten value.</p>
-</dd></dl>
-
+  <section id="enlace-auth-stores-validation">
+<h1>enlace_auth.stores.validation<a class="headerlink" href="#enlace-auth-stores-validation" title="Link to this heading"></a></h1>
 </section>
 
 
