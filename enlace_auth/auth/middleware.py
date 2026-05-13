@@ -10,10 +10,17 @@ Runs before any mounted sub-app. Responsibilities:
    treated as ``protected:user``.
 4. For ``public`` / ``local``, pass through with ``user_id=None``.
 5. For ``protected:shared``, look for a per-app signed cookie; on failure
-   return 401.
+   return 401 (JSON) or redirect browsers to ``login_redirect_path``.
 6. For ``protected:user``, look for the platform session cookie, load the
    session from ``SessionStore``, set ``user_id`` / ``user_email``; on
-   failure return 401.
+   failure return 401 (JSON) or redirect browsers to ``login_redirect_path``.
+
+Browser vs. API deny behavior: GET/HEAD navigations that look like a browser
+(``Accept`` header contains ``text/html``) get a 303 redirect to the login
+page with ``?login_required=1&next=<original-path>``, so the user lands
+somewhere meaningful instead of seeing a raw JSON error. Non-HTML requests
+(XHR, fetch with ``Accept: application/json``, curl, etc.) keep getting the
+machine-readable 401.
 
 Design notes:
 - Pure ASGI three-callable pattern. Never ``BaseHTTPMiddleware`` (see
@@ -135,8 +142,52 @@ async def _send_json_response(send, status: int, body: dict):
     await send({"type": "http.response.body", "body": data})
 
 
+async def _send_redirect(send, location: str):
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 303,
+            "headers": [
+                (b"location", location.encode("latin-1")),
+                (b"content-type", b"text/html; charset=utf-8"),
+                (b"cache-control", b"no-store"),
+            ],
+        }
+    )
+    await send({"type": "http.response.body", "body": b""})
+
+
 async def _reject_websocket(send):
     await send({"type": "websocket.close", "code": 1008})
+
+
+def _wants_html(scope) -> bool:
+    """True if the request looks like a browser HTML navigation.
+
+    Heuristic: GET/HEAD with an ``Accept`` header that prefers ``text/html``.
+    XHR/fetch calls typically send ``Accept: application/json`` (or ``*/*``
+    with ``X-Requested-With`` / ``Sec-Fetch-Mode: cors``), so they still get
+    the JSON 401.
+    """
+    if scope.get("method", "GET").upper() not in ("GET", "HEAD"):
+        return False
+    for k, v in scope.get("headers", []):
+        if k.lower() == b"accept":
+            return b"text/html" in v.lower()
+    return False
+
+
+def _redirect_target(scope, login_path: str) -> str:
+    """Build the login-redirect URL, preserving the original path as ``next``."""
+    from urllib.parse import quote
+
+    raw_path = scope.get("path", "/") or "/"
+    raw_qs = scope.get("query_string", b"") or b""
+    nxt = raw_path
+    if raw_qs:
+        nxt = f"{raw_path}?{raw_qs.decode('latin-1')}"
+    sep = "&" if "?" in login_path else "?"
+    return f"{login_path}{sep}login_required=1&next={quote(nxt, safe='')}"
 
 
 class PlatformAuthMiddleware:
@@ -152,6 +203,7 @@ class PlatformAuthMiddleware:
         cookie_name: str = "enlace_session",
         max_age: int = 86400,
         auth_path_prefix: str = "/auth",
+        login_redirect_path: str = "/",
     ):
         self.app = app
         self._rules = list(access_rules)
@@ -160,6 +212,7 @@ class PlatformAuthMiddleware:
         self._cookie = cookie_name
         self._max_age = max_age
         self._auth_prefix = auth_path_prefix
+        self._login_redirect = login_redirect_path
 
     async def __call__(self, scope, receive, send):
         if scope["type"] not in ("http", "websocket"):
@@ -270,6 +323,9 @@ class PlatformAuthMiddleware:
     async def _deny(self, scope, send, kind: str):
         if scope["type"] == "websocket":
             await _reject_websocket(send)
+            return
+        if _wants_html(scope):
+            await _send_redirect(send, _redirect_target(scope, self._login_redirect))
             return
         await _send_json_response(
             send, 401, {"detail": "Not authenticated", "auth": kind}

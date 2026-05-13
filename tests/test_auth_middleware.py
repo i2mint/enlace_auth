@@ -90,18 +90,31 @@ def _make_mw(rules=None, session_store=None):
     )
 
 
-def _http_scope(path, cookies=None):
+def _http_scope(path, cookies=None, *, accept=None, query_string=b""):
     headers = []
     if cookies:
         cookie_str = "; ".join(f"{k}={v}" for k, v in cookies.items())
         headers.append((b"cookie", cookie_str.encode()))
+    if accept is not None:
+        headers.append((b"accept", accept.encode("latin-1")))
     return {
         "type": "http",
         "method": "GET",
         "path": path,
+        "query_string": query_string,
         "headers": headers,
         "state": {},
     }
+
+
+def _location_header(messages) -> str | None:
+    for m in messages:
+        if m["type"] == "http.response.start":
+            for k, v in m.get("headers", []):
+                if k.lower() == b"location":
+                    return v.decode("latin-1")
+            return None
+    return None
 
 
 def test_public_app_passes_through():
@@ -202,3 +215,107 @@ def test_traversal_path_rejected():
     cap = _Capture()
     _run(mw(_http_scope("/foo/%2e%2e/etc"), cap.receive, cap.send))
     assert cap.status() == 400
+
+
+def test_browser_navigation_redirects_to_login():
+    """HTML navigations to a protected path get a 303 to the login page,
+    not a raw JSON 401 (which browsers can't act on).
+    """
+    mw = _make_mw([AccessRule(prefix="/xa", level="protected:user", app_id="xa")])
+    cap = _Capture()
+    _run(
+        mw(
+            _http_scope("/xa/", accept="text/html,application/xhtml+xml"),
+            cap.receive,
+            cap.send,
+        )
+    )
+    assert cap.status() == 303
+    loc = _location_header(cap.messages)
+    assert loc is not None
+    assert loc.startswith("/?")
+    assert "login_required=1" in loc
+    assert "next=%2Fxa%2F" in loc
+
+
+def test_browser_redirect_preserves_query_string():
+    mw = _make_mw([AccessRule(prefix="/xa", level="protected:user", app_id="xa")])
+    cap = _Capture()
+    _run(
+        mw(
+            _http_scope("/xa/page", accept="text/html", query_string=b"a=1&b=2"),
+            cap.receive,
+            cap.send,
+        )
+    )
+    assert cap.status() == 303
+    loc = _location_header(cap.messages)
+    assert "next=%2Fxa%2Fpage%3Fa%3D1%26b%3D2" in loc
+
+
+def test_xhr_request_still_gets_json_401():
+    """Non-HTML callers (fetch/XHR/curl) keep getting JSON 401 so client code
+    can detect auth failure programmatically.
+    """
+    mw = _make_mw([AccessRule(prefix="/xa", level="protected:user", app_id="xa")])
+    cap = _Capture()
+    _run(mw(_http_scope("/xa/", accept="application/json"), cap.receive, cap.send))
+    assert cap.status() == 401
+
+
+def test_no_accept_header_gets_json_401():
+    """Default behavior for clients without an Accept header (e.g. curl) is
+    still JSON 401 — only explicit text/html opts into the redirect.
+    """
+    mw = _make_mw([AccessRule(prefix="/xa", level="protected:user", app_id="xa")])
+    cap = _Capture()
+    _run(mw(_http_scope("/xa/"), cap.receive, cap.send))
+    assert cap.status() == 401
+
+
+def test_forbidden_user_also_redirects_browsers():
+    """A logged-in user hitting an app they're not in `allowed_users` for
+    should also get the browser-friendly redirect, not raw JSON.
+    """
+    from enlace_auth.auth import SessionStore, sign_cookie
+
+    sessions = SessionStore({})
+    sid = sessions.create("alice", "alice@example.com")
+    token = sign_cookie(sid, SIGNING_KEY, salt="session")
+    mw = _make_mw(
+        [
+            AccessRule(
+                prefix="/xa",
+                level="protected:user",
+                app_id="xa",
+                allowed_users=("bob@example.com",),
+            )
+        ],
+        session_store=sessions,
+    )
+    cap = _Capture()
+    _run(
+        mw(
+            _http_scope("/xa/", cookies={"enlace_session": token}, accept="text/html"),
+            cap.receive,
+            cap.send,
+        )
+    )
+    assert cap.status() == 303
+
+
+def test_custom_login_redirect_path():
+    sessions = SessionStore({})
+    mw = PlatformAuthMiddleware(
+        _ok_app,
+        access_rules=[AccessRule(prefix="/x", level="protected:user", app_id="x")],
+        session_store=sessions,
+        signing_key=SIGNING_KEY,
+        login_redirect_path="/landing/?welcome=1",
+    )
+    cap = _Capture()
+    _run(mw(_http_scope("/x/", accept="text/html"), cap.receive, cap.send))
+    assert cap.status() == 303
+    loc = _location_header(cap.messages)
+    assert loc.startswith("/landing/?welcome=1&")
+    assert "login_required=1" in loc
