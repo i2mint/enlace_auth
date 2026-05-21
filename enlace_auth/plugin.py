@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 from enlace_auth.config import coerce_auth_config, coerce_stores_map
 
@@ -90,6 +90,50 @@ def _read_admin_emails(env_var: str) -> tuple[str, ...]:
     return tuple(e.strip().lower() for e in raw.split(",") if e.strip())
 
 
+def _build_can_register(
+    auth_cfg, admin_emails: tuple[str, ...]
+) -> Callable[[str], bool]:
+    """Build the predicate deciding whether an email may self-register.
+
+    Open registration → always True. Otherwise only admin emails and emails
+    listed in ``registration_allowlist_env`` may sign up (via ``/auth/register``
+    or an OAuth first-login); everyone else is refused with 403.
+    """
+    if getattr(auth_cfg, "registration_open", False):
+        return lambda _email: True
+    allow = {e.lower() for e in admin_emails}
+    allowlist_env = getattr(auth_cfg, "registration_allowlist_env", "") or ""
+    raw = os.environ.get(allowlist_env, "")
+    allow |= {e.strip().lower() for e in raw.split(",") if e.strip()}
+    return lambda email: email.lower() in allow
+
+
+def _build_email_sender():
+    """Build an SMTP email sender from ``ENLACE_SMTP_*`` env vars, or None.
+
+    Returns None when no SMTP host is set — the auth router then falls back to
+    its console sender, which logs the password-reset link instead of mailing
+    it. Recognized vars: ``ENLACE_SMTP_HOST`` (required to enable SMTP),
+    ``ENLACE_SMTP_PORT`` (587), ``ENLACE_SMTP_USER``, ``ENLACE_SMTP_PASSWORD``,
+    ``ENLACE_SMTP_FROM``, ``ENLACE_SMTP_TLS`` (``0`` to disable STARTTLS).
+    """
+    host = os.environ.get("ENLACE_SMTP_HOST", "").strip()
+    if not host:
+        return None
+    from enlace_auth.auth.email import make_smtp_sender
+
+    username = os.environ.get("ENLACE_SMTP_USER") or None
+    from_addr = os.environ.get("ENLACE_SMTP_FROM") or username or "noreply@localhost"
+    return make_smtp_sender(
+        host=host,
+        port=int(os.environ.get("ENLACE_SMTP_PORT", "587")),
+        username=username,
+        password=os.environ.get("ENLACE_SMTP_PASSWORD") or None,
+        from_addr=from_addr,
+        use_tls=os.environ.get("ENLACE_SMTP_TLS", "1") != "0",
+    )
+
+
 def wire(parent: "FastAPI", config) -> None:
     """Mount /auth/*, /_admin/*, store routes, and middleware on ``parent``.
 
@@ -127,6 +171,8 @@ def wire(parent: "FastAPI", config) -> None:
         user_data_backend = user_data_factory("user_data")
 
     admin_emails = _read_admin_emails(auth_cfg.admin_emails_env)
+    can_register = _build_can_register(auth_cfg, admin_emails)
+    email_sender = _build_email_sender()
 
     # Build access rules and shared-password lookup.
     # Two rules per app: the API prefix (/api/{name}) AND the frontend prefix
@@ -190,6 +236,8 @@ def wire(parent: "FastAPI", config) -> None:
         session_max_age=auth_cfg.session_max_age_seconds,
         secure_cookies=auth_cfg.secure_cookies,
         shared_password_for=shared_hashes.get,
+        can_register=can_register,
+        send_email=email_sender,
     )
     parent.include_router(auth_router)
 
@@ -206,6 +254,7 @@ def wire(parent: "FastAPI", config) -> None:
                 cookie_name=auth_cfg.session_cookie_name,
                 session_max_age=auth_cfg.session_max_age_seconds,
                 secure_cookies=auth_cfg.secure_cookies,
+                can_register=can_register,
             )
             if oauth_router is not None:
                 parent.include_router(oauth_router)
@@ -252,6 +301,19 @@ def wire(parent: "FastAPI", config) -> None:
             if prefix not in csrf_exempt:
                 csrf_exempt.append(prefix)
 
+    # CSRF exempt prefixes: the default exempts /api/ (asgi-mode sub-app APIs
+    # mounted at the conventional prefix). Non-asgi modes (process/external)
+    # proxy to a black-box upstream that can't participate in enlace's
+    # double-submit flow, so their entire mount prefix must also be exempt.
+    csrf_exempt = ["/auth/callback", "/auth/login/", "/api/"]
+    for app in getattr(config, "apps", []):
+        if getattr(app, "mode", "asgi") in ("process", "external"):
+            prefix = app.route_prefix
+            if not prefix.endswith("/"):
+                prefix = prefix + "/"
+            if prefix not in csrf_exempt:
+                csrf_exempt.append(prefix)
+
     # Register middleware in the order requests traverse them:
     # outermost = first added last. FastAPI/Starlette runs middleware in
     # reverse insertion order, so the last `add_middleware` call is the
@@ -267,6 +329,11 @@ def wire(parent: "FastAPI", config) -> None:
         signing_key=signing_key,
         cookie_name=auth_cfg.session_cookie_name,
         max_age=auth_cfg.session_max_age_seconds,
+        # Browser navigations to a gated page are redirected here (with
+        # ?login_required=1&next=<path>) instead of bounced to the landing
+        # app, which would silently drop those hints. The auth router serves
+        # the actual sign-in form at this path.
+        login_redirect_path="/auth/login",
     )
 
 

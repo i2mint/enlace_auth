@@ -6,13 +6,13 @@ into ``enlace.doctor.run_doctor`` via ``extra_static_checks`` /
 from __future__ import annotations
 
 import pytest
-
 from enlace import doctor as doctor_mod
 from enlace.base import PlatformConfig
 from enlace.compose import build_backend
 from enlace.discover import discover_apps
-from enlace_auth import plugin as auth_plugin
+
 from enlace_auth import diagnostics as auth_diag
+from enlace_auth import plugin as auth_plugin
 from enlace_auth.config import AuthConfig
 
 _KEY_ENV = "ENLACE_TEST_SIGNING_KEY"

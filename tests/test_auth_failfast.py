@@ -12,10 +12,10 @@ Since auth was extracted out of enlace, the fail-fast happens inside
 from __future__ import annotations
 
 import pytest
-
 from enlace import build_backend
 from enlace.base import PlatformConfig
 from enlace.discover import discover_apps
+
 from enlace_auth import EnlaceAuthConfigError
 from enlace_auth import plugin as auth_plugin
 from enlace_auth.config import AuthConfig

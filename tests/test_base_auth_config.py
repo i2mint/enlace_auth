@@ -7,6 +7,7 @@ After the auth split, ``PlatformConfig`` keeps these tables as untyped dicts.
 from pathlib import Path
 
 from enlace.base import AppConfig, PlatformConfig
+
 from enlace_auth.config import coerce_auth_config, coerce_stores_map
 
 

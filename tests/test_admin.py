@@ -9,13 +9,12 @@ from __future__ import annotations
 import textwrap
 
 import pytest
-from starlette.testclient import TestClient
-
 from enlace.base import PlatformConfig
 from enlace.compose import build_backend
 from enlace.discover import discover_apps
-from enlace_auth import plugin as auth_plugin
+from starlette.testclient import TestClient
 
+from enlace_auth import plugin as auth_plugin
 
 _SIGNING_KEY = "admin-test-key-thirtytwobyteslong!!"
 
@@ -51,6 +50,8 @@ def admin_client(tmp_path, monkeypatch):
         auth={
             "enabled": True,
             "secure_cookies": False,
+            # These tests register non-admin users to exercise admin endpoints.
+            "registration_open": True,
             "stores": {"backend": "file", "path": str(tmp_path / "platform")},
         },
         stores={"user_data": {"backend": "file", "path": str(tmp_path / "data")}},

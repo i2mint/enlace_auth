@@ -3,7 +3,6 @@
 import textwrap
 
 import pytest
-
 from enlace.base import PlatformConfig
 
 
