@@ -260,9 +260,7 @@ def test_password_recovery_end_to_end(e2e_client, caplog):
     token = match.group(1)
 
     assert (
-        e2e_client.get(
-            "/auth/reset-password", params={"token": token}
-        ).status_code
+        e2e_client.get("/auth/reset-password", params={"token": token}).status_code
         == 200
     )
 

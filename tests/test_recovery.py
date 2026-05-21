@@ -92,9 +92,7 @@ def test_forgot_password_page_renders():
 
 def test_reset_request_known_user_sends_link():
     client, _, sent = _make(_one_user())
-    r = client.post(
-        "/auth/password-reset/request", json={"email": "alice@example.com"}
-    )
+    r = client.post("/auth/password-reset/request", json={"email": "alice@example.com"})
     assert r.status_code == 200 and r.json() == {"ok": True}
     assert len(sent) == 1
     assert "/auth/reset-password?token=" in sent[0]["body"]

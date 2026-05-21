@@ -150,8 +150,7 @@ def render_login_page(
     """
     next_js = escape(next_url, quote=True)
     hint = (
-        '<p class="muted">No account? Accounts are created by the platform '
-        "admin.</p>"
+        '<p class="muted">No account? Accounts are created by the platform admin.</p>'
         if show_register_hint
         else ""
     )
@@ -359,4 +358,3 @@ def render_notice_page(
 <div class="actions">{link_html}</div>
 </div>"""
     return _page(title, body)
-

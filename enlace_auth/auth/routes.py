@@ -275,9 +275,7 @@ def make_auth_router(
         """Serve the 'request a reset link' form."""
         return HTMLResponse(pages.render_forgot_page())
 
-    @router.get(
-        "/reset-password", response_class=HTMLResponse, include_in_schema=False
-    )
+    @router.get("/reset-password", response_class=HTMLResponse, include_in_schema=False)
     async def reset_password_page(request: Request) -> HTMLResponse:
         """Serve the 'set a new password' form, or a notice if the link is bad."""
         token = request.query_params.get("token", "")
@@ -345,9 +343,7 @@ def make_auth_router(
         if len(body.new_password) < _MIN_PASSWORD_LEN:
             raise HTTPException(
                 status_code=400,
-                detail=(
-                    f"Password must be at least {_MIN_PASSWORD_LEN} characters."
-                ),
+                detail=(f"Password must be at least {_MIN_PASSWORD_LEN} characters."),
             )
         email, record = _verify_reset_token(body.token)
         if email is None or record is None:
