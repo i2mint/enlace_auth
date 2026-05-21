@@ -57,6 +57,24 @@ class AuthConfig(BaseModel):
             "see the dashboard at /_admin and can manage users."
         ),
     )
+    registration_open: bool = Field(
+        default=False,
+        description=(
+            "Whether anyone can self-register via /auth/register or OAuth. "
+            "When False (default), only emails listed in "
+            "registration_allowlist_env (or admin_emails_env) can complete "
+            "signup; everyone else gets 403. Existing users can always log "
+            "in regardless of this setting."
+        ),
+    )
+    registration_allowlist_env: str = Field(
+        default="ENLACE_REGISTRATION_ALLOWLIST",
+        description=(
+            "Env var holding a comma-separated list of emails permitted to "
+            "self-register (via /auth/register or OAuth callback) when "
+            "registration_open is False. Admin emails are always allowed."
+        ),
+    )
 
 
 def coerce_auth_config(raw: Any) -> AuthConfig:

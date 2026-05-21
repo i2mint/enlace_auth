@@ -10,13 +10,13 @@ from __future__ import annotations
 import textwrap
 
 import pytest
-from starlette.testclient import TestClient
-
-from enlace_auth.auth import hash_password
 from enlace.base import PlatformConfig
 from enlace.compose import build_backend
 from enlace.discover import discover_apps
+from starlette.testclient import TestClient
+
 from enlace_auth import plugin as auth_plugin
+from enlace_auth.auth import hash_password
 
 
 def _make_apps(apps_dir):
@@ -94,6 +94,8 @@ def e2e_client(tmp_path, monkeypatch):
         auth={
             "enabled": True,
             "secure_cookies": False,
+            # The e2e flow exercises self-registration end to end.
+            "registration_open": True,
             "stores": {"backend": "file", "path": str(platform_store)},
         },
         stores={"user_data": {"backend": "file", "path": str(user_data)}},
@@ -125,6 +127,23 @@ def test_public_app_accessible_without_login(e2e_client):
 def test_protected_app_denied_without_session(e2e_client):
     r = e2e_client.get("/api/private_app/me")
     assert r.status_code == 401
+
+
+def test_protected_app_html_navigation_lands_on_login(e2e_client):
+    """A browser navigation to a gated app is redirected to the sign-in page."""
+    r = e2e_client.get(
+        "/api/private_app/me",
+        headers={"Accept": "text/html"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    loc = r.headers["location"]
+    assert loc.startswith("/auth/login")
+    assert "next=" in loc
+    # Following the redirect renders the actual sign-in form.
+    page = e2e_client.get(loc)
+    assert page.status_code == 200
+    assert "Sign in" in page.text
 
 
 def test_register_login_access_store_logout(e2e_client):
@@ -210,3 +229,60 @@ def test_identity_header_stripped(e2e_client):
     assert r.status_code == 200
     # Public app sets no session, so user_id is None even with header present.
     assert r.json()["user_id"] is None
+
+
+def test_password_recovery_end_to_end(e2e_client, caplog):
+    """Forgot-password flow through the full stack, incl. the CSRF dance."""
+    import logging
+    import re
+
+    raw, _ = _csrf_pair(e2e_client)
+    headers = {"X-CSRF-Token": raw}
+
+    reg = e2e_client.post(
+        "/auth/register",
+        json={"email": "recover@example.com", "password": "original-pw"},
+        headers=headers,
+    )
+    assert reg.status_code == 200
+
+    # Request a reset link — the console email sender logs it.
+    with caplog.at_level(logging.WARNING, logger="enlace_auth.email"):
+        req = e2e_client.post(
+            "/auth/password-reset/request",
+            json={"email": "recover@example.com"},
+            headers=headers,
+        )
+    assert req.status_code == 200
+    logged = "\n".join(rec.getMessage() for rec in caplog.records)
+    match = re.search(r"token=(\S+)", logged)
+    assert match, f"no reset link logged: {logged!r}"
+    token = match.group(1)
+
+    assert (
+        e2e_client.get(
+            "/auth/reset-password", params={"token": token}
+        ).status_code
+        == 200
+    )
+
+    confirm = e2e_client.post(
+        "/auth/password-reset/confirm",
+        json={"token": token, "new_password": "a-fresh-pw"},
+        headers=headers,
+    )
+    assert confirm.status_code == 200
+
+    e2e_client.post("/auth/logout", headers=headers)
+    bad = e2e_client.post(
+        "/auth/login",
+        json={"email": "recover@example.com", "password": "original-pw"},
+        headers=headers,
+    )
+    assert bad.status_code == 401
+    good = e2e_client.post(
+        "/auth/login",
+        json={"email": "recover@example.com", "password": "a-fresh-pw"},
+        headers=headers,
+    )
+    assert good.status_code == 200

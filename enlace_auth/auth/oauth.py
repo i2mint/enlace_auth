@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
@@ -91,6 +91,7 @@ def make_oauth_router(
     cookie_name: str = "enlace_session",
     session_max_age: int = 86400,
     secure_cookies: bool = True,
+    can_register: Callable[[str], bool] = lambda _: False,
 ) -> Optional[APIRouter]:
     """Build an OAuth router or return None if no providers are configured."""
     if not providers:
@@ -152,6 +153,14 @@ def make_oauth_router(
 
         email = email.lower()
         if email not in user_store:
+            if not can_register(email):
+                raise HTTPException(
+                    status_code=403,
+                    detail=(
+                        "This account is not permitted to register on this "
+                        "platform. Contact the platform admin."
+                    ),
+                )
             user_store[email] = {
                 "password_hash": None,
                 "created_at": time.time(),

@@ -40,6 +40,8 @@ def _make_app(providers, user_store, session_store):
             user_store=user_store,
             signing_key=SIGNING_KEY,
             secure_cookies=False,
+            # OAuth first-login creates the account; allow it in these tests.
+            can_register=lambda _email: True,
         )
 
     app = FastAPI()
