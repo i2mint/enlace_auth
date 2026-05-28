@@ -201,6 +201,76 @@ f.addEventListener('submit', async (e) => {{
 
 
 # --------------------------------------------------------------------------
+# Shared-password sign-in (protected:shared apps)
+# --------------------------------------------------------------------------
+
+
+def render_shared_login_page(
+    *,
+    app: str,
+    next_url: str = "/",
+    error: Optional[str] = None,
+) -> str:
+    """Render the shared-password form for a ``protected:shared`` app.
+
+    Unlike :func:`render_login_page` this asks for a single shared password
+    (no email) and posts to ``/auth/shared-login`` with the ``app`` id, so a
+    browser hitting a password-gated app with no frontend has something to
+    fill in.
+
+    Args:
+        app: the app id whose shared password is being entered. Shown to the
+            user and threaded into the POST body.
+        next_url: where to send the browser after success. Already sanitized
+            by the caller via :func:`safe_next`.
+        error: optional error banner.
+    """
+    app_js = escape(app, quote=True)
+    next_js = escape(next_url, quote=True)
+    app_disp = escape(app)
+    body = f"""<div class="card">
+<h1>Enter password</h1>
+<p class="sub"><code>{app_disp}</code> is protected by a shared password.</p>
+<form id="f">
+  <label for="password">Password</label>
+  <input id="password" name="password" type="password" required autofocus
+         autocomplete="current-password">
+  <button id="submit" type="submit">Continue</button>
+</form>
+{_msg_div(error)}
+<div class="nav">
+  <a href="/">Back to apps</a>
+</div>
+</div>
+<script>
+{_CSRF_JS}
+const APP = "{app_js}";
+const NEXT = "{next_js}";
+const f = document.getElementById('f');
+const msg = document.getElementById('msg');
+const submit = document.getElementById('submit');
+f.addEventListener('submit', async (e) => {{
+  e.preventDefault();
+  msg.className = 'msg'; submit.disabled = true; submit.textContent = 'Checking…';
+  try {{
+    const res = await postJSON('/auth/shared-login', {{
+      app: APP,
+      password: document.getElementById('password').value,
+    }});
+    if (res.ok) {{ window.location.assign(NEXT || '/'); return; }}
+    msg.textContent = res.detail || ('Sign in failed (' + res.status + ').');
+    msg.className = 'msg err';
+  }} catch (err) {{
+    msg.textContent = err.message || 'Something went wrong.';
+    msg.className = 'msg err';
+  }}
+  submit.disabled = false; submit.textContent = 'Continue';
+}});
+</script>"""
+    return _page("Enter password", body)
+
+
+# --------------------------------------------------------------------------
 # Forgot password — request a reset link
 # --------------------------------------------------------------------------
 

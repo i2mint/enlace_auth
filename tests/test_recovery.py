@@ -42,6 +42,26 @@ def _make(users=None):
     return TestClient(app), users, sent
 
 
+def _make_shared(app="xa", password="letmein"):
+    """Build a TestClient over an auth router with one shared-password app."""
+    sessions = SessionStore({})
+    stored = hash_password(password)
+
+    def shared_password_for(name):
+        return stored if name == app else None
+
+    router = make_auth_router(
+        session_store=sessions,
+        user_store={},
+        signing_key=KEY,
+        secure_cookies=False,
+        shared_password_for=shared_password_for,
+    )
+    fastapi_app = FastAPI()
+    fastapi_app.include_router(router)
+    return TestClient(fastapi_app)
+
+
 def _one_user():
     return {
         "alice@example.com": {
@@ -85,6 +105,72 @@ def test_forgot_password_page_renders():
     r = client.get("/auth/forgot-password")
     assert r.status_code == 200
     assert "reset" in r.text.lower()
+
+
+# --- shared-login page -----------------------------------------------------
+
+
+def test_shared_login_page_renders_for_known_app():
+    client = _make_shared(app="xa")
+    r = client.get("/auth/shared-login", params={"app": "xa"})
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert 'id="password"' in r.text
+    assert 'APP = "xa"' in r.text
+    assert "xa" in r.text
+
+
+def test_shared_login_page_threads_next():
+    client = _make_shared(app="xa")
+    r = client.get("/auth/shared-login", params={"app": "xa", "next": "/xa/page"})
+    assert 'NEXT = "/xa/page"' in r.text
+
+
+def test_shared_login_page_rejects_external_next():
+    client = _make_shared(app="xa")
+    r = client.get(
+        "/auth/shared-login",
+        params={"app": "xa", "next": "https://evil.example/x"},
+    )
+    assert "evil.example" not in r.text
+
+
+def test_shared_login_page_unknown_app_404():
+    client = _make_shared(app="xa")
+    r = client.get("/auth/shared-login", params={"app": "ghost"})
+    assert r.status_code == 404
+    assert "No such shared app" in r.text
+
+
+def test_shared_login_page_missing_app_404():
+    client = _make_shared(app="xa")
+    r = client.get("/auth/shared-login")
+    assert r.status_code == 404
+
+
+def test_shared_login_page_redirects_when_already_authed():
+    client = _make_shared(app="xa", password="letmein")
+    # Authenticate first (sets the shared_auth_xa cookie on the client).
+    posted = client.post(
+        "/auth/shared-login", json={"app": "xa", "password": "letmein"}
+    )
+    assert posted.status_code == 200
+    # Revisiting the form with the cookie present should bounce to next.
+    r = client.get(
+        "/auth/shared-login",
+        params={"app": "xa", "next": "/xa/"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    assert r.headers["location"] == "/xa/"
+
+
+def test_shared_login_post_still_returns_json():
+    client = _make_shared(app="xa", password="letmein")
+    ok = client.post("/auth/shared-login", json={"app": "xa", "password": "letmein"})
+    assert ok.status_code == 200 and ok.json()["ok"] is True
+    bad = client.post("/auth/shared-login", json={"app": "xa", "password": "wrong"})
+    assert bad.status_code == 401
 
 
 # --- reset request ---------------------------------------------------------
