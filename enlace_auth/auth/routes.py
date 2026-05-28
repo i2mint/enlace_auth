@@ -185,6 +185,34 @@ def make_auth_router(
         _clear_cookie(response, cookie_name)
         return {"ok": True}
 
+    @router.get("/shared-login", response_class=HTMLResponse, include_in_schema=False)
+    async def shared_login_page(request: Request):
+        """Serve the shared-password form for a ``protected:shared`` app.
+
+        Renders a 404 notice when ``?app=`` is missing or names an app that
+        isn't shared-password protected. Skipped (303 to ``next``) if a valid
+        shared cookie for the app is already present.
+        """
+        app = request.query_params.get("app", "")
+        next_url = pages.safe_next(request.query_params.get("next"))
+        if not app or shared_password_for(app) is None:
+            return HTMLResponse(
+                pages.render_notice_page(
+                    title="App not found",
+                    heading="No such shared app",
+                    message=(
+                        "This link points to an app that doesn't exist or "
+                        "isn't protected by a shared password."
+                    ),
+                    links=[("Back to apps", "/", True)],
+                ),
+                status_code=404,
+            )
+        existing = request.cookies.get(f"shared_auth_{app}")
+        if existing and verify_cookie(existing, signing_key, salt=f"shared:{app}"):
+            return RedirectResponse(next_url, status_code=303)
+        return HTMLResponse(pages.render_shared_login_page(app=app, next_url=next_url))
+
     @router.post("/shared-login")
     async def shared_login(
         body: _SharedLoginBody, response: Response
