@@ -58,6 +58,12 @@ a.btn:hover{background:#9aa6ff;text-decoration:none}
 code{background:#0f1115;padding:1px 6px;border-radius:4px;
      border:1px solid #2a2e38;color:#e6e8eb;word-break:break-all}
 .actions{text-align:center}
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:64px}
+.pw-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);
+           width:auto;margin:0;background:transparent;color:#8a90a0;border:0;
+           font-size:13px;font-weight:500;padding:4px 8px;cursor:pointer}
+.pw-toggle:hover{background:transparent;color:#7cc4ff;text-decoration:underline}
 """.strip()
 
 _SHELL = (
@@ -91,6 +97,43 @@ async function postJSON(url, data){
   return {ok:r.ok, status:r.status, detail:(body && body.detail) || ''};
 }
 """
+
+
+# Shared client helper: wire every ``.pw-toggle`` button to flip its target
+# input between ``password`` and ``text``. One handler covers all password
+# fields on a page (login has one; the reset page has two).
+_PW_TOGGLE_JS = """
+function wirePasswordToggles(){
+  document.querySelectorAll('.pw-toggle').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var inp = document.getElementById(btn.dataset.target);
+      if(!inp) return;
+      var reveal = inp.type === 'password';
+      inp.type = reveal ? 'text' : 'password';
+      btn.textContent = reveal ? 'Hide' : 'Show';
+      btn.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
+    });
+  });
+}
+wirePasswordToggles();
+"""
+
+
+def _password_input(*, id: str, autocomplete: str, extra: str = "") -> str:
+    """Render a password input wrapped with a show/hide visibility toggle.
+
+    The toggle button carries ``data-target`` so the shared
+    :data:`_PW_TOGGLE_JS` handler can flip the field's ``type``. ``extra``
+    threads through any additional input attributes (e.g. ``minlength``).
+    """
+    return (
+        f'<div class="pw-wrap">'
+        f'<input id="{id}" name="{id}" type="password" required '
+        f'autocomplete="{autocomplete}"{extra}>'
+        f'<button type="button" class="pw-toggle" data-target="{id}" '
+        f'aria-label="Show password">Show</button>'
+        f"</div>"
+    )
 
 
 def _page(title: str, body: str) -> str:
@@ -162,8 +205,7 @@ def render_login_page(
   <input id="email" name="email" type="email" required autocomplete="username"
          autofocus>
   <label for="password">Password</label>
-  <input id="password" name="password" type="password" required
-         autocomplete="current-password">
+  {_password_input(id="password", autocomplete="current-password")}
   <button id="submit" type="submit">Sign in</button>
 </form>
 {_msg_div(error)}
@@ -175,6 +217,7 @@ def render_login_page(
 </div>
 <script>
 {_CSRF_JS}
+{_PW_TOGGLE_JS}
 const NEXT = "{next_js}";
 const f = document.getElementById('f');
 const msg = document.getElementById('msg');
@@ -331,16 +374,20 @@ f.addEventListener('submit', async (e) => {{
 def render_reset_page(*, token: str, error: Optional[str] = None) -> str:
     """Render the "set a new password" form for a reset ``token``."""
     token_js = escape(token, quote=True)
+    pw_field = _password_input(
+        id="pw", autocomplete="new-password", extra=' minlength="8" autofocus'
+    )
+    pw2_field = _password_input(
+        id="pw2", autocomplete="new-password", extra=' minlength="8"'
+    )
     body = f"""<div class="card">
 <h1>Choose a new password</h1>
 <p class="sub">Enter a new password for your account.</p>
 <form id="f">
   <label for="pw">New password</label>
-  <input id="pw" name="pw" type="password" required minlength="8"
-         autocomplete="new-password" autofocus>
+  {pw_field}
   <label for="pw2">Confirm new password</label>
-  <input id="pw2" name="pw2" type="password" required minlength="8"
-         autocomplete="new-password">
+  {pw2_field}
   <button id="submit" type="submit">Set new password</button>
 </form>
 {_msg_div(error)}
@@ -350,6 +397,7 @@ def render_reset_page(*, token: str, error: Optional[str] = None) -> str:
 </div>
 <script>
 {_CSRF_JS}
+{_PW_TOGGLE_JS}
 const TOKEN = "{token_js}";
 const f = document.getElementById('f');
 const msg = document.getElementById('msg');
