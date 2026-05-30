@@ -158,7 +158,17 @@ async function api(method, path, body) {
   const r = await fetch(API + path, opts);
   if (!r.ok) {
     let msg = `${r.status} ${r.statusText}`;
-    try { const j = await r.json(); if (j.detail) msg = j.detail; } catch {}
+    try {
+      const j = await r.json();
+      if (Array.isArray(j.detail)) {
+        // FastAPI 422 (RequestValidationError) returns detail as a list of
+        // {loc, msg, type} objects — stringify each so the user sees what
+        // failed (e.g. "value is not a valid email") instead of "[object Object]".
+        msg = j.detail.map(d => d && d.msg ? d.msg : JSON.stringify(d)).join('; ');
+      } else if (j.detail) {
+        msg = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail);
+      }
+    } catch {}
     throw new Error(msg);
   }
   return r.json();
