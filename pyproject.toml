@@ -57,6 +57,14 @@ ignore = ["D203"]
 [tool.wads.ci]
 installer = "uv"
 
+[tool.wads.ci.install]
+# CI must install the test extras (httpx, authlib, pytest-asyncio), otherwise
+# the TestClient-based tests (test_admin, test_auth_e2e, test_oauth,
+# test_recovery, test_store_middleware) fail at *collection*: Starlette's
+# TestClient hard-requires httpx at import. wads' install-extras defaults to
+# empty (core deps only), so this opt-in is required.
+extras = "dev"
+
 [tool.wads.ci.testing]
 python_versions = ["3.10", "3.12"]
 coverage_enabled = false
