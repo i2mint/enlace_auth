@@ -8,11 +8,13 @@ Public helpers:
 - ``PlatformAuthMiddleware`` — pure-ASGI auth middleware.
 - ``CSRFMiddleware`` — signed double-submit CSRF.
 - ``SessionStore`` — MutableMapping-backed session storage.
+- ``GrantStore`` — MutableMapping-backed runtime per-app access grants.
 - ``hash_password`` / ``verify_password`` — argon2id helpers.
 - ``make_auth_router`` — FastAPI router for ``/auth/*`` endpoints.
 """
 
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
+from enlace_auth.auth.grants import GrantStore, parse_expires_at
 from enlace_auth.auth.middleware import (
     AccessRule,
     CSRFMiddleware,
@@ -25,10 +27,12 @@ from enlace_auth.auth.sessions import SessionStore
 __all__ = [
     "AccessRule",
     "CSRFMiddleware",
+    "GrantStore",
     "PlatformAuthMiddleware",
     "SessionStore",
     "hash_password",
     "make_auth_router",
+    "parse_expires_at",
     "sign_cookie",
     "verify_cookie",
     "verify_password",

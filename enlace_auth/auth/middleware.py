@@ -30,12 +30,15 @@ Design notes:
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
-from typing import Iterable, Optional
+from typing import Callable, Iterable, Optional
 from urllib.parse import unquote
 
 from enlace_auth.auth.cookies import verify_cookie
 from enlace_auth.auth.sessions import SessionStore
+
+_logger = logging.getLogger("enlace_auth.middleware")
 
 # Headers clients could try to spoof identity with. Always stripped inbound.
 _IDENTITY_HEADERS = (
@@ -204,6 +207,7 @@ class PlatformAuthMiddleware:
         max_age: int = 86400,
         auth_path_prefix: str = "/auth",
         login_redirect_path: str = "/",
+        dynamic_allowed_users: Optional[Callable[[str], set[str]]] = None,
     ):
         self.app = app
         self._rules = list(access_rules)
@@ -213,6 +217,11 @@ class PlatformAuthMiddleware:
         self._max_age = max_age
         self._auth_prefix = auth_path_prefix
         self._login_redirect = login_redirect_path
+        # Optional resolver: ``app_id -> set[email]`` of currently-active runtime
+        # grants, consulted live per request. Layered ON TOP of each rule's
+        # static ``allowed_users``. When None (the default), behavior is
+        # identical to a config-only whitelist.
+        self._dynamic = dynamic_allowed_users
 
     async def __call__(self, scope, receive, send):
         if scope["type"] not in ("http", "websocket"):
@@ -309,10 +318,35 @@ class PlatformAuthMiddleware:
                 return await self._deny(scope, send, "user")
             state["user_id"] = session.get("user_id")
             state["user_email"] = session.get("email")
-            # Optional per-app user whitelist.
-            if rule is not None and rule.allowed_users:
-                who = state.get("user_email") or state.get("user_id")
-                if who not in rule.allowed_users:
+            # Per-app user whitelist = static config ``allowed_users`` ∪ active
+            # runtime grants (the dynamic resolver, when wired). Gate ONLY when
+            # the resulting set is non-empty, so an app with neither stays open
+            # to any authenticated user (preserving the empty-allowed_users
+            # "open" semantic). Both sides are lowercased to avoid case-
+            # sensitivity surprises.
+            config_allowed = (
+                {e.lower() for e in rule.allowed_users} if rule is not None else set()
+            )
+            dynamic_allowed: set[str] = set()
+            if self._dynamic is not None and rule is not None:
+                try:
+                    dynamic_allowed = {
+                        e.lower() for e in (self._dynamic(rule.app_id) or set())
+                    }
+                except Exception:  # noqa: BLE001
+                    # A grants-store hiccup must never break auth. Fail closed
+                    # for grant-based access (config users still work).
+                    _logger.warning(
+                        "dynamic grants lookup failed for app_id=%r; "
+                        "falling back to config allowed_users only",
+                        rule.app_id,
+                        exc_info=True,
+                    )
+                    dynamic_allowed = set()
+            allowed = config_allowed | dynamic_allowed
+            if allowed:
+                who = (state.get("user_email") or state.get("user_id") or "").lower()
+                if who not in allowed:
                     return await self._deny(scope, send, "forbidden")
             await self.app(scope, receive, send)
             return

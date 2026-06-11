@@ -36,11 +36,47 @@ def _write_dummy_app(apps_dir):
     )
 
 
+def _write_vault_app(apps_dir):
+    """A RESTRICTED protected:user app (allowed_users baseline = boss only).
+
+    Used to exercise runtime grants: a non-admin not in allowed_users should be
+    denied until granted, then allowed, then denied again after revoke.
+    """
+    app = apps_dir / "vault"
+    app.mkdir()
+    (app / "server.py").write_text(
+        textwrap.dedent(
+            """
+            from fastapi import FastAPI
+            app = FastAPI()
+            @app.get("/thing")
+            def thing():
+                return {"ok": True}
+            """
+        ).strip()
+    )
+    (app / "app.toml").write_text(
+        'access = "protected:user"\nallowed_users = ["boss@example.com"]\n'
+    )
+
+
+def _write_open_app(apps_dir):
+    """An OPEN protected:user app (no allowed_users) — open to any authenticated
+    user. Granting on it must be rejected by the open-app guard.
+    """
+    app = apps_dir / "lobby"
+    app.mkdir()
+    (app / "server.py").write_text("from fastapi import FastAPI\napp = FastAPI()\n")
+    (app / "app.toml").write_text('access = "protected:user"\n')
+
+
 @pytest.fixture
 def admin_client(tmp_path, monkeypatch):
     apps_dir = tmp_path / "apps"
     apps_dir.mkdir()
     _write_dummy_app(apps_dir)
+    _write_vault_app(apps_dir)
+    _write_open_app(apps_dir)
 
     monkeypatch.setenv("ENLACE_SIGNING_KEY", _SIGNING_KEY)
     monkeypatch.setenv("ENLACE_ADMIN_EMAILS", "boss@example.com")
@@ -255,3 +291,126 @@ def test_admin_dashboard_index_html_alias(admin_client):
     r = admin_client.get("/_admin/index.html", headers={"Accept": "text/html"})
     assert r.status_code == 200
     assert "enlace · admin" in r.text
+
+
+# --------------------------------------------------------------------------
+# Runtime grants (/_admin/api/grants + /apps enrichment)
+# --------------------------------------------------------------------------
+
+
+def _grant(client, app_id, email, csrf, **extra):
+    return client.post(
+        "/_admin/api/grants",
+        json={"app_id": app_id, "email": email, **extra},
+        headers=csrf,
+    )
+
+
+def test_grant_requires_admin(admin_client):
+    csrf = _csrf(admin_client)
+    _register(admin_client, "alice@example.com", "secretpw1", csrf)  # non-admin
+    r = _grant(admin_client, "vault", "carl@example.com", csrf)
+    assert r.status_code == 401  # access rule blocks non-admin from /_admin
+
+
+def test_grant_unknown_app_404(admin_client):
+    csrf = _csrf(admin_client)
+    _register(admin_client, "boss@example.com", "bosspw1!", csrf)
+    r = _grant(admin_client, "nope", "carl@example.com", csrf)
+    assert r.status_code == 404
+
+
+def test_grant_on_open_app_rejected(admin_client):
+    """The open-app guard: granting on a protected:user app with empty
+    allowed_users is a 422 (it would unintentionally restrict an open app).
+    """
+    csrf = _csrf(admin_client)
+    _register(admin_client, "boss@example.com", "bosspw1!", csrf)
+    r = _grant(admin_client, "lobby", "carl@example.com", csrf)
+    assert r.status_code == 422
+    assert "open to all authenticated" in r.json()["detail"]
+
+
+def test_grant_past_expiry_rejected(admin_client):
+    csrf = _csrf(admin_client)
+    _register(admin_client, "boss@example.com", "bosspw1!", csrf)
+    r = _grant(admin_client, "vault", "carl@example.com", csrf, expires_at="2000-01-01")
+    assert r.status_code == 422
+
+
+def test_grant_appears_in_apps_listing(admin_client):
+    csrf = _csrf(admin_client)
+    _register(admin_client, "boss@example.com", "bosspw1!", csrf)
+    assert _grant(admin_client, "vault", "carl@example.com", csrf).status_code == 200
+
+    r = admin_client.get("/_admin/api/apps")
+    assert r.status_code == 200, r.text
+    apps = {a["name"]: a for a in r.json()["apps"]}
+    vault = apps["vault"]
+    assert vault["is_open"] is False
+    assert vault["allowed_users"] == ["boss@example.com"]
+    emails = {g["email"] for g in vault["grants"]}
+    assert "carl@example.com" in emails
+    assert all(g["active"] for g in vault["grants"])
+    # The open app reports is_open and gets no baseline users.
+    assert apps["lobby"]["is_open"] is True
+
+
+def test_revoke_grant(admin_client):
+    csrf = _csrf(admin_client)
+    _register(admin_client, "boss@example.com", "bosspw1!", csrf)
+    _grant(admin_client, "vault", "carl@example.com", csrf)
+    r = admin_client.delete("/_admin/api/grants/vault/carl@example.com", headers=csrf)
+    assert r.status_code == 200, r.text
+    # Gone now → second revoke 404s.
+    r = admin_client.delete("/_admin/api/grants/vault/carl@example.com", headers=csrf)
+    assert r.status_code == 404
+
+
+def test_grant_then_access_then_revoke_end_to_end(admin_client):
+    """The whole point: grant a non-admin runtime access to a restricted app,
+    confirm they can reach it, then revoke and confirm they're locked out —
+    all without a redeploy.
+    """
+    # Admin (boss) registers + creates the non-admin carl.
+    csrf = _csrf(admin_client)
+    _register(admin_client, "boss@example.com", "bosspw1!", csrf)
+    admin_client.post(
+        "/_admin/api/users",
+        json={"email": "carl@example.com", "password": "carlpw99"},
+        headers=csrf,
+    )
+
+    # Before any grant: carl logs in and is denied the restricted app.
+    admin_client.post("/auth/logout", headers=csrf)
+    csrf = _csrf(admin_client)
+    assert _login(admin_client, "carl@example.com", "carlpw99", csrf).status_code == 200
+    assert admin_client.get("/api/vault/thing").status_code == 401
+
+    # Admin grants carl access.
+    admin_client.post("/auth/logout", headers=csrf)
+    csrf = _csrf(admin_client)
+    _login(admin_client, "boss@example.com", "bosspw1!", csrf)
+    assert _grant(admin_client, "vault", "carl@example.com", csrf).status_code == 200
+
+    # Now carl can reach it.
+    admin_client.post("/auth/logout", headers=csrf)
+    csrf = _csrf(admin_client)
+    _login(admin_client, "carl@example.com", "carlpw99", csrf)
+    assert admin_client.get("/api/vault/thing").status_code == 200
+
+    # Admin revokes; carl is locked out again.
+    admin_client.post("/auth/logout", headers=csrf)
+    csrf = _csrf(admin_client)
+    _login(admin_client, "boss@example.com", "bosspw1!", csrf)
+    assert (
+        admin_client.delete(
+            "/_admin/api/grants/vault/carl@example.com", headers=csrf
+        ).status_code
+        == 200
+    )
+
+    admin_client.post("/auth/logout", headers=csrf)
+    csrf = _csrf(admin_client)
+    _login(admin_client, "carl@example.com", "carlpw99", csrf)
+    assert admin_client.get("/api/vault/thing").status_code == 401

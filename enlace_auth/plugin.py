@@ -24,6 +24,8 @@ from __future__ import annotations
 
 import logging
 import os
+import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional
 
 from enlace_auth.config import coerce_auth_config, coerce_stores_map
@@ -150,6 +152,7 @@ def wire(parent: "FastAPI", config) -> None:
     from enlace_auth.admin.routes import make_admin_router
     from enlace_auth.auth import (
         CSRFMiddleware,
+        GrantStore,
         PlatformAuthMiddleware,
         SessionStore,
         make_auth_router,
@@ -162,6 +165,13 @@ def wire(parent: "FastAPI", config) -> None:
     session_backend = platform_factory("sessions")
     user_backend = platform_factory("users")
     session_store = SessionStore(session_backend)
+
+    # Runtime per-app access grants (additive, optional UTC expiry). Lives beside
+    # sessions/ and users/ under the same persistent store root — outside the
+    # repo/rsync target, so grants survive redeploys. ``root`` is passed so the
+    # store can list a single app's grants efficiently on the hot path.
+    grants_root = Path(os.path.expanduser(auth_cfg.stores.path)) / "grants"
+    grant_store = GrantStore(platform_factory("grants"), root=grants_root)
 
     stores_map = coerce_stores_map(getattr(config, "stores", None))
     user_data_cfg = stores_map.get("user_data")
@@ -281,25 +291,14 @@ def wire(parent: "FastAPI", config) -> None:
         session_store=session_store,
         admin_emails=admin_emails,
         apps=list(getattr(config, "apps", [])),
+        grant_store=grant_store,
+        protected_user_apps=protected_user_apps,
     )
     parent.include_router(admin_router)
     if admin_emails:
         from enlace_auth.admin.routes import make_admin_ui_router
 
         parent.include_router(make_admin_ui_router())
-
-    # CSRF exempt prefixes: the default exempts /api/ (asgi-mode sub-app APIs
-    # mounted at the conventional prefix). Non-asgi modes (process/external)
-    # proxy to a black-box upstream that can't participate in enlace's
-    # double-submit flow, so their entire mount prefix must also be exempt.
-    csrf_exempt = ["/auth/callback", "/auth/login/", "/api/"]
-    for app in getattr(config, "apps", []):
-        if getattr(app, "mode", "asgi") in ("process", "external"):
-            prefix = app.route_prefix
-            if not prefix.endswith("/"):
-                prefix = prefix + "/"
-            if prefix not in csrf_exempt:
-                csrf_exempt.append(prefix)
 
     # CSRF exempt prefixes: the default exempts /api/ (asgi-mode sub-app APIs
     # mounted at the conventional prefix). Non-asgi modes (process/external)
@@ -334,6 +333,11 @@ def wire(parent: "FastAPI", config) -> None:
         # app, which would silently drop those hints. The auth router serves
         # the actual sign-in form at this path.
         login_redirect_path="/auth/login",
+        # Consult runtime grants live, per request, on top of each rule's static
+        # allowed_users. ``now`` is evaluated at call time so expiry is exact.
+        dynamic_allowed_users=lambda app_id: grant_store.active_emails_for_app(
+            app_id, now=time.time()
+        ),
     )
 
 

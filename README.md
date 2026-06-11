@@ -9,7 +9,8 @@ package plugs in at compose time and adds:
 - `/auth/login`, `/auth/logout`, `/auth/register`, `/auth/whoami`,
   `/auth/csrf`, `/auth/me/password`, `/auth/shared-login`
 - `/_admin/api/*` — list/create/delete users, admin password reset, view app
-  policy. Gated by an admin allowlist.
+  policy, and **grant/revoke per-app access at runtime** (optional expiry).
+  Gated by an admin allowlist.
 - per-user data injection via `request.state.store`
 - `PlatformAuthMiddleware` + `CSRFMiddleware`
 - optional OAuth2 / OIDC via Authlib
@@ -57,6 +58,34 @@ Plus environment variables:
   "import secrets; print(secrets.token_urlsafe(32))"`.
 - `ENLACE_ADMIN_EMAILS` — comma-separated admin emails (gate `/_admin`).
 - `ENLACE_ALLOW_UNSIGNED=1` — opt-out from fail-fast (diagnostics only).
+
+## Per-app access & runtime grants
+
+Each app declares an `access` level in its `app.toml`
+(`public | protected:shared | protected:user`). A `protected:user` app may also
+declare a static baseline allow-list:
+
+```toml
+access = "protected:user"
+allowed_users = ["owner@example.com"]   # always allowed; edit-in-code baseline
+```
+
+On top of that baseline you can grant access **at runtime — no redeploy** — from
+the admin dashboard or the CLI. Runtime grants are *additive* (effective access =
+`allowed_users ∪ active grants`) and may carry an optional UTC expiry:
+
+```bash
+enlace-auth grant vault alice@example.com --expires 2026-12-31   # end of day UTC
+enlace-auth list-grants --app vault
+enlace-auth revoke-grant vault alice@example.com
+```
+
+Grants live in a `grants/` store alongside `sessions/` and `users/` under
+`[auth.stores] path`, so they persist across restarts and redeploys. A grant on
+an app with an *empty* `allowed_users` (open to any authenticated user) is
+rejected — it would have no additive effect and would unintentionally restrict an
+open app. To remove a user listed in `allowed_users`, edit `app.toml` (that layer
+is intentionally code-managed); the admin panel manages the runtime layer.
 
 ## Doctor checks
 

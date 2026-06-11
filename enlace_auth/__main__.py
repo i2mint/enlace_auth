@@ -12,6 +12,9 @@ Usage::
     enlace-auth revoke-session <session_id>
     enlace-auth list-users [--json]
     enlace-auth set-password <email>
+    enlace-auth grant <app_id> <email> [--expires YYYY-MM-DD] [--note ...]
+    enlace-auth revoke-grant <app_id> <email>
+    enlace-auth list-grants [--app NAME] [--json]
 """
 
 from __future__ import annotations
@@ -99,6 +102,20 @@ def _load_user_store(toml_path: Path = Path("platform.toml")):
     auth = coerce_auth_config(config.auth)
     factory = make_file_store_factory(auth.stores.path)
     return factory("users")
+
+
+def _load_grant_store(toml_path: Path = Path("platform.toml")):
+    """Open the platform's per-app runtime grants store."""
+    import os
+
+    from enlace_auth.auth.grants import GrantStore
+    from enlace_auth.stores import make_file_store_factory
+
+    config = PlatformConfig.from_toml(toml_path)
+    auth = coerce_auth_config(config.auth)
+    factory = make_file_store_factory(auth.stores.path)
+    root = Path(os.path.expanduser(auth.stores.path)) / "grants"
+    return GrantStore(factory("grants"), root=root)
 
 
 def list_sessions(*, json: bool = False, toml: str = "platform.toml"):
@@ -211,6 +228,88 @@ def set_password(email: str, *, toml: str = "platform.toml"):
     print(f"Password updated for {key}.")
 
 
+def grant(
+    app_id: str,
+    email: str,
+    *,
+    expires: str = None,
+    note: str = None,
+    toml: str = "platform.toml",
+):
+    """Grant a user runtime access to a protected:user app (no redeploy).
+
+    The grant is ADDITIVE on top of the app's app.toml allowed_users.
+
+    Args:
+        app_id: The app name (its directory / route name).
+        email: Email of the user to grant access to.
+        expires: Optional expiry — a date (YYYY-MM-DD, end of day UTC) or full
+            ISO-8601 timestamp. Omit for a non-expiring grant.
+        note: Optional free-text note stored with the grant.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    from enlace_auth.auth.grants import GrantError, parse_expires_at
+
+    store = _load_grant_store(Path(toml))
+    try:
+        expires_at = parse_expires_at(expires)
+        record = store.grant(
+            app_id, email, expires_at=expires_at, granted_by="cli", note=note
+        )
+    except GrantError as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(1)
+    when = "never" if record["expires_at"] is None else f"{record['expires_at']:.0f}"
+    print(f"Granted {record['email']} access to {record['app_id']} (expires={when}).")
+
+
+def revoke_grant(app_id: str, email: str, *, toml: str = "platform.toml"):
+    """Revoke a user's runtime grant for an app.
+
+    Args:
+        app_id: The app name.
+        email: Email of the user whose grant to revoke.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    if _load_grant_store(Path(toml)).revoke(app_id, email):
+        print(f"Revoked {email.lower()} from {app_id}.")
+    else:
+        print(f"No grant for {email.lower()} on {app_id}.", file=sys.stderr)
+        sys.exit(1)
+
+
+def list_grants(*, app: str = None, json: bool = False, toml: str = "platform.toml"):
+    """List runtime grants, optionally filtered to a single app.
+
+    Args:
+        app: If given, only list grants for this app.
+        json: Output as JSON.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    import time
+
+    store = _load_grant_store(Path(toml))
+    grants = store.list_for_app(app) if app else store.list_all()
+    if json:
+        print(json_module.dumps(grants, indent=2))
+        return
+    if not grants:
+        print(f"No grants for {app}." if app else "No grants.")
+        return
+    now = time.time()
+    for g in sorted(
+        grants, key=lambda r: (r.get("app_id") or "", r.get("email") or "")
+    ):
+        exp = g.get("expires_at")
+        if exp is None:
+            status = "never"
+        elif exp > now:
+            status = f"until {exp:.0f}"
+        else:
+            status = f"EXPIRED ({exp:.0f})"
+        print(f"{g.get('app_id')}  {g.get('email')}  {status}")
+
+
 def main():
     argh.dispatch_commands(
         [
@@ -221,6 +320,9 @@ def main():
             revoke_session,
             list_users,
             set_password,
+            grant,
+            revoke_grant,
+            list_grants,
         ]
     )
 

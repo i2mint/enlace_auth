@@ -1,4 +1,4 @@
-"""Admin HTTP routes: user CRUD, password reset, app policy view.
+"""Admin HTTP routes: user CRUD, password reset, app policy + grants.
 
 Endpoints (all under ``/_admin/api/``):
 
@@ -6,7 +6,10 @@ Endpoints (all under ``/_admin/api/``):
 - ``POST   /users``                — create a user (admin-created)
 - ``DELETE /users/{email}``        — delete a user (refuses last admin)
 - ``POST   /users/{email}/password`` — admin reset another user's password
-- ``GET    /apps``                 — list apps with their access policy
+- ``GET    /apps``                 — list apps with their access policy +
+  (for ``protected:user`` apps) their runtime grants
+- ``POST   /grants``               — grant a user runtime access to an app
+- ``DELETE /grants/{app_id}/{email}`` — revoke a runtime grant
 
 A minimal HTML dashboard is also mounted at ``GET /_admin/`` (and
 ``/_admin/index.html``); it consumes the JSON endpoints above. The HTML
@@ -22,19 +25,24 @@ Access control:
 - ``/_admin/*`` is gated by ``PlatformAuthMiddleware`` via the access rule the
   plugin installs (``allowed_users=admin_emails``). By the time a request
   reaches this router, the caller is an admin.
+
+Runtime grants are ADDITIVE on top of each app's static ``app.toml``
+``allowed_users`` and carry an optional UTC expiry — see
+``enlace_auth.auth.grants``.
 """
 
 from __future__ import annotations
 
 import time
-from collections.abc import MutableMapping
+from collections.abc import Iterable, MutableMapping
 from importlib.resources import files
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, EmailStr
 
+from enlace_auth.auth.grants import GrantError, parse_expires_at
 from enlace_auth.auth.passwords import hash_password
 
 
@@ -47,21 +55,38 @@ class _ResetPasswordBody(BaseModel):
     password: str
 
 
+class _CreateGrantBody(BaseModel):
+    app_id: str
+    email: EmailStr
+    # A date ("YYYY-MM-DD", end of day UTC) or full ISO-8601 timestamp; null /
+    # omitted means the grant never expires.
+    expires_at: Optional[str] = None
+    note: Optional[str] = None
+
+
 def make_admin_router(
     *,
     user_store: MutableMapping,
     session_store,  # SessionStore — kept loose to avoid import cycles
     admin_emails: tuple[str, ...] = (),
     apps: list = (),
+    grant_store=None,  # GrantStore — optional; grant endpoints inert without it
+    protected_user_apps: Iterable[str] = (),
 ) -> APIRouter:
     """Build a FastAPI router exposing ``/_admin/api/*`` endpoints.
 
     ``admin_emails`` is captured by closure so the router can enforce
     last-admin protection on delete. The middleware handles the broader
     "must be an admin to see /_admin" check.
+
+    ``grant_store`` (a :class:`~enlace_auth.auth.grants.GrantStore`) and
+    ``protected_user_apps`` enable the runtime grant endpoints. When
+    ``grant_store`` is None those endpoints return 503.
     """
     admin_set = frozenset(e.lower() for e in admin_emails)
     apps_snapshot = list(apps)
+    app_by_name = {a.name: a for a in apps_snapshot}
+    protected_set = frozenset(protected_user_apps)
 
     router = APIRouter(prefix="/_admin/api")
 
@@ -145,21 +170,95 @@ def make_admin_router(
         user_store[target] = record
         return {"ok": True, "email": target}
 
+    def _grants_for(app_id: str, now: float) -> list[dict]:
+        if grant_store is None:
+            return []
+        out = []
+        for rec in grant_store.list_for_app(app_id):
+            exp = rec.get("expires_at")
+            out.append(
+                {
+                    "email": rec.get("email"),
+                    "expires_at": exp,
+                    "granted_at": rec.get("granted_at"),
+                    "granted_by": rec.get("granted_by"),
+                    "note": rec.get("note"),
+                    "active": exp is None
+                    or (isinstance(exp, (int, float)) and exp > now),
+                }
+            )
+        out.sort(key=lambda g: (g["email"] or ""))
+        return out
+
     @router.get("/apps")
     async def list_apps(request: Request) -> dict[str, Any]:
         _require_admin(request)
+        now = time.time()
         items = []
         for app in apps_snapshot:
-            items.append(
-                {
-                    "name": app.name,
-                    "display_name": getattr(app, "display_name", "") or app.name,
-                    "access": app.access,
-                    "allowed_users": list(getattr(app, "allowed_users", [])),
-                    "route_prefix": app.route_prefix,
-                }
-            )
+            allowed_users = list(getattr(app, "allowed_users", []) or [])
+            entry = {
+                "name": app.name,
+                "display_name": getattr(app, "display_name", "") or app.name,
+                "access": app.access,
+                "allowed_users": allowed_users,
+                "route_prefix": app.route_prefix,
+            }
+            if app.access == "protected:user":
+                # An app with an empty baseline allow-list is open to ANY
+                # authenticated user; a grant there would have no additive
+                # effect (and would unintentionally restrict it), so the UI
+                # disables granting on such apps.
+                entry["is_open"] = not allowed_users
+                entry["grants"] = _grants_for(app.name, now)
+            items.append(entry)
         return {"apps": items}
+
+    @router.post("/grants")
+    async def create_grant(body: _CreateGrantBody, request: Request) -> dict[str, Any]:
+        actor = _require_admin(request)
+        if grant_store is None:
+            raise HTTPException(status_code=503, detail="Grants store unavailable")
+        app_id = body.app_id.strip()
+        if app_id not in protected_set:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No protected:user app named {app_id!r}",
+            )
+        app = app_by_name.get(app_id)
+        config_allowed = list(getattr(app, "allowed_users", []) or []) if app else []
+        if not config_allowed:
+            # Open-app guard: see /apps `is_open` note above.
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"App {app_id!r} is open to all authenticated users "
+                    "(empty allowed_users): a grant would have no additive effect "
+                    "and would unintentionally restrict it. Add a baseline "
+                    "allowed_users in its app.toml first."
+                ),
+            )
+        try:
+            expires_at = parse_expires_at(body.expires_at)
+            record = grant_store.grant(
+                app_id,
+                body.email,
+                expires_at=expires_at,
+                granted_by=actor,
+                note=body.note,
+            )
+        except GrantError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        return {"ok": True, "grant": record}
+
+    @router.delete("/grants/{app_id}/{email}")
+    async def revoke_grant(app_id: str, email: str, request: Request) -> dict[str, Any]:
+        _require_admin(request)
+        if grant_store is None:
+            raise HTTPException(status_code=503, detail="Grants store unavailable")
+        if not grant_store.revoke(app_id, email):
+            raise HTTPException(status_code=404, detail="Grant not found")
+        return {"ok": True, "app_id": app_id, "email": email.lower()}
 
     return router
 

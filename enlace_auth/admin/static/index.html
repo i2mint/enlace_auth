@@ -90,7 +90,17 @@
   .badge.access-protected-shared { background: #fef3c7; color: #92400e; }
   .badge.access-protected-user { background: #fee2e2; color: var(--danger); }
   .badge.access-local { background: #e5e7eb; color: #374151; }
+  .badge.active { background: #ecfdf5; color: var(--ok); }
+  .badge.expired { background: #f3f4f6; color: var(--muted); }
+  .badge.open { background: #eef2ff; color: #3730a3; }
   code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+  tr.grant-row > td { background: #fafbfc; padding: 4px 6px 14px 18px; }
+  table.grants { width: 100%; margin: 2px 0 8px; }
+  table.grants td, table.grants th { padding: 5px 6px; font-size: 13px; }
+  .muted-line { color: var(--muted); font-size: 13px; margin: 4px 0 6px; }
+  .grant-form { margin-top: 6px; }
+  .grant-form input[type=date] { font-size: 13px; padding: 5px 8px;
+    border: 1px solid var(--border); border-radius: 5px; margin-right: 6px; }
 </style>
 </head>
 <body>
@@ -179,6 +189,12 @@ function fmtTime(t) {
   return new Date(t * 1000).toISOString().slice(0, 19).replace("T", " ");
 }
 
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+}
+
 async function loadWhoami() {
   try {
     const r = await fetch("/auth/whoami", { credentials: "include" });
@@ -216,6 +232,39 @@ async function loadUsers() {
   }
 }
 
+function grantsPanel(app) {
+  const grants = app.grants || [];
+  const rows = grants.map(g => {
+    const badge = g.active
+      ? '<span class="badge active">active</span>'
+      : '<span class="badge expired">expired</span>';
+    const by = g.granted_by ? ` · by <code>${escapeHtml(g.granted_by)}</code>` : "";
+    const note = g.note ? ` · ${escapeHtml(g.note)}` : "";
+    return `<tr>
+      <td><code>${escapeHtml(g.email)}</code></td>
+      <td>${g.expires_at ? fmtTime(g.expires_at) : "never"}</td>
+      <td>${badge}<span style="color:var(--muted)">${by}${note}</span></td>
+      <td class="actions"><button class="danger" data-act="revoke-grant"
+        data-app="${escapeHtml(app.name)}" data-email="${escapeHtml(g.email)}">Revoke</button></td>
+    </tr>`;
+  }).join("");
+  const table = grants.length
+    ? `<table class="grants"><thead><tr><th>Granted user</th><th>Expires (UTC)</th>
+       <th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+    : `<div class="muted-line">No runtime grants.</div>`;
+  const form = app.is_open
+    ? `<div class="muted-line">Open to all authenticated users — runtime grants are
+       inert here. Add a baseline <code>allowed_users</code> in this app's
+       <code>app.toml</code> to restrict it first.</div>`
+    : `<div class="row grant-form" data-app="${escapeHtml(app.name)}">
+        <input type="email" class="grant-email" placeholder="user@example.com" autocomplete="off" />
+        <input type="date" class="grant-expiry" title="Optional expiry (UTC, end of day). Blank = never." />
+        <input type="text" class="grant-note" placeholder="note (optional)" />
+        <button data-act="add-grant" data-app="${escapeHtml(app.name)}">Grant access</button>
+      </div>`;
+  return table + form;
+}
+
 async function loadApps() {
   const tbody = document.querySelector("#apps tbody");
   tbody.innerHTML = "";
@@ -223,18 +272,61 @@ async function loadApps() {
     const { apps } = await api("GET", "/apps");
     for (const a of apps) {
       const accessClass = "access-" + a.access.replace(":", "-");
+      const baseline = (a.allowed_users || []).map(e => `<code>${escapeHtml(e)}</code>`).join(", ") || "—";
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td><strong>${a.display_name || a.name}</strong></td>
-        <td><code>${a.route_prefix}</code></td>
-        <td><span class="badge ${accessClass}">${a.access}</span></td>
-        <td>${(a.allowed_users || []).map(e => `<code>${e}</code>`).join(", ") || "—"}</td>`;
+        <td><strong>${escapeHtml(a.display_name || a.name)}</strong></td>
+        <td><code>${escapeHtml(a.route_prefix)}</code></td>
+        <td><span class="badge ${accessClass}">${a.access}</span>${a.is_open ? ' <span class="badge open">open</span>' : ""}</td>
+        <td>${baseline}</td>`;
       tbody.appendChild(tr);
+      if (a.access === "protected:user") {
+        const mgmt = document.createElement("tr");
+        mgmt.className = "grant-row";
+        const td = document.createElement("td");
+        td.colSpan = 4;
+        td.innerHTML = grantsPanel(a);
+        mgmt.appendChild(td);
+        tbody.appendChild(mgmt);
+      }
     }
   } catch (e) {
     flash("Load apps: " + e.message, false);
   }
 }
+
+document.querySelector("#apps").addEventListener("click", async (ev) => {
+  const btn = ev.target.closest("button[data-act]");
+  if (!btn) return;
+  const act = btn.dataset.act;
+  const app = btn.dataset.app;
+  if (act === "add-grant") {
+    const form = btn.closest(".grant-form");
+    const email = form.querySelector(".grant-email").value.trim();
+    const expiry = form.querySelector(".grant-expiry").value;  // "" or YYYY-MM-DD
+    const note = form.querySelector(".grant-note").value.trim();
+    if (!email) { flash("Email required.", false); return; }
+    try {
+      await api("POST", "/grants", {
+        app_id: app, email, expires_at: expiry || null, note: note || null,
+      });
+      flash(`Granted ${email} access to ${app}.`);
+      loadApps();
+    } catch (e) {
+      flash("Grant failed: " + e.message, false);
+    }
+  } else if (act === "revoke-grant") {
+    const email = btn.dataset.email;
+    if (!confirm(`Revoke ${email}'s access to ${app}?`)) return;
+    try {
+      await api("DELETE", `/grants/${encodeURIComponent(app)}/${encodeURIComponent(email)}`);
+      flash(`Revoked ${email} from ${app}.`);
+      loadApps();
+    } catch (e) {
+      flash("Revoke failed: " + e.message, false);
+    }
+  }
+});
 
 document.querySelector("#users").addEventListener("click", async (ev) => {
   const btn = ev.target.closest("button[data-act]");
