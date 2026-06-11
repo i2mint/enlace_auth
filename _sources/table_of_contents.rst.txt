@@ -9,6 +9,7 @@
    module_docs/enlace_auth/auth
    module_docs/enlace_auth/auth/cookies
    module_docs/enlace_auth/auth/email
+   module_docs/enlace_auth/auth/grants
    module_docs/enlace_auth/auth/middleware
    module_docs/enlace_auth/auth/oauth
    module_docs/enlace_auth/auth/pages
