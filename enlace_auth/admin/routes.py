@@ -187,7 +187,7 @@ def make_admin_router(
                     or (isinstance(exp, (int, float)) and exp > now),
                 }
             )
-        out.sort(key=lambda g: (g["email"] or ""))
+        out.sort(key=lambda g: g["email"] or "")
         return out
 
     @router.get("/apps")
