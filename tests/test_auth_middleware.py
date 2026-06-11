@@ -79,7 +79,7 @@ def test_strip_identity_headers_removes_spoofed():
     assert b"content-type" in names
 
 
-def _make_mw(rules=None, session_store=None):
+def _make_mw(rules=None, session_store=None, *, dynamic=None):
     rules = rules or []
     session_store = session_store or SessionStore({})
     return PlatformAuthMiddleware(
@@ -87,7 +87,15 @@ def _make_mw(rules=None, session_store=None):
         access_rules=rules,
         session_store=session_store,
         signing_key=SIGNING_KEY,
+        dynamic_allowed_users=dynamic,
     )
+
+
+def _logged_in(email):
+    """Return (session_store, signed cookie token) for ``email``."""
+    sessions = SessionStore({})
+    sid = sessions.create(email, email)
+    return sessions, sign_cookie(sid, SIGNING_KEY, salt="session")
 
 
 def _http_scope(path, cookies=None, *, accept=None, query_string=b""):
@@ -302,6 +310,91 @@ def test_forbidden_user_also_redirects_browsers():
         )
     )
     assert cap.status() == 303
+
+
+# --------------------------------------------------------------------------
+# Runtime grants (dynamic_allowed_users resolver)
+# --------------------------------------------------------------------------
+
+
+def _grant_run(email, rule, dynamic):
+    sessions, token = _logged_in(email)
+    mw = _make_mw([rule], session_store=sessions, dynamic=dynamic)
+    cap = _Capture()
+    _run(
+        mw(
+            _http_scope("/vault/thing", {"enlace_session": token}),
+            cap.receive,
+            cap.send,
+        )
+    )
+    return cap.status()
+
+
+_RESTRICTED = AccessRule(
+    prefix="/vault",
+    level="protected:user",
+    app_id="vault",
+    allowed_users=("boss@example.com",),
+)
+
+
+def test_grant_allows_user_not_in_config():
+    # alice is NOT in config allowed_users, but a runtime grant lets her in.
+    status = _grant_run(
+        "alice@example.com", _RESTRICTED, lambda app: {"alice@example.com"}
+    )
+    assert status == 200
+
+
+def test_no_grant_denied():
+    # alice has no grant and isn't in config → denied (JSON 401, no Accept hdr).
+    status = _grant_run("alice@example.com", _RESTRICTED, lambda app: set())
+    assert status == 401
+
+
+def test_config_user_allowed_without_grant():
+    status = _grant_run("boss@example.com", _RESTRICTED, lambda app: set())
+    assert status == 200
+
+
+def test_grant_is_case_insensitive():
+    status = _grant_run(
+        "Alice@Example.com", _RESTRICTED, lambda app: {"alice@example.com"}
+    )
+    assert status == 200
+
+
+def test_open_app_stays_open():
+    """An app with EMPTY config allowed_users and no grants is open to ANY
+    authenticated user — the gate only engages when the effective allow-set is
+    non-empty. (The open-app *guard* that stops grants being created on such
+    apps lives in the admin API; see test_admin.py.)
+    """
+    rule = AccessRule(prefix="/vault", level="protected:user", app_id="vault")
+    status = _grant_run("anybody@example.com", rule, lambda app: set())
+    assert status == 200
+
+
+def test_resolver_only_consulted_for_matching_app():
+    seen = []
+
+    def resolver(app_id):
+        seen.append(app_id)
+        return set()
+
+    _grant_run("boss@example.com", _RESTRICTED, resolver)
+    assert seen == ["vault"]
+
+
+def test_resolver_exception_falls_back_to_config():
+    def boom(app_id):
+        raise RuntimeError("store down")
+
+    # boss is in config → still allowed even though the resolver blows up.
+    assert _grant_run("boss@example.com", _RESTRICTED, boom) == 200
+    # alice relies on a grant → resolver failure fails closed (denied).
+    assert _grant_run("alice@example.com", _RESTRICTED, boom) == 401
 
 
 def test_custom_login_redirect_path():
