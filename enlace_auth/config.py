@@ -40,6 +40,29 @@ class OAuthProviderConfig(BaseModel):
     server_metadata_url: Optional[str] = None
 
 
+class OAuthServerConfig(BaseModel):
+    """OAuth 2.1 authorization-server settings (for MCP connectors).
+
+    When ``enabled``, ``enlace_auth`` issues signed JWT access tokens that a
+    Claude.ai custom connector validates — reusing the platform user store and
+    session login. See :mod:`enlace_auth.auth.oauth_server`.
+    """
+
+    enabled: bool = False
+    issuer: Optional[str] = Field(
+        default=None,
+        description=(
+            "Token issuer + discovery origin (e.g. https://apps.thorwhalen.com). "
+            "When unset, derived from each request's base URL."
+        ),
+    )
+    key_dir: str = "~/.enlace/oauth_keys"
+    access_token_ttl_seconds: int = 3600
+    code_ttl_seconds: int = 120
+    scopes_supported: list[str] = Field(default_factory=lambda: ["mcp:read"])
+    require_consent: bool = True
+
+
 class AuthConfig(BaseModel):
     """Platform-wide authentication configuration."""
 
@@ -50,6 +73,7 @@ class AuthConfig(BaseModel):
     secure_cookies: bool = True
     stores: StoreBackendConfig = Field(default_factory=StoreBackendConfig)
     oauth: dict[str, OAuthProviderConfig] = Field(default_factory=dict)
+    oauth_server: OAuthServerConfig = Field(default_factory=OAuthServerConfig)
     admin_emails_env: str = Field(
         default="ENLACE_ADMIN_EMAILS",
         description=(

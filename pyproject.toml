@@ -31,12 +31,14 @@ Homepage = "https://github.com/i2mint/enlace_auth"
 enlace-auth = "enlace_auth.__main__:main"
 
 [project.optional-dependencies]
-oauth = ["authlib>=1.3", "httpx>=0.24.0"]
+oauth = ["authlib>=1.3", "httpx>=0.24.0", "cryptography>=42", "python-multipart>=0.0.9"]
 dev = [
     "pytest",
     "httpx",
     "pytest-asyncio",
     "authlib>=1.3",
+    "cryptography>=42",
+    "python-multipart>=0.0.9",
 ]
 
 [tool.pytest.ini_options]

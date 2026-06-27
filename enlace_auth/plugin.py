@@ -277,6 +277,37 @@ def wire(parent: "FastAPI", config) -> None:
                 providers,
             )
 
+    # OAuth 2.1 authorization server (issues JWTs for MCP custom connectors).
+    if auth_cfg.oauth_server.enabled:
+        try:
+            from enlace_auth.auth.oauth_server import (
+                OAuthKeys,
+                make_oauth_server_router,
+            )
+
+            osc = auth_cfg.oauth_server
+            oauth_server_router = make_oauth_server_router(
+                session_store=session_store,
+                signing_key=signing_key,
+                cookie_name=auth_cfg.session_cookie_name,
+                session_max_age=auth_cfg.session_max_age_seconds,
+                client_store=platform_factory("oauth_clients"),
+                code_store=platform_factory("oauth_codes"),
+                keys=OAuthKeys(osc.key_dir),
+                issuer=osc.issuer,
+                access_token_ttl=osc.access_token_ttl_seconds,
+                code_ttl=osc.code_ttl_seconds,
+                scopes_supported=tuple(osc.scopes_supported),
+                require_consent=osc.require_consent,
+            )
+            parent.include_router(oauth_server_router)
+        except ImportError:
+            _logger.error(
+                "enlace_auth: [auth.oauth_server] is enabled but authlib/cryptography "
+                "are not installed. The OAuth server will be MISSING. Install with "
+                "`pip install enlace_auth[oauth]` to fix."
+            )
+
     # Per-user store API.
     store_router = make_store_router(
         base_store_getter=lambda: user_data_backend,
