@@ -39,7 +39,7 @@ import secrets
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, MutableMapping, Optional
+from typing import Any, Mapping, MutableMapping, Optional
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Form, Request
@@ -143,6 +143,7 @@ def make_oauth_server_router(
     code_ttl: int = 120,
     scopes_supported: tuple[str, ...] = ("mcp:read",),
     require_consent: bool = True,
+    resource_allowlist: Mapping[str, list[str]] | None = None,
 ) -> APIRouter:
     """Build the OAuth 2.1 authorization-server router (see the module docstring).
 
@@ -150,7 +151,23 @@ def make_oauth_server_router(
     derived from each request's base URL (so the same code serves any domain). The
     consent step reuses the platform session — an unauthenticated ``/authorize``
     redirects to ``/auth/login`` and returns.
+
+    *resource_allowlist* maps a connector resource URL to the emails permitted to
+    authorize for it. A resource **not** in the map is open to any authenticated
+    user (back-compatible); a resource that **is** in the map denies everyone
+    else — per-connector access control (e.g. restrict a private connector to its
+    own staff). Secure to key on the resource: the connector only accepts tokens
+    whose ``aud`` is that exact resource, so a denied user can't get a usable token
+    another way.
     """
+    _allowlist = {
+        r.rstrip("/"): {e.lower() for e in emails}
+        for r, emails in (resource_allowlist or {}).items()
+    }
+
+    def _resource_allowed(resource: str, email: str) -> bool:
+        allowed = _allowlist.get((resource or "").rstrip("/"))
+        return allowed is None or email.lower() in allowed
     router = APIRouter(tags=["oauth-server"])
 
     def _issuer(request: Request) -> str:
@@ -317,6 +334,9 @@ def make_oauth_server_router(
                 f"/auth/login?{urlencode({'next': here})}", status_code=302
             )
 
+        if not _resource_allowed(auth.resource, email):
+            return HTMLResponse(_denied_page(email), status_code=403)
+
         if not require_consent:
             code = _issue_code(auth, email)
             return RedirectResponse(
@@ -351,6 +371,8 @@ def make_oauth_server_router(
         auth = _Authorized(
             client_id, redirect_uri, code_challenge, state, scope, resource
         )
+        if not _resource_allowed(resource, email):
+            return _redirect_error(redirect_uri, "access_denied", state)
         if decision != "approve":
             return _redirect_error(redirect_uri, "access_denied", state)
         code = _issue_code(auth, email)
@@ -411,6 +433,16 @@ def make_oauth_server_router(
         )
 
     return router
+
+
+def _denied_page(email: str) -> str:
+    """Render the 'not authorized for this connector' page (allowlist denial)."""
+    return pages._page(
+        "Access denied",
+        f"<h1>Access denied</h1><p><strong>{email}</strong> is not authorized to "
+        "use this connector. Contact the connector owner if you believe this is "
+        "a mistake.</p>",
+    )
 
 
 def _consent_page(

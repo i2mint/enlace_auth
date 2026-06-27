@@ -61,6 +61,14 @@ class OAuthServerConfig(BaseModel):
     code_ttl_seconds: int = 120
     scopes_supported: list[str] = Field(default_factory=lambda: ["mcp:read"])
     require_consent: bool = True
+    resource_allowlist: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description=(
+            "Per-connector access control: maps a connector resource URL to the "
+            "emails allowed to authorize for it. A resource not listed is open to "
+            "any authenticated user; a listed resource denies everyone else."
+        ),
+    )
 
 
 class AuthConfig(BaseModel):

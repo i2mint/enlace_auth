@@ -299,6 +299,7 @@ def wire(parent: "FastAPI", config) -> None:
                 code_ttl=osc.code_ttl_seconds,
                 scopes_supported=tuple(osc.scopes_supported),
                 require_consent=osc.require_consent,
+                resource_allowlist=osc.resource_allowlist,
             )
             parent.include_router(oauth_server_router)
         except ImportError:
