@@ -168,6 +168,7 @@ def make_oauth_server_router(
     def _resource_allowed(resource: str, email: str) -> bool:
         allowed = _allowlist.get((resource or "").rstrip("/"))
         return allowed is None or email.lower() in allowed
+
     router = APIRouter(tags=["oauth-server"])
 
     def _issuer(request: Request) -> str:

@@ -242,8 +242,11 @@ def test_token_rejects_wrong_pkce_verifier(tmp_path):
 
 def _authorize_params(cid, challenge):
     return {
-        "response_type": "code", "client_id": cid, "redirect_uri": REDIRECT,
-        "code_challenge": challenge, "code_challenge_method": "S256",
+        "response_type": "code",
+        "client_id": cid,
+        "redirect_uri": REDIRECT,
+        "code_challenge": challenge,
+        "code_challenge_method": "S256",
         "resource": RESOURCE,
     }
 
@@ -253,7 +256,8 @@ def test_resource_allowlist_denies_unlisted_user(tmp_path):
     cid = _register(client)
     _, challenge = _pkce()
     r = client.get(
-        "/auth/oauth/authorize", params=_authorize_params(cid, challenge),
+        "/auth/oauth/authorize",
+        params=_authorize_params(cid, challenge),
         cookies={COOKIE: cookie},
     )
     assert r.status_code == 403
@@ -265,7 +269,8 @@ def test_resource_allowlist_allows_listed_user(tmp_path):
     cid = _register(client)
     _, challenge = _pkce()
     r = client.get(
-        "/auth/oauth/authorize", params=_authorize_params(cid, challenge),
+        "/auth/oauth/authorize",
+        params=_authorize_params(cid, challenge),
         cookies={COOKIE: cookie},
     )
     assert r.status_code == 200 and "Approve" in r.text
