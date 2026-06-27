@@ -336,6 +336,12 @@ def wire(parent: "FastAPI", config) -> None:
     # proxy to a black-box upstream that can't participate in enlace's
     # double-submit flow, so their entire mount prefix must also be exempt.
     csrf_exempt = ["/auth/callback", "/auth/login/", "/api/"]
+    if auth_cfg.oauth_server.enabled:
+        # OAuth 2.1 server endpoints: /register + /token are cookieless
+        # machine-to-machine calls (protected by PKCE + client validation), and
+        # the consent POST carries its own signed CSRF token — so the platform's
+        # double-submit CSRF must not gate them.
+        csrf_exempt.append("/auth/oauth/")
     for app in getattr(config, "apps", []):
         if getattr(app, "mode", "asgi") in ("process", "external"):
             prefix = app.route_prefix
