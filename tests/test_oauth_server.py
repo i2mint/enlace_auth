@@ -9,12 +9,16 @@ import pytest
 pytest.importorskip("authlib")
 pytest.importorskip("multipart")  # FastAPI Form parsing needs python-multipart
 
-from authlib.jose import JsonWebKey, jwt as jose_jwt  # noqa: E402
+from authlib.jose import JsonWebKey  # noqa: E402
+from authlib.jose import jwt as jose_jwt
 from fastapi import FastAPI  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 from enlace_auth.auth.cookies import sign_cookie  # noqa: E402
-from enlace_auth.auth.oauth_server import OAuthKeys, make_oauth_server_router  # noqa: E402
+from enlace_auth.auth.oauth_server import (  # noqa: E402
+    OAuthKeys,
+    make_oauth_server_router,
+)
 from enlace_auth.auth.sessions import SessionStore  # noqa: E402
 
 SIGNING_KEY = "x" * 43
@@ -26,9 +30,11 @@ RESOURCE = "https://apps.thorwhalen.com/trufflepig-mcp"
 
 def _pkce():
     verifier = secrets.token_urlsafe(40)
-    challenge = base64.urlsafe_b64encode(
-        hashlib.sha256(verifier.encode()).digest()
-    ).rstrip(b"=").decode()
+    challenge = (
+        base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest())
+        .rstrip(b"=")
+        .decode()
+    )
     return verifier, challenge
 
 
@@ -98,8 +104,13 @@ def test_authorize_rejects_unknown_client(tmp_path):
     client, cookie = _build(tmp_path)
     r = client.get(
         "/auth/oauth/authorize",
-        params={"response_type": "code", "client_id": "nope", "redirect_uri": REDIRECT,
-                "code_challenge": "x", "code_challenge_method": "S256"},
+        params={
+            "response_type": "code",
+            "client_id": "nope",
+            "redirect_uri": REDIRECT,
+            "code_challenge": "x",
+            "code_challenge_method": "S256",
+        },
         cookies={COOKIE: cookie},
         follow_redirects=False,
     )
@@ -127,12 +138,20 @@ def test_full_authorization_code_flow_with_consent(tmp_path):
     # 2) consent approve → redirect carrying the code
     csrf = sign_cookie(EMAIL, SIGNING_KEY, salt="oauth-consent")
     form = {
-        "client_id": cid, "redirect_uri": REDIRECT, "code_challenge": challenge,
-        "state": "xyz", "scope": "mcp:read", "resource": RESOURCE,
-        "csrf": csrf, "decision": "approve",
+        "client_id": cid,
+        "redirect_uri": REDIRECT,
+        "code_challenge": challenge,
+        "state": "xyz",
+        "scope": "mcp:read",
+        "resource": RESOURCE,
+        "csrf": csrf,
+        "decision": "approve",
     }
     r = client.post(
-        "/auth/oauth/authorize", data=form, cookies={COOKIE: cookie}, follow_redirects=False
+        "/auth/oauth/authorize",
+        data=form,
+        cookies={COOKIE: cookie},
+        follow_redirects=False,
     )
     assert r.status_code == 302
     loc = r.headers["location"]
@@ -142,8 +161,13 @@ def test_full_authorization_code_flow_with_consent(tmp_path):
     # 3) token exchange (PKCE verifier) → JWT
     tok = client.post(
         "/auth/oauth/token",
-        data={"grant_type": "authorization_code", "code": code, "redirect_uri": REDIRECT,
-              "client_id": cid, "code_verifier": verifier},
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": REDIRECT,
+            "client_id": cid,
+            "code_verifier": verifier,
+        },
     )
     assert tok.status_code == 200
     body = tok.json()
@@ -160,8 +184,13 @@ def test_full_authorization_code_flow_with_consent(tmp_path):
     # one-time use: replaying the code fails
     again = client.post(
         "/auth/oauth/token",
-        data={"grant_type": "authorization_code", "code": code, "redirect_uri": REDIRECT,
-              "client_id": cid, "code_verifier": verifier},
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": REDIRECT,
+            "client_id": cid,
+            "code_verifier": verifier,
+        },
     )
     assert again.status_code == 400
 
@@ -171,17 +200,29 @@ def test_token_rejects_wrong_pkce_verifier(tmp_path):
     cid = _register(client)
     _, challenge = _pkce()
     params = {
-        "response_type": "code", "client_id": cid, "redirect_uri": REDIRECT,
-        "code_challenge": challenge, "code_challenge_method": "S256", "resource": RESOURCE,
+        "response_type": "code",
+        "client_id": cid,
+        "redirect_uri": REDIRECT,
+        "code_challenge": challenge,
+        "code_challenge_method": "S256",
+        "resource": RESOURCE,
     }
     r = client.get(
-        "/auth/oauth/authorize", params=params, cookies={COOKIE: cookie}, follow_redirects=False
+        "/auth/oauth/authorize",
+        params=params,
+        cookies={COOKIE: cookie},
+        follow_redirects=False,
     )
     code = r.headers["location"].split("code=")[1].split("&")[0]
     tok = client.post(
         "/auth/oauth/token",
-        data={"grant_type": "authorization_code", "code": code, "redirect_uri": REDIRECT,
-              "client_id": cid, "code_verifier": "wrong-verifier"},
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": REDIRECT,
+            "client_id": cid,
+            "code_verifier": "wrong-verifier",
+        },
     )
     assert tok.status_code == 400
     assert tok.json()["error"] == "invalid_grant"

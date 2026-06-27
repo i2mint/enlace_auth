@@ -39,7 +39,7 @@ import secrets
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, MutableMapping, Optional
+from typing import Any, MutableMapping, Optional
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Form, Request
@@ -160,13 +160,17 @@ def make_oauth_server_router(
         token = request.cookies.get(cookie_name)
         if not token:
             return None
-        sid = verify_cookie(token, signing_key, max_age=session_max_age, salt=_SESSION_SALT)
+        sid = verify_cookie(
+            token, signing_key, max_age=session_max_age, salt=_SESSION_SALT
+        )
         if not sid:
             return None
         session = session_store.get(sid)
         return session.get("email") if session else None
 
-    def _redirect_error(redirect_uri: str, error: str, state: str, desc: str = "") -> RedirectResponse:
+    def _redirect_error(
+        redirect_uri: str, error: str, state: str, desc: str = ""
+    ) -> RedirectResponse:
         params = {"error": error, "state": state}
         if desc:
             params["error_description"] = desc
@@ -206,7 +210,10 @@ def make_oauth_server_router(
         redirect_uris = body.get("redirect_uris")
         if not isinstance(redirect_uris, list) or not redirect_uris:
             return JSONResponse(
-                {"error": "invalid_redirect_uri", "error_description": "redirect_uris required"},
+                {
+                    "error": "invalid_redirect_uri",
+                    "error_description": "redirect_uris required",
+                },
                 status_code=400,
             )
         client_id = secrets.token_urlsafe(24)
@@ -225,7 +232,9 @@ def make_oauth_server_router(
     # ------------------------------------------------------------------ #
     # Authorization endpoint
     # ------------------------------------------------------------------ #
-    def _validate_authorize(params) -> tuple[Optional[_Authorized], Optional[HTMLResponse]]:
+    def _validate_authorize(
+        params,
+    ) -> tuple[Optional[_Authorized], Optional[HTMLResponse]]:
         """Parse + validate /authorize params. Returns (ok, error_page)."""
         client_id = params.get("client_id", "")
         redirect_uri = params.get("redirect_uri", "")
@@ -233,7 +242,9 @@ def make_oauth_server_router(
         if not client or redirect_uri not in client.get("redirect_uris", []):
             # Cannot safely redirect to an unverified URI — show an error page.
             return None, HTMLResponse(
-                pages._page("Authorization error", "<p>Unknown client or redirect URI.</p>"),
+                pages._page(
+                    "Authorization error", "<p>Unknown client or redirect URI.</p>"
+                ),
                 status_code=400,
             )
         auth = _Authorized(
@@ -266,7 +277,9 @@ def make_oauth_server_router(
         if err is not None:
             return err
         if params.get("response_type") != "code":
-            return _redirect_error(auth.redirect_uri, "unsupported_response_type", auth.state)
+            return _redirect_error(
+                auth.redirect_uri, "unsupported_response_type", auth.state
+            )
         if not auth.code_challenge or params.get("code_challenge_method") != "S256":
             return _redirect_error(
                 auth.redirect_uri, "invalid_request", auth.state, "PKCE S256 required"
@@ -276,7 +289,9 @@ def make_oauth_server_router(
         if not email:
             # Reuse the platform login, returning here once authenticated.
             here = f"{request.url.path}?{request.url.query}"
-            return RedirectResponse(f"/auth/login?{urlencode({'next': here})}", status_code=302)
+            return RedirectResponse(
+                f"/auth/login?{urlencode({'next': here})}", status_code=302
+            )
 
         if not require_consent:
             code = _issue_code(auth, email)
@@ -309,12 +324,15 @@ def make_oauth_server_router(
         )
         if err is not None:
             return err
-        auth = _Authorized(client_id, redirect_uri, code_challenge, state, scope, resource)
+        auth = _Authorized(
+            client_id, redirect_uri, code_challenge, state, scope, resource
+        )
         if decision != "approve":
             return _redirect_error(redirect_uri, "access_denied", state)
         code = _issue_code(auth, email)
         return RedirectResponse(
-            f"{redirect_uri}?{urlencode({'code': code, 'state': state})}", status_code=302
+            f"{redirect_uri}?{urlencode({'code': code, 'state': state})}",
+            status_code=302,
         )
 
     # ------------------------------------------------------------------ #
@@ -371,7 +389,9 @@ def make_oauth_server_router(
     return router
 
 
-def _consent_page(request: Request, auth: _Authorized, email: str, signing_key: str) -> str:
+def _consent_page(
+    request: Request, auth: _Authorized, email: str, signing_key: str
+) -> str:
     """Render the approve/deny consent form (reuses the shared page shell + CSRF)."""
     csrf = sign_cookie(email, signing_key, salt=_CONSENT_SALT)
     client = auth.client_id

@@ -280,7 +280,10 @@ def wire(parent: "FastAPI", config) -> None:
     # OAuth 2.1 authorization server (issues JWTs for MCP custom connectors).
     if auth_cfg.oauth_server.enabled:
         try:
-            from enlace_auth.auth.oauth_server import OAuthKeys, make_oauth_server_router
+            from enlace_auth.auth.oauth_server import (
+                OAuthKeys,
+                make_oauth_server_router,
+            )
 
             osc = auth_cfg.oauth_server
             oauth_server_router = make_oauth_server_router(
