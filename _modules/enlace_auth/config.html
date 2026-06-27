@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.config &mdash; enlace_auth 0.1.11 documentation</title>
+  <title>enlace_auth.config &mdash; enlace_auth 0.1.12 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=1e825a29"></script>
+      <script src="../../_static/documentation_options.js?v=297ad043"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -56,6 +56,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/grants.html">enlace_auth.auth.grants</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/middleware.html">enlace_auth.auth.middleware</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/oauth.html">enlace_auth.auth.oauth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/oauth_server.html">enlace_auth.auth.oauth_server</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/pages.html">enlace_auth.auth.pages</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/passwords.html">enlace_auth.auth.passwords</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/routes.html">enlace_auth.auth.routes</a></li>
@@ -143,6 +144,32 @@
 
 
 
+<div class="viewcode-block" id="OAuthServerConfig">
+<a class="viewcode-back" href="../../module_docs/enlace_auth/config.html#enlace_auth.OAuthServerConfig">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">OAuthServerConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;OAuth 2.1 authorization-server settings (for MCP connectors).</span>
+
+<span class="sd">    When ``enabled``, ``enlace_auth`` issues signed JWT access tokens that a</span>
+<span class="sd">    Claude.ai custom connector validates — reusing the platform user store and</span>
+<span class="sd">    session login. See :mod:`enlace_auth.auth.oauth_server`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">issuer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Token issuer + discovery origin (e.g. https://apps.thorwhalen.com). &quot;</span>
+            <span class="s2">&quot;When unset, derived from each request&#39;s base URL.&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">key_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;~/.enlace/oauth_keys&quot;</span>
+    <span class="n">access_token_ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3600</span>
+    <span class="n">code_ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">120</span>
+    <span class="n">scopes_supported</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;mcp:read&quot;</span><span class="p">])</span>
+    <span class="n">require_consent</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+
 <div class="viewcode-block" id="AuthConfig">
 <a class="viewcode-back" href="../../module_docs/enlace_auth/config.html#enlace_auth.AuthConfig">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AuthConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
@@ -155,6 +182,7 @@
     <span class="n">secure_cookies</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">stores</span><span class="p">:</span> <span class="n">StoreBackendConfig</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">StoreBackendConfig</span><span class="p">)</span>
     <span class="n">oauth</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">OAuthProviderConfig</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">oauth_server</span><span class="p">:</span> <span class="n">OAuthServerConfig</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">OAuthServerConfig</span><span class="p">)</span>
     <span class="n">admin_emails_env</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;ENLACE_ADMIN_EMAILS&quot;</span><span class="p">,</span>
         <span class="n">description</span><span class="o">=</span><span class="p">(</span>
@@ -226,7 +254,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright NO COPYRIGHT.</p>
+    <p></p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

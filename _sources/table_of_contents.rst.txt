@@ -12,6 +12,7 @@
    module_docs/enlace_auth/auth/grants
    module_docs/enlace_auth/auth/middleware
    module_docs/enlace_auth/auth/oauth
+   module_docs/enlace_auth/auth/oauth_server
    module_docs/enlace_auth/auth/pages
    module_docs/enlace_auth/auth/passwords
    module_docs/enlace_auth/auth/routes
