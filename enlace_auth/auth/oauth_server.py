@@ -201,6 +201,30 @@ def make_oauth_server_router(
     async def jwks():
         return JSONResponse(keys.jwks())
 
+    @router.get(
+        "/.well-known/oauth-protected-resource/{resource_path:path}",
+        include_in_schema=False,
+    )
+    async def protected_resource(resource_path: str, request: Request):
+        """RFC 9728 protected-resource metadata, served at the platform origin.
+
+        An MCP connector mounted on a sub-path behind a prefix-stripping reverse
+        proxy advertises this metadata at the **origin root** (per RFC 9728) but
+        cannot serve the origin root itself. The authorization server — which
+        *does* own the root — serves it on the connector's behalf, naming itself
+        as the resource's authorization server. Generic over ``resource_path`` so
+        one handler covers every connector on the platform.
+        """
+        iss = _issuer(request)
+        return JSONResponse(
+            {
+                "resource": f"{iss}/{resource_path}",
+                "authorization_servers": [iss],
+                "scopes_supported": list(scopes_supported),
+                "bearer_methods_supported": ["header"],
+            }
+        )
+
     # ------------------------------------------------------------------ #
     # Dynamic client registration (RFC 7591)
     # ------------------------------------------------------------------ #

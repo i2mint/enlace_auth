@@ -75,6 +75,17 @@ def test_metadata_and_jwks(tmp_path):
     assert jwks["keys"] and jwks["keys"][0]["kty"] == "RSA"
 
 
+def test_protected_resource_metadata_served_at_origin_root(tmp_path):
+    # A connector behind a prefix-stripping proxy advertises this at the origin
+    # root; the AS serves it for any resource path.
+    client, _ = _build(tmp_path)
+    r = client.get("/.well-known/oauth-protected-resource/api/trufflepig_mcp/mcp")
+    assert r.status_code == 200
+    meta = r.json()
+    assert meta["resource"] == "http://testserver/api/trufflepig_mcp/mcp"
+    assert meta["authorization_servers"] == ["http://testserver"]
+
+
 def test_register_requires_redirect_uris(tmp_path):
     client, _ = _build(tmp_path)
     assert client.post("/auth/oauth/register", json={}).status_code == 400
