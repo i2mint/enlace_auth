@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.plugin &mdash; enlace_auth 0.1.13 documentation</title>
+  <title>enlace_auth.plugin &mdash; enlace_auth 0.1.14 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=8d02545a"></script>
+      <script src="../../_static/documentation_options.js?v=468bc497"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -439,6 +439,12 @@
     <span class="c1"># proxy to a black-box upstream that can&#39;t participate in enlace&#39;s</span>
     <span class="c1"># double-submit flow, so their entire mount prefix must also be exempt.</span>
     <span class="n">csrf_exempt</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;/auth/callback&quot;</span><span class="p">,</span> <span class="s2">&quot;/auth/login/&quot;</span><span class="p">,</span> <span class="s2">&quot;/api/&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">auth_cfg</span><span class="o">.</span><span class="n">oauth_server</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+        <span class="c1"># OAuth 2.1 server endpoints: /register + /token are cookieless</span>
+        <span class="c1"># machine-to-machine calls (protected by PKCE + client validation), and</span>
+        <span class="c1"># the consent POST carries its own signed CSRF token — so the platform&#39;s</span>
+        <span class="c1"># double-submit CSRF must not gate them.</span>
+        <span class="n">csrf_exempt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/auth/oauth/&quot;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">app</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;apps&quot;</span><span class="p">,</span> <span class="p">[]):</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">&quot;mode&quot;</span><span class="p">,</span> <span class="s2">&quot;asgi&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;process&quot;</span><span class="p">,</span> <span class="s2">&quot;external&quot;</span><span class="p">):</span>
             <span class="n">prefix</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">route_prefix</span>
