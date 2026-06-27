@@ -38,7 +38,7 @@ def _pkce():
     return verifier, challenge
 
 
-def _build(tmp_path, *, require_consent=True):
+def _build(tmp_path, *, require_consent=True, resource_allowlist=None):
     session_store = SessionStore({})
     sid = session_store.create(user_id=EMAIL, email=EMAIL)
     router = make_oauth_server_router(
@@ -51,6 +51,7 @@ def _build(tmp_path, *, require_consent=True):
         keys=OAuthKeys(tmp_path / "keys"),
         issuer=None,  # derive from request → http://testserver
         require_consent=require_consent,
+        resource_allowlist=resource_allowlist,
     )
     app = FastAPI()
     app.include_router(router)
@@ -237,3 +238,34 @@ def test_token_rejects_wrong_pkce_verifier(tmp_path):
     )
     assert tok.status_code == 400
     assert tok.json()["error"] == "invalid_grant"
+
+
+def _authorize_params(cid, challenge):
+    return {
+        "response_type": "code", "client_id": cid, "redirect_uri": REDIRECT,
+        "code_challenge": challenge, "code_challenge_method": "S256",
+        "resource": RESOURCE,
+    }
+
+
+def test_resource_allowlist_denies_unlisted_user(tmp_path):
+    client, cookie = _build(tmp_path, resource_allowlist={RESOURCE: ["other@x.com"]})
+    cid = _register(client)
+    _, challenge = _pkce()
+    r = client.get(
+        "/auth/oauth/authorize", params=_authorize_params(cid, challenge),
+        cookies={COOKIE: cookie},
+    )
+    assert r.status_code == 403
+    assert "Access denied" in r.text
+
+
+def test_resource_allowlist_allows_listed_user(tmp_path):
+    client, cookie = _build(tmp_path, resource_allowlist={RESOURCE: [EMAIL]})
+    cid = _register(client)
+    _, challenge = _pkce()
+    r = client.get(
+        "/auth/oauth/authorize", params=_authorize_params(cid, challenge),
+        cookies={COOKIE: cookie},
+    )
+    assert r.status_code == 200 and "Approve" in r.text
