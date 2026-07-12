@@ -11,7 +11,7 @@ requires-python = ">=3.10"
 keywords = ["enlace", "auth", "fastapi", "platform", "argon2", "session", "admin"]
 authors = [{ name = "Thor Whalen" }]
 dependencies = [
-    "enlace>=0.1.0",
+    "enlace>=0.1.25",  # needs build_launcher_item + app_meta DI slots
     "fastapi>=0.100.0",
     "pydantic>=2.0.0",
     "itsdangerous>=2.1",
