@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.plugin &mdash; enlace_auth 0.1.15 documentation</title>
+  <title>enlace_auth.plugin &mdash; enlace_auth 0.1.16 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=e2f3408e"></script>
+      <script src="../../_static/documentation_options.js?v=d50bcae4"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -50,6 +50,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/__main__.html">enlace_auth.__main__</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/admin.html">enlace_auth.admin</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/admin/routes.html">enlace_auth.admin.routes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/appmeta.html">enlace_auth.appmeta</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth.html">enlace_auth.auth</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/cookies.html">enlace_auth.auth.cookies</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/email.html">enlace_auth.auth.email</a></li>
@@ -418,6 +419,34 @@
         <span class="n">protected_apps</span><span class="o">=</span><span class="n">protected_user_apps</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parent</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">store_router</span><span class="p">)</span>
+
+    <span class="c1"># App-metadata overlay: the editable launcher-metadata layer (owner-added</span>
+    <span class="c1"># keywords + icon/title overrides). Core reads the overlay + can-edit closure</span>
+    <span class="c1"># via parent.state; the write surface (PATCH/DELETE /_apps/{name}/meta) is</span>
+    <span class="c1"># here so it inherits CSRF + auth. Editors default to the admin allowlist.</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.appmeta</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_appmeta_can_edit</span><span class="p">,</span> <span class="n">make_appmeta_router</span>
+
+    <span class="n">app_meta_cfg</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;app_meta&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">editors</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">app_meta_cfg</span><span class="p">,</span> <span class="s2">&quot;editors&quot;</span><span class="p">,</span> <span class="p">())</span> <span class="ow">or</span> <span class="p">())</span> <span class="ow">or</span> <span class="n">admin_emails</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app_meta_cfg</span><span class="p">,</span> <span class="s2">&quot;store_path&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">overlay_factory</span> <span class="o">=</span> <span class="n">make_file_store_factory</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">app_meta_cfg</span><span class="o">.</span><span class="n">store_path</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">overlay_factory</span> <span class="o">=</span> <span class="n">platform_factory</span>  <span class="c1"># beside sessions/users/grants</span>
+    <span class="n">overlay_store</span> <span class="o">=</span> <span class="n">overlay_factory</span><span class="p">(</span><span class="s2">&quot;app_meta&quot;</span><span class="p">)</span>
+    <span class="n">can_edit_meta</span> <span class="o">=</span> <span class="n">make_appmeta_can_edit</span><span class="p">(</span><span class="n">editors</span><span class="p">)</span>
+
+    <span class="c1"># DI slots read by enlace core (compose._overlay_entry / apps_listing).</span>
+    <span class="n">parent</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">app_meta_overlay</span> <span class="o">=</span> <span class="n">overlay_store</span>
+    <span class="n">parent</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">app_meta_can_edit</span> <span class="o">=</span> <span class="n">can_edit_meta</span>
+
+    <span class="n">parent</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span>
+        <span class="n">make_appmeta_router</span><span class="p">(</span>
+            <span class="n">apps</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;apps&quot;</span><span class="p">,</span> <span class="p">[])),</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+            <span class="n">overlay_store</span><span class="o">=</span><span class="n">overlay_store</span><span class="p">,</span>
+            <span class="n">can_edit</span><span class="o">=</span><span class="n">can_edit_meta</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
 
     <span class="c1"># Admin router (API + UI). UI is only mounted when there is at least one</span>
     <span class="c1"># admin email; otherwise the dashboard would be unreachable anyway.</span>
