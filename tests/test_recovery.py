@@ -162,7 +162,7 @@ def test_shared_login_page_redirects_when_already_authed():
         follow_redirects=False,
     )
     assert r.status_code == 303
-    assert r.headers["location"] == "/xa/"
+    assert r.headers["location"].endswith("/xa/")  # newer httpx returns absolute
 
 
 def test_shared_login_post_still_returns_json():

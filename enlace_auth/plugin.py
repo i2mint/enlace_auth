@@ -316,6 +316,34 @@ def wire(parent: "FastAPI", config) -> None:
     )
     parent.include_router(store_router)
 
+    # App-metadata overlay: the editable launcher-metadata layer (owner-added
+    # keywords + icon/title overrides). Core reads the overlay + can-edit closure
+    # via parent.state; the write surface (PATCH/DELETE /_apps/{name}/meta) is
+    # here so it inherits CSRF + auth. Editors default to the admin allowlist.
+    from enlace_auth.appmeta import make_appmeta_can_edit, make_appmeta_router
+
+    app_meta_cfg = getattr(config, "app_meta", None)
+    editors = tuple(getattr(app_meta_cfg, "editors", ()) or ()) or admin_emails
+    if getattr(app_meta_cfg, "store_path", None):
+        overlay_factory = make_file_store_factory(str(app_meta_cfg.store_path))
+    else:
+        overlay_factory = platform_factory  # beside sessions/users/grants
+    overlay_store = overlay_factory("app_meta")
+    can_edit_meta = make_appmeta_can_edit(editors)
+
+    # DI slots read by enlace core (compose._overlay_entry / apps_listing).
+    parent.state.app_meta_overlay = overlay_store
+    parent.state.app_meta_can_edit = can_edit_meta
+
+    parent.include_router(
+        make_appmeta_router(
+            apps=list(getattr(config, "apps", [])),
+            config=config,
+            overlay_store=overlay_store,
+            can_edit=can_edit_meta,
+        )
+    )
+
     # Admin router (API + UI). UI is only mounted when there is at least one
     # admin email; otherwise the dashboard would be unreachable anyway.
     admin_router = make_admin_router(
