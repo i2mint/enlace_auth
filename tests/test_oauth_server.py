@@ -129,6 +129,29 @@ def test_authorize_rejects_unknown_client(tmp_path):
     assert r.status_code == 400
 
 
+def test_authorize_blank_client_id_is_clean_400_not_500(tmp_path):
+    # Regression: a file-backed client_store resolves an empty client_id to its
+    # root directory and raised IsADirectoryError (a 500). A blank/missing
+    # client_id must short-circuit to the same clean 400 as an unknown client.
+    client, cookie = _build(tmp_path)
+    for cid in ("", None):
+        params = {
+            "response_type": "code",
+            "redirect_uri": REDIRECT,
+            "code_challenge": "x",
+            "code_challenge_method": "S256",
+        }
+        if cid is not None:
+            params["client_id"] = cid
+        r = client.get(
+            "/auth/oauth/authorize",
+            params=params,
+            cookies={COOKIE: cookie},
+            follow_redirects=False,
+        )
+        assert r.status_code == 400, f"client_id={cid!r} -> {r.status_code}"
+
+
 def test_full_authorization_code_flow_with_consent(tmp_path):
     client, cookie = _build(tmp_path)
     cid = _register(client)
