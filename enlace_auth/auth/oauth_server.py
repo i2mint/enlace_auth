@@ -280,7 +280,11 @@ def make_oauth_server_router(
         """Parse + validate /authorize params. Returns (ok, error_page)."""
         client_id = params.get("client_id", "")
         redirect_uri = params.get("redirect_uri", "")
-        client = client_store.get(client_id)
+        # Guard the empty key explicitly: a file-backed client_store resolves an
+        # empty client_id to its root directory and raises IsADirectoryError
+        # (a 500) instead of returning None — so a missing/blank client_id must
+        # short-circuit to the clean "unknown client" page below.
+        client = client_store.get(client_id) if client_id else None
         if not client or redirect_uri not in client.get("redirect_uris", []):
             # Cannot safely redirect to an unverified URI — show an error page.
             return None, HTMLResponse(

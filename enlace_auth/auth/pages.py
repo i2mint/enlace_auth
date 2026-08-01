@@ -14,8 +14,32 @@ page that redirect lands on, and it threads ``next`` back through after sign-in.
 
 from __future__ import annotations
 
+import json
 from html import escape
 from typing import Optional
+
+
+def _js_string(value: str) -> str:
+    """Encode a Python string as a JS string literal safe to embed inline in a
+    ``<script>`` element.
+
+    ``html.escape`` is WRONG here: inside a ``<script>`` element the browser does
+    not decode HTML entities, so escaping ``&`` to ``&amp;`` corrupts the string
+    at runtime (e.g. a ``next`` URL's ``?a=1&b=2`` query becomes ``?a=1&amp;b=2``,
+    dropping every parameter after the first). JSON is the correct encoding for a
+    JS string literal; the extra ``\\uXXXX`` replacements keep ``&``/``<``/``>``
+    inert in the HTML tokenizer (no ``</script>`` breakout) while the JS engine
+    decodes them back to the original characters at runtime. Returns the literal
+    *including* its surrounding quotes.
+    """
+    return (
+        json.dumps(value)
+        .replace("&", "\\u0026")
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("\u2028", "\\u2028")
+        .replace("\u2029", "\\u2029")
+    )
 
 # --------------------------------------------------------------------------
 # Shared chrome
@@ -191,7 +215,7 @@ def render_login_page(
         error: optional error banner (e.g. a stale-session note).
         show_register_hint: whether to show the "ask an admin" footnote.
     """
-    next_js = escape(next_url, quote=True)
+    next_js = _js_string(next_url)
     hint = (
         '<p class="muted">No account? Accounts are created by the platform admin.</p>'
         if show_register_hint
@@ -218,7 +242,7 @@ def render_login_page(
 <script>
 {_CSRF_JS}
 {_PW_TOGGLE_JS}
-const NEXT = "{next_js}";
+const NEXT = {next_js};
 const f = document.getElementById('f');
 const msg = document.getElementById('msg');
 const submit = document.getElementById('submit');
@@ -269,7 +293,7 @@ def render_shared_login_page(
         error: optional error banner.
     """
     app_js = escape(app, quote=True)
-    next_js = escape(next_url, quote=True)
+    next_js = _js_string(next_url)
     app_disp = escape(app)
     body = f"""<div class="card">
 <h1>Enter password</h1>
@@ -288,7 +312,7 @@ def render_shared_login_page(
 <script>
 {_CSRF_JS}
 const APP = "{app_js}";
-const NEXT = "{next_js}";
+const NEXT = {next_js};
 const f = document.getElementById('f');
 const msg = document.getElementById('msg');
 const submit = document.getElementById('submit');
