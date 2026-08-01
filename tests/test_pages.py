@@ -38,7 +38,9 @@ def test_js_string_preserves_query_params():
 
 def test_js_string_has_no_script_breakout():
     lit = _js_string("/x?a=</script><b>&c=1")
-    assert "</script>" not in lit and "<" not in lit and ">" not in lit and "&" not in lit
+    assert (
+        "</script>" not in lit and "<" not in lit and ">" not in lit and "&" not in lit
+    )
     # ...but the runtime value is exactly the original, untouched.
     assert _js_runtime_value(lit) == "/x?a=</script><b>&c=1"
 
