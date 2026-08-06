@@ -25,7 +25,13 @@ SIGNING_KEY = "x" * 43
 COOKIE = "enlace_session"
 EMAIL = "owner@example.com"
 REDIRECT = "https://claude.ai/api/mcp/callback"
-RESOURCE = "https://apps.thorwhalen.com/trufflepig-mcp"
+# Two connectors on one authorization server — the situation the consent
+# screen has to tell apart. Names are deliberately generic placeholders.
+RESOURCE = "https://apps.example.com/connector-a-mcp"
+OTHER_RESOURCE = "https://apps.example.com/connector-b-mcp"
+UNMAPPED_RESOURCE = "https://apps.example.com/connector-c-mcp"
+DISPLAY_NAMES = {RESOURCE: "Connector A", OTHER_RESOURCE: "Connector B"}
+GENERIC_PROMPT = "requesting access to your data on this platform"
 
 
 def _pkce():
@@ -38,9 +44,16 @@ def _pkce():
     return verifier, challenge
 
 
-def _build(tmp_path, *, require_consent=True, resource_allowlist=None):
+def _build(
+    tmp_path,
+    *,
+    require_consent=True,
+    resource_allowlist=None,
+    resource_display_names=None,
+    email=EMAIL,
+):
     session_store = SessionStore({})
-    sid = session_store.create(user_id=EMAIL, email=EMAIL)
+    sid = session_store.create(user_id=email, email=email)
     router = make_oauth_server_router(
         session_store=session_store,
         signing_key=SIGNING_KEY,
@@ -52,6 +65,7 @@ def _build(tmp_path, *, require_consent=True, resource_allowlist=None):
         issuer=None,  # derive from request → http://testserver
         require_consent=require_consent,
         resource_allowlist=resource_allowlist,
+        resource_display_names=resource_display_names,
     )
     app = FastAPI()
     app.include_router(router)
@@ -60,8 +74,8 @@ def _build(tmp_path, *, require_consent=True, resource_allowlist=None):
     return client, session_cookie
 
 
-def _register(client) -> str:
-    r = client.post("/auth/oauth/register", json={"redirect_uris": [REDIRECT]})
+def _register(client, redirect=REDIRECT) -> str:
+    r = client.post("/auth/oauth/register", json={"redirect_uris": [redirect]})
     assert r.status_code == 201
     return r.json()["client_id"]
 
@@ -80,10 +94,10 @@ def test_protected_resource_metadata_served_at_origin_root(tmp_path):
     # A connector behind a prefix-stripping proxy advertises this at the origin
     # root; the AS serves it for any resource path.
     client, _ = _build(tmp_path)
-    r = client.get("/.well-known/oauth-protected-resource/api/trufflepig_mcp/mcp")
+    r = client.get("/.well-known/oauth-protected-resource/api/connector_a_mcp/mcp")
     assert r.status_code == 200
     meta = r.json()
-    assert meta["resource"] == "http://testserver/api/trufflepig_mcp/mcp"
+    assert meta["resource"] == "http://testserver/api/connector_a_mcp/mcp"
     assert meta["authorization_servers"] == ["http://testserver"]
 
 
@@ -263,14 +277,14 @@ def test_token_rejects_wrong_pkce_verifier(tmp_path):
     assert tok.json()["error"] == "invalid_grant"
 
 
-def _authorize_params(cid, challenge):
+def _authorize_params(cid, challenge, *, resource=RESOURCE, redirect=REDIRECT):
     return {
         "response_type": "code",
         "client_id": cid,
-        "redirect_uri": REDIRECT,
+        "redirect_uri": redirect,
         "code_challenge": challenge,
         "code_challenge_method": "S256",
-        "resource": RESOURCE,
+        "resource": resource,
     }
 
 
@@ -297,3 +311,164 @@ def test_resource_allowlist_allows_listed_user(tmp_path):
         cookies={COOKIE: cookie},
     )
     assert r.status_code == 200 and "Approve" in r.text
+
+
+# --------------------------------------------------------------------------
+# Consent-screen display name (one AS renders consent for every connector)
+# --------------------------------------------------------------------------
+
+
+def _consent_html(tmp_path, *, resource, display_names=DISPLAY_NAMES):
+    client, cookie = _build(tmp_path, resource_display_names=display_names)
+    cid = _register(client)
+    _, challenge = _pkce()
+    r = client.get(
+        "/auth/oauth/authorize",
+        params=_authorize_params(cid, challenge, resource=resource),
+        cookies={COOKIE: cookie},
+    )
+    assert r.status_code == 200, r.text
+    return r.text
+
+
+@pytest.mark.parametrize(
+    "resource, shown, hidden",
+    [
+        (RESOURCE, "Connector A", "Connector B"),
+        (OTHER_RESOURCE, "Connector B", "Connector A"),
+    ],
+)
+def test_consent_page_names_the_connector_being_authorized(
+    tmp_path, resource, shown, hidden
+):
+    # Regression: the name was hard-coded, so every connector's consent screen
+    # showed the first-built connector's name. Assert the *rendered* name, not
+    # merely that a page renders — the latter passes with the bug present, which
+    # is how it survived three connectors. Both directions matter: one name is
+    # keyed on `resource`, and no *other* configured connector may leak into it.
+    page = _consent_html(tmp_path, resource=resource)
+    assert shown in page
+    assert hidden not in page
+
+
+def test_consent_page_uses_generic_copy_for_an_unmapped_resource(tmp_path):
+    # No entry for this resource → generic copy that names no product. A default
+    # naming any specific connector reintroduces the bug for the next one added.
+    page = _consent_html(tmp_path, resource=UNMAPPED_RESOURCE)
+    assert GENERIC_PROMPT in page
+    for name in DISPLAY_NAMES.values():
+        assert name not in page
+
+
+def test_consent_page_names_nothing_when_no_display_names_configured(tmp_path):
+    # The default configuration must be name-free, so a fresh platform cannot
+    # ship one connector's name to another's users.
+    page = _consent_html(tmp_path, resource=RESOURCE, display_names=None)
+    assert GENERIC_PROMPT in page
+
+
+@pytest.mark.parametrize(
+    "config_key, requested",
+    [
+        (RESOURCE, RESOURCE + "/"),  # trailing slash on the request
+        (RESOURCE + "/", RESOURCE),  # trailing slash in the config
+        (RESOURCE + "/", RESOURCE + "/"),  # on both
+    ],
+)
+def test_display_name_key_is_normalized_like_the_allowlist(
+    tmp_path, config_key, requested
+):
+    # Both sides go through the same normalization resource_allowlist uses, so
+    # one config entry can serve both and they cannot disagree about which
+    # connector a request is for. A trailing slash on either side must not
+    # silently drop the name back to the generic copy.
+    page = _consent_html(
+        tmp_path, resource=requested, display_names={config_key: "Connector A"}
+    )
+    assert "Connector A" in page
+    assert GENERIC_PROMPT not in page
+
+
+# --------------------------------------------------------------------------
+# Consent-page escaping
+# --------------------------------------------------------------------------
+
+# An attribute-breakout marker: a double quote and a `<` are exactly the two
+# characters that let a value escape a `value="..."` attribute and start a new
+# tag. No payload — the assertion is that neither character survives raw.
+BREAKOUT = '"><x'
+BREAKOUT_ESCAPED = "&quot;&gt;&lt;x"
+
+
+def _assert_escaped(page, field):
+    assert BREAKOUT not in page, f"{field} reached the HTML unescaped"
+    assert BREAKOUT_ESCAPED in page, f"{field} did not reach the page at all"
+
+
+@pytest.mark.parametrize("field", ["state", "scope", "resource", "code_challenge"])
+def test_consent_page_escapes_query_supplied_values(tmp_path, field):
+    # /authorize copies these straight off the query string into hidden-input
+    # attribute values, and any authenticated user can be sent to a crafted
+    # authorize URL on the platform's own origin.
+    client, cookie = _build(tmp_path)
+    cid = _register(client)
+    _, challenge = _pkce()
+    params = _authorize_params(cid, challenge)
+    params["state"] = "s"
+    params["scope"] = "mcp:read"
+    params[field] = BREAKOUT
+    r = client.get("/auth/oauth/authorize", params=params, cookies={COOKIE: cookie})
+    assert r.status_code == 200, r.text
+    _assert_escaped(r.text, field)
+
+
+def test_consent_page_escapes_the_registered_redirect_uri(tmp_path):
+    # redirect_uri must match the client's registration — but registration is
+    # open (RFC 7591 DCR) and does not constrain the URI's contents.
+    client, cookie = _build(tmp_path)
+    hostile = f"https://example.invalid/cb{BREAKOUT}"
+    cid = _register(client, redirect=hostile)
+    _, challenge = _pkce()
+    r = client.get(
+        "/auth/oauth/authorize",
+        params=_authorize_params(cid, challenge, redirect=hostile),
+        cookies={COOKIE: cookie},
+    )
+    assert r.status_code == 200, r.text
+    _assert_escaped(r.text, "redirect_uri")
+
+
+def test_consent_page_escapes_the_session_email(tmp_path):
+    client, cookie = _build(tmp_path, email=f"a{BREAKOUT}@example.com")
+    cid = _register(client)
+    _, challenge = _pkce()
+    r = client.get(
+        "/auth/oauth/authorize",
+        params=_authorize_params(cid, challenge),
+        cookies={COOKIE: cookie},
+    )
+    assert r.status_code == 200, r.text
+    _assert_escaped(r.text, "email")
+
+
+def test_consent_page_escapes_the_configured_display_name(tmp_path):
+    page = _consent_html(
+        tmp_path, resource=RESOURCE, display_names={RESOURCE: f"N{BREAKOUT}"}
+    )
+    _assert_escaped(page, "display_name")
+
+
+def test_denied_page_escapes_the_session_email(tmp_path):
+    email = f"a{BREAKOUT}@example.com"
+    client, cookie = _build(
+        tmp_path, email=email, resource_allowlist={RESOURCE: ["someone@example.com"]}
+    )
+    cid = _register(client)
+    _, challenge = _pkce()
+    r = client.get(
+        "/auth/oauth/authorize",
+        params=_authorize_params(cid, challenge),
+        cookies={COOKIE: cookie},
+    )
+    assert r.status_code == 403
+    _assert_escaped(r.text, "email")

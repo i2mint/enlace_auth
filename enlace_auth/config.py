@@ -69,6 +69,16 @@ class OAuthServerConfig(BaseModel):
             "any authenticated user; a listed resource denies everyone else."
         ),
     )
+    resource_display_names: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Per-connector consent copy: maps a connector resource URL (the same "
+            "key resource_allowlist uses) to the human name shown on the consent "
+            "screen. One authorization server renders that screen for every "
+            "connector, so a resource with no entry gets generic copy naming no "
+            "product — never fall back to a specific connector's name."
+        ),
+    )
 
 
 class AuthConfig(BaseModel):
