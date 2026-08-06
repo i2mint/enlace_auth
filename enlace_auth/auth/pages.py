@@ -161,8 +161,43 @@ def _password_input(*, id: str, autocomplete: str, extra: str = "") -> str:
     )
 
 
+def fill_template(template: str, /, **values: object) -> str:
+    """Fill ``{name}`` placeholders in *template* with HTML-escaped *values*.
+
+    The escaping boundary for any page that interpolates request- or
+    user-supplied data into HTML. Escaping happens **here**, once, rather than
+    at each interpolation site: a value cannot reach the markup without passing
+    through :func:`html.escape`, so a placeholder added later is safe by
+    construction instead of by the author remembering. Note that :func:`_page`
+    escapes only the page *title* — the body it receives is inserted verbatim,
+    so a body built by string interpolation must come through this function.
+
+    ``quote=True`` covers both sinks used here: element text, and attribute
+    values in either quote style.
+
+    *template* is trusted, static markup and must contain no literal braces
+    other than its placeholders (:meth:`str.format` rules apply). Compose a
+    page from several ``fill_template`` results rather than leaving an
+    un-escaped hole in one big template.
+
+    >>> fill_template('<input value="{v}">', v='" onx=1')
+    '<input value="&quot; onx=1">'
+
+    Only *values* are escaped; the template's own markup passes through as-is:
+
+    >>> fill_template("<p>{who} &amp; {what}</p>", who="a<b", what="c>d")
+    '<p>a&lt;b &amp; c&gt;d</p>'
+    """
+    return template.format(**{k: escape(str(v), quote=True) for k, v in values.items()})
+
+
 def _page(title: str, body: str) -> str:
-    """Wrap ``body`` HTML in the shared shell with ``title``."""
+    """Wrap ``body`` HTML in the shared shell with ``title``.
+
+    ``body`` is inserted **verbatim** — it is expected to be markup the caller
+    assembled, so any dynamic value in it must already have gone through
+    :func:`fill_template`.
+    """
     return (
         _SHELL.replace("__TITLE__", escape(title))
         .replace("__CSS__", _CSS)

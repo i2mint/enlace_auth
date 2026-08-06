@@ -144,6 +144,7 @@ def make_oauth_server_router(
     scopes_supported: tuple[str, ...] = ("mcp:read",),
     require_consent: bool = True,
     resource_allowlist: Mapping[str, list[str]] | None = None,
+    resource_display_names: Mapping[str, str] | None = None,
 ) -> APIRouter:
     """Build the OAuth 2.1 authorization-server router (see the module docstring).
 
@@ -159,15 +160,34 @@ def make_oauth_server_router(
     own staff). Secure to key on the resource: the connector only accepts tokens
     whose ``aud`` is that exact resource, so a denied user can't get a usable token
     another way.
+
+    *resource_display_names* maps the **same** resource URL to the human name the
+    consent screen shows. One authorization server serves every connector on the
+    platform, so this string must be per-connector: a name baked into the template
+    is correct for one connector and wrong — and disclosing — for every other. A
+    resource with no entry gets generic copy that names no product at all; never
+    default to a specific connector's name, or the next connector added inherits
+    it.
     """
+
+    def _norm_resource(resource: str) -> str:
+        """Canonical form of a resource URL — the shared key for both maps."""
+        return (resource or "").rstrip("/")
+
     _allowlist = {
-        r.rstrip("/"): {e.lower() for e in emails}
+        _norm_resource(r): {e.lower() for e in emails}
         for r, emails in (resource_allowlist or {}).items()
+    }
+    _display_names = {
+        _norm_resource(r): name for r, name in (resource_display_names or {}).items()
     }
 
     def _resource_allowed(resource: str, email: str) -> bool:
-        allowed = _allowlist.get((resource or "").rstrip("/"))
+        allowed = _allowlist.get(_norm_resource(resource))
         return allowed is None or email.lower() in allowed
+
+    def _display_name(resource: str) -> Optional[str]:
+        return _display_names.get(_norm_resource(resource))
 
     router = APIRouter(tags=["oauth-server"])
 
@@ -348,7 +368,11 @@ def make_oauth_server_router(
                 f"{auth.redirect_uri}?{urlencode({'code': code, 'state': auth.state})}",
                 status_code=302,
             )
-        return HTMLResponse(_consent_page(request, auth, email, signing_key))
+        return HTMLResponse(
+            _consent_page(
+                auth, email, signing_key, display_name=_display_name(auth.resource)
+            )
+        )
 
     @router.post("/auth/oauth/authorize", include_in_schema=False)
     async def authorize_consent(
@@ -440,36 +464,90 @@ def make_oauth_server_router(
     return router
 
 
-def _denied_page(email: str) -> str:
-    """Render the 'not authorized for this connector' page (allowlist denial)."""
-    return pages._page(
-        "Access denied",
-        f"<h1>Access denied</h1><p><strong>{email}</strong> is not authorized to "
-        "use this connector. Contact the connector owner if you believe this is "
-        "a mistake.</p>",
-    )
+# ---------------------------------------------------------------------- #
+# Browser-facing pages
+#
+# Every template below is static markup whose values are filled in by
+# ``pages.fill_template``, which HTML-escapes them. These pages interpolate
+# values taken straight off the query string (``state``, ``scope``,
+# ``resource``, ``code_challenge``) and off an openly-registerable client
+# record (``redirect_uri``) into attribute values, so escaping is not optional;
+# ``pages._page`` escapes the page *title* only. Compose a page from several
+# filled fragments — never leave an un-escaped hole in a template.
+# ---------------------------------------------------------------------- #
 
+_DENIED_BODY = (
+    "<h1>Access denied</h1><p><strong>{email}</strong> is not authorized to "
+    "use this connector. Contact the connector owner if you believe this is "
+    "a mistake.</p>"
+)
 
-def _consent_page(
-    request: Request, auth: _Authorized, email: str, signing_key: str
-) -> str:
-    """Render the approve/deny consent form (reuses the shared page shell + CSRF)."""
-    csrf = sign_cookie(email, signing_key, salt=_CONSENT_SALT)
-    client = auth.client_id
-    body = f"""
-<h1>Authorize access</h1>
-<p><strong>{client}</strong> is requesting access to your Trufflepig data as
-<strong>{email}</strong>.</p>
-<form method="post" action="/auth/oauth/authorize">
-  <input type="hidden" name="client_id" value="{auth.client_id}">
-  <input type="hidden" name="redirect_uri" value="{auth.redirect_uri}">
-  <input type="hidden" name="code_challenge" value="{auth.code_challenge}">
-  <input type="hidden" name="state" value="{auth.state}">
-  <input type="hidden" name="scope" value="{auth.scope}">
-  <input type="hidden" name="resource" value="{auth.resource}">
+# Named vs generic consent copy. The generic form is what a resource with no
+# configured display name gets: it names no product, because this one server
+# renders the consent screen for every connector on the platform.
+_CONSENT_PROMPT_NAMED = (
+    "<p><strong>{client}</strong> is requesting access to your "
+    "<strong>{connector}</strong> data as <strong>{email}</strong>.</p>"
+)
+_CONSENT_PROMPT_GENERIC = (
+    "<p><strong>{client}</strong> is requesting access to your data on this "
+    "platform as <strong>{email}</strong>.</p>"
+)
+
+_CONSENT_FORM = """<form method="post" action="/auth/oauth/authorize">
+  <input type="hidden" name="client_id" value="{client_id}">
+  <input type="hidden" name="redirect_uri" value="{redirect_uri}">
+  <input type="hidden" name="code_challenge" value="{code_challenge}">
+  <input type="hidden" name="state" value="{state}">
+  <input type="hidden" name="scope" value="{scope}">
+  <input type="hidden" name="resource" value="{resource}">
   <input type="hidden" name="csrf" value="{csrf}">
   <button type="submit" name="decision" value="approve">Approve</button>
   <button type="submit" name="decision" value="deny">Deny</button>
-</form>
-"""
+</form>"""
+
+
+def _denied_page(email: str) -> str:
+    """Render the 'not authorized for this connector' page (allowlist denial)."""
+    return pages._page("Access denied", pages.fill_template(_DENIED_BODY, email=email))
+
+
+def _consent_page(
+    auth: _Authorized,
+    email: str,
+    signing_key: str,
+    *,
+    display_name: Optional[str] = None,
+) -> str:
+    """Render the approve/deny consent form (reuses the shared page shell + CSRF).
+
+    *display_name* is the connector's human name, resolved from the request's
+    ``resource``. When it is ``None`` the prompt falls back to generic copy —
+    naming a specific connector here would show that name to everyone
+    authorizing any *other* connector on the same platform.
+    """
+    csrf = sign_cookie(email, signing_key, salt=_CONSENT_SALT)
+    prompt = (
+        pages.fill_template(
+            _CONSENT_PROMPT_NAMED,
+            client=auth.client_id,
+            connector=display_name,
+            email=email,
+        )
+        if display_name
+        else pages.fill_template(
+            _CONSENT_PROMPT_GENERIC, client=auth.client_id, email=email
+        )
+    )
+    form = pages.fill_template(
+        _CONSENT_FORM,
+        client_id=auth.client_id,
+        redirect_uri=auth.redirect_uri,
+        code_challenge=auth.code_challenge,
+        state=auth.state,
+        scope=auth.scope,
+        resource=auth.resource,
+        csrf=csrf,
+    )
+    body = f"<h1>Authorize access</h1>\n{prompt}\n{form}\n"
     return pages._page("Authorize access", body)

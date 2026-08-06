@@ -52,6 +52,31 @@ backend = "file"
 path = "~/.enlace/user_data"
 ```
 
+### OAuth 2.1 authorization server (MCP connectors)
+
+`enlace_auth` can act as the authorization server that issues the JWTs an MCP
+custom connector validates. **One** server serves *every* connector on the
+platform, so anything a user reads during the connect flow must be keyed on the
+connector — the `resource` the client asks for:
+
+```toml
+[auth.oauth_server]
+enabled = true
+issuer = "https://apps.example.com"
+
+# Who may authorize for each connector. A resource that is not listed is open
+# to any authenticated user; a listed one denies everyone else.
+[auth.oauth_server.resource_allowlist]
+"https://apps.example.com/connector-a-mcp" = ["alice@example.com"]
+
+# The name the consent screen shows, keyed by the SAME resource URL. A resource
+# with no entry gets generic copy that names no product — never default to one
+# connector's name, or every other connector's consent screen inherits it.
+[auth.oauth_server.resource_display_names]
+"https://apps.example.com/connector-a-mcp" = "Connector A"
+"https://apps.example.com/connector-b-mcp" = "Connector B"
+```
+
 Plus environment variables:
 
 - `ENLACE_SIGNING_KEY` — signing key (32+ chars). Generate with `python -c
