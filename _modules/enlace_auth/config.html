@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.config &mdash; enlace_auth 0.1.17 documentation</title>
+  <title>enlace_auth.config &mdash; enlace_auth 0.1.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=71734efd"></script>
+      <script src="../../_static/documentation_options.js?v=9969ed3f"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -174,6 +174,16 @@
             <span class="s2">&quot;Per-connector access control: maps a connector resource URL to the &quot;</span>
             <span class="s2">&quot;emails allowed to authorize for it. A resource not listed is open to &quot;</span>
             <span class="s2">&quot;any authenticated user; a listed resource denies everyone else.&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">resource_display_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Per-connector consent copy: maps a connector resource URL (the same &quot;</span>
+            <span class="s2">&quot;key resource_allowlist uses) to the human name shown on the consent &quot;</span>
+            <span class="s2">&quot;screen. One authorization server renders that screen for every &quot;</span>
+            <span class="s2">&quot;connector, so a resource with no entry gets generic copy naming no &quot;</span>
+            <span class="s2">&quot;product — never fall back to a specific connector&#39;s name.&quot;</span>
         <span class="p">),</span>
     <span class="p">)</span></div>
 
