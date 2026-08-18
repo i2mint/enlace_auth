@@ -31,7 +31,8 @@ from __future__ import annotations
 
 import hashlib
 import time
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any, Optional
 
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 
