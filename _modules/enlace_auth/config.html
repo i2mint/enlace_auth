@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.config &mdash; enlace_auth 0.1.18 documentation</title>
+  <title>enlace_auth.config &mdash; enlace_auth 0.1.19 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=9969ed3f"></script>
+      <script src="../../_static/documentation_options.js?v=3d116926"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -60,6 +60,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/oauth_server.html">enlace_auth.auth.oauth_server</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/pages.html">enlace_auth.auth.pages</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/passwords.html">enlace_auth.auth.passwords</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/reset_tokens.html">enlace_auth.auth.reset_tokens</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/routes.html">enlace_auth.auth.routes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/sessions.html">enlace_auth.auth.sessions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/config.html">enlace_auth.config</a></li>
@@ -97,18 +98,18 @@
            <div itemprop="articleBody">
              
   <h1>Source code for enlace_auth.config</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Auth-side configuration models.</span>
+<span></span><span class="sd">"""Auth-side configuration models.</span>
 
 <span class="sd">These were originally in ``enlace.base``. They have moved here because they</span>
-<span class="sd">describe the auth subsystem&#39;s behavior, not the platform&#39;s composition. enlace</span>
+<span class="sd">describe the auth subsystem's behavior, not the platform's composition. enlace</span>
 <span class="sd">itself no longer imports anything from here; ``enlace_auth.plugin`` reads them</span>
-<span class="sd">off ``PlatformConfig`` via ``getattr(config, &quot;auth&quot;, None)`` and the loose</span>
+<span class="sd">off ``PlatformConfig`` via ``getattr(config, "auth", None)`` and the loose</span>
 <span class="sd">``stores`` mapping.</span>
 
 <span class="sd">The TOML loader in ``enlace.base.PlatformConfig.from_toml`` accepts</span>
 <span class="sd">``[auth.*]`` and ``[stores.*]`` tables and forwards them through the model;</span>
 <span class="sd">we just deserialize them into typed objects here when the plugin runs.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
@@ -116,24 +117,24 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
 
-<span class="c1"># &quot;local&quot; is a legacy alias for &quot;public&quot; — middleware treats it as public.</span>
-<span class="n">AccessLevel</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;public&quot;</span><span class="p">,</span> <span class="s2">&quot;protected:shared&quot;</span><span class="p">,</span> <span class="s2">&quot;protected:user&quot;</span><span class="p">,</span> <span class="s2">&quot;local&quot;</span><span class="p">]</span>
+<span class="c1"># "local" is a legacy alias for "public" — middleware treats it as public.</span>
+<span class="n">AccessLevel</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"public"</span><span class="p">,</span> <span class="s2">"protected:shared"</span><span class="p">,</span> <span class="s2">"protected:user"</span><span class="p">,</span> <span class="s2">"local"</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="StoreBackendConfig">
 <a class="viewcode-back" href="../../module_docs/enlace_auth/config.html#enlace_auth.StoreBackendConfig">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">StoreBackendConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Backend configuration for a MutableMapping-backed store.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Backend configuration for a MutableMapping-backed store."""</span>
 
-    <span class="n">backend</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;file&quot;</span>
-    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;~/.enlace/platform_store&quot;</span></div>
+    <span class="n">backend</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"file"</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"~/.enlace/platform_store"</span></div>
 
 
 
 <div class="viewcode-block" id="OAuthProviderConfig">
 <a class="viewcode-back" href="../../module_docs/enlace_auth/config.html#enlace_auth.OAuthProviderConfig">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">OAuthProviderConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Configuration for a single OAuth2/OIDC provider.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Configuration for a single OAuth2/OIDC provider."""</span>
 
     <span class="n">client_id_env</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">client_secret_env</span><span class="p">:</span> <span class="nb">str</span>
@@ -148,42 +149,42 @@
 <div class="viewcode-block" id="OAuthServerConfig">
 <a class="viewcode-back" href="../../module_docs/enlace_auth/config.html#enlace_auth.OAuthServerConfig">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">OAuthServerConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;OAuth 2.1 authorization-server settings (for MCP connectors).</span>
+<span class="w">    </span><span class="sd">"""OAuth 2.1 authorization-server settings (for MCP connectors).</span>
 
 <span class="sd">    When ``enabled``, ``enlace_auth`` issues signed JWT access tokens that a</span>
 <span class="sd">    Claude.ai custom connector validates — reusing the platform user store and</span>
 <span class="sd">    session login. See :mod:`enlace_auth.auth.oauth_server`.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">issuer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">description</span><span class="o">=</span><span class="p">(</span>
-            <span class="s2">&quot;Token issuer + discovery origin (e.g. https://apps.thorwhalen.com). &quot;</span>
-            <span class="s2">&quot;When unset, derived from each request&#39;s base URL.&quot;</span>
+            <span class="s2">"Token issuer + discovery origin (e.g. https://apps.thorwhalen.com). "</span>
+            <span class="s2">"When unset, derived from each request's base URL."</span>
         <span class="p">),</span>
     <span class="p">)</span>
-    <span class="n">key_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;~/.enlace/oauth_keys&quot;</span>
+    <span class="n">key_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"~/.enlace/oauth_keys"</span>
     <span class="n">access_token_ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3600</span>
     <span class="n">code_ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">120</span>
-    <span class="n">scopes_supported</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;mcp:read&quot;</span><span class="p">])</span>
+    <span class="n">scopes_supported</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="s2">"mcp:read"</span><span class="p">])</span>
     <span class="n">require_consent</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">resource_allowlist</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span>
         <span class="n">description</span><span class="o">=</span><span class="p">(</span>
-            <span class="s2">&quot;Per-connector access control: maps a connector resource URL to the &quot;</span>
-            <span class="s2">&quot;emails allowed to authorize for it. A resource not listed is open to &quot;</span>
-            <span class="s2">&quot;any authenticated user; a listed resource denies everyone else.&quot;</span>
+            <span class="s2">"Per-connector access control: maps a connector resource URL to the "</span>
+            <span class="s2">"emails allowed to authorize for it. A resource not listed is open to "</span>
+            <span class="s2">"any authenticated user; a listed resource denies everyone else."</span>
         <span class="p">),</span>
     <span class="p">)</span>
     <span class="n">resource_display_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span>
         <span class="n">description</span><span class="o">=</span><span class="p">(</span>
-            <span class="s2">&quot;Per-connector consent copy: maps a connector resource URL (the same &quot;</span>
-            <span class="s2">&quot;key resource_allowlist uses) to the human name shown on the consent &quot;</span>
-            <span class="s2">&quot;screen. One authorization server renders that screen for every &quot;</span>
-            <span class="s2">&quot;connector, so a resource with no entry gets generic copy naming no &quot;</span>
-            <span class="s2">&quot;product — never fall back to a specific connector&#39;s name.&quot;</span>
+            <span class="s2">"Per-connector consent copy: maps a connector resource URL (the same "</span>
+            <span class="s2">"key resource_allowlist uses) to the human name shown on the consent "</span>
+            <span class="s2">"screen. One authorization server renders that screen for every "</span>
+            <span class="s2">"connector, so a resource with no entry gets generic copy naming no "</span>
+            <span class="s2">"product — never fall back to a specific connector's name."</span>
         <span class="p">),</span>
     <span class="p">)</span></div>
 
@@ -192,39 +193,39 @@
 <div class="viewcode-block" id="AuthConfig">
 <a class="viewcode-back" href="../../module_docs/enlace_auth/config.html#enlace_auth.AuthConfig">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AuthConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Platform-wide authentication configuration.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Platform-wide authentication configuration."""</span>
 
     <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="n">session_cookie_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;enlace_session&quot;</span>
+    <span class="n">session_cookie_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"enlace_session"</span>
     <span class="n">session_max_age_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">86400</span>
-    <span class="n">signing_key_env</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;ENLACE_SIGNING_KEY&quot;</span>
+    <span class="n">signing_key_env</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"ENLACE_SIGNING_KEY"</span>
     <span class="n">secure_cookies</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">stores</span><span class="p">:</span> <span class="n">StoreBackendConfig</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">StoreBackendConfig</span><span class="p">)</span>
     <span class="n">oauth</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">OAuthProviderConfig</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
     <span class="n">oauth_server</span><span class="p">:</span> <span class="n">OAuthServerConfig</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">OAuthServerConfig</span><span class="p">)</span>
     <span class="n">admin_emails_env</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;ENLACE_ADMIN_EMAILS&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">"ENLACE_ADMIN_EMAILS"</span><span class="p">,</span>
         <span class="n">description</span><span class="o">=</span><span class="p">(</span>
-            <span class="s2">&quot;Env var holding a comma-separated list of admin emails. Admins &quot;</span>
-            <span class="s2">&quot;see the dashboard at /_admin and can manage users.&quot;</span>
+            <span class="s2">"Env var holding a comma-separated list of admin emails. Admins "</span>
+            <span class="s2">"see the dashboard at /_admin and can manage users."</span>
         <span class="p">),</span>
     <span class="p">)</span>
     <span class="n">registration_open</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">description</span><span class="o">=</span><span class="p">(</span>
-            <span class="s2">&quot;Whether anyone can self-register via /auth/register or OAuth. &quot;</span>
-            <span class="s2">&quot;When False (default), only emails listed in &quot;</span>
-            <span class="s2">&quot;registration_allowlist_env (or admin_emails_env) can complete &quot;</span>
-            <span class="s2">&quot;signup; everyone else gets 403. Existing users can always log &quot;</span>
-            <span class="s2">&quot;in regardless of this setting.&quot;</span>
+            <span class="s2">"Whether anyone can self-register via /auth/register or OAuth. "</span>
+            <span class="s2">"When False (default), only emails listed in "</span>
+            <span class="s2">"registration_allowlist_env (or admin_emails_env) can complete "</span>
+            <span class="s2">"signup; everyone else gets 403. Existing users can always log "</span>
+            <span class="s2">"in regardless of this setting."</span>
         <span class="p">),</span>
     <span class="p">)</span>
     <span class="n">registration_allowlist_env</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;ENLACE_REGISTRATION_ALLOWLIST&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">"ENLACE_REGISTRATION_ALLOWLIST"</span><span class="p">,</span>
         <span class="n">description</span><span class="o">=</span><span class="p">(</span>
-            <span class="s2">&quot;Env var holding a comma-separated list of emails permitted to &quot;</span>
-            <span class="s2">&quot;self-register (via /auth/register or OAuth callback) when &quot;</span>
-            <span class="s2">&quot;registration_open is False. Admin emails are always allowed.&quot;</span>
+            <span class="s2">"Env var holding a comma-separated list of emails permitted to "</span>
+            <span class="s2">"self-register (via /auth/register or OAuth callback) when "</span>
+            <span class="s2">"registration_open is False. Admin emails are always allowed."</span>
         <span class="p">),</span>
     <span class="p">)</span></div>
 
@@ -233,11 +234,11 @@
 <div class="viewcode-block" id="coerce_auth_config">
 <a class="viewcode-back" href="../../module_docs/enlace_auth/config.html#enlace_auth.coerce_auth_config">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">coerce_auth_config</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AuthConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Accept dict / AuthConfig / None and return an AuthConfig.</span>
+<span class="w">    </span><span class="sd">"""Accept dict / AuthConfig / None and return an AuthConfig.</span>
 
 <span class="sd">    Used by the plugin so it can read whatever ``PlatformConfig`` happens to</span>
 <span class="sd">    hold without forcing enlace to know about ``AuthConfig`` itself.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">raw</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">AuthConfig</span><span class="p">()</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">AuthConfig</span><span class="p">):</span>
@@ -251,7 +252,7 @@
 <div class="viewcode-block" id="coerce_stores_map">
 <a class="viewcode-back" href="../../module_docs/enlace_auth/config.html#enlace_auth.coerce_stores_map">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">coerce_stores_map</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">StoreBackendConfig</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Accept the loose ``config.stores`` dict and yield typed configs.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Accept the loose ``config.stores`` dict and yield typed configs."""</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">raw</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">{}</span>
     <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">StoreBackendConfig</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>

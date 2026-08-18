@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.plugin &mdash; enlace_auth 0.1.18 documentation</title>
+  <title>enlace_auth.plugin &mdash; enlace_auth 0.1.19 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=9969ed3f"></script>
+      <script src="../../_static/documentation_options.js?v=3d116926"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -60,6 +60,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/oauth_server.html">enlace_auth.auth.oauth_server</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/pages.html">enlace_auth.auth.pages</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/passwords.html">enlace_auth.auth.passwords</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/reset_tokens.html">enlace_auth.auth.reset_tokens</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/routes.html">enlace_auth.auth.routes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/auth/sessions.html">enlace_auth.auth.sessions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_auth/config.html">enlace_auth.config</a></li>
@@ -97,7 +98,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for enlace_auth.plugin</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Compose-time plugin: wires auth + stores onto an enlace FastAPI app.</span>
+<span></span><span class="sd">"""Compose-time plugin: wires auth + stores onto an enlace FastAPI app.</span>
 
 <span class="sd">Usage from the host (e.g. tw_platform):</span>
 
@@ -108,16 +109,16 @@
 <span class="sd">    app = build_backend(config, plugins=[auth_plugin])</span>
 
 <span class="sd">The plugin is a callable ``(parent: FastAPI, config: PlatformConfig) -&gt; None``.</span>
-<span class="sd">It is a no-op when ``config.auth.enabled`` is False, so platforms that don&#39;t</span>
+<span class="sd">It is a no-op when ``config.auth.enabled`` is False, so platforms that don't</span>
 <span class="sd">opt in pay nothing for installing this package.</span>
 
-<span class="sd">Reads (best-effort, via getattr so the plugin doesn&#39;t require enlace to know</span>
+<span class="sd">Reads (best-effort, via getattr so the plugin doesn't require enlace to know</span>
 <span class="sd">about AuthConfig):</span>
 <span class="sd">- ``config.auth``  — AuthConfig (or dict / None)</span>
 <span class="sd">- ``config.stores`` — dict[name, StoreBackendConfig (or dict)]</span>
 <span class="sd">- ``config.apps``  — list[AppConfig]; uses ``access``, ``allowed_users``,</span>
 <span class="sd">  ``shared_password_env``, ``route_prefix``, ``name``.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
@@ -133,48 +134,48 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastAPI</span>
 
 
-<span class="n">_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;enlace_auth&quot;</span><span class="p">)</span>
+<span class="n">_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">"enlace_auth"</span><span class="p">)</span>
 
 <span class="c1"># Minimum accepted signing-key length. ``secrets.token_urlsafe(32)`` yields 43</span>
 <span class="c1"># chars; anything shorter is a stub and should be rejected.</span>
 <span class="n">_MIN_SIGNING_KEY_LEN</span> <span class="o">=</span> <span class="mi">32</span>
 
-<span class="n">_UNSAFE_OPT_OUT_ENV</span> <span class="o">=</span> <span class="s2">&quot;ENLACE_ALLOW_UNSIGNED&quot;</span>
+<span class="n">_UNSAFE_OPT_OUT_ENV</span> <span class="o">=</span> <span class="s2">"ENLACE_ALLOW_UNSIGNED"</span>
 
 
 <div class="viewcode-block" id="EnlaceAuthConfigError">
 <a class="viewcode-back" href="../../module_docs/enlace_auth/plugin.html#enlace_auth.EnlaceAuthConfigError">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">EnlaceAuthConfigError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when auth configuration is unusable at startup.&quot;&quot;&quot;</span></div>
+<span class="w">    </span><span class="sd">"""Raised when auth configuration is unusable at startup."""</span></div>
 
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_require_signing_key</span><span class="p">(</span><span class="n">env_var</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolve the auth signing key, enforcing fail-fast by default.</span>
+<span class="w">    </span><span class="sd">"""Resolve the auth signing key, enforcing fail-fast by default.</span>
 
 <span class="sd">    Returns the key when usable. Returns ``None`` when the key is missing or</span>
 <span class="sd">    malformed AND ``ENLACE_ALLOW_UNSIGNED=1`` is set — the caller should then</span>
 <span class="sd">    skip auth wiring (a loud warning is already logged here).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">raw</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">env_var</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
+<span class="sd">    """</span>
+    <span class="n">raw</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">env_var</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span>
     <span class="n">stripped</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
     <span class="n">problem</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">stripped</span><span class="p">:</span>
-        <span class="n">problem</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;env var </span><span class="si">{</span><span class="n">env_var</span><span class="si">}</span><span class="s2"> is unset or empty&quot;</span>
+        <span class="n">problem</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"env var </span><span class="si">{</span><span class="n">env_var</span><span class="si">}</span><span class="s2"> is unset or empty"</span>
     <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">stripped</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">_MIN_SIGNING_KEY_LEN</span><span class="p">:</span>
         <span class="n">problem</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;env var </span><span class="si">{</span><span class="n">env_var</span><span class="si">}</span><span class="s2"> is too short &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">stripped</span><span class="p">)</span><span class="si">}</span><span class="s2"> chars; need &gt;= </span><span class="si">{</span><span class="n">_MIN_SIGNING_KEY_LEN</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="sa">f</span><span class="s2">"env var </span><span class="si">{</span><span class="n">env_var</span><span class="si">}</span><span class="s2"> is too short "</span>
+            <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">stripped</span><span class="p">)</span><span class="si">}</span><span class="s2"> chars; need &gt;= </span><span class="si">{</span><span class="n">_MIN_SIGNING_KEY_LEN</span><span class="si">}</span><span class="s2">)"</span>
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">problem</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">stripped</span>
 
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_UNSAFE_OPT_OUT_ENV</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;1&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_UNSAFE_OPT_OUT_ENV</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"1"</span><span class="p">:</span>
         <span class="n">_logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
-            <span class="s2">&quot;enlace auth is ENABLED but </span><span class="si">%s</span><span class="s2"> — booting with /auth/* DISABLED &quot;</span>
-            <span class="s2">&quot;because </span><span class="si">%s</span><span class="s2">=1. This gateway cannot authenticate users. Unset the &quot;</span>
-            <span class="s2">&quot;opt-out and set </span><span class="si">%s</span><span class="s2"> to restore auth.&quot;</span><span class="p">,</span>
+            <span class="s2">"enlace auth is ENABLED but </span><span class="si">%s</span><span class="s2"> — booting with /auth/* DISABLED "</span>
+            <span class="s2">"because </span><span class="si">%s</span><span class="s2">=1. This gateway cannot authenticate users. Unset the "</span>
+            <span class="s2">"opt-out and set </span><span class="si">%s</span><span class="s2"> to restore auth."</span><span class="p">,</span>
             <span class="n">problem</span><span class="p">,</span>
             <span class="n">_UNSAFE_OPT_OUT_ENV</span><span class="p">,</span>
             <span class="n">env_var</span><span class="p">,</span>
@@ -182,70 +183,70 @@
         <span class="k">return</span> <span class="kc">None</span>
 
     <span class="k">raise</span> <span class="n">EnlaceAuthConfigError</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;enlace auth is enabled but </span><span class="si">{</span><span class="n">problem</span><span class="si">}</span><span class="s2">. Generate one with &quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;`enlace auth-generate-signing-key` and export it as </span><span class="si">{</span><span class="n">env_var</span><span class="si">}</span><span class="s2">. &quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;To boot without auth (diagnostics only), set &quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_UNSAFE_OPT_OUT_ENV</span><span class="si">}</span><span class="s2">=1.&quot;</span>
+        <span class="sa">f</span><span class="s2">"enlace auth is enabled but </span><span class="si">{</span><span class="n">problem</span><span class="si">}</span><span class="s2">. Generate one with "</span>
+        <span class="sa">f</span><span class="s2">"`enlace auth-generate-signing-key` and export it as </span><span class="si">{</span><span class="n">env_var</span><span class="si">}</span><span class="s2">. "</span>
+        <span class="sa">f</span><span class="s2">"To boot without auth (diagnostics only), set "</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_UNSAFE_OPT_OUT_ENV</span><span class="si">}</span><span class="s2">=1."</span>
     <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_read_admin_emails</span><span class="p">(</span><span class="n">env_var</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-    <span class="n">raw</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">env_var</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="n">raw</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">env_var</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_build_can_register</span><span class="p">(</span>
     <span class="n">auth_cfg</span><span class="p">,</span> <span class="n">admin_emails</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the predicate deciding whether an email may self-register.</span>
+<span class="w">    </span><span class="sd">"""Build the predicate deciding whether an email may self-register.</span>
 
 <span class="sd">    Open registration → always True. Otherwise only admin emails and emails</span>
 <span class="sd">    listed in ``registration_allowlist_env`` may sign up (via ``/auth/register``</span>
 <span class="sd">    or an OAuth first-login); everyone else is refused with 403.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">auth_cfg</span><span class="p">,</span> <span class="s2">&quot;registration_open&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">auth_cfg</span><span class="p">,</span> <span class="s2">"registration_open"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
         <span class="k">return</span> <span class="k">lambda</span> <span class="n">_email</span><span class="p">:</span> <span class="kc">True</span>
     <span class="n">allow</span> <span class="o">=</span> <span class="p">{</span><span class="n">e</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">admin_emails</span><span class="p">}</span>
-    <span class="n">allowlist_env</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">auth_cfg</span><span class="p">,</span> <span class="s2">&quot;registration_allowlist_env&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
-    <span class="n">raw</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">allowlist_env</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-    <span class="n">allow</span> <span class="o">|=</span> <span class="p">{</span><span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()}</span>
+    <span class="n">allowlist_env</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">auth_cfg</span><span class="p">,</span> <span class="s2">"registration_allowlist_env"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span>
+    <span class="n">raw</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">allowlist_env</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+    <span class="n">allow</span> <span class="o">|=</span> <span class="p">{</span><span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()}</span>
     <span class="k">return</span> <span class="k">lambda</span> <span class="n">email</span><span class="p">:</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">allow</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_build_email_sender</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build an SMTP email sender from ``ENLACE_SMTP_*`` env vars, or None.</span>
+<span class="w">    </span><span class="sd">"""Build an SMTP email sender from ``ENLACE_SMTP_*`` env vars, or None.</span>
 
 <span class="sd">    Returns None when no SMTP host is set — the auth router then falls back to</span>
 <span class="sd">    its console sender, which logs the password-reset link instead of mailing</span>
 <span class="sd">    it. Recognized vars: ``ENLACE_SMTP_HOST`` (required to enable SMTP),</span>
 <span class="sd">    ``ENLACE_SMTP_PORT`` (587), ``ENLACE_SMTP_USER``, ``ENLACE_SMTP_PASSWORD``,</span>
 <span class="sd">    ``ENLACE_SMTP_FROM``, ``ENLACE_SMTP_TLS`` (``0`` to disable STARTTLS).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">host</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ENLACE_SMTP_HOST&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+<span class="sd">    """</span>
+    <span class="n">host</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ENLACE_SMTP_HOST"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">host</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.email</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_smtp_sender</span>
 
-    <span class="n">username</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ENLACE_SMTP_USER&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span>
-    <span class="n">from_addr</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ENLACE_SMTP_FROM&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">username</span> <span class="ow">or</span> <span class="s2">&quot;noreply@localhost&quot;</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ENLACE_SMTP_USER"</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span>
+    <span class="n">from_addr</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ENLACE_SMTP_FROM"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">username</span> <span class="ow">or</span> <span class="s2">"noreply@localhost"</span>
     <span class="k">return</span> <span class="n">make_smtp_sender</span><span class="p">(</span>
         <span class="n">host</span><span class="o">=</span><span class="n">host</span><span class="p">,</span>
-        <span class="n">port</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ENLACE_SMTP_PORT&quot;</span><span class="p">,</span> <span class="s2">&quot;587&quot;</span><span class="p">)),</span>
+        <span class="n">port</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ENLACE_SMTP_PORT"</span><span class="p">,</span> <span class="s2">"587"</span><span class="p">)),</span>
         <span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span>
-        <span class="n">password</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ENLACE_SMTP_PASSWORD&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">password</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ENLACE_SMTP_PASSWORD"</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">from_addr</span><span class="o">=</span><span class="n">from_addr</span><span class="p">,</span>
-        <span class="n">use_tls</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ENLACE_SMTP_TLS&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;0&quot;</span><span class="p">,</span>
+        <span class="n">use_tls</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ENLACE_SMTP_TLS"</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"0"</span><span class="p">,</span>
     <span class="p">)</span>
 
 
 <div class="viewcode-block" id="wire">
 <a class="viewcode-back" href="../../module_docs/enlace_auth/plugin.html#enlace_auth.wire">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">wire</span><span class="p">(</span><span class="n">parent</span><span class="p">:</span> <span class="s2">&quot;FastAPI&quot;</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mount /auth/*, /_admin/*, store routes, and middleware on ``parent``.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">wire</span><span class="p">(</span><span class="n">parent</span><span class="p">:</span> <span class="s2">"FastAPI"</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Mount /auth/*, /_admin/*, store routes, and middleware on ``parent``.</span>
 
 <span class="sd">    Plugin entry point. Safe to call when auth is disabled — does nothing.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">auth_cfg</span> <span class="o">=</span> <span class="n">coerce_auth_config</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;auth&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<span class="sd">    """</span>
+    <span class="n">auth_cfg</span> <span class="o">=</span> <span class="n">coerce_auth_config</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">"auth"</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">auth_cfg</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
         <span class="k">return</span>
 
@@ -266,23 +267,23 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.stores.middleware</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_store_router</span>
 
     <span class="n">platform_factory</span> <span class="o">=</span> <span class="n">make_file_store_factory</span><span class="p">(</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">stores</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
-    <span class="n">session_backend</span> <span class="o">=</span> <span class="n">platform_factory</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">)</span>
-    <span class="n">user_backend</span> <span class="o">=</span> <span class="n">platform_factory</span><span class="p">(</span><span class="s2">&quot;users&quot;</span><span class="p">)</span>
+    <span class="n">session_backend</span> <span class="o">=</span> <span class="n">platform_factory</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">)</span>
+    <span class="n">user_backend</span> <span class="o">=</span> <span class="n">platform_factory</span><span class="p">(</span><span class="s2">"users"</span><span class="p">)</span>
     <span class="n">session_store</span> <span class="o">=</span> <span class="n">SessionStore</span><span class="p">(</span><span class="n">session_backend</span><span class="p">)</span>
 
     <span class="c1"># Runtime per-app access grants (additive, optional UTC expiry). Lives beside</span>
     <span class="c1"># sessions/ and users/ under the same persistent store root — outside the</span>
     <span class="c1"># repo/rsync target, so grants survive redeploys. ``root`` is passed so the</span>
-    <span class="c1"># store can list a single app&#39;s grants efficiently on the hot path.</span>
-    <span class="n">grants_root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">stores</span><span class="o">.</span><span class="n">path</span><span class="p">))</span> <span class="o">/</span> <span class="s2">&quot;grants&quot;</span>
-    <span class="n">grant_store</span> <span class="o">=</span> <span class="n">GrantStore</span><span class="p">(</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">&quot;grants&quot;</span><span class="p">),</span> <span class="n">root</span><span class="o">=</span><span class="n">grants_root</span><span class="p">)</span>
+    <span class="c1"># store can list a single app's grants efficiently on the hot path.</span>
+    <span class="n">grants_root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">stores</span><span class="o">.</span><span class="n">path</span><span class="p">))</span> <span class="o">/</span> <span class="s2">"grants"</span>
+    <span class="n">grant_store</span> <span class="o">=</span> <span class="n">GrantStore</span><span class="p">(</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">"grants"</span><span class="p">),</span> <span class="n">root</span><span class="o">=</span><span class="n">grants_root</span><span class="p">)</span>
 
-    <span class="n">stores_map</span> <span class="o">=</span> <span class="n">coerce_stores_map</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;stores&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
-    <span class="n">user_data_cfg</span> <span class="o">=</span> <span class="n">stores_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;user_data&quot;</span><span class="p">)</span>
+    <span class="n">stores_map</span> <span class="o">=</span> <span class="n">coerce_stores_map</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">"stores"</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+    <span class="n">user_data_cfg</span> <span class="o">=</span> <span class="n">stores_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"user_data"</span><span class="p">)</span>
     <span class="n">user_data_backend</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">object</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">user_data_cfg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">user_data_factory</span> <span class="o">=</span> <span class="n">make_file_store_factory</span><span class="p">(</span><span class="n">user_data_cfg</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
-        <span class="n">user_data_backend</span> <span class="o">=</span> <span class="n">user_data_factory</span><span class="p">(</span><span class="s2">&quot;user_data&quot;</span><span class="p">)</span>
+        <span class="n">user_data_backend</span> <span class="o">=</span> <span class="n">user_data_factory</span><span class="p">(</span><span class="s2">"user_data"</span><span class="p">)</span>
 
     <span class="n">admin_emails</span> <span class="o">=</span> <span class="n">_read_admin_emails</span><span class="p">(</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">admin_emails_env</span><span class="p">)</span>
     <span class="n">can_register</span> <span class="o">=</span> <span class="n">_build_can_register</span><span class="p">(</span><span class="n">auth_cfg</span><span class="p">,</span> <span class="n">admin_emails</span><span class="p">)</span>
@@ -291,20 +292,20 @@
     <span class="c1"># Build access rules and shared-password lookup.</span>
     <span class="c1"># Two rules per app: the API prefix (/api/{name}) AND the frontend prefix</span>
     <span class="c1"># (/{name}) — otherwise browser requests to the frontend fall through to</span>
-    <span class="c1"># the middleware&#39;s deny-by-default clause (issue #7).</span>
+    <span class="c1"># the middleware's deny-by-default clause (issue #7).</span>
     <span class="n">shared_hashes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">access_rules</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">AccessRule</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">protected_user_apps</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">app</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;apps&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+    <span class="k">for</span> <span class="n">app</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">"apps"</span><span class="p">,</span> <span class="p">[]):</span>
         <span class="n">h</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">shared_env</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">&quot;shared_password_env&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">access</span> <span class="o">==</span> <span class="s2">&quot;protected:shared&quot;</span> <span class="ow">and</span> <span class="n">shared_env</span><span class="p">:</span>
+        <span class="n">shared_env</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">"shared_password_env"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">access</span> <span class="o">==</span> <span class="s2">"protected:shared"</span> <span class="ow">and</span> <span class="n">shared_env</span><span class="p">:</span>
             <span class="n">h</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">shared_env</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">h</span><span class="p">:</span>
                 <span class="n">shared_hashes</span><span class="p">[</span><span class="n">app</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span>
-        <span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">access</span> <span class="o">==</span> <span class="s2">&quot;protected:user&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">access</span> <span class="o">==</span> <span class="s2">"protected:user"</span><span class="p">:</span>
             <span class="n">protected_user_apps</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="n">allowed</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">&quot;allowed_users&quot;</span><span class="p">,</span> <span class="p">()))</span>
+        <span class="n">allowed</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">"allowed_users"</span><span class="p">,</span> <span class="p">()))</span>
         <span class="n">access_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">AccessRule</span><span class="p">(</span>
                 <span class="n">prefix</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">route_prefix</span><span class="p">,</span>
@@ -314,7 +315,7 @@
                 <span class="n">allowed_users</span><span class="o">=</span><span class="n">allowed</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
-        <span class="n">frontend_prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;/</span><span class="si">{</span><span class="n">app</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">frontend_prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"/</span><span class="si">{</span><span class="n">app</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span>
         <span class="k">if</span> <span class="n">frontend_prefix</span> <span class="o">!=</span> <span class="n">app</span><span class="o">.</span><span class="n">route_prefix</span><span class="p">:</span>
             <span class="n">access_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">AccessRule</span><span class="p">(</span>
@@ -330,9 +331,9 @@
     <span class="k">if</span> <span class="n">admin_emails</span><span class="p">:</span>
         <span class="n">access_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">AccessRule</span><span class="p">(</span>
-                <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/_admin&quot;</span><span class="p">,</span>
-                <span class="n">level</span><span class="o">=</span><span class="s2">&quot;protected:user&quot;</span><span class="p">,</span>
-                <span class="n">app_id</span><span class="o">=</span><span class="s2">&quot;_admin&quot;</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="s2">"/_admin"</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="s2">"protected:user"</span><span class="p">,</span>
+                <span class="n">app_id</span><span class="o">=</span><span class="s2">"_admin"</span><span class="p">,</span>
                 <span class="n">allowed_users</span><span class="o">=</span><span class="n">admin_emails</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
@@ -340,7 +341,7 @@
     <span class="c1"># Root (/) and shared static assets — public. The platform landing page</span>
     <span class="c1"># must be reachable to anyone; per-app gating already covers everything</span>
     <span class="c1"># beneath a more specific prefix via longest-prefix match.</span>
-    <span class="n">access_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AccessRule</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">&quot;public&quot;</span><span class="p">,</span> <span class="n">app_id</span><span class="o">=</span><span class="s2">&quot;_root&quot;</span><span class="p">))</span>
+    <span class="n">access_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AccessRule</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">"/"</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"public"</span><span class="p">,</span> <span class="n">app_id</span><span class="o">=</span><span class="s2">"_root"</span><span class="p">))</span>
 
     <span class="n">auth_router</span> <span class="o">=</span> <span class="n">make_auth_router</span><span class="p">(</span>
         <span class="n">session_store</span><span class="o">=</span><span class="n">session_store</span><span class="p">,</span>
@@ -373,11 +374,11 @@
             <span class="k">if</span> <span class="n">oauth_router</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">parent</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">oauth_router</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-            <span class="n">providers</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">oauth</span><span class="p">))</span> <span class="ow">or</span> <span class="s2">&quot;(none)&quot;</span>
+            <span class="n">providers</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">oauth</span><span class="p">))</span> <span class="ow">or</span> <span class="s2">"(none)"</span>
             <span class="n">_logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
-                <span class="s2">&quot;enlace_auth: [auth.oauth.*] is configured (</span><span class="si">%s</span><span class="s2">) but authlib is &quot;</span>
-                <span class="s2">&quot;not installed. OAuth endpoints will be MISSING. &quot;</span>
-                <span class="s2">&quot;Install with `pip install enlace_auth[oauth]` to fix.&quot;</span><span class="p">,</span>
+                <span class="s2">"enlace_auth: [auth.oauth.*] is configured (</span><span class="si">%s</span><span class="s2">) but authlib is "</span>
+                <span class="s2">"not installed. OAuth endpoints will be MISSING. "</span>
+                <span class="s2">"Install with `pip install enlace_auth[oauth]` to fix."</span><span class="p">,</span>
                 <span class="n">providers</span><span class="p">,</span>
             <span class="p">)</span>
 
@@ -395,8 +396,8 @@
                 <span class="n">signing_key</span><span class="o">=</span><span class="n">signing_key</span><span class="p">,</span>
                 <span class="n">cookie_name</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_cookie_name</span><span class="p">,</span>
                 <span class="n">session_max_age</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_max_age_seconds</span><span class="p">,</span>
-                <span class="n">client_store</span><span class="o">=</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">&quot;oauth_clients&quot;</span><span class="p">),</span>
-                <span class="n">code_store</span><span class="o">=</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">&quot;oauth_codes&quot;</span><span class="p">),</span>
+                <span class="n">client_store</span><span class="o">=</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">"oauth_clients"</span><span class="p">),</span>
+                <span class="n">code_store</span><span class="o">=</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">"oauth_codes"</span><span class="p">),</span>
                 <span class="n">keys</span><span class="o">=</span><span class="n">OAuthKeys</span><span class="p">(</span><span class="n">osc</span><span class="o">.</span><span class="n">key_dir</span><span class="p">),</span>
                 <span class="n">issuer</span><span class="o">=</span><span class="n">osc</span><span class="o">.</span><span class="n">issuer</span><span class="p">,</span>
                 <span class="n">access_token_ttl</span><span class="o">=</span><span class="n">osc</span><span class="o">.</span><span class="n">access_token_ttl_seconds</span><span class="p">,</span>
@@ -409,9 +410,9 @@
             <span class="n">parent</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">oauth_server_router</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="n">_logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
-                <span class="s2">&quot;enlace_auth: [auth.oauth_server] is enabled but authlib/cryptography &quot;</span>
-                <span class="s2">&quot;are not installed. The OAuth server will be MISSING. Install with &quot;</span>
-                <span class="s2">&quot;`pip install enlace_auth[oauth]` to fix.&quot;</span>
+                <span class="s2">"enlace_auth: [auth.oauth_server] is enabled but authlib/cryptography "</span>
+                <span class="s2">"are not installed. The OAuth server will be MISSING. Install with "</span>
+                <span class="s2">"`pip install enlace_auth[oauth]` to fix."</span>
             <span class="p">)</span>
 
     <span class="c1"># Per-user store API.</span>
@@ -427,13 +428,13 @@
     <span class="c1"># here so it inherits CSRF + auth. Editors default to the admin allowlist.</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.appmeta</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_appmeta_can_edit</span><span class="p">,</span> <span class="n">make_appmeta_router</span>
 
-    <span class="n">app_meta_cfg</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;app_meta&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="n">editors</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">app_meta_cfg</span><span class="p">,</span> <span class="s2">&quot;editors&quot;</span><span class="p">,</span> <span class="p">())</span> <span class="ow">or</span> <span class="p">())</span> <span class="ow">or</span> <span class="n">admin_emails</span>
-    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app_meta_cfg</span><span class="p">,</span> <span class="s2">&quot;store_path&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="n">app_meta_cfg</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">"app_meta"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">editors</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">app_meta_cfg</span><span class="p">,</span> <span class="s2">"editors"</span><span class="p">,</span> <span class="p">())</span> <span class="ow">or</span> <span class="p">())</span> <span class="ow">or</span> <span class="n">admin_emails</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app_meta_cfg</span><span class="p">,</span> <span class="s2">"store_path"</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
         <span class="n">overlay_factory</span> <span class="o">=</span> <span class="n">make_file_store_factory</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">app_meta_cfg</span><span class="o">.</span><span class="n">store_path</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">overlay_factory</span> <span class="o">=</span> <span class="n">platform_factory</span>  <span class="c1"># beside sessions/users/grants</span>
-    <span class="n">overlay_store</span> <span class="o">=</span> <span class="n">overlay_factory</span><span class="p">(</span><span class="s2">&quot;app_meta&quot;</span><span class="p">)</span>
+    <span class="n">overlay_store</span> <span class="o">=</span> <span class="n">overlay_factory</span><span class="p">(</span><span class="s2">"app_meta"</span><span class="p">)</span>
     <span class="n">can_edit_meta</span> <span class="o">=</span> <span class="n">make_appmeta_can_edit</span><span class="p">(</span><span class="n">editors</span><span class="p">)</span>
 
     <span class="c1"># DI slots read by enlace core (compose._overlay_entry / apps_listing).</span>
@@ -442,7 +443,7 @@
 
     <span class="n">parent</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span>
         <span class="n">make_appmeta_router</span><span class="p">(</span>
-            <span class="n">apps</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;apps&quot;</span><span class="p">,</span> <span class="p">[])),</span>
+            <span class="n">apps</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">"apps"</span><span class="p">,</span> <span class="p">[])),</span>
             <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
             <span class="n">overlay_store</span><span class="o">=</span><span class="n">overlay_store</span><span class="p">,</span>
             <span class="n">can_edit</span><span class="o">=</span><span class="n">can_edit_meta</span><span class="p">,</span>
@@ -455,9 +456,11 @@
         <span class="n">user_store</span><span class="o">=</span><span class="n">user_backend</span><span class="p">,</span>
         <span class="n">session_store</span><span class="o">=</span><span class="n">session_store</span><span class="p">,</span>
         <span class="n">admin_emails</span><span class="o">=</span><span class="n">admin_emails</span><span class="p">,</span>
-        <span class="n">apps</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;apps&quot;</span><span class="p">,</span> <span class="p">[])),</span>
+        <span class="n">apps</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">"apps"</span><span class="p">,</span> <span class="p">[])),</span>
         <span class="n">grant_store</span><span class="o">=</span><span class="n">grant_store</span><span class="p">,</span>
         <span class="n">protected_user_apps</span><span class="o">=</span><span class="n">protected_user_apps</span><span class="p">,</span>
+        <span class="n">signing_key</span><span class="o">=</span><span class="n">signing_key</span><span class="p">,</span>
+        <span class="n">resource_allowlist</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">oauth_server</span><span class="o">.</span><span class="n">resource_allowlist</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parent</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">admin_router</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">admin_emails</span><span class="p">:</span>
@@ -467,20 +470,20 @@
 
     <span class="c1"># CSRF exempt prefixes: the default exempts /api/ (asgi-mode sub-app APIs</span>
     <span class="c1"># mounted at the conventional prefix). Non-asgi modes (process/external)</span>
-    <span class="c1"># proxy to a black-box upstream that can&#39;t participate in enlace&#39;s</span>
+    <span class="c1"># proxy to a black-box upstream that can't participate in enlace's</span>
     <span class="c1"># double-submit flow, so their entire mount prefix must also be exempt.</span>
-    <span class="n">csrf_exempt</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;/auth/callback&quot;</span><span class="p">,</span> <span class="s2">&quot;/auth/login/&quot;</span><span class="p">,</span> <span class="s2">&quot;/api/&quot;</span><span class="p">]</span>
+    <span class="n">csrf_exempt</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"/auth/callback"</span><span class="p">,</span> <span class="s2">"/auth/login/"</span><span class="p">,</span> <span class="s2">"/api/"</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">auth_cfg</span><span class="o">.</span><span class="n">oauth_server</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
         <span class="c1"># OAuth 2.1 server endpoints: /register + /token are cookieless</span>
         <span class="c1"># machine-to-machine calls (protected by PKCE + client validation), and</span>
-        <span class="c1"># the consent POST carries its own signed CSRF token — so the platform&#39;s</span>
+        <span class="c1"># the consent POST carries its own signed CSRF token — so the platform's</span>
         <span class="c1"># double-submit CSRF must not gate them.</span>
-        <span class="n">csrf_exempt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/auth/oauth/&quot;</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">app</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;apps&quot;</span><span class="p">,</span> <span class="p">[]):</span>
-        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">&quot;mode&quot;</span><span class="p">,</span> <span class="s2">&quot;asgi&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;process&quot;</span><span class="p">,</span> <span class="s2">&quot;external&quot;</span><span class="p">):</span>
+        <span class="n">csrf_exempt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"/auth/oauth/"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">app</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">"apps"</span><span class="p">,</span> <span class="p">[]):</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">"mode"</span><span class="p">,</span> <span class="s2">"asgi"</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="s2">"external"</span><span class="p">):</span>
             <span class="n">prefix</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">route_prefix</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">prefix</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">):</span>
-                <span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">prefix</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"/"</span><span class="p">):</span>
+                <span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">"/"</span>
             <span class="k">if</span> <span class="n">prefix</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">csrf_exempt</span><span class="p">:</span>
                 <span class="n">csrf_exempt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
 
@@ -503,8 +506,8 @@
         <span class="c1"># ?login_required=1&amp;next=&lt;path&gt;) instead of bounced to the landing</span>
         <span class="c1"># app, which would silently drop those hints. The auth router serves</span>
         <span class="c1"># the actual sign-in form at this path.</span>
-        <span class="n">login_redirect_path</span><span class="o">=</span><span class="s2">&quot;/auth/login&quot;</span><span class="p">,</span>
-        <span class="c1"># Consult runtime grants live, per request, on top of each rule&#39;s static</span>
+        <span class="n">login_redirect_path</span><span class="o">=</span><span class="s2">"/auth/login"</span><span class="p">,</span>
+        <span class="c1"># Consult runtime grants live, per request, on top of each rule's static</span>
         <span class="c1"># allowed_users. ``now`` is evaluated at call time so expiry is exact.</span>
         <span class="n">dynamic_allowed_users</span><span class="o">=</span><span class="k">lambda</span> <span class="n">app_id</span><span class="p">:</span> <span class="n">grant_store</span><span class="o">.</span><span class="n">active_emails_for_app</span><span class="p">(</span>
             <span class="n">app_id</span><span class="p">,</span> <span class="n">now</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>

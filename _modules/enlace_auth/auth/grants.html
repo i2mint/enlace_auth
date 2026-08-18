@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.auth.grants &mdash; enlace_auth 0.1.18 documentation</title>
+  <title>enlace_auth.auth.grants &mdash; enlace_auth 0.1.19 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=9969ed3f"></script>
+      <script src="../../../_static/documentation_options.js?v=3d116926"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -60,6 +60,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/oauth_server.html">enlace_auth.auth.oauth_server</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/pages.html">enlace_auth.auth.pages</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/passwords.html">enlace_auth.auth.passwords</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/reset_tokens.html">enlace_auth.auth.reset_tokens</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/routes.html">enlace_auth.auth.routes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/auth/sessions.html">enlace_auth.auth.sessions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../module_docs/enlace_auth/config.html">enlace_auth.config</a></li>
@@ -97,32 +98,32 @@
            <div itemprop="articleBody">
              
   <h1>Source code for enlace_auth.auth.grants</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Runtime per-app access grants, with optional UTC expiry.</span>
+<span></span><span class="sd">"""Runtime per-app access grants, with optional UTC expiry.</span>
 
 <span class="sd">A *grant* gives a specific user (by email) access to a specific ``protected:user``</span>
 <span class="sd">app at runtime, **without a redeploy**. Grants are ADDITIVE on top of the static</span>
-<span class="sd">``allowed_users`` declared in an app&#39;s ``app.toml``: the effective allow-set for</span>
+<span class="sd">``allowed_users`` declared in an app's ``app.toml``: the effective allow-set for</span>
 <span class="sd">an app is ``config allowed_users ∪ {active grants}``. A grant is *active* when its</span>
 <span class="sd">``expires_at`` is ``None`` (never expires) or lies in the future (UTC).</span>
 
 <span class="sd">Storage mirrors :class:`enlace_auth.auth.sessions.SessionStore`: a thin adapter</span>
-<span class="sd">over a ``MutableMapping`` whose keys are ``&quot;{app_id}/{email}&quot;`` and whose values</span>
+<span class="sd">over a ``MutableMapping`` whose keys are ``"{app_id}/{email}"`` and whose values</span>
 <span class="sd">are JSON grant records::</span>
 
 <span class="sd">    {</span>
-<span class="sd">        &quot;app_id&quot;: str,</span>
-<span class="sd">        &quot;email&quot;: str,              # normalized to lowercase</span>
-<span class="sd">        &quot;expires_at&quot;: float | None,  # epoch seconds, UTC; None = never</span>
-<span class="sd">        &quot;granted_at&quot;: float,       # epoch seconds, UTC</span>
-<span class="sd">        &quot;granted_by&quot;: str | None,  # admin email who created it</span>
-<span class="sd">        &quot;note&quot;: str | None,</span>
+<span class="sd">        "app_id": str,</span>
+<span class="sd">        "email": str,              # normalized to lowercase</span>
+<span class="sd">        "expires_at": float | None,  # epoch seconds, UTC; None = never</span>
+<span class="sd">        "granted_at": float,       # epoch seconds, UTC</span>
+<span class="sd">        "granted_by": str | None,  # admin email who created it</span>
+<span class="sd">        "note": str | None,</span>
 <span class="sd">    }</span>
 
 <span class="sd">The composite key groups grants per app on disk (``grants/{app_id}/{email}``), so</span>
 <span class="sd">the hot path — :meth:`GrantStore.active_emails_for_app`, consulted by the auth</span>
-<span class="sd">middleware on every ``protected:user`` request — lists a single app&#39;s</span>
+<span class="sd">middleware on every ``protected:user`` request — lists a single app's</span>
 <span class="sd">subdirectory rather than scanning every grant for every app.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
@@ -136,52 +137,52 @@
 <span class="c1"># Conservative email shape check. We only need to reject path-hostile input</span>
 <span class="c1"># (slashes, traversal, whitespace, control chars) before it becomes a store key;</span>
 <span class="c1"># the admin API uses pydantic ``EmailStr`` for real RFC validation upstream.</span>
-<span class="n">_EMAIL_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^[^\s/</span><span class="se">\\</span><span class="s2">@]+@[^\s/</span><span class="se">\\</span><span class="s2">@]+\.[^\s/</span><span class="se">\\</span><span class="s2">@]+$&quot;</span><span class="p">)</span>
-<span class="n">_DATE_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^\d</span><span class="si">{4}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">$&quot;</span><span class="p">)</span>
+<span class="n">_EMAIL_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^[^\s/</span><span class="se">\\</span><span class="s2">@]+@[^\s/</span><span class="se">\\</span><span class="s2">@]+\.[^\s/</span><span class="se">\\</span><span class="s2">@]+$"</span><span class="p">)</span>
+<span class="n">_DATE_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^\d</span><span class="si">{4}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">$"</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="GrantError">
 <a class="viewcode-back" href="../../../module_docs/enlace_auth/auth/grants.html#enlace_auth.auth.grants.GrantError">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GrantError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when a grant argument is invalid (bad email/app_id, past expiry).&quot;&quot;&quot;</span></div>
+<span class="w">    </span><span class="sd">"""Raised when a grant argument is invalid (bad email/app_id, past expiry)."""</span></div>
 
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_email</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-    <span class="n">e</span> <span class="o">=</span> <span class="p">(</span><span class="n">email</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-    <span class="k">if</span> <span class="s2">&quot;..&quot;</span> <span class="ow">in</span> <span class="n">e</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_EMAIL_RE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">GrantError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid email for grant: </span><span class="si">{</span><span class="n">email</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">e</span> <span class="o">=</span> <span class="p">(</span><span class="n">email</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="s2">".."</span> <span class="ow">in</span> <span class="n">e</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_EMAIL_RE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">GrantError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid email for grant: </span><span class="si">{</span><span class="n">email</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">e</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_validate_app_id</span><span class="p">(</span><span class="n">app_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-    <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="n">app_id</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">a</span> <span class="ow">or</span> <span class="s2">&quot;/&quot;</span> <span class="ow">in</span> <span class="n">a</span> <span class="ow">or</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">a</span> <span class="ow">or</span> <span class="s2">&quot;..&quot;</span> <span class="ow">in</span> <span class="n">a</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">GrantError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid app_id for grant: </span><span class="si">{</span><span class="n">app_id</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="n">app_id</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">a</span> <span class="ow">or</span> <span class="s2">"/"</span> <span class="ow">in</span> <span class="n">a</span> <span class="ow">or</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">"</span> <span class="ow">in</span> <span class="n">a</span> <span class="ow">or</span> <span class="s2">".."</span> <span class="ow">in</span> <span class="n">a</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">GrantError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid app_id for grant: </span><span class="si">{</span><span class="n">app_id</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">a</span>
 
 
 <div class="viewcode-block" id="parse_expires_at">
 <a class="viewcode-back" href="../../../module_docs/enlace_auth/auth/grants.html#enlace_auth.auth.grants.parse_expires_at">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parse_expires_at</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coerce a user-supplied expiry into epoch seconds (UTC), or ``None``.</span>
+<span class="w">    </span><span class="sd">"""Coerce a user-supplied expiry into epoch seconds (UTC), or ``None``.</span>
 
 <span class="sd">    Accepts:</span>
 
 <span class="sd">    - ``None`` / empty string → ``None`` (never expires).</span>
 <span class="sd">    - a number → treated as epoch seconds, returned as a float.</span>
-<span class="sd">    - ``&quot;YYYY-MM-DD&quot;`` → **end of that day UTC** (``23:59:59``), so the grant is</span>
-<span class="sd">      valid through the whole named day (least-surprising &quot;expires on this date&quot;).</span>
+<span class="sd">    - ``"YYYY-MM-DD"`` → **end of that day UTC** (``23:59:59``), so the grant is</span>
+<span class="sd">      valid through the whole named day (least-surprising "expires on this date").</span>
 <span class="sd">    - a full ISO-8601 timestamp (``...THH:MM[:SS][±TZ|Z]``) → that instant. A</span>
-<span class="sd">      trailing ``Z`` is honored (Python 3.10&#39;s ``fromisoformat`` can&#39;t) and a</span>
+<span class="sd">      trailing ``Z`` is honored (Python 3.10's ``fromisoformat`` can't) and a</span>
 <span class="sd">      naive timestamp is assumed to be UTC.</span>
 
 <span class="sd">    Raises :class:`GrantError` for unparseable input or an already-past expiry.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>  <span class="c1"># guard: bool is an int subclass</span>
-        <span class="k">raise</span> <span class="n">GrantError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid expiry value: </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">GrantError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid expiry value: </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
         <span class="n">ts</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -191,7 +192,7 @@
         <span class="n">ts</span> <span class="o">=</span> <span class="n">_parse_datetime_string</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
     <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="k">if</span> <span class="n">now</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">now</span>
     <span class="k">if</span> <span class="n">ts</span> <span class="o">&lt;=</span> <span class="n">now</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">GrantError</span><span class="p">(</span><span class="s2">&quot;Expiry is in the past; choose a future date.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">GrantError</span><span class="p">(</span><span class="s2">"Expiry is in the past; choose a future date."</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ts</span></div>
 
 
@@ -200,40 +201,40 @@
     <span class="k">if</span> <span class="n">_DATE_RE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
         <span class="c1"># Bare date → end-of-day UTC.</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">d</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">GrantError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unparseable expiry date: </span><span class="si">{</span><span class="n">s</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+            <span class="k">raise</span> <span class="n">GrantError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unparseable expiry date: </span><span class="si">{</span><span class="n">s</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
         <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">hour</span><span class="o">=</span><span class="mi">23</span><span class="p">,</span> <span class="n">minute</span><span class="o">=</span><span class="mi">59</span><span class="p">,</span> <span class="n">second</span><span class="o">=</span><span class="mi">59</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">d</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span>
     <span class="c1"># Full ISO 8601. Normalize a trailing Z for 3.10 compatibility.</span>
-    <span class="n">iso</span> <span class="o">=</span> <span class="n">s</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;+00:00&quot;</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;Z&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">s</span>
+    <span class="n">iso</span> <span class="o">=</span> <span class="n">s</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"+00:00"</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"Z"</span><span class="p">)</span> <span class="k">else</span> <span class="n">s</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">iso</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">GrantError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unparseable expiry timestamp: </span><span class="si">{</span><span class="n">s</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+        <span class="k">raise</span> <span class="n">GrantError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unparseable expiry timestamp: </span><span class="si">{</span><span class="n">s</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
     <span class="k">if</span> <span class="n">dt</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_is_active</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="n">exp</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;expires_at&quot;</span><span class="p">)</span>
+    <span class="n">exp</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"expires_at"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">exp</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="n">exp</span> <span class="o">&gt;</span> <span class="n">now</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="GrantStore">
 <a class="viewcode-back" href="../../../module_docs/enlace_auth/auth/grants.html#enlace_auth.auth.grants.GrantStore">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GrantStore</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Thin adapter over a ``MutableMapping`` that speaks grant semantics.</span>
+<span class="w">    </span><span class="sd">"""Thin adapter over a ``MutableMapping`` that speaks grant semantics.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        backend: the per-name store (e.g. ``factory(&quot;grants&quot;)``).</span>
+<span class="sd">        backend: the per-name store (e.g. ``factory("grants")``).</span>
 <span class="sd">        root: the resolved filesystem directory backing ``backend``</span>
 <span class="sd">            (``.../grants``). Used ONLY for efficient per-app listing</span>
 <span class="sd">            (``root/{app_id}/*``). All reads/writes go through ``backend`` so the</span>
 <span class="sd">            storage codec stays in one place. When ``None`` (e.g. a dict backend</span>
-<span class="sd">            in tests), listing falls back to filtering the backend&#39;s keys.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">            in tests), listing falls back to filtering the backend's keys.</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backend</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">root</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_store</span> <span class="o">=</span> <span class="n">backend</span>
@@ -241,7 +242,7 @@
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_key</span><span class="p">(</span><span class="n">app_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">app_id</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">email</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">app_id</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">email</span><span class="si">}</span><span class="s2">"</span>
 
 <div class="viewcode-block" id="GrantStore.grant">
 <a class="viewcode-back" href="../../../module_docs/enlace_auth/auth/grants.html#enlace_auth.auth.grants.GrantStore.grant">[docs]</a>
@@ -255,20 +256,20 @@
         <span class="n">note</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">now</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create or replace a grant. ``expires_at`` is epoch seconds UTC or None.</span>
+<span class="w">        </span><span class="sd">"""Create or replace a grant. ``expires_at`` is epoch seconds UTC or None.</span>
 
 <span class="sd">        Use :func:`parse_expires_at` to turn a date/ISO string into ``expires_at``</span>
 <span class="sd">        before calling this.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">app_id</span> <span class="o">=</span> <span class="n">_validate_app_id</span><span class="p">(</span><span class="n">app_id</span><span class="p">)</span>
         <span class="n">email</span> <span class="o">=</span> <span class="n">_normalize_email</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
         <span class="n">record</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;app_id&quot;</span><span class="p">:</span> <span class="n">app_id</span><span class="p">,</span>
-            <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="n">email</span><span class="p">,</span>
-            <span class="s2">&quot;expires_at&quot;</span><span class="p">:</span> <span class="n">expires_at</span><span class="p">,</span>
-            <span class="s2">&quot;granted_at&quot;</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="k">if</span> <span class="n">now</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">now</span><span class="p">,</span>
-            <span class="s2">&quot;granted_by&quot;</span><span class="p">:</span> <span class="n">granted_by</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="s2">&quot;note&quot;</span><span class="p">:</span> <span class="n">note</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"app_id"</span><span class="p">:</span> <span class="n">app_id</span><span class="p">,</span>
+            <span class="s2">"email"</span><span class="p">:</span> <span class="n">email</span><span class="p">,</span>
+            <span class="s2">"expires_at"</span><span class="p">:</span> <span class="n">expires_at</span><span class="p">,</span>
+            <span class="s2">"granted_at"</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="k">if</span> <span class="n">now</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">now</span><span class="p">,</span>
+            <span class="s2">"granted_by"</span><span class="p">:</span> <span class="n">granted_by</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"note"</span><span class="p">:</span> <span class="n">note</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_store</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">(</span><span class="n">app_id</span><span class="p">,</span> <span class="n">email</span><span class="p">)]</span> <span class="o">=</span> <span class="n">record</span>
         <span class="k">return</span> <span class="n">record</span></div>
@@ -307,14 +308,14 @@
 <div class="viewcode-block" id="GrantStore.list_all">
 <a class="viewcode-back" href="../../../module_docs/enlace_auth/auth/grants.html#enlace_auth.auth.grants.GrantStore.list_all">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">list_all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;All grant records across all apps. Admin-only / infrequent.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""All grant records across all apps. Admin-only / infrequent."""</span>
         <span class="n">out</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_store</span><span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">rec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_store</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
             <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
                 <span class="k">continue</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rec</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;email&quot;</span> <span class="ow">in</span> <span class="n">rec</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rec</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"email"</span> <span class="ow">in</span> <span class="n">rec</span><span class="p">:</span>
                 <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rec</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span></div>
 
@@ -324,30 +325,30 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">active_emails_for_app</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">app_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;The set of currently-active granted emails for ``app_id`` (hot path).&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""The set of currently-active granted emails for ``app_id`` (hot path)."""</span>
         <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="k">if</span> <span class="n">now</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">now</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">]</span>
+            <span class="n">rec</span><span class="p">[</span><span class="s2">"email"</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_for_app</span><span class="p">(</span><span class="n">app_id</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">_is_active</span><span class="p">(</span><span class="n">rec</span><span class="p">,</span> <span class="n">now</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;email&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">_is_active</span><span class="p">(</span><span class="n">rec</span><span class="p">,</span> <span class="n">now</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">)</span>
         <span class="p">}</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_emails_on_disk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Yield the email leaf-names of grants for ``app_id``.</span>
+<span class="w">        </span><span class="sd">"""Yield the email leaf-names of grants for ``app_id``.</span>
 
 <span class="sd">        Prefers a targeted directory scan (``root/{app_id}/*``); falls back to</span>
-<span class="sd">        filtering the backend&#39;s full key listing when no ``root`` is set.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        filtering the backend's full key listing when no ``root`` is set.</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">app_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root</span> <span class="o">/</span> <span class="n">app_id</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">app_dir</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
                 <span class="k">return</span>
             <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">app_dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
-                <span class="k">if</span> <span class="n">child</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">child</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.tmp&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">child</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">child</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".tmp"</span><span class="p">):</span>
                     <span class="k">yield</span> <span class="n">child</span><span class="o">.</span><span class="n">name</span>
             <span class="k">return</span>
-        <span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">app_id</span><span class="si">}</span><span class="s2">/&quot;</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">app_id</span><span class="si">}</span><span class="s2">/"</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_store</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">):</span>
                 <span class="k">yield</span> <span class="n">key</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="p">:]</span></div>

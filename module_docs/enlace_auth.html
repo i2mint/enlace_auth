@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth &mdash; enlace_auth 0.1.18 documentation</title>
+  <title>enlace_auth &mdash; enlace_auth 0.1.19 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -15,7 +15,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=9969ed3f"></script>
+      <script src="../_static/documentation_options.js?v=3d116926"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -80,6 +80,7 @@
 <li class="toctree-l1"><a class="reference internal" href="enlace_auth/auth/oauth_server.html">enlace_auth.auth.oauth_server</a></li>
 <li class="toctree-l1"><a class="reference internal" href="enlace_auth/auth/pages.html">enlace_auth.auth.pages</a></li>
 <li class="toctree-l1"><a class="reference internal" href="enlace_auth/auth/passwords.html">enlace_auth.auth.passwords</a></li>
+<li class="toctree-l1"><a class="reference internal" href="enlace_auth/auth/reset_tokens.html">enlace_auth.auth.reset_tokens</a></li>
 <li class="toctree-l1"><a class="reference internal" href="enlace_auth/auth/routes.html">enlace_auth.auth.routes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="enlace_auth/auth/sessions.html">enlace_auth.auth.sessions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="enlace_auth/config.html">enlace_auth.config</a></li>
@@ -129,7 +130,8 @@
 </div>
 <p>When <code class="docutils literal notranslate"><span class="pre">config.auth.enabled</span></code> is True the plugin mounts:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">/auth/*</span></code>      — login, logout, register, whoami, csrf, me/password</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/auth/*</span></code>      — login, logout, register, whoami, csrf, me/password,
+account (change your own), forgot-password / reset-password</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">/_admin/api/*</span></code> — admin user/app management (gated by admin allowlist)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">/api/{app}/store/*</span></code> — per-user data store</p></li>
 <li><p>middleware: PlatformAuthMiddleware, CSRFMiddleware, StoreInjectionMiddleware</p></li>

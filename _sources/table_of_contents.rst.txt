@@ -16,6 +16,7 @@
    module_docs/enlace_auth/auth/oauth_server
    module_docs/enlace_auth/auth/pages
    module_docs/enlace_auth/auth/passwords
+   module_docs/enlace_auth/auth/reset_tokens
    module_docs/enlace_auth/auth/routes
    module_docs/enlace_auth/auth/sessions
    module_docs/enlace_auth/config
