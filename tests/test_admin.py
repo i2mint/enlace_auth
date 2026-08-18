@@ -591,6 +591,8 @@ def test_public_connector_reports_who_its_oauth_allowlist_admits(tmp_path, monke
     gates = connector["oauth_resources"]
     assert len(gates) == 1
     assert gates[0]["resource"].endswith("/api/snout_mcp/mcp")
+    # Path is parsed server-side; the dashboard renders it verbatim.
+    assert gates[0]["path"] == "/api/snout_mcp/mcp"
     assert gates[0]["allowed_users"] == ["greg@trufflepig.com", "jack@trufflepig.com"]
 
 

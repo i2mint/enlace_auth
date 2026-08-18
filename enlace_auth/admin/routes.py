@@ -132,7 +132,14 @@ def make_admin_router(
                 prefix = getattr(app, "route_prefix", "") or ""
                 if prefix and path.startswith(prefix.rstrip("/")):
                     by_prefix.setdefault(prefix, []).append(
-                        {"resource": resource, "allowed_users": sorted(emails)}
+                        {
+                            "resource": resource,
+                            # Parsed here, where a malformed value degrades to
+                            # the raw string. Doing it in the browser means one
+                            # bad config key throws and blanks the whole table.
+                            "path": path,
+                            "allowed_users": sorted(emails),
+                        }
                     )
                     break
         return by_prefix
