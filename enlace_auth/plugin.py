@@ -355,6 +355,7 @@ def wire(parent: "FastAPI", config) -> None:
         grant_store=grant_store,
         protected_user_apps=protected_user_apps,
         signing_key=signing_key,
+        resource_allowlist=auth_cfg.oauth_server.resource_allowlist,
     )
     parent.include_router(admin_router)
     if admin_emails:

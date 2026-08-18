@@ -528,3 +528,73 @@ def test_change_own_password_enforces_minimum_length(admin_client):
     assert (
         _login(admin_client, "jo@example.com", "starting-pw", csrf2).status_code == 200
     )
+
+
+# --- connectors declared public are not reported as world-open --------------
+
+
+def _connector_client(tmp_path, monkeypatch):
+    """Gateway with a `public` app that is really gated by the OAuth allowlist.
+
+    That is the shape of every MCP connector: enlace must not gate it at the
+    session layer (the connector validates its own bearer tokens), so its
+    app.toml says `access = "public"`. The dashboard has to distinguish that
+    from an app anyone can read.
+    """
+    apps_dir = tmp_path / "apps"
+    apps_dir.mkdir()
+    _write_dummy_app(apps_dir)
+    connector = apps_dir / "snout_mcp"
+    connector.mkdir()
+    (connector / "server.py").write_text(
+        "from fastapi import FastAPI\napp = FastAPI()\n"
+    )
+    (connector / "app.toml").write_text('access = "public"\n')
+
+    monkeypatch.setenv("ENLACE_SIGNING_KEY", _SIGNING_KEY)
+    monkeypatch.setenv("ENLACE_ADMIN_EMAILS", "boss@example.com")
+    config = PlatformConfig(
+        apps_dir=apps_dir,
+        auth={
+            "enabled": True,
+            "secure_cookies": False,
+            "registration_open": True,
+            "stores": {"backend": "file", "path": str(tmp_path / "platform")},
+            "oauth_server": {
+                "enabled": False,  # the allowlist is read regardless
+                "resource_allowlist": {
+                    "https://apps.example.com/api/snout_mcp/mcp": [
+                        "jack@trufflepig.com",
+                        "greg@trufflepig.com",
+                    ]
+                },
+            },
+        },
+        stores={"user_data": {"backend": "file", "path": str(tmp_path / "data")}},
+    )
+    config = discover_apps(config)
+    return TestClient(build_backend(config, plugins=[auth_plugin]))
+
+
+def _apps_by_name(client):
+    csrf = _csrf(client)
+    _register(client, "boss@example.com", "bosspw1!", csrf)
+    r = client.get("/_admin/api/apps")
+    assert r.status_code == 200, r.text
+    return {a["name"]: a for a in r.json()["apps"]}
+
+
+def test_public_connector_reports_who_its_oauth_allowlist_admits(tmp_path, monkeypatch):
+    apps = _apps_by_name(_connector_client(tmp_path, monkeypatch))
+    connector = apps["snout_mcp"]
+    assert connector["access"] == "public"  # unchanged — enlace really doesn't gate it
+    gates = connector["oauth_resources"]
+    assert len(gates) == 1
+    assert gates[0]["resource"].endswith("/api/snout_mcp/mcp")
+    assert gates[0]["allowed_users"] == ["greg@trufflepig.com", "jack@trufflepig.com"]
+
+
+def test_genuinely_public_app_carries_no_oauth_annotation(tmp_path, monkeypatch):
+    """The badge must mean something — an app with no allowlist doesn't get it."""
+    apps = _apps_by_name(_connector_client(tmp_path, monkeypatch))
+    assert "oauth_resources" not in apps["ping"]

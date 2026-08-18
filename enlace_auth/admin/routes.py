@@ -39,7 +39,7 @@ Runtime grants are ADDITIVE on top of each app's static ``app.toml``
 from __future__ import annotations
 
 import time
-from collections.abc import Iterable, MutableMapping
+from collections.abc import Iterable, Mapping, MutableMapping
 from importlib.resources import files
 from typing import Any, Optional
 
@@ -84,6 +84,7 @@ def make_admin_router(
     protected_user_apps: Iterable[str] = (),
     signing_key: Optional[str] = None,
     reset_link_ttl: int = DEFAULT_HANDOFF_TTL,
+    resource_allowlist: Optional[Mapping[str, list[str]]] = None,
 ) -> APIRouter:
     """Build a FastAPI router exposing ``/_admin/api/*`` endpoints.
 
@@ -100,11 +101,43 @@ def make_admin_router(
     returns 503, mirroring how ``grant_store`` gates the grant endpoints.
     ``reset_link_ttl`` is how long a minted link stays usable — longer than an
     emailed one, because delivery is a human round trip.
+
+    ``resource_allowlist`` is the OAuth server's per-connector allow-list (see
+    ``enlace_auth.auth.oauth_server``). It exists here purely so ``/apps`` can
+    tell the truth about connectors: an OAuth resource server is declared
+    ``access = "public"`` because enlace must NOT gate it at the session layer
+    — it authenticates its own bearer tokens instead. Reporting that as a bare
+    "public" badge invites the reader to conclude private data is world-open
+    (it isn't) or, worse, to make some *other* app public by analogy (which
+    would be). Passing the allow-list lets the dashboard show who can actually
+    reach each one.
     """
     admin_set = frozenset(e.lower() for e in admin_emails)
     apps_snapshot = list(apps)
     app_by_name = {a.name: a for a in apps_snapshot}
     protected_set = frozenset(protected_user_apps)
+
+    def _oauth_gates() -> dict[str, list[dict]]:
+        """Index the OAuth resource allow-list by the app route it belongs to.
+
+        A resource URL (``https://host/api/snout_mcp/mcp``) is matched to an app
+        by its path prefix, so one connector app can own several resources.
+        """
+        from urllib.parse import urlparse
+
+        by_prefix: dict[str, list[dict]] = {}
+        for resource, emails in (resource_allowlist or {}).items():
+            path = urlparse(resource).path or resource
+            for app in apps_snapshot:
+                prefix = getattr(app, "route_prefix", "") or ""
+                if prefix and path.startswith(prefix.rstrip("/")):
+                    by_prefix.setdefault(prefix, []).append(
+                        {"resource": resource, "allowed_users": sorted(emails)}
+                    )
+                    break
+        return by_prefix
+
+    oauth_gates = _oauth_gates()
 
     router = APIRouter(prefix="/_admin/api")
 
@@ -256,6 +289,12 @@ def make_admin_router(
                 "allowed_users": allowed_users,
                 "route_prefix": app.route_prefix,
             }
+            # A connector is access="public" *because* it does its own bearer
+            # auth — say so, rather than leaving a bare "public" to be misread
+            # as "world-readable".
+            gates = oauth_gates.get(app.route_prefix)
+            if gates:
+                entry["oauth_resources"] = gates
             if app.access == "protected:user":
                 # An app with an empty baseline allow-list is open to ANY
                 # authenticated user; a grant there would have no additive
