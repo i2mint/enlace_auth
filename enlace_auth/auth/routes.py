@@ -1,9 +1,19 @@
 """Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.
 
 This router serves both the JSON API (``POST /auth/login`` etc., consumed by
-app frontends) and the browser-facing HTML pages (``GET /auth/login``, the
-password-recovery screens) so the platform is usable from a bare URL with no
-app frontend in the way.
+app frontends) and the browser-facing HTML pages (``GET /auth/login``,
+``GET /auth/account``, the password-recovery screens) so the platform is usable
+from a bare URL with no app frontend in the way.
+
+The three ways a password can be set, and who can use each:
+
+- ``GET /auth/account`` — a signed-in user changing their own.
+- ``GET /auth/forgot-password`` — a locked-out user, *if* SMTP is configured.
+- ``enlace-auth reset-link`` — an admin, handing a link over out-of-band.
+
+The last exists because the middle one needs a mail server. Without one the
+forgot-password page says so plainly instead of promising an email that is only
+written to the log.
 
 OAuth routes live in ``enlace.auth.oauth`` and are attached separately so the
 Authlib dependency stays lazy.
@@ -11,7 +21,6 @@ Authlib dependency stays lazy.
 
 from __future__ import annotations
 
-import hashlib
 import time
 from typing import Any, Callable, Optional
 
@@ -23,23 +32,13 @@ from enlace_auth.auth import pages
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.email import EmailSender, make_console_sender
 from enlace_auth.auth.passwords import hash_password, verify_password
+from enlace_auth.auth.reset_tokens import (
+    DEFAULT_EMAIL_TTL,
+    mint_reset_token,
+    reset_url,
+    verify_reset_token,
+)
 from enlace_auth.auth.sessions import SessionStore
-
-# Salt namespace for password-reset tokens — distinct from "session" / "csrf"
-# / "shared:*" so a token minted for one purpose can never verify for another.
-_RESET_SALT = "pwreset"
-
-
-def _pw_fingerprint(record: dict) -> str:
-    """Short, stable fingerprint of a user's current password hash.
-
-    Embedded in reset tokens so a token stops working the moment the password
-    changes — that makes every reset link naturally single-use (using it
-    changes the hash) and also invalidates outstanding links after any other
-    password change. No server-side token store needed.
-    """
-    raw = str(record.get("password_hash"))
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 
 class _LoginBody(BaseModel):
@@ -86,7 +85,7 @@ def make_auth_router(
     shared_password_for: Callable[[str], Optional[str]] = lambda _: None,
     can_register: Callable[[str], bool] = lambda _: False,
     send_email: Optional[EmailSender] = None,
-    reset_token_max_age: int = 1800,
+    reset_token_max_age: int = DEFAULT_EMAIL_TTL,
 ) -> APIRouter:
     """Build a FastAPI router exposing ``/auth/*`` endpoints.
 
@@ -96,12 +95,18 @@ def make_auth_router(
         cookie_name / session_max_age / secure_cookies: session-cookie policy.
         shared_password_for: maps an app id to its shared-password hash.
         can_register: predicate gating self-registration by email.
-        send_email: delivers password-reset emails. Defaults to the console
-            sender (logs the link) so the flow works without SMTP configured.
-        reset_token_max_age: lifetime of a password-reset link, in seconds
-            (default 30 minutes).
+        send_email: delivers password-reset emails. ``None`` means no delivery
+            channel is configured: the flow falls back to the console sender
+            (which logs the link) *and* the forgot-password page says so, rather
+            than telling the user to check an inbox nothing was sent to.
+        reset_token_max_age: lifetime of an emailed password-reset link, in
+            seconds (default 30 minutes). Links an admin mints by hand carry
+            their own, longer lifetime — see ``enlace_auth.auth.reset_tokens``.
     """
     router = APIRouter(prefix="/auth")
+    # Distinguish "no delivery channel configured" from "a sender was wired":
+    # the page copy must not promise an email the platform cannot send.
+    email_delivery_configured = send_email is not None
     email_sender: EmailSender = send_email or make_console_sender()
 
     def _set_session_cookie(
@@ -250,6 +255,13 @@ def make_auth_router(
         email = (getattr(request.state, "user_email", None) or "").lower()
         if not email:
             raise HTTPException(status_code=401, detail="Not authenticated")
+        # Same floor as the reset flow — otherwise the two ways to set a
+        # password disagree on what counts as one.
+        if len(body.new_password) < _MIN_PASSWORD_LEN:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Password must be at least {_MIN_PASSWORD_LEN} characters.",
+            )
         try:
             record = user_store[email]
         except KeyError:
@@ -266,27 +278,8 @@ def make_auth_router(
     # ----- Password recovery ---------------------------------------------
 
     def _verify_reset_token(token: str) -> tuple[Optional[str], Optional[dict]]:
-        """Return ``(email, record)`` for a valid token, else ``(None, None)``.
-
-        Validates the signature, the age, AND that the embedded password
-        fingerprint still matches the stored hash — the last check is what
-        makes a link single-use (consuming it changes the hash).
-        """
-        if not token:
-            return None, None
-        payload = verify_cookie(
-            token, signing_key, max_age=reset_token_max_age, salt=_RESET_SALT
-        )
-        if not payload or len(payload) <= 16:
-            return None, None
-        fp, email = payload[:16], payload[16:]
-        try:
-            record = user_store[email]
-        except KeyError:
-            return None, None
-        if not isinstance(record, dict) or _pw_fingerprint(record) != fp:
-            return None, None
-        return email, record
+        """Return ``(email, record)`` for a valid token, else ``(None, None)``."""
+        return verify_reset_token(token, signing_key=signing_key, user_store=user_store)
 
     @router.get("/login", response_class=HTMLResponse, include_in_schema=False)
     async def login_page(request: Request):
@@ -296,12 +289,38 @@ def make_auth_router(
             return RedirectResponse(next_url, status_code=303)
         return HTMLResponse(pages.render_login_page(next_url=next_url))
 
+    @router.get("/account", response_class=HTMLResponse, include_in_schema=False)
+    async def account_page(request: Request):
+        """Serve the signed-in user's 'change my password' form.
+
+        The browser-facing counterpart to ``POST /auth/me/password``, which
+        until now had no UI — leaving a user who knew their password with no
+        way to change it, and an admin with no answer but to set one for them.
+        Unauthenticated visitors are bounced to sign-in and returned here.
+        """
+        email = getattr(request.state, "user_email", None)
+        if not email:
+            return RedirectResponse(
+                "/auth/login?next=%2Fauth%2Faccount", status_code=303
+            )
+        return HTMLResponse(pages.render_account_page(email=email))
+
     @router.get(
         "/forgot-password", response_class=HTMLResponse, include_in_schema=False
     )
     async def forgot_password_page() -> HTMLResponse:
-        """Serve the 'request a reset link' form."""
-        return HTMLResponse(pages.render_forgot_page())
+        """Serve the 'request a reset link' form.
+
+        ``email_delivery_configured`` is a property of the *deployment*, not of
+        any account, so telling the user about it leaks nothing — unlike the
+        submit response, which must stay identical for known and unknown
+        addresses.
+        """
+        return HTMLResponse(
+            pages.render_forgot_page(
+                email_delivery_configured=email_delivery_configured
+            )
+        )
 
     @router.get("/reset-password", response_class=HTMLResponse, include_in_schema=False)
     async def reset_password_page(request: Request) -> HTMLResponse:
@@ -342,11 +361,14 @@ def make_auth_router(
         except KeyError:
             record = None
         if isinstance(record, dict):
-            token = sign_cookie(
-                _pw_fingerprint(record) + email, signing_key, salt=_RESET_SALT
+            token = mint_reset_token(
+                record=record,
+                email=email,
+                signing_key=signing_key,
+                ttl_seconds=reset_token_max_age,
             )
             base = str(request.base_url).rstrip("/")
-            link = f"{base}/auth/reset-password?token={token}"
+            link = reset_url(base, token)
             minutes = max(1, reset_token_max_age // 60)
             email_sender(
                 to=email,

@@ -93,6 +93,7 @@
   .badge.active { background: #ecfdf5; color: var(--ok); }
   .badge.expired { background: #f3f4f6; color: var(--muted); }
   .badge.open { background: #eef2ff; color: #3730a3; }
+  .badge.oauth { background: #fef3c7; color: #92400e; }
   code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
   tr.grant-row > td { background: #fafbfc; padding: 4px 6px 14px 18px; }
   table.grants { width: 100%; margin: 2px 0 8px; }
@@ -222,7 +223,8 @@ async function loadUsers() {
         <td>${fmtTime(u.created_at)}</td>
         <td>${u.is_admin ? '<span class="badge">admin</span>' : ""}</td>
         <td class="actions">
-          <button class="ghost" data-act="reset" data-email="${u.email}">Reset password</button>
+          <button data-act="reset-link" data-email="${u.email}">Reset link</button>
+          <button class="ghost" data-act="reset" data-email="${u.email}">Set password</button>
           <button class="danger" data-act="delete" data-email="${u.email}">Delete</button>
         </td>`;
       tbody.appendChild(tr);
@@ -265,6 +267,26 @@ function grantsPanel(app) {
   return table + form;
 }
 
+// An OAuth resource server (an MCP connector) is declared access="public"
+// because enlace must NOT gate it at the session layer — it validates its own
+// bearer tokens instead. Left as a bare "public" badge that reads as
+// "world-open", which is both wrong and the kind of wrong that gets copied
+// onto an app where it WOULD be true. These two helpers say what actually
+// guards it.
+function oauthBadge(a) {
+  if (!a.oauth_resources || !a.oauth_resources.length) return "";
+  return ' <span class="badge oauth">OAuth bearer + allowlist</span>';
+}
+
+function allowedCell(a, baseline) {
+  if (!a.oauth_resources || !a.oauth_resources.length) return baseline;
+  return a.oauth_resources.map(r => {
+    const who = (r.allowed_users || []).map(e => `<code>${escapeHtml(e)}</code>`).join(", ")
+      || "<em>nobody — every token request is denied</em>";
+    return `<div class="muted-line"><code>${escapeHtml(new URL(r.resource).pathname)}</code></div>${who}`;
+  }).join("");
+}
+
 async function loadApps() {
   const tbody = document.querySelector("#apps tbody");
   tbody.innerHTML = "";
@@ -277,8 +299,8 @@ async function loadApps() {
       tr.innerHTML = `
         <td><strong>${escapeHtml(a.display_name || a.name)}</strong></td>
         <td><code>${escapeHtml(a.route_prefix)}</code></td>
-        <td><span class="badge ${accessClass}">${a.access}</span>${a.is_open ? ' <span class="badge open">open</span>' : ""}</td>
-        <td>${baseline}</td>`;
+        <td><span class="badge ${accessClass}">${a.access}</span>${a.is_open ? ' <span class="badge open">open</span>' : ""}${oauthBadge(a)}</td>
+        <td>${allowedCell(a, baseline)}</td>`;
       tbody.appendChild(tr);
       if (a.access === "protected:user") {
         const mgmt = document.createElement("tr");
@@ -332,12 +354,40 @@ document.querySelector("#users").addEventListener("click", async (ev) => {
   const btn = ev.target.closest("button[data-act]");
   if (!btn) return;
   const email = btn.dataset.email;
-  if (btn.dataset.act === "reset") {
-    const pw = prompt(`New password for ${email}:`);
+  if (btn.dataset.act === "reset-link") {
+    // Preferred over "Set password": the admin never invents or handles
+    // someone else's credential, and the link works with no SMTP configured.
+    try {
+      const res = await api("POST", `/users/${encodeURIComponent(email)}/reset-link`);
+      const hours = Math.round((res.expires_in_seconds || 0) / 3600);
+      // Clipboard needs a secure context; show the link either way so it can
+      // always be copied by hand.
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(res.url);
+        copied = true;
+      } catch (e) { /* fall through to the prompt below */ }
+      if (copied) {
+        flash(`Reset link for ${email} copied — valid ${hours}h, single use.`);
+      }
+      prompt(
+        `One-time reset link for ${email} (valid ${hours}h). Send it to them; ` +
+        `they choose their own password.`,
+        res.url
+      );
+    } catch (e) {
+      flash("Reset link failed: " + e.message, false);
+    }
+  } else if (btn.dataset.act === "reset") {
+    const pw = prompt(
+      `Set a password for ${email} directly.\n\n` +
+      `Prefer "Reset link" — it lets them choose their own and you never ` +
+      `have to send a password around.\n\nNew password:`
+    );
     if (!pw) return;
     try {
       await api("POST", `/users/${encodeURIComponent(email)}/password`, { password: pw });
-      flash(`Password reset for ${email}.`);
+      flash(`Password set for ${email}.`);
     } catch (e) {
       flash("Reset failed: " + e.message, false);
     }

@@ -10,7 +10,8 @@ Plug into ``enlace`` at compose time::
 
 When ``config.auth.enabled`` is True the plugin mounts:
 
-- ``/auth/*``      — login, logout, register, whoami, csrf, me/password
+- ``/auth/*``      — login, logout, register, whoami, csrf, me/password,
+  account (change your own), forgot-password / reset-password
 - ``/_admin/api/*`` — admin user/app management (gated by admin allowlist)
 - ``/api/{app}/store/*`` — per-user data store
 - middleware: PlatformAuthMiddleware, CSRFMiddleware, StoreInjectionMiddleware
