@@ -283,7 +283,7 @@ function allowedCell(a, baseline) {
   return a.oauth_resources.map(r => {
     const who = (r.allowed_users || []).map(e => `<code>${escapeHtml(e)}</code>`).join(", ")
       || "<em>nobody — every token request is denied</em>";
-    return `<div class="muted-line"><code>${escapeHtml(new URL(r.resource).pathname)}</code></div>${who}`;
+    return `<div class="muted-line"><code>${escapeHtml(r.path || r.resource)}</code></div>${who}`;
   }).join("");
 }
 
