@@ -1,7 +1,8 @@
 """HTML pages for the enlace_auth browser-facing flows.
 
-Single source of truth for the auth UI: the sign-in page, the password-recovery
-pages, and a generic notice page. Pages are returned as plain HTML strings — the
+Single source of truth for the auth UI: the sign-in page, the account page
+(change your own password), the password-recovery pages, and a generic notice
+page. Pages are returned as plain HTML strings — the
 same inline-HTML, no-build-step pattern used elsewhere in enlace
 (``enlace.frontend._NOT_FOUND_PAGE``). All pages share one dark, minimal
 stylesheet so the platform feels consistent from the very first unauthenticated
@@ -378,8 +379,31 @@ f.addEventListener('submit', async (e) => {{
 # --------------------------------------------------------------------------
 
 
-def render_forgot_page(*, error: Optional[str] = None) -> str:
-    """Render the "request a password-reset link" form."""
+def render_forgot_page(
+    *, error: Optional[str] = None, email_delivery_configured: bool = True
+) -> str:
+    """Render the "request a password-reset link" form.
+
+    Args:
+        error: optional error banner.
+        email_delivery_configured: whether the platform has a mail sender
+            wired. When it does not, the page says so and points at the admin
+            instead of inviting the user to watch an inbox nothing will arrive
+            in. This is a property of the deployment, not of any account, so
+            showing it leaks nothing about who is registered — the *submit*
+            response stays identical either way.
+    """
+    if not email_delivery_configured:
+        return render_notice_page(
+            title="Reset your password",
+            heading="Ask the admin for a reset link",
+            message=(
+                "This platform has no email delivery configured, so it can't "
+                "send you a reset link. Contact the platform admin and they "
+                "can generate one for you."
+            ),
+            links=[("Back to sign in", "/auth/login", True)],
+        )
     body = f"""<div class="card">
 <h1>Reset your password</h1>
 <p class="sub">We'll email you a link to set a new password.</p>
@@ -501,6 +525,90 @@ f.addEventListener('submit', async (e) => {{
 
 
 # --------------------------------------------------------------------------
+# Account — change your own password
+# --------------------------------------------------------------------------
+
+
+def render_account_page(*, email: str, error: Optional[str] = None) -> str:
+    """Render the signed-in user's "change my password" form.
+
+    Posts to ``/auth/me/password``, which requires the *current* password —
+    so this page is safe to leave reachable on a shared machine: possession of
+    a live session alone doesn't let someone change the password out from
+    under the owner.
+    """
+    who = fill_template('<p class="sub">Signed in as {email}</p>', email=email)
+    old_field = _password_input(
+        id="old", autocomplete="current-password", extra=" autofocus"
+    )
+    pw_field = _password_input(
+        id="pw", autocomplete="new-password", extra=' minlength="8"'
+    )
+    pw2_field = _password_input(
+        id="pw2", autocomplete="new-password", extra=' minlength="8"'
+    )
+    body = f"""<div class="card">
+<h1>Change your password</h1>
+{who}
+<form id="f">
+  <label for="old">Current password</label>
+  {old_field}
+  <label for="pw">New password</label>
+  {pw_field}
+  <label for="pw2">Confirm new password</label>
+  {pw2_field}
+  <button id="submit" type="submit">Change password</button>
+</form>
+{_msg_div(error)}
+<div class="nav">
+  <a href="/">Back to apps</a>
+</div>
+</div>
+<script>
+{_CSRF_JS}
+{_PW_TOGGLE_JS}
+const f = document.getElementById('f');
+const msg = document.getElementById('msg');
+const submit = document.getElementById('submit');
+f.addEventListener('submit', async (e) => {{
+  e.preventDefault();
+  const old = document.getElementById('old').value;
+  const pw = document.getElementById('pw').value;
+  const pw2 = document.getElementById('pw2').value;
+  msg.className = 'msg';
+  if (pw !== pw2) {{
+    msg.textContent = "The two new passwords don't match.";
+    msg.className = 'msg err'; return;
+  }}
+  if (pw.length < 8) {{
+    msg.textContent = 'Use at least 8 characters.';
+    msg.className = 'msg err'; return;
+  }}
+  submit.disabled = true; submit.textContent = 'Saving…';
+  try {{
+    const res = await postJSON('/auth/me/password', {{
+      old_password: old, new_password: pw,
+    }});
+    if (res.ok) {{
+      msg.textContent = 'Password changed.';
+      msg.className = 'msg ok';
+      f.style.display = 'none';
+    }} else {{
+      msg.textContent = res.detail || ('Change failed (' + res.status + ').');
+      msg.className = 'msg err';
+      submit.disabled = false; submit.textContent = 'Change password';
+    }}
+  }} catch (err) {{
+    msg.textContent = err.message || 'Something went wrong.';
+    msg.className = 'msg err';
+    submit.disabled = false; submit.textContent = 'Change password';
+  }}
+}});
+</script>"""
+    return _page("Change your password", body)
+
+
+# --------------------------------------------------------------------------
 # Generic notice page (errors, confirmations)
 # --------------------------------------------------------------------------
 
@@ -524,9 +632,11 @@ def render_notice_page(
         wide: use the wider card (for longer content).
     """
     link_html = " ".join(
-        f'<a class="btn" href="{escape(href, quote=True)}">{escape(label)}</a>'
-        if primary
-        else f'<a href="{escape(href, quote=True)}">{escape(label)}</a>'
+        (
+            f'<a class="btn" href="{escape(href, quote=True)}">{escape(label)}</a>'
+            if primary
+            else f'<a href="{escape(href, quote=True)}">{escape(label)}</a>'
+        )
         for label, href, primary in links
     )
     cls = "card wide" if wide else "card"

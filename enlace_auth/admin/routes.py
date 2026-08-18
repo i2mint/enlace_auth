@@ -6,6 +6,11 @@ Endpoints (all under ``/_admin/api/``):
 - ``POST   /users``                — create a user (admin-created)
 - ``DELETE /users/{email}``        — delete a user (refuses last admin)
 - ``POST   /users/{email}/password`` — admin reset another user's password
+- ``POST   /users/{email}/reset-link`` — mint a one-time link the user follows
+  to choose their *own* password. Preferred over the endpoint above: the admin
+  never learns, transmits, or has to invent a credential. It is also the only
+  recovery path that works when no SMTP sender is configured, since the admin
+  delivers the link by hand.
 - ``GET    /apps``                 — list apps with their access policy +
   (for ``protected:user`` apps) their runtime grants
 - ``POST   /grants``               — grant a user runtime access to an app
@@ -44,6 +49,11 @@ from pydantic import BaseModel, EmailStr
 
 from enlace_auth.auth.grants import GrantError, parse_expires_at
 from enlace_auth.auth.passwords import hash_password
+from enlace_auth.auth.reset_tokens import (
+    DEFAULT_HANDOFF_TTL,
+    mint_reset_token,
+    reset_url,
+)
 
 
 class _CreateUserBody(BaseModel):
@@ -72,6 +82,8 @@ def make_admin_router(
     apps: list = (),
     grant_store=None,  # GrantStore — optional; grant endpoints inert without it
     protected_user_apps: Iterable[str] = (),
+    signing_key: Optional[str] = None,
+    reset_link_ttl: int = DEFAULT_HANDOFF_TTL,
 ) -> APIRouter:
     """Build a FastAPI router exposing ``/_admin/api/*`` endpoints.
 
@@ -82,6 +94,12 @@ def make_admin_router(
     ``grant_store`` (a :class:`~enlace_auth.auth.grants.GrantStore`) and
     ``protected_user_apps`` enable the runtime grant endpoints. When
     ``grant_store`` is None those endpoints return 503.
+
+    ``signing_key`` enables the reset-link endpoint (same key the auth router
+    signs with, so the link it mints verifies there). Omit it and that endpoint
+    returns 503, mirroring how ``grant_store`` gates the grant endpoints.
+    ``reset_link_ttl`` is how long a minted link stays usable — longer than an
+    emailed one, because delivery is a human round trip.
     """
     admin_set = frozenset(e.lower() for e in admin_emails)
     apps_snapshot = list(apps)
@@ -169,6 +187,40 @@ def make_admin_router(
         record["password_hash"] = hash_password(body.password)
         user_store[target] = record
         return {"ok": True, "email": target}
+
+    @router.post("/users/{email}/reset-link")
+    async def admin_reset_link(email: str, request: Request) -> dict[str, Any]:
+        """Mint a one-time link letting ``email`` choose their own password.
+
+        Returned to the admin to deliver out-of-band. Nothing is stored: the
+        link is a signed token bound to the account's *current* password hash,
+        so it expires on use, and any other password change kills it too.
+        """
+        _require_admin(request)
+        if not signing_key:
+            raise HTTPException(
+                status_code=503,
+                detail="Reset links unavailable: no signing key configured.",
+            )
+        target = email.lower()
+        try:
+            record = user_store[target]
+        except KeyError:
+            raise HTTPException(status_code=404, detail="User not found")
+        if not isinstance(record, dict):
+            raise HTTPException(status_code=500, detail="Corrupt user record")
+        token = mint_reset_token(
+            record=record,
+            email=target,
+            signing_key=signing_key,
+            ttl_seconds=reset_link_ttl,
+        )
+        return {
+            "ok": True,
+            "email": target,
+            "url": reset_url(str(request.base_url), token),
+            "expires_in_seconds": reset_link_ttl,
+        }
 
     def _grants_for(app_id: str, now: float) -> list[dict]:
         if grant_store is None:

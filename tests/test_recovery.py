@@ -293,3 +293,149 @@ def test_reset_page_good_token_shows_form():
 )
 def test_safe_next_guards_open_redirect(raw, expected):
     assert pages.safe_next(raw) == expected
+
+
+# --- account page (self-service change password) ---------------------------
+
+
+def _make_with_session(users):
+    """Auth router plus a middleware that fakes an authenticated request.
+
+    ``PlatformAuthMiddleware`` normally populates ``request.state.user_email``;
+    the account page reads it. These tests exercise the page, not the
+    middleware, so a two-line stand-in keeps them focused.
+    """
+    sessions = SessionStore({})
+    router = make_auth_router(
+        session_store=sessions,
+        user_store=users,
+        signing_key=KEY,
+        secure_cookies=False,
+    )
+    app = FastAPI()
+
+    @app.middleware("http")
+    async def _fake_session(request, call_next):
+        who = request.headers.get("x-test-user")
+        if who:
+            request.state.user_email = who
+        return await call_next(request)
+
+    app.include_router(router)
+    return TestClient(app)
+
+
+def test_account_page_redirects_anonymous_to_login():
+    client = _make_with_session(_one_user())
+    r = client.get("/auth/account", follow_redirects=False)
+    assert r.status_code == 303
+    # Comes back here after signing in, rather than dumping them at /.
+    assert "next=%2Fauth%2Faccount" in r.headers["location"]
+
+
+def test_account_page_renders_form_for_signed_in_user():
+    client = _make_with_session(_one_user())
+    r = client.get("/auth/account", headers={"x-test-user": "alice@example.com"})
+    assert r.status_code == 200
+    assert "Change your password" in r.text
+    # All three fields, and the email shown so you know which account you're on.
+    for field in ('id="old"', 'id="pw"', 'id="pw2"'):
+        assert field in r.text
+    assert "alice@example.com" in r.text
+
+
+def test_account_page_escapes_the_email():
+    users = {
+        "<script>x</script>@e.com": {
+            "password_hash": hash_password("p"),
+            "created_at": 0,
+        }
+    }
+    client = _make_with_session(users)
+    r = client.get("/auth/account", headers={"x-test-user": "<script>x</script>@e.com"})
+    assert "<script>x</script>" not in r.text
+    assert "&lt;script&gt;" in r.text
+
+
+# --- forgot-password honesty about email delivery --------------------------
+
+
+def test_forgot_page_offers_the_form_when_email_is_configured():
+    client, _, _ = _make()  # _make passes a real sender
+    r = client.get("/auth/forgot-password")
+    assert r.status_code == 200
+    assert 'id="email"' in r.text
+
+
+def test_forgot_page_says_so_when_no_email_sender_is_wired():
+    """Without SMTP the link only reaches the log — don't promise an inbox."""
+    router = make_auth_router(
+        session_store=SessionStore({}),
+        user_store=_one_user(),
+        signing_key=KEY,
+        secure_cookies=False,
+        send_email=None,
+    )
+    app = FastAPI()
+    app.include_router(router)
+    r = TestClient(app).get("/auth/forgot-password")
+    assert r.status_code == 200
+    assert "admin" in r.text.lower()
+    assert 'id="email"' not in r.text  # no form that can't do anything
+    assert "inbox" not in r.text.lower()
+
+
+def test_reset_request_response_is_identical_with_and_without_a_sender():
+    """Delivery config may show on the page; it must not show in the response."""
+    with_sender, _, _ = _make(_one_user())
+    router = make_auth_router(
+        session_store=SessionStore({}),
+        user_store=_one_user(),
+        signing_key=KEY,
+        secure_cookies=False,
+        send_email=None,
+    )
+    app = FastAPI()
+    app.include_router(router)
+    without_sender = TestClient(app)
+    body = {"email": "alice@example.com"}
+    a = with_sender.post("/auth/password-reset/request", json=body)
+    b = without_sender.post("/auth/password-reset/request", json=body)
+    assert (a.status_code, a.json()) == (b.status_code, b.json())
+
+
+def test_long_lived_handoff_link_redeems_on_the_short_ttl_http_surface():
+    """The point of embedding the expiry in the payload.
+
+    The router is built with the 30-minute emailed-link default, but an admin
+    mints a 72-hour link out-of-band. One verifier must honour both, or the
+    no-SMTP onboarding path silently issues links that die in 30 minutes.
+    """
+    from enlace_auth.auth.reset_tokens import (
+        DEFAULT_HANDOFF_TTL,
+        mint_reset_token,
+    )
+
+    users = _one_user()
+    client, _, _ = _make(users)  # reset_token_max_age=1800
+    token = mint_reset_token(
+        record=users["alice@example.com"],
+        email="alice@example.com",
+        signing_key=KEY,
+        ttl_seconds=DEFAULT_HANDOFF_TTL,
+    )
+    assert (
+        client.get("/auth/reset-password", params={"token": token}).status_code == 200
+    )
+    r = client.post(
+        "/auth/password-reset/confirm",
+        json={"token": token, "new_password": "chosen-by-alice"},
+    )
+    assert r.status_code == 200, r.text
+    assert (
+        client.post(
+            "/auth/login",
+            json={"email": "alice@example.com", "password": "chosen-by-alice"},
+        ).status_code
+        == 200
+    )

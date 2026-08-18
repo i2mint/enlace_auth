@@ -8,9 +8,11 @@ package plugs in at compose time and adds:
 
 - `/auth/login`, `/auth/logout`, `/auth/register`, `/auth/whoami`,
   `/auth/csrf`, `/auth/me/password`, `/auth/shared-login`
-- `/_admin/api/*` — list/create/delete users, admin password reset, view app
-  policy, and **grant/revoke per-app access at runtime** (optional expiry).
-  Gated by an admin allowlist.
+- `/auth/account` — the signed-in user changes their own password
+- `/auth/forgot-password` — self-service reset by emailed link
+- `/_admin/api/*` — list/create/delete users, mint a password-reset link,
+  set a password directly, view app policy, and **grant/revoke per-app access
+  at runtime** (optional expiry). Gated by an admin allowlist.
 - per-user data injection via `request.state.store`
 - `PlatformAuthMiddleware` + `CSRFMiddleware`
 - optional OAuth2 / OIDC via Authlib
@@ -83,6 +85,37 @@ Plus environment variables:
   "import secrets; print(secrets.token_urlsafe(32))"`.
 - `ENLACE_ADMIN_EMAILS` — comma-separated admin emails (gate `/_admin`).
 - `ENLACE_ALLOW_UNSIGNED=1` — opt-out from fail-fast (diagnostics only).
+- `ENLACE_SMTP_HOST` (+ `_PORT`, `_USER`, `_PASSWORD`, `_FROM`, `_TLS`) — mail
+  sender for password-reset emails. Unset means **no email is sent**; see below.
+
+## Passwords
+
+Three ways a password gets set, for three different situations:
+
+| Situation | Path |
+|---|---|
+| User knows their password, wants a new one | `/auth/account` |
+| User is locked out, **SMTP configured** | `/auth/forgot-password` → emailed link |
+| User is locked out, **no SMTP** | admin mints a link and delivers it by hand |
+
+That last one is what keeps the platform usable with no mail server:
+
+```bash
+enlace-auth reset-link someone@example.com          # prints a 72h, single-use link
+enlace-auth reset-link someone@example.com --hours 4
+```
+
+or the **Reset link** button in `/_admin/`. Prefer it to setting a password for
+someone: the admin never invents, learns, or transmits another person's
+credential, and the recipient chooses their own.
+
+`enlace-auth set-password <email>` still exists for break-glass use.
+
+Reset links are signed, not stored. Each carries the account's current
+password-hash fingerprint and its own absolute expiry, so a link dies on first
+use — and any other password change invalidates every link outstanding for that
+account. With no SMTP configured, `/auth/forgot-password` says so and points at
+the admin rather than promising an email that only reaches the log.
 
 ## Per-app access & runtime grants
 

@@ -12,6 +12,7 @@ Usage::
     enlace-auth revoke-session <session_id>
     enlace-auth list-users [--json]
     enlace-auth set-password <email>
+    enlace-auth reset-link <email> [--base-url URL] [--hours N]
     enlace-auth grant <app_id> <email> [--expires YYYY-MM-DD] [--note ...]
     enlace-auth revoke-grant <app_id> <email>
     enlace-auth list-grants [--app NAME] [--json]
@@ -228,6 +229,78 @@ def set_password(email: str, *, toml: str = "platform.toml"):
     print(f"Password updated for {key}.")
 
 
+def reset_link(
+    email: str,
+    *,
+    base_url: str = None,
+    hours: int = None,
+    toml: str = "platform.toml",
+):
+    """Print a one-time link letting a user choose their own password.
+
+    Prefer this to ``set-password``: the operator never invents, learns, or
+    transmits someone else's credential — just a link that expires on first
+    use. It is also the recovery path that works with no SMTP configured, since
+    you deliver the link yourself.
+
+    Args:
+        email: Email of the user. Must already exist in the store.
+        base_url: Public origin the link should point at (e.g.
+            ``https://apps.example.com``). Defaults to the OAuth issuer in
+            platform.toml — the origin the platform already declares as its
+            public face — and falls back to ``https://{[platform] domain}``.
+            Note those can differ (apps often live on a subdomain), so pass
+            this explicitly if the printed link looks wrong.
+        hours: How long the link stays usable (default: 72).
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    import os
+
+    from enlace_auth.auth.reset_tokens import (
+        DEFAULT_HANDOFF_TTL,
+        mint_reset_token,
+        reset_url,
+    )
+
+    config = PlatformConfig.from_toml(Path(toml))
+    auth = coerce_auth_config(config.auth)
+    key = os.environ.get(auth.signing_key_env, "").strip()
+    if not key:
+        print(
+            f"No signing key: env var {auth.signing_key_env} is unset or empty.\n"
+            "A link signed with a different key than the running platform uses "
+            "would be rejected on arrival, so refusing to mint one.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    store = _load_user_store(Path(toml))
+    target = email.lower()
+    try:
+        record = store[target]
+    except KeyError:
+        print(f"No user {target!r} in store.", file=sys.stderr)
+        sys.exit(1)
+    if not isinstance(record, dict):
+        print(f"Corrupt user record for {target!r}.", file=sys.stderr)
+        sys.exit(1)
+
+    ttl = DEFAULT_HANDOFF_TTL if hours is None else int(hours) * 3600
+    issuer = getattr(getattr(auth, "oauth_server", None), "issuer", None)
+    base = base_url or issuer or f"https://{config.domain or 'localhost'}"
+    token = mint_reset_token(
+        record=record, email=target, signing_key=key, ttl_seconds=ttl
+    )
+    # The link alone goes to stdout so it stays pipeable; the human note goes
+    # to stderr. Flush first, or the two streams interleave out of order.
+    print(reset_url(base, token), flush=True)
+    print(
+        f"\nFor {target}. Valid {ttl // 3600}h, once. Send it over; they pick "
+        "their own password.",
+        file=sys.stderr,
+    )
+
+
 def grant(
     app_id: str,
     email: str,
@@ -320,6 +393,7 @@ def main():
             revoke_session,
             list_users,
             set_password,
+            reset_link,
             grant,
             revoke_grant,
             list_grants,
