@@ -51,7 +51,14 @@ class _FileDict(MutableMapping):
         if not p.exists():
             raise KeyError(key)
         with p.open("rb") as f:
-            return json.loads(f.read())
+            raw = f.read()
+        try:
+            return json.loads(raw)
+        except ValueError as exc:
+            # A truncated or hand-edited file is a missing record, not a crash.
+            # Left as a raw exception, ONE corrupt file in the token store made
+            # every POST /auth/oauth/token return 500, for every grant.
+            raise KeyError(f"corrupt record {key!r}: {exc}") from None
 
     def __setitem__(self, key: str, value) -> None:
         p = self._path(key)
@@ -88,7 +95,15 @@ class _FileDict(MutableMapping):
         return sum(1 for _ in iter(self))
 
     def __contains__(self, key: object) -> bool:
-        return isinstance(key, str) and self._path(key).exists()
+        if not isinstance(key, str):
+            return False
+        try:
+            return self._path(key).exists()
+        except KeyError:
+            # An unsafe key is simply not present. `in` must never raise --
+            # callers use it as a predicate, and an exception here turns a
+            # membership test into a 500.
+            return False
 
 
 def _make_dol_factory(root: Path) -> StoreFactory:

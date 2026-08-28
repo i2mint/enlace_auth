@@ -91,7 +91,11 @@ def _hash_refresh(token: str) -> str:
 
 
 def _sweep_expired(
-    store: MutableMapping[str, Any], *, now: int, limit: int = 500
+    store: MutableMapping[str, Any],
+    *,
+    now: int,
+    limit: int = 500,
+    cursor: Optional[dict] = None,
 ) -> int:
     """Drop expired records from *store*; return how many were removed.
 
@@ -102,14 +106,23 @@ def _sweep_expired(
     credentials that are dead but still readable.
 
     Bounded by *limit* so a large store can never turn one token request into a
-    long scan; the remainder is swept by subsequent calls.
+    long scan. *cursor* carries the position across calls and wraps at the end,
+    so successive sweeps walk the whole store: the iteration order of a
+    file-backed store is stable, and a fixed start would re-examine the same live
+    prefix forever while expired records behind it were never reached.
+
+    This is opportunistic housekeeping, not a correctness mechanism — expiry is
+    enforced when a record is USED, never by whether it has been swept yet.
     """
     removed = 0
     # islice over the ITERATOR, never list(store): materialising every key
     # first pays the full O(n) directory walk on a request path regardless of
     # the limit, which is a denial-of-service handle on an unauthenticated
     # endpoint once the store is large.
-    for key in list(islice(iter(store), limit)):
+    start = (cursor or {}).get("pos", 0)
+    walked = 0
+    for key in list(islice(iter(store), start, start + limit)):
+        walked += 1
         try:
             record = store[key]
         except KeyError:  # concurrent delete — nothing to do
@@ -121,6 +134,9 @@ def _sweep_expired(
                 removed += 1
             except KeyError:
                 pass
+    if cursor is not None:
+        # Short read means we reached the end; start over next time.
+        cursor["pos"] = 0 if walked < limit else start + walked
     return removed
 
 
@@ -285,6 +301,8 @@ def make_oauth_server_router(
     _refresh_enabled = refresh_store is not None and refresh_token_ttl > 0
     _local_claims: set[str] = set()
     _local_claim_lock = threading.Lock()
+    _code_sweep_cursor: dict = {"pos": 0}
+    _refresh_sweep_cursor: dict = {"pos": 0}
 
     def _resource_allowed(resource: str, email: str) -> bool:
         allowed = _allowlist.get(_norm_resource(resource))
@@ -309,12 +327,24 @@ def make_oauth_server_router(
     def _revoke_family(family: str, *, reason: str) -> int:
         """Delete every refresh token descended from one authorization.
 
-        Called when a consumed token is replayed outside the retry window
-        (presumed theft) or when the subject loses access. Costs a scan of the
-        store, which is fine: it runs only on revocation, never on the happy path.
+        Called when a spent token is replayed outside the retry window (presumed
+        theft) or when the subject loses access. Costs a scan of the store, which
+        is fine: it runs only on revocation, never on the happy path.
+
+        Every record of the family goes, live successors included — that is the
+        point. It is safe to be that blunt only because ambiguity is never read
+        as theft: ``_rotate`` writes the tombstone before the successor exists,
+        a worker that loses the claim refuses to treat an unconsumed record as a
+        replay, and a tombstone whose successor is merely absent is refused
+        rather than revoked.
+
+        The scan is O(store), but it is reachable only by presenting a refresh
+        token this server actually issued, and store size is bounded by
+        *refresh_reuse_detection* (tombstones are swept past it), so it is not an
+        amplification handle for an anonymous caller.
 
         This is the one event that silently ends a connector session, so it logs
-        at WARNING — the previous outage was invisible precisely because the only
+        at WARNING — the original outage was invisible precisely because the only
         trace of a dead session was an INFO line on a different process.
         """
         if refresh_store is None:
@@ -325,12 +355,13 @@ def make_oauth_server_router(
                 record = refresh_store[key]
             except KeyError:
                 continue
-            if (record or {}).get("family") == family:
-                try:
-                    del refresh_store[key]
-                    revoked += 1
-                except KeyError:
-                    pass
+            if (record or {}).get("family") != family:
+                continue
+            try:
+                del refresh_store[key]
+                revoked += 1
+            except KeyError:
+                pass
         _logger.warning(
             "oauth: revoked refresh family %s (%d token(s)) — %s. The connector "
             "using it is now dead until a human re-authorizes it.",
@@ -659,12 +690,15 @@ def make_oauth_server_router(
         refresh_token: Optional[str] = Form(None),
     ):
         now = _now()
-        # Opportunistic garbage collection. Nothing else ever removes an expired
-        # record, and the refresh store holds credentials, so it must not grow
-        # without bound.
-        _sweep_expired(code_store, now=now)
+        # Opportunistic garbage collection, AFTER dispatch decides this is a
+        # grant we actually serve. Sweeping first meant an unauthenticated POST
+        # with a bogus grant_type paid for file I/O on the event loop, which is a
+        # denial-of-service handle on every app the shared backend serves.
+        if grant_type not in ("authorization_code", "refresh_token"):
+            return JSONResponse({"error": "unsupported_grant_type"}, status_code=400)
+        _sweep_expired(code_store, now=now, cursor=_code_sweep_cursor)
         if _refresh_enabled:
-            _sweep_expired(refresh_store, now=now)
+            _sweep_expired(refresh_store, now=now, cursor=_refresh_sweep_cursor)
 
         if grant_type == "authorization_code":
             return _grant_authorization_code(
@@ -831,8 +865,11 @@ def make_oauth_server_router(
 
         # Consume atomically or not at all -- see _claim.
         if not _claim(key):
+            # Another worker is mid-rotation on this exact token. That is NOT a
+            # replay: its tombstone may not be written yet, and revoking here
+            # would delete the successor the winner is about to hand back.
             current = refresh_store.get(key)
-            if current is None:
+            if current is None or current.get("consumed_at") is None:
                 return JSONResponse({"error": "invalid_grant"}, status_code=400)
             return _replayed(
                 request, key=key, record=current, client_id=client_id, now=now
@@ -848,35 +885,66 @@ def make_oauth_server_router(
         client_id: str,
         now: int,
     ) -> JSONResponse:
-        """Consume *record*, mint its successor, and answer with the new pair."""
-        body, plaintext = _token_payload(
-            iss=_issuer(request),
-            email=record.get("email", ""),
-            resource=record.get("resource", ""),
-            scope=record.get("scope", ""),
-            client_id=client_id,
-            family=record.get("family"),
-            family_exp=record.get("family_exp") or (now + refresh_family_max_lifetime),
-            now=now,
-        )
-        successor = _hash_refresh(plaintext) if plaintext else None
+        """Consume *record*, mint its successor, and answer with the new pair.
+
+        ORDER MATTERS. The tombstone is written before the successor record
+        exists, so no concurrent reader can ever observe this token as claimed
+        but unconsumed. Writing the successor first opened a window in which the
+        losing worker saw ``consumed_at is None``, concluded "replay", and
+        revoked the family -- destroying the successor the winner was about to
+        return, and stranding the connector exactly as an absent refresh grant
+        does.
+        """
+        family = record.get("family")
+        family_exp = record.get("family_exp") or (now + refresh_family_max_lifetime)
+        email = record.get("email", "")
+        resource = record.get("resource", "")
+        scope = record.get("scope", "")
+
+        plaintext = secrets.token_urlsafe(32)
+        successor_key = _hash_refresh(plaintext)
+
+        # 1. Tombstone. A consumed record is kept only long enough to recognise a
+        #    replay -- never its original 30-day exp, which would turn every
+        #    rotation into a dead record retained for a month.
         refresh_store[key] = {
             **record,
             "consumed_at": now,
-            "successor": successor,
-            # A consumed record is kept only as a tombstone: long enough to
-            # recognise a replay (that is what makes rotation detect theft at
-            # all), never its original 30-day exp -- which would turn every
-            # rotation into a dead record retained for a month.
+            "successor": successor_key,
             "exp": now + max(refresh_reuse_grace, refresh_reuse_detection),
         }
+        # 2. Then the successor it points at.
+        refresh_store[successor_key] = {
+            "family": family,
+            "client_id": client_id,
+            "resource": resource,
+            "scope": scope,
+            "email": email,
+            "iat": now,
+            "exp": now + refresh_token_ttl,
+            "family_exp": family_exp,
+            "consumed_at": None,
+            "successor": None,
+        }
         _logger.info(
-            "oauth: refreshed session for %s on %s (family %s)",
-            record.get("email", ""),
-            record.get("resource", ""),
-            record.get("family"),
+            "oauth: refreshed session for %s on %s (family %s)", email, resource, family
         )
-        return JSONResponse(body)
+        return JSONResponse(
+            {
+                "access_token": _access_token(
+                    iss=_issuer(request),
+                    email=email,
+                    resource=resource,
+                    scope=scope,
+                    client_id=client_id,
+                    now=now,
+                ),
+                "token_type": "Bearer",
+                "expires_in": access_token_ttl,
+                "scope": scope,
+                "refresh_token": plaintext,
+            }
+        )
 
     def _replayed(
         request: Request,
@@ -888,14 +956,25 @@ def make_oauth_server_router(
     ) -> JSONResponse:
         """Decide whether a re-presented token is a lost response or a theft.
 
-        Unconditional revocation here would recreate the outage this whole grant
-        exists to prevent: the server consumes the token BEFORE the response is
-        written, so any dropped response (proxy 502, TLS reset, client timeout)
-        leaves an honest client holding a spent token, and burning its family
-        means a human has to re-authorize. Within the retry window, with the
-        successor still unused and the same client asking, that is a retry, not
-        an attacker — discard the undelivered successor and mint a fresh pair, so
-        exactly one live token still exists. Anything else is treated as theft.
+        Revocation ends a connector session and needs a human to undo, so it
+        happens only on POSITIVE evidence of theft — never merely because the
+        state is ambiguous. Rotation is two writes (tombstone, then successor),
+        so a concurrent worker can legitimately observe a consumed record whose
+        successor does not exist yet; reading that as theft is what made an
+        ordinary retry destroy the family in the first place.
+
+        Theft is: presented outside the retry window, or by a different client,
+        or when the successor has ITSELF been consumed (the chain moved on, so
+        this token is genuinely stale). Everything else is refused without
+        burning the family, and the client's next attempt succeeds.
+
+        ACCEPTED TRADE-OFF: inside the window, a thief holding a stolen token
+        and using the same client_id is indistinguishable from the honest client
+        retrying, and will be reissued — evicting the legitimate holder without
+        tripping detection. Shrinking *refresh_reuse_grace* narrows that window;
+        setting it to 0 closes it and restores the failure this exists to
+        prevent, where one dropped response costs a manual re-authorization.
+        Detection outside the window is unaffected.
         """
         family = record.get("family")
         successor_key = record.get("successor")
@@ -903,38 +982,61 @@ def make_oauth_server_router(
         within_grace = now - (record.get("consumed_at") or 0) < refresh_reuse_grace
         same_client = record.get("client_id") == client_id
 
+        if not within_grace or not same_client:
+            _revoke_family(family, reason="a spent refresh token was replayed")
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+
+        # The absolute ceiling binds here too. Without this the retry path is an
+        # indefinite bypass: every reissue would extend a session that the
+        # normal refresh path would have refused.
+        family_exp = record.get("family_exp") or 0
+        if family_exp and family_exp <= now:
+            _revoke_family(family, reason="family reached its absolute lifetime")
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+
         # A retry is still a refresh: it must clear the same authorization gates,
         # or revoking someone would be defeated by them simply retrying.
-        still_authorized = _resource_allowed(
-            record.get("resource", ""), record.get("email", "")
-        ) and (is_active is None or is_active(record.get("email", "")))
-
-        if (
-            within_grace
-            and same_client
-            and still_authorized
-            and successor is not None
-            and successor.get("consumed_at") is None
-        ):
-            try:
-                del refresh_store[successor_key]
-            except KeyError:
-                pass
-            _logger.info(
-                "oauth: refresh retry within grace for family %s — reissuing "
-                "(previous response presumed lost)",
-                family,
+        if not _resource_allowed(record.get("resource", ""), record.get("email", "")):
+            _revoke_family(
+                family, reason="subject no longer on the resource allowlist"
             )
-            return _rotate(
-                request,
-                key=key,
-                record={**record, "consumed_at": None, "successor": None},
-                client_id=client_id,
-                now=now,
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+        if is_active is not None and not is_active(record.get("email", "")):
+            _revoke_family(
+                family, reason="subject no longer has an active account"
             )
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
 
-        _revoke_family(family, reason="a spent refresh token was replayed")
-        return JSONResponse({"error": "invalid_grant"}, status_code=400)
+        if successor is not None and successor.get("consumed_at") is not None:
+            # The chain moved on without this token: genuine reuse.
+            _revoke_family(family, reason="a spent refresh token was replayed")
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+
+        if successor is None:
+            # Mid-rotation, or the successor is already gone. Ambiguous, so
+            # refuse WITHOUT revoking — the retry after this one will find it.
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+
+        # Claim the successor before discarding it: two simultaneous within-grace
+        # retries would otherwise both delete it and both mint.
+        if not _claim(f"retry:{successor_key}"):
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+        try:
+            del refresh_store[successor_key]
+        except KeyError:
+            pass
+        _logger.info(
+            "oauth: refresh retry within grace for family %s — reissuing "
+            "(previous response presumed lost)",
+            family,
+        )
+        return _rotate(
+            request,
+            key=key,
+            record={**record, "consumed_at": None, "successor": None},
+            client_id=client_id,
+            now=now,
+        )
 
     return router
 

@@ -931,3 +931,159 @@ def test_consumed_records_do_not_accumulate(tmp_path):
     for _ in range(5):
         token = _refresh(client, token, cid).json()["refresh_token"]
     assert len(store) <= 2, f"store grew to {len(store)} records over 5 rotations"
+
+
+def test_losing_the_claim_never_revokes_an_in_flight_family(tmp_path):
+    """The regression the second review caught, reproduced deterministically.
+
+    A worker that loses the claim used to re-read a record whose tombstone was
+    not written yet, see consumed_at=None, conclude "replay", and revoke the
+    family — destroying the successor the winner was about to hand back. The
+    winner then returned 200 with a refresh token that no longer existed.
+    """
+    store, claimed = {}, set()
+
+    def claim_once(key):
+        if key in claimed:
+            return False
+        claimed.add(key)
+        return True
+
+    client, cookie = _build(tmp_path, refresh_store=store, claim_once=claim_once)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+
+    # Another worker has claimed this token and not yet written its tombstone.
+    (live_key,) = [k for k, v in store.items() if v["consumed_at"] is None]
+    assert claim_once(live_key) is True
+
+    losing = _refresh(client, body["refresh_token"], cid)
+    assert losing.status_code == 400
+    assert store, "an in-flight rotation must not destroy the family"
+    assert [v for v in store.values() if v["consumed_at"] is None], (
+        "the winner's successor was destroyed by the loser"
+    )
+
+
+def test_the_reissue_path_is_claimed(tmp_path):
+    """Within-grace reissue is a MINT, so it needs the claim as much as rotation.
+
+    Two retries that both observe the same unused successor would otherwise both
+    delete it and both mint, leaving two independently usable refresh tokens —
+    the double-spend the claim exists to prevent.
+    """
+    store, claimed = {}, set()
+
+    def claim_once(key):
+        if key in claimed:
+            return False
+        claimed.add(key)
+        return True
+
+    client, cookie = _build(tmp_path, refresh_store=store, claim_once=claim_once)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    assert _refresh(client, body["refresh_token"], cid).status_code == 200
+
+    (successor_key,) = [k for k, v in store.items() if v["consumed_at"] is None]
+    # A concurrent retry got to this exact successor first.
+    assert claim_once(f"retry:{successor_key}") is True
+
+    losing = _refresh(client, body["refresh_token"], cid)
+    assert losing.status_code == 400, "two retries both minted from one successor"
+    live = [v for v in store.values() if v["consumed_at"] is None]
+    assert len(live) == 1
+
+
+def test_repeated_retries_keep_exactly_one_live_token(tmp_path):
+    store = {}
+    client, cookie = _build(tmp_path, refresh_store=store)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    for _ in range(4):
+        assert _refresh(client, body["refresh_token"], cid).status_code == 200
+        live = [v for v in store.values() if v["consumed_at"] is None]
+        assert len(live) == 1, f"expected 1 live token, found {len(live)}"
+
+
+def test_tombstone_is_written_before_its_successor_exists(tmp_path):
+    """Ordering is the invariant that makes the claim-loser check safe."""
+    order = []
+
+    class Recording(dict):
+        def __setitem__(self, k, v):
+            order.append((k, v.get("consumed_at") is not None))
+            super().__setitem__(k, v)
+
+    store = Recording()
+    client, cookie = _build(tmp_path, refresh_store=store)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    order.clear()
+    _refresh(client, body["refresh_token"], cid)
+    assert order[0][1] is True, "successor was written before the tombstone"
+
+
+def test_a_tombstone_without_its_successor_yet_is_not_theft(tmp_path):
+    """Rotation is two writes; a concurrent worker can observe only the first.
+
+    Reading that ambiguous state as theft is what made an ordinary concurrent
+    refresh destroy the family — measured at 2/25 races across real processes
+    before revocation was narrowed to positive evidence.
+    """
+    store = {}
+    client, cookie = _build(tmp_path, refresh_store=store)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    assert _refresh(client, body["refresh_token"], cid).status_code == 200
+
+    # The successor has not been written yet (or is already gone).
+    (successor_key,) = [k for k, v in store.items() if v["consumed_at"] is None]
+    del store[successor_key]
+
+    refused = _refresh(client, body["refresh_token"], cid)
+    assert refused.status_code == 400
+    assert store, "an in-flight rotation must not be read as theft"
+
+
+def test_a_consumed_successor_is_positive_evidence_of_theft(tmp_path):
+    """The chain moved on without this token — that IS reuse."""
+    store = {}
+    client, cookie = _build(tmp_path, refresh_store=store)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    second = _refresh(client, body["refresh_token"], cid).json()
+    _refresh(client, second["refresh_token"], cid)  # chain advances
+    assert _refresh(client, body["refresh_token"], cid).status_code == 400
+    assert store == {}, "genuine reuse must still revoke the family"
+
+
+def test_the_retry_path_cannot_bypass_the_absolute_ceiling(tmp_path):
+    """Otherwise every reissue silently extends a session past its hard stop."""
+    store = {}
+    client, cookie = _build(tmp_path, refresh_store=store)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    assert _refresh(client, body["refresh_token"], cid).status_code == 200
+    # The family's ceiling passes while the client is retrying.
+    for k in list(store):
+        store[k] = {**store[k], "family_exp": 1}
+    assert _refresh(client, body["refresh_token"], cid).status_code == 400
+    assert store == {}
+
+
+def test_a_bogus_grant_type_does_no_store_work(tmp_path):
+    """An unauthenticated caller must not be able to buy file I/O."""
+    swept = []
+
+    class Counting(dict):
+        def __iter__(self):
+            swept.append(1)
+            return super().__iter__()
+
+    client, _ = _build(tmp_path, refresh_store=Counting(), code_store=Counting())
+    r = client.post(
+        "/auth/oauth/token", data={"grant_type": "nonsense", "client_id": "x"}
+    )
+    assert r.status_code == 400 and r.json()["error"] == "unsupported_grant_type"
+    assert not swept, "a rejected grant_type still swept the stores"

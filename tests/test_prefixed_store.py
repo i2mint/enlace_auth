@@ -82,3 +82,33 @@ def test_nested_prefixed_store():
     inner = PrefixedStore(outer, "app/")
     inner["key"] = "value"
     assert base["tenant/app/key"] == "value"
+
+
+# ---------------------------------------------------------------------- #
+# File-store robustness (guards added after an OAuth security review)
+# ---------------------------------------------------------------------- #
+
+
+def test_membership_never_raises_on_a_hostile_key(tmp_path):
+    """`in` is a predicate; an exception here turns a lookup into a 500."""
+    from enlace_auth.stores.backends import make_file_store_factory
+
+    store = make_file_store_factory(str(tmp_path))("codes")
+    for hostile in ("../../etc/passwd", "..", "/abs", ".hidden", "a\x00b", ""):
+        assert hostile not in store
+
+
+def test_a_corrupt_record_is_a_miss_not_a_crash(tmp_path):
+    """One truncated file used to 500 every request that touched the store."""
+    from enlace_auth.stores.backends import make_file_store_factory
+
+    root = tmp_path / "s"
+    store = make_file_store_factory(str(root))("codes")
+    store["good"] = {"a": 1}
+    (root / "codes" / "broken").write_text("{not json")
+
+    assert store["good"] == {"a": 1}
+    with pytest.raises(KeyError):
+        store["broken"]
+    # and iterating/sweeping past it must not explode
+    assert sorted(store) == ["broken", "good"]
