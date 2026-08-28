@@ -874,9 +874,14 @@ def test_concurrent_redemption_consumes_exactly_once(tmp_path):
     first = _refresh(a, body["refresh_token"], cid)
     second = _refresh(b, body["refresh_token"], cid)  # the racing worker
     assert first.status_code == 200
-    # The loser must NOT mint an independent live successor.
+    # The loser is diverted to the replay path rather than consuming the token a
+    # second time. Within the grace window, from the same client, that means it
+    # reissues -- deliberate, since stranding an honest retry is the failure this
+    # whole grant exists to prevent. So the invariant is not that the loser is
+    # refused; it is that the store never holds TWO independently live tokens.
+    assert second.status_code in (200, 400)
     live = [v for v in store.values() if v["consumed_at"] is None]
-    assert len(live) == 1
+    assert len(live) == 1, "concurrent redemption minted two live successors"
 
 
 def test_refresh_stops_when_the_subject_loses_their_account(tmp_path):

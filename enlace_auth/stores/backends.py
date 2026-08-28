@@ -11,17 +11,16 @@ stdlib implementation so the core package keeps working.
 from __future__ import annotations
 
 import json
-import tempfile
-from contextlib import suppress
 import os
+import tempfile
 from collections.abc import Iterator, MutableMapping
+from contextlib import suppress
 from pathlib import Path
 from typing import Callable
 
-StoreFactory = Callable[[str], MutableMapping]
-
-
 from enlace_auth.stores.validation import sanitize_key
+
+StoreFactory = Callable[[str], MutableMapping]
 
 
 class _FileDict(MutableMapping):

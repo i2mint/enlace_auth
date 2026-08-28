@@ -34,7 +34,8 @@ def _make_platform_toml(tmp_path: Path) -> Path:
     (ping / "server.py").write_text("from fastapi import FastAPI\napp = FastAPI()\n")
 
     toml = tmp_path / "platform.toml"
-    toml.write_text(textwrap.dedent(f"""
+    toml.write_text(
+        textwrap.dedent(f"""
             [platform]
             apps_dir = "{apps_dir}"
 
@@ -45,7 +46,8 @@ def _make_platform_toml(tmp_path: Path) -> Path:
             [auth.stores]
             backend = "file"
             path = "{tmp_path / "platform_store"}"
-            """).strip())
+            """).strip()
+    )
     return toml
 
 

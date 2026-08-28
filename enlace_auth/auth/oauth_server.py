@@ -46,8 +46,8 @@ import logging
 import secrets
 import threading
 import time
-from itertools import islice
 from dataclasses import dataclass
+from itertools import islice
 from pathlib import Path
 from typing import Any, Callable, Mapping, MutableMapping, Optional
 from urllib.parse import urlencode
