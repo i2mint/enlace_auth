@@ -55,6 +55,11 @@ def _build(
     refresh_token_ttl=2592000,
     code_store=None,
     client_store=None,
+    claim_once=None,
+    is_active=None,
+    refresh_reuse_grace=60,
+    refresh_reuse_detection=86400,
+    refresh_family_max_lifetime=7776000,
 ):
     session_store = SessionStore({})
     sid = session_store.create(user_id=email, email=email)
@@ -66,6 +71,11 @@ def _build(
         client_store={} if client_store is None else client_store,
         code_store={} if code_store is None else code_store,
         refresh_store=refresh_store,
+        claim_once=claim_once,
+        is_active=is_active,
+        refresh_reuse_grace=refresh_reuse_grace,
+        refresh_reuse_detection=refresh_reuse_detection,
+        refresh_family_max_lifetime=refresh_family_max_lifetime,
         keys=OAuthKeys(tmp_path / "keys"),
         issuer=None,  # derive from request → http://testserver
         require_consent=require_consent,
@@ -583,7 +593,15 @@ def test_authorization_code_grant_returns_a_refresh_token(tmp_path):
     client, cookie = _build(tmp_path, refresh_store={})
     body = _flow(client, cookie, cid=_register(client))
     assert body["refresh_token"]
-    assert body["refresh_expires_in"] == 2592000
+    # Only RFC 6749 fields — no invented "refresh_expires_in" for a strict
+    # client to trip over.
+    assert set(body) == {
+        "access_token",
+        "token_type",
+        "expires_in",
+        "scope",
+        "refresh_token",
+    }
 
 
 def test_response_shape_is_unchanged_when_refresh_is_disabled(tmp_path):
@@ -746,3 +764,165 @@ def test_expired_authorization_codes_are_swept(tmp_path):
     codes["stale"] = {"exp": 1, "client_id": cid}
     _flow(client, cookie, cid=cid)  # any token call sweeps
     assert "stale" not in codes
+
+
+# ---------------------------------------------------------------------- #
+# Failure modes found by adversarial review of the first cut
+# ---------------------------------------------------------------------- #
+
+
+def test_a_lost_token_response_does_not_strand_the_connector(tmp_path):
+    """The regression that would have recreated the original outage.
+
+    The server consumes the presented token before its response is written, so a
+    dropped response (proxy 502, TLS reset, client timeout) leaves an honest
+    client holding a spent token. Revoking the family there means a human has to
+    re-authorize — exactly the failure this grant exists to remove.
+    """
+    store = {}
+    client, cookie = _build(tmp_path, refresh_store=store)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+
+    lost = _refresh(client, body["refresh_token"], cid)  # response never arrives
+    assert lost.status_code == 200
+
+    retry = _refresh(client, body["refresh_token"], cid)  # client retries
+    assert retry.status_code == 200, "an honest retry must not strand the client"
+    assert store, "the family must survive a retry"
+    # Exactly one live token remains — the reissued one, not the orphan.
+    live = [v for v in store.values() if v["consumed_at"] is None]
+    assert len(live) == 1
+    assert _refresh(client, retry.json()["refresh_token"], cid).status_code == 200
+
+
+def test_replay_after_the_grace_window_still_revokes(tmp_path):
+    store = {}
+    client, cookie = _build(tmp_path, refresh_store=store, refresh_reuse_grace=0)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    second = _refresh(client, body["refresh_token"], cid).json()
+    assert _refresh(client, body["refresh_token"], cid).status_code == 400
+    assert _refresh(client, second["refresh_token"], cid).status_code == 400
+    assert store == {}
+
+
+def test_a_family_cannot_outlive_its_absolute_ceiling(tmp_path):
+    """`exp` is an idle timeout every rotation resets; this is the hard stop."""
+    store = {}
+    client, cookie = _build(
+        tmp_path, refresh_store=store, refresh_family_max_lifetime=0
+    )
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    assert _refresh(client, body["refresh_token"], cid).status_code == 400
+    assert store == {}
+
+
+def test_family_ceiling_survives_rotation(tmp_path):
+    store = {}
+    client, cookie = _build(tmp_path, refresh_store=store)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    original = [v["family_exp"] for v in store.values()][0]
+    nxt = _refresh(client, body["refresh_token"], cid).json()
+    live = [v for v in store.values() if v["consumed_at"] is None]
+    assert live[0]["family_exp"] == original, "the ceiling must not slide"
+    assert nxt["refresh_token"]
+
+
+def test_a_store_with_zero_ttl_is_not_refresh_support(tmp_path):
+    """Metadata, DCR and the token endpoint must agree on one flag."""
+    client, cookie = _build(tmp_path, refresh_store={}, refresh_token_ttl=0)
+    meta = client.get("/.well-known/oauth-authorization-server").json()
+    assert meta["grant_types_supported"] == ["authorization_code"]
+    reg = client.post(
+        "/auth/oauth/register",
+        json={"redirect_uris": [REDIRECT], "grant_types": ["refresh_token"]},
+    ).json()
+    assert reg["grant_types"] == ["authorization_code"]
+    body = _flow(client, cookie, cid=reg["client_id"])
+    assert "refresh_token" not in body
+    r = _refresh(client, "x", reg["client_id"])
+    assert r.json()["error"] == "unsupported_grant_type"
+
+
+def test_concurrent_redemption_consumes_exactly_once(tmp_path):
+    """Two worker PROCESSES share one store; only one may mint a successor.
+
+    Modelled as two routers over the same stores with one shared claim — which
+    is what plugin.py's filesystem claim provides in production. Without it both
+    observe consumed_at=None and reuse detection never fires.
+    """
+    store, clients, claimed = {}, {}, set()
+
+    def claim_once(key):
+        if key in claimed:
+            return False
+        claimed.add(key)
+        return True
+
+    a, cookie = _build(
+        tmp_path, refresh_store=store, client_store=clients, claim_once=claim_once
+    )
+    b, _ = _build(
+        tmp_path, refresh_store=store, client_store=clients, claim_once=claim_once
+    )
+    cid = _register(a)
+    body = _flow(a, cookie, cid=cid)
+
+    first = _refresh(a, body["refresh_token"], cid)
+    second = _refresh(b, body["refresh_token"], cid)  # the racing worker
+    assert first.status_code == 200
+    # The loser must NOT mint an independent live successor.
+    live = [v for v in store.values() if v["consumed_at"] is None]
+    assert len(live) == 1
+
+
+def test_refresh_stops_when_the_subject_loses_their_account(tmp_path):
+    active = {EMAIL}
+    client, cookie = _build(tmp_path, refresh_store={}, is_active=lambda e: e in active)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    held = _refresh(client, body["refresh_token"], cid)
+    assert held.status_code == 200
+    active.clear()  # account deleted / deactivated
+    assert _refresh(client, held.json()["refresh_token"], cid).status_code == 400
+    # and a retry of the spent token must not sneak past the same gate
+    assert _refresh(client, body["refresh_token"], cid).status_code == 400
+
+
+def test_hostile_authorization_code_is_a_clean_invalid_grant(tmp_path):
+    """`code` is a form field used as a store key — i.e. a path component."""
+    client, _ = _build(tmp_path, refresh_store={})
+    cid = _register(client)
+    for hostile in ("../../etc/passwd", "..", "a/../../b", "%2e%2e/x"):
+        r = client.post(
+            "/auth/oauth/token",
+            data={
+                "grant_type": "authorization_code",
+                "code": hostile,
+                "redirect_uri": REDIRECT,
+                "client_id": cid,
+                "code_verifier": "x" * 43,
+            },
+        )
+        assert r.status_code == 400, hostile
+        assert r.json()["error"] == "invalid_grant", hostile
+
+
+def test_consumed_records_do_not_accumulate(tmp_path):
+    """Rotation used to leave one dead record per refresh alive for 30 days.
+
+    Tombstones are bounded by refresh_reuse_detection; once it lapses they are
+    swept rather than lingering for the token's original TTL.
+    """
+    store = {}
+    client, cookie = _build(
+        tmp_path, refresh_store=store, refresh_reuse_grace=0, refresh_reuse_detection=0
+    )
+    cid = _register(client)
+    token = _flow(client, cookie, cid=cid)["refresh_token"]
+    for _ in range(5):
+        token = _refresh(client, token, cid).json()["refresh_token"]
+    assert len(store) <= 2, f"store grew to {len(store)} records over 5 rotations"

@@ -34,9 +34,7 @@ def _make_platform_toml(tmp_path: Path) -> Path:
     (ping / "server.py").write_text("from fastapi import FastAPI\napp = FastAPI()\n")
 
     toml = tmp_path / "platform.toml"
-    toml.write_text(
-        textwrap.dedent(
-            f"""
+    toml.write_text(textwrap.dedent(f"""
             [platform]
             apps_dir = "{apps_dir}"
 
@@ -47,9 +45,7 @@ def _make_platform_toml(tmp_path: Path) -> Path:
             [auth.stores]
             backend = "file"
             path = "{tmp_path / "platform_store"}"
-            """
-        ).strip()
-    )
+            """).strip())
     return toml
 
 
@@ -161,3 +157,96 @@ def test_revoke_unknown_grant_exits_error(tmp_path):
     with pytest.raises(SystemExit) as exc:
         revoke_grant("vault", "ghost@example.com", toml=str(toml))
     assert exc.value.code == 1
+
+
+# ---------------------------------------------------------------------- #
+# Connector sessions
+#
+# "Does this connector have a live session, and whose?" — the question that
+# went unanswered for a day, because a healthy process answers it wrongly.
+# ---------------------------------------------------------------------- #
+
+from enlace_auth.__main__ import (  # noqa: E402
+    _load_refresh_store,
+    list_connector_sessions,
+    revoke_connector_session,
+)
+
+RESOURCE = "https://apps.example.com/api/demo_mcp/mcp"
+
+
+def _seed_family(store, *, family, email, consumed=False, resource=RESOURCE):
+    store[f"hash-{family}-{'spent' if consumed else 'live'}"] = {
+        "family": family,
+        "client_id": "client-1",
+        "resource": resource,
+        "scope": "mcp:read",
+        "email": email,
+        "iat": 1,
+        "exp": 9999999999,
+        "family_exp": 9999999999,
+        "consumed_at": 123 if consumed else None,
+        "successor": None,
+    }
+
+
+def test_list_connector_sessions_shows_live_families(tmp_path, capsys):
+    toml = _make_platform_toml(tmp_path)
+    store = _load_refresh_store(toml)
+    _seed_family(store, family="f1", email="alice@example.com")
+    _seed_family(store, family="f2", email="bob@example.com", consumed=True)
+
+    list_connector_sessions(toml=str(toml))
+    out = capsys.readouterr().out
+    assert "alice@example.com" in out
+    assert "bob@example.com" not in out, "a spent token is a tombstone, not a session"
+
+
+def test_list_connector_sessions_reports_emptiness_plainly(tmp_path, capsys):
+    toml = _make_platform_toml(tmp_path)
+    _load_refresh_store(toml)
+    list_connector_sessions(toml=str(toml))
+    assert "No live connector sessions" in capsys.readouterr().out
+
+
+def test_revoke_by_family(tmp_path, capsys):
+    toml = _make_platform_toml(tmp_path)
+    store = _load_refresh_store(toml)
+    _seed_family(store, family="f1", email="alice@example.com")
+    _seed_family(store, family="f2", email="bob@example.com")
+
+    revoke_connector_session("f1", toml=str(toml))
+    assert "Revoked 1" in capsys.readouterr().out
+    remaining = {store[k]["family"] for k in store}
+    assert remaining == {"f2"}
+
+
+def test_revoke_by_email_is_case_insensitive(tmp_path, capsys):
+    toml = _make_platform_toml(tmp_path)
+    store = _load_refresh_store(toml)
+    _seed_family(store, family="f1", email="Alice@Example.com")
+    _seed_family(store, family="f2", email="bob@example.com", consumed=True)
+    _seed_family(store, family="f3", email="alice@example.com", resource="other")
+
+    revoke_connector_session(email="ALICE@example.com", toml=str(toml))
+    assert "Revoked 2" in capsys.readouterr().out
+    assert {store[k]["family"] for k in store} == {"f2"}
+
+
+def test_revoke_requires_a_target(tmp_path, capsys):
+    toml = _make_platform_toml(tmp_path)
+    store = _load_refresh_store(toml)
+    _seed_family(store, family="f1", email="alice@example.com")
+    revoke_connector_session(toml=str(toml))
+    assert "Give a family id" in capsys.readouterr().out
+    assert len(list(store)) == 1, "a targetless revoke must not delete anything"
+
+
+def test_list_connector_sessions_json(tmp_path, capsys):
+    toml = _make_platform_toml(tmp_path)
+    store = _load_refresh_store(toml)
+    _seed_family(store, family="f1", email="alice@example.com")
+    list_connector_sessions(json=True, toml=str(toml))
+    rows = json.loads(capsys.readouterr().out)
+    assert rows[0]["email"] == "alice@example.com"
+    assert rows[0]["resource"] == RESOURCE

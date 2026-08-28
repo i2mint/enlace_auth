@@ -69,6 +69,36 @@ class OAuthServerConfig(BaseModel):
             "re-authorized by hand roughly every access_token_ttl_seconds."
         ),
     )
+    refresh_reuse_grace_seconds: int = Field(
+        default=60,
+        description=(
+            "How long after a refresh token is spent its holder may retry with "
+            "it. The server consumes the token before the response is written, "
+            "so a dropped response leaves an honest client holding a spent "
+            "token; within this window that is treated as a retry and reissued "
+            "rather than as theft. Zero means any re-presentation revokes the "
+            "session, which makes a single lost response cost a manual "
+            "re-authorization."
+        ),
+    )
+    refresh_reuse_detection_seconds: int = Field(
+        default=86400,
+        description=(
+            "How long a spent refresh token is remembered so that replaying it "
+            "is recognised as theft rather than merely unknown. Below this, "
+            "reuse detection silently stops working; far above it, tombstones "
+            "accumulate."
+        ),
+    )
+    refresh_family_max_lifetime_seconds: int = Field(
+        default=7776000,
+        description=(
+            "Absolute ceiling on one authorization (default 90 days). "
+            "refresh_token_ttl_seconds is an IDLE timeout that every rotation "
+            "resets, so without this ceiling an actively-used connector would "
+            "never face a human again."
+        ),
+    )
     code_ttl_seconds: int = 120
     scopes_supported: list[str] = Field(default_factory=lambda: ["mcp:read"])
     require_consent: bool = True

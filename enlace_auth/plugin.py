@@ -36,6 +36,54 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger("enlace_auth")
 
+
+def _make_file_claim(claim_dir, *, keep_seconds: int = 172800):
+    """Return ``claim(key) -> bool``: True for the first caller, False after.
+
+    The OAuth refresh grant rotates tokens, and rotation is only meaningful if
+    consuming a token happens exactly once. A ``MutableMapping`` cannot express
+    that — a read-then-write is not atomic — and the platform runs several
+    gunicorn worker *processes* over one shared store, so an in-process lock is
+    not enough either. ``O_CREAT | O_EXCL`` is: the kernel guarantees exactly one
+    creator, on every POSIX filesystem, with no extra dependency.
+
+    Claim files are tiny and swept after *keep_seconds*, which only has to exceed
+    the reuse-detection window that decides how long a spent token is remembered.
+    """
+    from pathlib import Path as _Path
+
+    claim_dir = _Path(claim_dir)
+    claim_dir.mkdir(parents=True, exist_ok=True)
+
+    def _sweep(now: float, limit: int = 200) -> None:
+        from itertools import islice
+
+        for entry in islice(claim_dir.iterdir(), limit):
+            try:
+                if now - entry.stat().st_mtime > keep_seconds:
+                    entry.unlink()
+            except OSError:
+                pass
+
+    def claim(key: str) -> bool:
+        # `key` is a sha256 hex digest, so it is already a safe filename.
+        path = claim_dir / key
+        try:
+            fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        except FileExistsError:
+            return False
+        except OSError:
+            # Fail CLOSED: if we cannot prove we are the only claimant, do not
+            # pretend we are. The caller treats this as "already consumed",
+            # which costs one re-authorization rather than risking a double mint.
+            return False
+        os.close(fd)
+        _sweep(time.time())
+        return True
+
+    return claim
+
+
 # Minimum accepted signing-key length. ``secrets.token_urlsafe(32)`` yields 43
 # chars; anything shorter is a stub and should be rejected.
 _MIN_SIGNING_KEY_LEN = 32
@@ -298,10 +346,24 @@ def wire(parent: "FastAPI", config) -> None:
                     if osc.refresh_token_ttl_seconds > 0
                     else None
                 ),
+                # Rotation is a read-modify-write and the platform runs several
+                # worker PROCESSES over one shared store, so consumption needs a
+                # cross-process claim. Without it two concurrent redemptions both
+                # mint a live successor and reuse detection never fires.
+                claim_once=_make_file_claim(
+                    Path(os.path.expanduser(auth_cfg.stores.path))
+                    / "oauth_refresh_claims"
+                ),
+                # Re-checked on every refresh: a deleted account must not keep
+                # renewing its own connector session.
+                is_active=lambda email: email in user_backend,
                 keys=OAuthKeys(osc.key_dir),
                 issuer=osc.issuer,
                 access_token_ttl=osc.access_token_ttl_seconds,
                 refresh_token_ttl=osc.refresh_token_ttl_seconds,
+                refresh_reuse_grace=osc.refresh_reuse_grace_seconds,
+                refresh_reuse_detection=osc.refresh_reuse_detection_seconds,
+                refresh_family_max_lifetime=osc.refresh_family_max_lifetime_seconds,
                 code_ttl=osc.code_ttl_seconds,
                 scopes_supported=tuple(osc.scopes_supported),
                 require_consent=osc.require_consent,

@@ -11,12 +11,17 @@ stdlib implementation so the core package keeps working.
 from __future__ import annotations
 
 import json
+import tempfile
+from contextlib import suppress
 import os
 from collections.abc import Iterator, MutableMapping
 from pathlib import Path
 from typing import Callable
 
 StoreFactory = Callable[[str], MutableMapping]
+
+
+from enlace_auth.stores.validation import sanitize_key
 
 
 class _FileDict(MutableMapping):
@@ -27,7 +32,20 @@ class _FileDict(MutableMapping):
         self._root.mkdir(parents=True, exist_ok=True)
 
     def _path(self, key: str) -> Path:
-        return self._root / key
+        """Resolve *key* to a path INSIDE the root, or refuse.
+
+        Keys reach this from user-controlled input (an OAuth ``code`` arrives
+        straight off a form field), so an unsanitized key here is an arbitrary
+        file read-and-delete primitive under whatever user the process runs as.
+        Guarding at the single choke point means no call site can reintroduce
+        it. ``KeyError`` rather than ``ValueError`` so a hostile key is an
+        ordinary lookup miss to every caller instead of a 500.
+        """
+        try:
+            safe = sanitize_key(key)
+        except ValueError as exc:
+            raise KeyError(f"unsafe store key: {exc}") from None
+        return self._root / safe
 
     def __getitem__(self, key: str):
         p = self._path(key)
@@ -40,10 +58,21 @@ class _FileDict(MutableMapping):
         p = self._path(key)
         p.parent.mkdir(parents=True, exist_ok=True)
         data = json.dumps(value).encode("utf-8")
-        tmp = p.with_suffix(p.suffix + ".tmp")
-        with tmp.open("wb") as f:
-            f.write(data)
-        os.replace(tmp, p)
+        # A per-writer temp name, not one derived from the key: with a shared
+        # name two processes writing the same key race, and whichever loses the
+        # os.replace raises FileNotFoundError -- surfacing as a 500 on the token
+        # endpoint exactly during a concurrent refresh.
+        fd, tmp_name = tempfile.mkstemp(
+            dir=p.parent, prefix=p.name + ".", suffix=".tmp"
+        )
+        try:
+            with os.fdopen(fd, "wb") as f:
+                f.write(data)
+            os.replace(tmp_name, p)
+        except BaseException:
+            with suppress(OSError):
+                os.unlink(tmp_name)
+            raise
 
     def __delitem__(self, key: str) -> None:
         p = self._path(key)
@@ -90,7 +119,16 @@ def _make_dol_factory(root: Path) -> StoreFactory:
         def _preset(k, v):
             return json.dumps(v).encode("utf-8")
 
-        return wrap_kvs(base, postget=_postget, preset=_preset)
+        def _id_of_key(k):
+            # Same choke-point guard as _FileDict._path: keys can arrive from
+            # user input, and dol.Files would happily resolve ``../`` out of the
+            # store root.
+            try:
+                return sanitize_key(k)
+            except ValueError as exc:
+                raise KeyError(f"unsafe store key: {exc}") from None
+
+        return wrap_kvs(base, postget=_postget, preset=_preset, id_of_key=_id_of_key)
 
     return factory
 
