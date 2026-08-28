@@ -176,10 +176,90 @@ def check_csrf(
     ]
 
 
+def check_connector_session_longevity(config: PlatformConfig) -> Iterable[Check]:
+    """Can a connector survive its own access-token expiry unattended?
+
+    THE check for the failure this exists to prevent: an authorization server
+    that issues short access tokens and no refresh token strands every MCP
+    connector the moment the first token expires. Nothing errors — the connector
+    process stays healthy and the endpoint keeps answering — it just returns 401
+    forever until a human re-runs the browser authorization. In production that
+    read as "the connector has been down all day" and took a user complaint to
+    surface, because expiry is logged at INFO on the connector, not here.
+    """
+    auth = coerce_auth_config(getattr(config, "auth", None))
+    osc = getattr(auth, "oauth_server", None)
+    if not auth.enabled or not getattr(osc, "enabled", False):
+        return [Check("oauth_refresh", SKIP, "oauth_server not enabled")]
+
+    access_ttl = getattr(osc, "access_token_ttl_seconds", 3600)
+    refresh_ttl = getattr(osc, "refresh_token_ttl_seconds", 0)
+    if refresh_ttl > 0:
+        return [
+            Check(
+                "oauth_refresh",
+                PASS,
+                f"refresh grant enabled (access {access_ttl}s, "
+                f"refresh {refresh_ttl}s) — connectors renew unattended",
+            )
+        ]
+    hours = access_ttl / 3600.0
+    return [
+        Check(
+            "oauth_refresh",
+            FAIL,
+            f"refresh_token_ttl_seconds=0 disables the refresh grant, so every "
+            f"connector session dies {access_ttl}s (~{hours:.1f}h) after "
+            f"authorization and only a human at a browser can restore it. "
+            f"Set [auth.oauth_server] refresh_token_ttl_seconds > 0.",
+        )
+    ]
+
+
+def check_oauth_server_advertises_refresh(
+    config: PlatformConfig, base_url: str, timeout: float
+) -> Iterable[Check]:
+    """The live server must offer refresh_token in its discovery metadata.
+
+    Static config can be right while the deployed build is an older release that
+    has no refresh support at all — exactly the drift that caused the outage
+    (config and code were fine locally; the installed wheel was what served
+    requests). This asks the running server what it actually advertises.
+    """
+    auth = coerce_auth_config(getattr(config, "auth", None))
+    osc = getattr(auth, "oauth_server", None)
+    name = "http:/.well-known/oauth-authorization-server"
+    if not auth.enabled or not getattr(osc, "enabled", False):
+        return [Check(name, SKIP, "oauth_server not enabled")]
+    url = f"{base_url.rstrip('/')}/.well-known/oauth-authorization-server"
+    status, _headers, body, err = _doctor._http_get(url, timeout=timeout)
+    if err:
+        return [Check(name, FAIL, err)]
+    if status != 200:
+        return [Check(name, FAIL, f"expected 200, got {status}")]
+    try:
+        grants = json.loads(body or b"{}").get("grant_types_supported", [])
+    except ValueError:
+        return [Check(name, FAIL, "metadata is not valid JSON")]
+    if "refresh_token" in grants:
+        return [Check(name, PASS, f"grant_types_supported={grants}")]
+    return [
+        Check(
+            name,
+            FAIL,
+            f"the RUNNING server advertises {grants} — no refresh_token grant, so "
+            "connector sessions cannot renew and will strand on expiry. If config "
+            "sets refresh_token_ttl_seconds > 0, the deployed enlace_auth build is "
+            "older than the config: upgrade it and restart the backend.",
+        )
+    ]
+
+
 # Convenience tuples for `extra_static_checks=` / `extra_http_checks=`.
 static_checks = (
     check_signing_key,
     check_shared_passwords,
     check_oauth_importable,
+    check_connector_session_longevity,
 )
-http_checks = (check_csrf,)
+http_checks = (check_csrf, check_oauth_server_advertises_refresh)

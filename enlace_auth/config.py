@@ -58,6 +58,17 @@ class OAuthServerConfig(BaseModel):
     )
     key_dir: str = "~/.enlace/oauth_keys"
     access_token_ttl_seconds: int = 3600
+    refresh_token_ttl_seconds: int = Field(
+        default=2592000,
+        description=(
+            "Lifetime of a refresh token (default 30 days). Refresh tokens let a "
+            "connector renew its own access token unattended; without them an "
+            "access token's expiry ends the session until a human re-runs the "
+            "browser authorization. Set to 0 to disable the refresh grant "
+            "entirely -- only sensible if every client can tolerate being "
+            "re-authorized by hand roughly every access_token_ttl_seconds."
+        ),
+    )
     code_ttl_seconds: int = 120
     scopes_supported: list[str] = Field(default_factory=lambda: ["mcp:read"])
     require_consent: bool = True

@@ -293,9 +293,15 @@ def wire(parent: "FastAPI", config) -> None:
                 session_max_age=auth_cfg.session_max_age_seconds,
                 client_store=platform_factory("oauth_clients"),
                 code_store=platform_factory("oauth_codes"),
+                refresh_store=(
+                    platform_factory("oauth_refresh_tokens")
+                    if osc.refresh_token_ttl_seconds > 0
+                    else None
+                ),
                 keys=OAuthKeys(osc.key_dir),
                 issuer=osc.issuer,
                 access_token_ttl=osc.access_token_ttl_seconds,
+                refresh_token_ttl=osc.refresh_token_ttl_seconds,
                 code_ttl=osc.code_ttl_seconds,
                 scopes_supported=tuple(osc.scopes_supported),
                 require_consent=osc.require_consent,

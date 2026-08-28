@@ -66,6 +66,11 @@ connector — the `resource` the client asks for:
 enabled = true
 issuer = "https://apps.example.com"
 
+# How long a connector works before it must renew (default 3600), and how long
+# it may renew unattended before a human must re-authorize (default 30 days).
+access_token_ttl_seconds = 3600
+refresh_token_ttl_seconds = 2592000
+
 # Who may authorize for each connector. A resource that is not listed is open
 # to any authenticated user; a listed one denies everyone else.
 [auth.oauth_server.resource_allowlist]
@@ -78,6 +83,32 @@ issuer = "https://apps.example.com"
 "https://apps.example.com/connector-a-mcp" = "Connector A"
 "https://apps.example.com/connector-b-mcp" = "Connector B"
 ```
+
+#### Keeping a connector alive
+
+Access tokens are short-lived by design; **refresh tokens are what keep a
+connector working**. With the refresh grant enabled (the default) a client
+renews its own access token in the background and a person is involved only
+once, at first connect. Set `refresh_token_ttl_seconds = 0` and you get the
+opposite: every session dies `access_token_ttl_seconds` after it started, the
+connector returns 401 forever, and the *only* way back is a human re-running the
+browser authorization. Nothing errors when this happens — the connector process
+stays healthy and expiry is logged at INFO on the resource server — so it
+surfaces as a user saying the connector "has been down all day". `enlace_auth`'s
+doctor checks (`oauth_refresh` and the discovery-metadata HTTP check) fail on
+exactly this, including the case where config enables refresh but the *deployed*
+build is older than the config and cannot honour it.
+
+Refresh tokens rotate: each use consumes the presented token and returns a
+successor. Presenting a consumed token is treated as theft and revokes the whole
+family, forcing a fresh authorization. Tokens are stored hashed, never verbatim.
+
+Because access tokens are self-contained JWTs with no denylist, **the allowlist
+is re-evaluated on every refresh** — that is the only revocation path this server
+has. Removing someone from `resource_allowlist` (and redeploying) stops them
+within one access-token lifetime rather than one refresh-token lifetime. Keep
+`access_token_ttl_seconds` short for that reason: with refresh in place, a short
+access token costs nothing and is what bounds revocation lag.
 
 Plus environment variables:
 

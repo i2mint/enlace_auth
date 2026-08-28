@@ -218,3 +218,97 @@ def test_live_gateway_roundtrip(clean_env, single_app_dir):
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("application/json")
     assert "csrf" in resp.json()
+
+
+# ---------------------------------------------------------------------- #
+# Connector session longevity
+#
+# The checks that would have caught "the reelee connector has been down all
+# day": an authorization server issuing access tokens nothing can renew.
+# ---------------------------------------------------------------------- #
+
+
+def _oauth_config(single_app_dir, **oauth_server):
+    cfg = PlatformConfig(
+        apps_dir=single_app_dir,
+        auth=AuthConfig(
+            enabled=True,
+            signing_key_env=_KEY_ENV,
+            secure_cookies=False,
+            oauth_server={"enabled": True, **oauth_server},
+        ).model_dump(),
+    )
+    return discover_apps(cfg)
+
+
+def _check(cfg, name, **kw):
+    (found,) = [c for c in _doctor(cfg, **kw).checks if c.name == name]
+    return found
+
+
+def test_refresh_disabled_is_a_doctor_failure(clean_env, single_app_dir):
+    clean_env.setenv(_KEY_ENV, _GOOD_KEY)
+    cfg = _oauth_config(single_app_dir, refresh_token_ttl_seconds=0)
+    check = _check(cfg, "oauth_refresh")
+    assert check.status == doctor_mod.FAIL
+    assert "refresh" in check.detail.lower()
+
+
+def test_refresh_enabled_passes(clean_env, single_app_dir):
+    clean_env.setenv(_KEY_ENV, _GOOD_KEY)
+    cfg = _oauth_config(single_app_dir, refresh_token_ttl_seconds=2592000)
+    assert _check(cfg, "oauth_refresh").status == doctor_mod.PASS
+
+
+def test_longevity_check_skips_when_oauth_server_is_off(clean_env, single_app_dir):
+    clean_env.setenv(_KEY_ENV, _GOOD_KEY)
+    cfg = _auth_enabled_config(single_app_dir)
+    assert _check(cfg, "oauth_refresh").status == doctor_mod.SKIP
+
+
+def test_http_check_catches_a_deployed_build_older_than_its_config(
+    clean_env, single_app_dir, monkeypatch
+):
+    """Config says refresh; the running server says otherwise. Config lies."""
+    clean_env.setenv(_KEY_ENV, _GOOD_KEY)
+    cfg = _oauth_config(single_app_dir, refresh_token_ttl_seconds=2592000)
+    monkeypatch.setattr(
+        doctor_mod,
+        "_http_get",
+        lambda url, timeout=None: (
+            200,
+            {"content-type": "application/json"},
+            b'{"grant_types_supported": ["authorization_code"]}',
+            None,
+        ),
+    )
+    check = _check(
+        cfg,
+        "http:/.well-known/oauth-authorization-server",
+        base_url="http://testserver",
+    )
+    assert check.status == doctor_mod.FAIL
+    assert "older than the config" in check.detail
+
+
+def test_http_check_passes_when_the_server_advertises_refresh(
+    clean_env, single_app_dir, monkeypatch
+):
+    clean_env.setenv(_KEY_ENV, _GOOD_KEY)
+    cfg = _oauth_config(single_app_dir, refresh_token_ttl_seconds=2592000)
+    monkeypatch.setattr(
+        doctor_mod,
+        "_http_get",
+        lambda url, timeout=None: (
+            200,
+            {"content-type": "application/json"},
+            b'{"grant_types_supported": ["authorization_code", "refresh_token"]}',
+            None,
+        ),
+    )
+    check = _check(
+        cfg,
+        "http:/.well-known/oauth-authorization-server",
+        base_url="http://testserver",
+    )
+    assert check.status == doctor_mod.PASS

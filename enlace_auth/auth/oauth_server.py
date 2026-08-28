@@ -20,6 +20,12 @@ client registration, RFC 8707 resource indicators):
    JWT whose ``aud`` is the connector (the ``resource`` parameter).
 6. The connector's FastMCP ``JWTVerifier`` validates that JWT against
    ``/auth/oauth/jwks``.
+7. Before the access token expires, the client exchanges its **refresh token**
+   (``grant_type=refresh_token``) for a fresh pair — no browser, no human. This is
+   what keeps a connector alive: without it an access token's expiry ends the
+   session outright, and the only way back is for a person to re-run the whole
+   browser authorization. See :func:`make_oauth_server_router` for the rotation and
+   reuse-detection rules.
 
 Endpoints (mounted on the platform root, so they sit at the issuer origin)::
 
@@ -29,6 +35,7 @@ Endpoints (mounted on the platform root, so they sit at the issuer origin)::
     GET  /auth/oauth/authorize                        sign-in + consent → code
     POST /auth/oauth/authorize                        consent submit → code
     POST /auth/oauth/token                            code + PKCE → JWT
+                                                      refresh_token → JWT
 """
 
 from __future__ import annotations
@@ -51,6 +58,8 @@ from enlace_auth.auth.sessions import SessionStore
 
 __all__ = ["OAuthKeys", "make_oauth_server_router"]
 
+_REFRESH_SALT = "oauth-refresh"  # domain separation for refresh-token hashing
+
 _CONSENT_SALT = "oauth-consent"  # CSRF token salt for the consent form
 _SESSION_SALT = "session"  # must match make_auth_router's session-cookie salt
 
@@ -62,6 +71,47 @@ def _now() -> int:
 def _b64u(raw: bytes) -> str:
     """URL-safe base64 without padding (the PKCE / JOSE encoding)."""
     return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+
+
+def _hash_refresh(token: str) -> str:
+    """Storage key for a refresh token — the token itself is never persisted.
+
+    Refresh tokens are long-lived credentials. Storing them verbatim would make a
+    read of the store (a backup, a stray ``cat``, a misconfigured store API) a
+    credential dump. Hashing means the store holds only something that can
+    *recognise* a token presented back to us, never mint one.
+    """
+    return hashlib.sha256(f"{_REFRESH_SALT}:{token}".encode()).hexdigest()
+
+
+def _sweep_expired(
+    store: MutableMapping[str, Any], *, now: int, limit: int = 500
+) -> int:
+    """Drop expired records from *store*; return how many were removed.
+
+    Both the authorization-code store and the refresh-token store are
+    write-then-expire: nothing else ever deletes a record whose moment has passed.
+    Without this, expired codes accumulate forever (they did in production) and —
+    far worse once refresh tokens exist — the store grows an unbounded pile of
+    credentials that are dead but still readable.
+
+    Bounded by *limit* so a large store can never turn one token request into a
+    long scan; the remainder is swept by subsequent calls.
+    """
+    removed = 0
+    for key in list(store)[:limit]:
+        try:
+            record = store[key]
+        except KeyError:  # concurrent delete — nothing to do
+            continue
+        exp = (record or {}).get("exp")
+        if isinstance(exp, int) and exp < now:
+            try:
+                del store[key]
+                removed += 1
+            except KeyError:
+                pass
+    return removed
 
 
 def _verify_pkce_s256(verifier: str, challenge: str) -> bool:
@@ -139,7 +189,9 @@ def make_oauth_server_router(
     code_store: MutableMapping[str, Any],
     keys: OAuthKeys,
     issuer: Optional[str] = None,
+    refresh_store: MutableMapping[str, Any] | None = None,
     access_token_ttl: int = 3600,
+    refresh_token_ttl: int = 2592000,
     code_ttl: int = 120,
     scopes_supported: tuple[str, ...] = ("mcp:read",),
     require_consent: bool = True,
@@ -152,6 +204,22 @@ def make_oauth_server_router(
     derived from each request's base URL (so the same code serves any domain). The
     consent step reuses the platform session — an unauthenticated ``/authorize``
     redirects to ``/auth/login`` and returns.
+
+    *refresh_store* backs the ``refresh_token`` grant. Supply it and clients renew
+    their own access tokens in the background, unattended; omit it and this server
+    issues bare access tokens whose expiry silently ends the session, recoverable
+    only by a human re-running the browser authorization. It is optional purely for
+    backwards compatibility — **always pass it in a deployment**, and see
+    :func:`enlace_auth.diagnostics.check_oauth_server` which reports its absence as
+    a fault. Tokens are stored hashed (:func:`_hash_refresh`), never verbatim.
+
+    Refresh tokens **rotate**: each use consumes the presented token and returns a
+    new one. A consumed token presented a second time is treated as theft — the
+    whole family (every token descended from one authorization) is revoked, per
+    OAuth 2.1 §4.3.1. The allowlist is re-evaluated on every refresh, so removing
+    someone from *resource_allowlist* takes effect within one access-token
+    lifetime rather than one refresh-token lifetime; that is the only revocation
+    path this server has, and long-lived refresh tokens make it load-bearing.
 
     *resource_allowlist* maps a connector resource URL to the emails permitted to
     authorize for it. A resource **not** in the map is open to any authenticated
@@ -188,6 +256,75 @@ def make_oauth_server_router(
 
     def _display_name(resource: str) -> Optional[str]:
         return _display_names.get(_norm_resource(resource))
+
+    def _supported_grants() -> list[str]:
+        """Grants this server can actually honour, in discovery-metadata form.
+
+        Derived from whether a *refresh_store* was supplied rather than hardcoded,
+        so metadata, dynamic client registration and the token endpoint can never
+        disagree about what is on offer.
+        """
+        grants = ["authorization_code"]
+        if refresh_store is not None:
+            grants.append("refresh_token")
+        return grants
+
+    def _revoke_family(family: str) -> int:
+        """Delete every refresh token descended from one authorization.
+
+        Called when a consumed token is replayed (presumed theft) or when the user
+        behind a family loses access. Costs a scan of the store, which is fine: it
+        runs only on revocation, never on the happy path.
+        """
+        if refresh_store is None:
+            return 0
+        revoked = 0
+        for key in list(refresh_store):
+            try:
+                record = refresh_store[key]
+            except KeyError:
+                continue
+            if (record or {}).get("family") == family:
+                try:
+                    del refresh_store[key]
+                    revoked += 1
+                except KeyError:
+                    pass
+        return revoked
+
+    def _issue_refresh(
+        *, family: str, client_id: str, resource: str, scope: str, email: str, now: int
+    ) -> str:
+        """Mint one refresh token and record its hash. Returns the plaintext."""
+        token = secrets.token_urlsafe(32)
+        refresh_store[_hash_refresh(token)] = {
+            "family": family,
+            "client_id": client_id,
+            "resource": resource,
+            "scope": scope,
+            "email": email,
+            "iat": now,
+            "exp": now + refresh_token_ttl,
+            "consumed_at": None,
+        }
+        return token
+
+    def _access_token(
+        *, iss: str, email: str, resource: str, scope: str, client_id: str, now: int
+    ) -> str:
+        """Sign one access token. Single source of the claim set for both grants."""
+        return keys.sign(
+            {
+                "iss": iss,
+                "sub": email,
+                "aud": resource or iss,
+                "scope": scope,
+                "client_id": client_id,
+                "iat": now,
+                "exp": now + access_token_ttl,
+                "jti": secrets.token_urlsafe(16),
+            }
+        )
 
     router = APIRouter(tags=["oauth-server"])
 
@@ -228,7 +365,7 @@ def make_oauth_server_router(
                 "registration_endpoint": f"{iss}/auth/oauth/register",
                 "jwks_uri": f"{iss}/auth/oauth/jwks",
                 "response_types_supported": ["code"],
-                "grant_types_supported": ["authorization_code"],
+                "grant_types_supported": _supported_grants(),
                 "code_challenge_methods_supported": ["S256"],
                 "token_endpoint_auth_methods_supported": ["none"],
                 "scopes_supported": list(scopes_supported),
@@ -279,11 +416,23 @@ def make_oauth_server_router(
                 status_code=400,
             )
         client_id = secrets.token_urlsafe(24)
+        # Negotiate, never dictate: echo back the intersection of what the client
+        # asked for with what we support. Hardcoding the reply told a client that
+        # correctly requested refresh_token it had been granted authorization_code
+        # only -- a 201 that looks like success while silently removing the very
+        # capability that keeps the connector alive. A client that asks for nothing
+        # gets everything we offer, which is what RFC 7591 defaults to anyway.
+        supported = _supported_grants()
+        requested = body.get("grant_types")
+        if isinstance(requested, list) and requested:
+            granted = [g for g in supported if g in requested]
+        else:
+            granted = list(supported)
         record = {
             "client_id": client_id,
             "redirect_uris": redirect_uris,
             "client_name": body.get("client_name", ""),
-            "grant_types": ["authorization_code"],
+            "grant_types": granted or ["authorization_code"],
             "response_types": ["code"],
             "token_endpoint_auth_method": "none",  # public client (PKCE)
             "created_at": _now(),
@@ -417,13 +566,90 @@ def make_oauth_server_router(
     async def token(
         request: Request,
         grant_type: str = Form(...),
-        code: str = Form(...),
-        redirect_uri: str = Form(...),
         client_id: str = Form(...),
-        code_verifier: str = Form(...),
+        # Per-grant fields. Every one is Optional because FastAPI validates the
+        # signature BEFORE the body of this function runs: declaring the
+        # authorization_code fields as required would 422 every refresh request
+        # before it could ever reach its branch.
+        code: Optional[str] = Form(None),
+        redirect_uri: Optional[str] = Form(None),
+        code_verifier: Optional[str] = Form(None),
+        refresh_token: Optional[str] = Form(None),
     ):
-        if grant_type != "authorization_code":
-            return JSONResponse({"error": "unsupported_grant_type"}, status_code=400)
+        now = _now()
+        # Opportunistic garbage collection. Nothing else ever removes an expired
+        # record, and the refresh store holds credentials, so it must not grow
+        # without bound.
+        _sweep_expired(code_store, now=now)
+        if refresh_store is not None:
+            _sweep_expired(refresh_store, now=now)
+
+        if grant_type == "authorization_code":
+            return _grant_authorization_code(
+                request,
+                code=code,
+                redirect_uri=redirect_uri,
+                client_id=client_id,
+                code_verifier=code_verifier,
+                now=now,
+            )
+        if grant_type == "refresh_token" and refresh_store is not None:
+            return _grant_refresh_token(
+                request, refresh_token=refresh_token, client_id=client_id, now=now
+            )
+        return JSONResponse({"error": "unsupported_grant_type"}, status_code=400)
+
+    def _token_response(
+        *,
+        iss: str,
+        email: str,
+        resource: str,
+        scope: str,
+        client_id: str,
+        family: Optional[str],
+        now: int,
+    ) -> JSONResponse:
+        """The token response for both grants — one shape, one place.
+
+        A refresh token is included only when this server can honour one, so a
+        client is never handed a credential the token endpoint would reject.
+        """
+        body: dict[str, Any] = {
+            "access_token": _access_token(
+                iss=iss,
+                email=email,
+                resource=resource,
+                scope=scope,
+                client_id=client_id,
+                now=now,
+            ),
+            "token_type": "Bearer",
+            "expires_in": access_token_ttl,
+            "scope": scope,
+        }
+        if refresh_store is not None and family is not None:
+            body["refresh_token"] = _issue_refresh(
+                family=family,
+                client_id=client_id,
+                resource=resource,
+                scope=scope,
+                email=email,
+                now=now,
+            )
+            body["refresh_expires_in"] = refresh_token_ttl
+        return JSONResponse(body)
+
+    def _grant_authorization_code(
+        request: Request,
+        *,
+        code: Optional[str],
+        redirect_uri: Optional[str],
+        client_id: str,
+        code_verifier: Optional[str],
+        now: int,
+    ) -> JSONResponse:
+        if not code or not redirect_uri or not code_verifier:
+            return JSONResponse({"error": "invalid_request"}, status_code=400)
         data = code_store.get(code)
         # One-time use: remove regardless of outcome.
         if data is not None:
@@ -433,32 +659,83 @@ def make_oauth_server_router(
                 pass
         if (
             data is None
-            or data["exp"] < _now()
+            or data["exp"] < now
             or data["client_id"] != client_id
             or data["redirect_uri"] != redirect_uri
             or not _verify_pkce_s256(code_verifier, data["code_challenge"])
         ):
             return JSONResponse({"error": "invalid_grant"}, status_code=400)
 
-        iss = _issuer(request)
-        now = _now()
-        claims = {
-            "iss": iss,
-            "sub": data["email"],
-            "aud": data["resource"] or iss,
-            "scope": data["scope"],
-            "client_id": client_id,
-            "iat": now,
-            "exp": now + access_token_ttl,
-            "jti": secrets.token_urlsafe(16),
-        }
-        return JSONResponse(
-            {
-                "access_token": keys.sign(claims),
-                "token_type": "Bearer",
-                "expires_in": access_token_ttl,
-                "scope": data["scope"],
-            }
+        return _token_response(
+            iss=_issuer(request),
+            email=data["email"],
+            resource=data["resource"],
+            scope=data["scope"],
+            client_id=client_id,
+            # A fresh authorization starts a new family; every token that descends
+            # from it is revoked together if one of them is ever replayed.
+            family=secrets.token_urlsafe(16),
+            now=now,
+        )
+
+    def _grant_refresh_token(
+        request: Request,
+        *,
+        refresh_token: Optional[str],
+        client_id: str,
+        now: int,
+    ) -> JSONResponse:
+        if not refresh_token:
+            return JSONResponse({"error": "invalid_request"}, status_code=400)
+        key = _hash_refresh(refresh_token)
+        record = refresh_store.get(key)
+        if record is None:
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+
+        family = record.get("family")
+
+        # Replay of an already-consumed token. Either the client is buggy or the
+        # token leaked; both mean the family can no longer be trusted, so revoke
+        # all of it and force a fresh browser authorization (OAuth 2.1 4.3.1).
+        if record.get("consumed_at") is not None:
+            _revoke_family(family)
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+
+        if record.get("exp", 0) < now:
+            try:
+                del refresh_store[key]
+            except KeyError:
+                pass
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+
+        # Bound to the client it was issued to: a token lifted from one client
+        # cannot be redeemed by another.
+        if record.get("client_id") != client_id:
+            _revoke_family(family)
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+
+        # Re-check the allowlist on EVERY refresh. Without this an access-token TTL
+        # stops being the revocation window and a refresh-token TTL becomes it:
+        # removing someone from resource_allowlist would leave them working for up
+        # to refresh_token_ttl, turning a guest invitation into standing access.
+        email = record.get("email", "")
+        resource = record.get("resource", "")
+        if not _resource_allowed(resource, email):
+            _revoke_family(family)
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+
+        # Rotate: consume this token, hand back a successor in the same family.
+        record["consumed_at"] = now
+        refresh_store[key] = record
+
+        return _token_response(
+            iss=_issuer(request),
+            email=email,
+            resource=resource,
+            scope=record.get("scope", ""),
+            client_id=client_id,
+            family=family,
+            now=now,
         )
 
     return router

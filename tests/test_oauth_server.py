@@ -51,6 +51,10 @@ def _build(
     resource_allowlist=None,
     resource_display_names=None,
     email=EMAIL,
+    refresh_store=None,
+    refresh_token_ttl=2592000,
+    code_store=None,
+    client_store=None,
 ):
     session_store = SessionStore({})
     sid = session_store.create(user_id=email, email=email)
@@ -59,11 +63,13 @@ def _build(
         signing_key=SIGNING_KEY,
         cookie_name=COOKIE,
         session_max_age=86400,
-        client_store={},
-        code_store={},
+        client_store={} if client_store is None else client_store,
+        code_store={} if code_store is None else code_store,
+        refresh_store=refresh_store,
         keys=OAuthKeys(tmp_path / "keys"),
         issuer=None,  # derive from request → http://testserver
         require_consent=require_consent,
+        refresh_token_ttl=refresh_token_ttl,
         resource_allowlist=resource_allowlist,
         resource_display_names=resource_display_names,
     )
@@ -472,3 +478,271 @@ def test_denied_page_escapes_the_session_email(tmp_path):
     )
     assert r.status_code == 403
     _assert_escaped(r.text, "email")
+
+
+# ---------------------------------------------------------------------- #
+# Refresh-token grant
+#
+# Without these, an access token's expiry ends a connector session outright and
+# only a human at a browser can restore it. Production ran that way: sessions
+# died on the hour and the connector looked "down all day".
+# ---------------------------------------------------------------------- #
+
+
+def _flow(client, cookie, *, cid, resource=RESOURCE, scope="mcp:read"):
+    """Drive authorize → consent → token once; return the token response body."""
+    verifier, challenge = _pkce()
+    form = {
+        "client_id": cid,
+        "redirect_uri": REDIRECT,
+        "code_challenge": challenge,
+        "state": "xyz",
+        "scope": scope,
+        "resource": resource,
+        "csrf": sign_cookie(EMAIL, SIGNING_KEY, salt="oauth-consent"),
+        "decision": "approve",
+    }
+    r = client.post(
+        "/auth/oauth/authorize",
+        data=form,
+        cookies={COOKIE: cookie},
+        follow_redirects=False,
+    )
+    assert r.status_code == 302, r.text
+    code = r.headers["location"].split("code=")[1].split("&")[0]
+    tok = client.post(
+        "/auth/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": REDIRECT,
+            "client_id": cid,
+            "code_verifier": verifier,
+        },
+    )
+    assert tok.status_code == 200, tok.text
+    return tok.json()
+
+
+def _refresh(client, token, cid):
+    return client.post(
+        "/auth/oauth/token",
+        data={
+            "grant_type": "refresh_token",
+            "refresh_token": token,
+            "client_id": cid,
+        },
+    )
+
+
+def test_metadata_advertises_refresh_only_when_it_can_honour_it(tmp_path):
+    without, _ = _build(tmp_path)
+    assert without.get("/.well-known/oauth-authorization-server").json()[
+        "grant_types_supported"
+    ] == ["authorization_code"]
+
+    with_store, _ = _build(tmp_path, refresh_store={})
+    assert with_store.get("/.well-known/oauth-authorization-server").json()[
+        "grant_types_supported"
+    ] == ["authorization_code", "refresh_token"]
+
+
+def test_registration_echoes_the_grants_the_client_asked_for(tmp_path):
+    """DCR used to reply "authorization_code" no matter what was requested."""
+    client, _ = _build(tmp_path, refresh_store={})
+    r = client.post(
+        "/auth/oauth/register",
+        json={
+            "redirect_uris": [REDIRECT],
+            "grant_types": ["authorization_code", "refresh_token"],
+        },
+    )
+    assert r.status_code == 201
+    assert r.json()["grant_types"] == ["authorization_code", "refresh_token"]
+
+
+def test_registration_never_grants_what_the_server_cannot_do(tmp_path):
+    client, _ = _build(tmp_path)  # no refresh store
+    r = client.post(
+        "/auth/oauth/register",
+        json={
+            "redirect_uris": [REDIRECT],
+            "grant_types": ["authorization_code", "refresh_token"],
+        },
+    )
+    assert r.json()["grant_types"] == ["authorization_code"]
+
+
+def test_registration_without_grant_types_gets_everything_supported(tmp_path):
+    client, _ = _build(tmp_path, refresh_store={})
+    r = client.post("/auth/oauth/register", json={"redirect_uris": [REDIRECT]})
+    assert r.json()["grant_types"] == ["authorization_code", "refresh_token"]
+
+
+def test_authorization_code_grant_returns_a_refresh_token(tmp_path):
+    client, cookie = _build(tmp_path, refresh_store={})
+    body = _flow(client, cookie, cid=_register(client))
+    assert body["refresh_token"]
+    assert body["refresh_expires_in"] == 2592000
+
+
+def test_response_shape_is_unchanged_when_refresh_is_disabled(tmp_path):
+    """Regression guard: four live connectors depend on this exact shape."""
+    client, cookie = _build(tmp_path)
+    body = _flow(client, cookie, cid=_register(client))
+    assert set(body) == {"access_token", "token_type", "expires_in", "scope"}
+
+
+def test_refresh_mints_a_working_access_token_with_the_same_identity(tmp_path):
+    client, cookie = _build(tmp_path, refresh_store={})
+    cid = _register(client)
+    first = _flow(client, cookie, cid=cid)
+
+    r = _refresh(client, first["refresh_token"], cid)
+    assert r.status_code == 200
+    body = r.json()
+
+    jwks = client.get("/auth/oauth/jwks").json()
+    claims = jose_jwt.decode(body["access_token"], JsonWebKey.import_key_set(jwks))
+    assert claims["sub"] == EMAIL
+    assert claims["aud"] == RESOURCE  # audience binding survives refresh
+    assert claims["scope"] == "mcp:read"
+    assert claims["client_id"] == cid
+
+
+def test_refresh_rotates_and_the_spent_token_stops_working(tmp_path):
+    client, cookie = _build(tmp_path, refresh_store={})
+    cid = _register(client)
+    first = _flow(client, cookie, cid=cid)
+
+    second = _refresh(client, first["refresh_token"], cid).json()
+    assert second["refresh_token"] != first["refresh_token"]
+    # the successor works...
+    assert _refresh(client, second["refresh_token"], cid).status_code == 200
+    # ...and the token it replaced does not
+    assert _refresh(client, first["refresh_token"], cid).status_code == 400
+
+
+def test_replaying_a_spent_refresh_token_revokes_the_whole_family(tmp_path):
+    """Presumed theft: kill every descendant, force a fresh authorization."""
+    store = {}
+    client, cookie = _build(tmp_path, refresh_store=store)
+    cid = _register(client)
+    first = _flow(client, cookie, cid=cid)
+    second = _refresh(client, first["refresh_token"], cid).json()
+    third = _refresh(client, second["refresh_token"], cid).json()
+
+    # An attacker replays the long-spent first token.
+    assert _refresh(client, first["refresh_token"], cid).status_code == 400
+    # The legitimate holder's live token is now dead too — by design.
+    assert _refresh(client, third["refresh_token"], cid).status_code == 400
+    assert store == {}
+
+
+def test_refresh_token_from_one_client_cannot_be_redeemed_by_another(tmp_path):
+    client, cookie = _build(tmp_path, refresh_store={})
+    cid = _register(client)
+    other = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    assert _refresh(client, body["refresh_token"], other).status_code == 400
+    # and the family is burned, so the rightful client must re-authorize
+    assert _refresh(client, body["refresh_token"], cid).status_code == 400
+
+
+def test_expired_refresh_token_is_rejected_and_dropped(tmp_path):
+    store = {}
+    client, cookie = _build(tmp_path, refresh_store=store)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    # Age the stored record past its expiry (no sleeping in tests).
+    (key,) = list(store)
+    store[key] = {**store[key], "exp": 1}
+    assert _refresh(client, body["refresh_token"], cid).status_code == 400
+    assert store == {}  # and the dead record is not left behind
+
+
+def test_refresh_re_evaluates_the_allowlist(tmp_path):
+    """Removing someone must bite within an access-token life, not a refresh one.
+
+    This is the only revocation path the server has: tokens are self-contained
+    JWTs with no denylist and there is no revocation endpoint. If refresh skipped
+    the allowlist, a removed user would keep minting working tokens for a whole
+    refresh TTL — a guest invitation would quietly become standing access.
+
+    The allowlist is read from config when the router is built, so "remove a user"
+    means redeploy: a second router over the SAME stores, which is exactly what a
+    backend restart produces.
+    """
+    refresh_store, client_store = {}, {}
+    allowed, cookie = _build(
+        tmp_path,
+        refresh_store=refresh_store,
+        client_store=client_store,
+        resource_allowlist={RESOURCE: [EMAIL]},
+    )
+    cid = _register(allowed)
+    body = _flow(allowed, cookie, cid=cid)
+    rotated = _refresh(allowed, body["refresh_token"], cid)
+    assert rotated.status_code == 200
+    held = rotated.json()["refresh_token"]  # the live token the client now holds
+
+    revoked, _ = _build(
+        tmp_path,
+        refresh_store=refresh_store,
+        client_store=client_store,
+        resource_allowlist={RESOURCE: []},  # user removed from the connector
+    )
+    r = revoked.post(
+        "/auth/oauth/token",
+        data={
+            "grant_type": "refresh_token",
+            "refresh_token": held,
+            "client_id": cid,
+        },
+    )
+    assert r.status_code == 400
+    assert refresh_store == {}  # family burned, not merely this one token
+
+
+def test_refresh_is_unsupported_when_no_store_is_configured(tmp_path):
+    client, cookie = _build(tmp_path)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    assert "refresh_token" not in body
+    r = _refresh(client, "anything", cid)
+    assert r.status_code == 400 and r.json()["error"] == "unsupported_grant_type"
+
+
+def test_refresh_tokens_are_never_stored_verbatim(tmp_path):
+    """A read of the store must not yield a usable credential."""
+    store = {}
+    client, cookie = _build(tmp_path, refresh_store=store)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    plaintext = body["refresh_token"]
+    assert plaintext not in store
+    assert not any(plaintext in str(v) for v in store.values())
+
+
+def test_missing_grant_fields_are_a_clean_400(tmp_path):
+    """Optional Form fields must not turn a bad request into a 422."""
+    client, _ = _build(tmp_path, refresh_store={})
+    cid = _register(client)
+    r = client.post(
+        "/auth/oauth/token", data={"grant_type": "authorization_code", "client_id": cid}
+    )
+    assert r.status_code == 400 and r.json()["error"] == "invalid_request"
+    r = client.post(
+        "/auth/oauth/token", data={"grant_type": "refresh_token", "client_id": cid}
+    )
+    assert r.status_code == 400 and r.json()["error"] == "invalid_request"
+
+
+def test_expired_authorization_codes_are_swept(tmp_path):
+    """Nothing else deletes them; production had codes days past a 120s TTL."""
+    codes = {}
+    client, cookie = _build(tmp_path, code_store=codes, refresh_store={})
+    cid = _register(client)
+    codes["stale"] = {"exp": 1, "client_id": cid}
+    _flow(client, cookie, cid=cid)  # any token call sweeps
+    assert "stale" not in codes
