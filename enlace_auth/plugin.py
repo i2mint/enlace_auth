@@ -25,6 +25,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional
 
@@ -37,7 +38,31 @@ if TYPE_CHECKING:
 _logger = logging.getLogger("enlace_auth")
 
 
-def _make_file_claim(claim_dir, *, keep_seconds: int = 172800):
+def _make_is_active(user_backend):
+    """Return ``is_active(email)`` that fails OPEN on a store error.
+
+    A False answer revokes the caller's whole connector session, so a transient
+    unreadable user store would silently kill every connector at once -- the
+    outage this refresh grant exists to prevent, triggered by a disk hiccup.
+    Only a store that answers successfully and says "absent" is grounds for
+    revocation; the resource allowlist still gates everything either way.
+    """
+
+    def is_active(email: str) -> bool:
+        try:
+            return email in user_backend
+        except Exception:  # noqa: BLE001 - availability beats eager revocation
+            _logger.warning(
+                "enlace_auth: user store unreadable while checking %r; "
+                "treating the account as active rather than revoking sessions",
+                email,
+            )
+            return True
+
+    return is_active
+
+
+def _make_file_claim(claim_dir, *, keep_seconds: int = 600):
     """Return ``claim(key) -> bool``: True for the first caller, False after.
 
     The OAuth refresh grant rotates tokens, and rotation is only meaningful if
@@ -47,8 +72,10 @@ def _make_file_claim(claim_dir, *, keep_seconds: int = 172800):
     not enough either. ``O_CREAT | O_EXCL`` is: the kernel guarantees exactly one
     creator, on every POSIX filesystem, with no extra dependency.
 
-    Claim files are tiny and swept after *keep_seconds*, which only has to exceed
-    the reuse-detection window that decides how long a spent token is remembered.
+    A claim only has to outlive the request that takes it, so *keep_seconds* is
+    minutes, not days: once the tombstone is written, a second attempt is routed
+    by ``consumed_at`` and never reaches the claim at all. Sweeping aggressively
+    bounds how long a worker killed mid-rotation can strand a connector.
     """
     from pathlib import Path as _Path
 
@@ -64,6 +91,11 @@ def _make_file_claim(claim_dir, *, keep_seconds: int = 172800):
                     entry.unlink()
             except OSError:
                 pass
+
+    def release(key: str) -> None:
+        """Hand a claim back after a failed rotation."""
+        with suppress(OSError):
+            (claim_dir / key).unlink()
 
     def claim(key: str) -> bool:
         # `key` is a sha256 hex digest, so it is already a safe filename.
@@ -81,6 +113,7 @@ def _make_file_claim(claim_dir, *, keep_seconds: int = 172800):
         _sweep(time.time())
         return True
 
+    claim.release = release  # type: ignore[attr-defined]
     return claim
 
 
@@ -334,6 +367,9 @@ def wire(parent: "FastAPI", config) -> None:
             )
 
             osc = auth_cfg.oauth_server
+            _oauth_claim = _make_file_claim(
+                Path(os.path.expanduser(auth_cfg.stores.path)) / "oauth_refresh_claims"
+            )
             oauth_server_router = make_oauth_server_router(
                 session_store=session_store,
                 signing_key=signing_key,
@@ -350,13 +386,11 @@ def wire(parent: "FastAPI", config) -> None:
                 # worker PROCESSES over one shared store, so consumption needs a
                 # cross-process claim. Without it two concurrent redemptions both
                 # mint a live successor and reuse detection never fires.
-                claim_once=_make_file_claim(
-                    Path(os.path.expanduser(auth_cfg.stores.path))
-                    / "oauth_refresh_claims"
-                ),
+                claim_once=_oauth_claim,
+                release_claim=_oauth_claim.release,
                 # Re-checked on every refresh: a deleted account must not keep
                 # renewing its own connector session.
-                is_active=lambda email: email in user_backend,
+                is_active=_make_is_active(user_backend),
                 keys=OAuthKeys(osc.key_dir),
                 issuer=osc.issuer,
                 access_token_ttl=osc.access_token_ttl_seconds,
@@ -364,6 +398,7 @@ def wire(parent: "FastAPI", config) -> None:
                 refresh_reuse_grace=osc.refresh_reuse_grace_seconds,
                 refresh_reuse_detection=osc.refresh_reuse_detection_seconds,
                 refresh_family_max_lifetime=osc.refresh_family_max_lifetime_seconds,
+                client_ttl=osc.client_ttl_seconds,
                 code_ttl=osc.code_ttl_seconds,
                 scopes_supported=tuple(osc.scopes_supported),
                 require_consent=osc.require_consent,

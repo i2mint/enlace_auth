@@ -99,7 +99,10 @@ stays healthy and expiry is logged at INFO on the resource server — so it
 surfaces as a user saying the connector "has been down all day". `enlace_auth`'s
 doctor checks (`oauth_refresh` and the discovery-metadata HTTP check) fail on
 exactly this, including the case where config enables refresh but the *deployed*
-build is older than the config and cannot honour it.
+build is older than the config and cannot honour it. They run wherever
+`enlace doctor` runs, via `enlace.doctor.discover_plugin_checks` — which needs
+`enlace` new enough to have it (i2mint/enlace#34); on older `enlace` the checks
+exist but nothing invokes them.
 
 `refresh_token_ttl_seconds` is an **idle** timeout, not a session ceiling: every
 rotation resets it, so a connector refreshing hourly would otherwise never face a

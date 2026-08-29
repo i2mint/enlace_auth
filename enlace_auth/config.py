@@ -99,6 +99,16 @@ class OAuthServerConfig(BaseModel):
             "never face a human again."
         ),
     )
+    client_ttl_seconds: int = Field(
+        default=15552000,
+        description=(
+            "How long an unused dynamic client registration is kept (default "
+            "180 days). Registration is unauthenticated by design, so without "
+            "an expiry the client store is an anonymous, never-reclaimed "
+            "disk-write primitive. A client still being used has its expiry "
+            "extended on every successful token exchange."
+        ),
+    )
     code_ttl_seconds: int = 120
     scopes_supported: list[str] = Field(default_factory=lambda: ["mcp:read"])
     require_consent: bool = True

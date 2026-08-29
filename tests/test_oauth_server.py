@@ -56,6 +56,7 @@ def _build(
     code_store=None,
     client_store=None,
     claim_once=None,
+    release_claim=None,
     is_active=None,
     refresh_reuse_grace=60,
     refresh_reuse_detection=86400,
@@ -72,6 +73,7 @@ def _build(
         code_store={} if code_store is None else code_store,
         refresh_store=refresh_store,
         claim_once=claim_once,
+        release_claim=release_claim,
         is_active=is_active,
         refresh_reuse_grace=refresh_reuse_grace,
         refresh_reuse_detection=refresh_reuse_detection,
@@ -421,7 +423,7 @@ def _assert_escaped(page, field):
     assert BREAKOUT_ESCAPED in page, f"{field} did not reach the page at all"
 
 
-@pytest.mark.parametrize("field", ["state", "scope", "resource", "code_challenge"])
+@pytest.mark.parametrize("field", ["state", "resource", "code_challenge"])
 def test_consent_page_escapes_query_supplied_values(tmp_path, field):
     # /authorize copies these straight off the query string into hidden-input
     # attribute values, and any authenticated user can be sent to a crafted
@@ -436,6 +438,32 @@ def test_consent_page_escapes_query_supplied_values(tmp_path, field):
     r = client.get("/auth/oauth/authorize", params=params, cookies={COOKIE: cookie})
     assert r.status_code == 200, r.text
     _assert_escaped(r.text, field)
+
+
+def test_a_hostile_scope_never_reaches_the_consent_page(tmp_path):
+    """Scope is narrowed to what the server supports, so it cannot carry a payload.
+
+    Stronger than escaping: an unsupported scope is dropped outright, which also
+    stops a crafted URL from displaying one scope while submitting another.
+    """
+    client, cookie = _build(tmp_path)
+    cid = _register(client)
+    _, challenge = _pkce()
+    params = _authorize_params(cid, challenge)
+    params["scope"] = BREAKOUT
+    r = client.get("/auth/oauth/authorize", params=params, cookies={COOKIE: cookie})
+    assert r.status_code == 200
+    assert BREAKOUT not in r.text
+
+
+def test_a_token_cannot_carry_an_unsupported_scope(tmp_path):
+    client, cookie = _build(tmp_path, refresh_store={})
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid, scope="mcp:read mcp:admin")
+    jwks = client.get("/auth/oauth/jwks").json()
+    claims = jose_jwt.decode(body["access_token"], JsonWebKey.import_key_set(jwks))
+    assert "mcp:admin" not in claims["scope"]
+    assert claims["scope"] == "mcp:read"
 
 
 def test_consent_page_escapes_the_registered_redirect_uri(tmp_path):
@@ -532,6 +560,25 @@ def _flow(client, cookie, *, cid, resource=RESOURCE, scope="mcp:read"):
     )
     assert tok.status_code == 200, tok.text
     return tok.json()
+
+
+def _now_ish():
+    import time
+
+    return int(time.time())
+
+
+def _live(store):
+    """Refresh tokens that can still be redeemed.
+
+    The store also holds tombstones (consumed_at set) and the short-lived grace
+    records that let a retry replay its response; neither is a usable token.
+    """
+    return [
+        v
+        for v in store.values()
+        if v.get("client_id") is not None and v.get("consumed_at") is None
+    ]
 
 
 def _refresh(client, token, cid):
@@ -641,20 +688,25 @@ def test_refresh_rotates_and_the_spent_token_stops_working(tmp_path):
     assert _refresh(client, first["refresh_token"], cid).status_code == 400
 
 
-def test_replaying_a_spent_refresh_token_revokes_the_whole_family(tmp_path):
-    """Presumed theft: kill every descendant, force a fresh authorization."""
+def test_replay_by_a_different_client_revokes_the_whole_family(tmp_path):
+    """Positive evidence of theft: nobody else should ever hold this token.
+
+    (The other positive evidence -- replay outside the retry window -- is covered
+    by test_replay_after_the_grace_window_still_revokes. Inside the window, from
+    the same client, a replay is indistinguishable from an honest retry and is
+    answered idempotently instead; revoking there killed healthy sessions.)
+    """
     store = {}
     client, cookie = _build(tmp_path, refresh_store=store)
     cid = _register(client)
+    thief = _register(client)
     first = _flow(client, cookie, cid=cid)
     second = _refresh(client, first["refresh_token"], cid).json()
-    third = _refresh(client, second["refresh_token"], cid).json()
 
-    # An attacker replays the long-spent first token.
-    assert _refresh(client, first["refresh_token"], cid).status_code == 400
-    # The legitimate holder's live token is now dead too — by design.
-    assert _refresh(client, third["refresh_token"], cid).status_code == 400
-    assert store == {}
+    assert _refresh(client, second["refresh_token"], thief).status_code == 400
+    # The legitimate holder's live token is dead too -- by design.
+    assert _refresh(client, second["refresh_token"], cid).status_code == 400
+    assert _live(store) == []
 
 
 def test_refresh_token_from_one_client_cannot_be_redeemed_by_another(tmp_path):
@@ -789,14 +841,17 @@ def test_a_lost_token_response_does_not_strand_the_connector(tmp_path):
 
     retry = _refresh(client, body["refresh_token"], cid)  # client retries
     assert retry.status_code == 200, "an honest retry must not strand the client"
-    assert store, "the family must survive a retry"
-    # Exactly one live token remains — the reissued one, not the orphan.
-    live = [v for v in store.values() if v["consumed_at"] is None]
-    assert len(live) == 1
+    # IDEMPOTENT: the retry replays the same credential rather than minting a
+    # replacement and deleting one that may already be on the wire.
+    assert retry.json()["refresh_token"] == lost.json()["refresh_token"]
+    assert len(_live(store)) == 1
+    # Both responses name the same token, and it works.
     assert _refresh(client, retry.json()["refresh_token"], cid).status_code == 200
 
 
 def test_replay_after_the_grace_window_still_revokes(tmp_path):
+    # Detection is unchanged outside the retry window: that is where the
+    # positive evidence of theft lives.
     store = {}
     client, cookie = _build(tmp_path, refresh_store=store, refresh_reuse_grace=0)
     cid = _register(client)
@@ -824,9 +879,9 @@ def test_family_ceiling_survives_rotation(tmp_path):
     client, cookie = _build(tmp_path, refresh_store=store)
     cid = _register(client)
     body = _flow(client, cookie, cid=cid)
-    original = [v["family_exp"] for v in store.values()][0]
+    original = _live(store)[0]["family_exp"]
     nxt = _refresh(client, body["refresh_token"], cid).json()
-    live = [v for v in store.values() if v["consumed_at"] is None]
+    live = _live(store)
     assert live[0]["family_exp"] == original, "the ceiling must not slide"
     assert nxt["refresh_token"]
 
@@ -880,7 +935,7 @@ def test_concurrent_redemption_consumes_exactly_once(tmp_path):
     # whole grant exists to prevent. So the invariant is not that the loser is
     # refused; it is that the store never holds TWO independently live tokens.
     assert second.status_code in (200, 400)
-    live = [v for v in store.values() if v["consumed_at"] is None]
+    live = _live(store)
     assert len(live) == 1, "concurrent redemption minted two live successors"
 
 
@@ -954,7 +1009,11 @@ def test_losing_the_claim_never_revokes_an_in_flight_family(tmp_path):
     body = _flow(client, cookie, cid=cid)
 
     # Another worker has claimed this token and not yet written its tombstone.
-    (live_key,) = [k for k, v in store.items() if v["consumed_at"] is None]
+    (live_key,) = [
+        k
+        for k, v in store.items()
+        if v.get("client_id") and v.get("consumed_at") is None
+    ]
     assert claim_once(live_key) is True
 
     losing = _refresh(client, body["refresh_token"], cid)
@@ -965,34 +1024,26 @@ def test_losing_the_claim_never_revokes_an_in_flight_family(tmp_path):
     )
 
 
-def test_the_reissue_path_is_claimed(tmp_path):
-    """Within-grace reissue is a MINT, so it needs the claim as much as rotation.
+def test_duplicate_retries_all_return_the_same_credential(tmp_path):
+    """Duplicates must not invalidate each other's responses.
 
-    Two retries that both observe the same unused successor would otherwise both
-    delete it and both mint, leaving two independently usable refresh tokens —
-    the double-spend the claim exists to prevent.
+    A re-minting retry handed every duplicate a 200 carrying a token the server
+    had already deleted; a client that kept any response but the last was
+    stranded. Measured at 12/15 across real processes before this became a
+    replay.
     """
-    store, claimed = {}, set()
-
-    def claim_once(key):
-        if key in claimed:
-            return False
-        claimed.add(key)
-        return True
-
-    client, cookie = _build(tmp_path, refresh_store=store, claim_once=claim_once)
+    store = {}
+    client, cookie = _build(tmp_path, refresh_store=store)
     cid = _register(client)
     body = _flow(client, cookie, cid=cid)
-    assert _refresh(client, body["refresh_token"], cid).status_code == 200
 
-    (successor_key,) = [k for k, v in store.items() if v["consumed_at"] is None]
-    # A concurrent retry got to this exact successor first.
-    assert claim_once(f"retry:{successor_key}") is True
-
-    losing = _refresh(client, body["refresh_token"], cid)
-    assert losing.status_code == 400, "two retries both minted from one successor"
-    live = [v for v in store.values() if v["consumed_at"] is None]
-    assert len(live) == 1
+    responses = [_refresh(client, body["refresh_token"], cid) for _ in range(5)]
+    assert [r.status_code for r in responses] == [200] * 5
+    tokens = {r.json()["refresh_token"] for r in responses}
+    assert len(tokens) == 1, "duplicate retries minted competing tokens"
+    assert len(_live(store)) == 1
+    # Whichever response the client kept, it still works.
+    assert _refresh(client, tokens.pop(), cid).status_code == 200
 
 
 def test_repeated_retries_keep_exactly_one_live_token(tmp_path):
@@ -1002,8 +1053,7 @@ def test_repeated_retries_keep_exactly_one_live_token(tmp_path):
     body = _flow(client, cookie, cid=cid)
     for _ in range(4):
         assert _refresh(client, body["refresh_token"], cid).status_code == 200
-        live = [v for v in store.values() if v["consumed_at"] is None]
-        assert len(live) == 1, f"expected 1 live token, found {len(live)}"
+        assert len(_live(store)) == 1, f"found {len(_live(store))} live tokens"
 
 
 def test_tombstone_is_written_before_its_successor_exists(tmp_path):
@@ -1038,7 +1088,11 @@ def test_a_tombstone_without_its_successor_yet_is_not_theft(tmp_path):
     assert _refresh(client, body["refresh_token"], cid).status_code == 200
 
     # The successor has not been written yet (or is already gone).
-    (successor_key,) = [k for k, v in store.items() if v["consumed_at"] is None]
+    (successor_key,) = [
+        k
+        for k, v in store.items()
+        if v.get("client_id") and v.get("consumed_at") is None
+    ]
     del store[successor_key]
 
     refused = _refresh(client, body["refresh_token"], cid)
@@ -1046,16 +1100,24 @@ def test_a_tombstone_without_its_successor_yet_is_not_theft(tmp_path):
     assert store, "an in-flight rotation must not be read as theft"
 
 
-def test_a_consumed_successor_is_positive_evidence_of_theft(tmp_path):
-    """The chain moved on without this token — that IS reuse."""
+def test_a_duplicate_after_the_client_moved_on_is_refused_not_revoked(tmp_path):
+    """The client demonstrably HAS a working token, so 400 costs it nothing.
+
+    Revoking here killed healthy sessions: a duplicate of an earlier request
+    landing on the other worker after the client had already used its successor
+    burned the whole family. Reproduced sequentially, and in 26/60 real races.
+    """
     store = {}
     client, cookie = _build(tmp_path, refresh_store=store)
     cid = _register(client)
     body = _flow(client, cookie, cid=cid)
     second = _refresh(client, body["refresh_token"], cid).json()
-    _refresh(client, second["refresh_token"], cid)  # chain advances
-    assert _refresh(client, body["refresh_token"], cid).status_code == 400
-    assert store == {}, "genuine reuse must still revoke the family"
+    third = _refresh(client, second["refresh_token"], cid).json()  # client moves on
+
+    duplicate = _refresh(client, body["refresh_token"], cid)
+    assert duplicate.status_code == 400
+    assert store, "a duplicate must not burn a healthy family"
+    assert _refresh(client, third["refresh_token"], cid).status_code == 200
 
 
 def test_the_retry_path_cannot_bypass_the_absolute_ceiling(tmp_path):
@@ -1087,3 +1149,51 @@ def test_a_bogus_grant_type_does_no_store_work(tmp_path):
     )
     assert r.status_code == 400 and r.json()["error"] == "unsupported_grant_type"
     assert not swept, "a rejected grant_type still swept the stores"
+
+
+def test_abandoned_client_registrations_expire(tmp_path):
+    """DCR is unauthenticated, so registrations must not accumulate forever."""
+    clients = {}
+    client, _ = _build(tmp_path, client_store=clients)
+    cid = _register(client)
+    assert clients[cid]["exp"] > _now_ish()
+
+
+def test_a_client_still_in_use_keeps_its_registration(tmp_path):
+    clients = {}
+    client, cookie = _build(tmp_path, client_store=clients, refresh_store={})
+    cid = _register(client)
+    clients[cid] = {**clients[cid], "exp": 1}  # about to lapse
+    _flow(client, cookie, cid=cid)
+    assert clients[cid]["exp"] > 1, "an active client's registration must be renewed"
+
+
+def test_a_failed_rotation_hands_the_claim_back(tmp_path):
+    """Otherwise the token is unredeemable while its record says unconsumed."""
+    claims, released = set(), []
+
+    def claim_once(key):
+        if key in claims:
+            return False
+        claims.add(key)
+        return True
+
+    class Exploding(dict):
+        def __setitem__(self, k, v):
+            if v.get("consumed_at") is not None:
+                raise OSError("disk full")
+            super().__setitem__(k, v)
+
+    store = Exploding()
+    client, cookie = _build(
+        tmp_path,
+        refresh_store=store,
+        claim_once=claim_once,
+        release_claim=lambda k: (released.append(k), claims.discard(k)),
+    )
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    with pytest.raises(OSError):
+        _refresh(client, body["refresh_token"], cid)
+    assert released, "the claim was not released after a failed rotation"
+    assert not claims, "a stuck claim makes the token permanently unredeemable"
