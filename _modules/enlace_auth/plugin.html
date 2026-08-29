@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.plugin &mdash; enlace_auth 0.1.20 documentation</title>
+  <title>enlace_auth.plugin &mdash; enlace_auth 0.1.21 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=17aaaefc"></script>
+      <script src="../../_static/documentation_options.js?v=b3d22ae5"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -125,6 +125,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">suppress</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
 
@@ -135,6 +136,99 @@
 
 
 <span class="n">_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">"enlace_auth"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_make_is_active</span><span class="p">(</span><span class="n">user_backend</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Return ``is_active(email)`` that fails OPEN on a store error.</span>
+
+<span class="sd">    A False answer revokes the caller's whole connector session, so a transient</span>
+<span class="sd">    unreadable user store would silently kill every connector at once -- the</span>
+<span class="sd">    outage this refresh grant exists to prevent, triggered by a disk hiccup.</span>
+<span class="sd">    Only a store that answers successfully and says "absent" is grounds for</span>
+<span class="sd">    revocation; the resource allowlist still gates everything either way.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_active</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">email</span> <span class="ow">in</span> <span class="n">user_backend</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - availability beats eager revocation</span>
+            <span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">"enlace_auth: user store unreadable while checking </span><span class="si">%r</span><span class="s2">; "</span>
+                <span class="s2">"treating the account as active rather than revoking sessions"</span><span class="p">,</span>
+                <span class="n">email</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">is_active</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_make_file_claim</span><span class="p">(</span><span class="n">claim_dir</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">keep_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">600</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Return ``claim(key) -&gt; bool``: True for the first caller, False after.</span>
+
+<span class="sd">    The OAuth refresh grant rotates tokens, and rotation is only meaningful if</span>
+<span class="sd">    consuming a token happens exactly once. A ``MutableMapping`` cannot express</span>
+<span class="sd">    that — a read-then-write is not atomic — and the platform runs several</span>
+<span class="sd">    gunicorn worker *processes* over one shared store, so an in-process lock is</span>
+<span class="sd">    not enough either. ``O_CREAT | O_EXCL`` is: the kernel guarantees exactly one</span>
+<span class="sd">    creator, on every POSIX filesystem, with no extra dependency.</span>
+
+<span class="sd">    A claim only has to outlive the request that takes it, so *keep_seconds* is</span>
+<span class="sd">    minutes, not days: once the tombstone is written, a second attempt is routed</span>
+<span class="sd">    by ``consumed_at`` and never reaches the claim at all. Sweeping aggressively</span>
+<span class="sd">    bounds how long a worker killed mid-rotation can strand a connector.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span> <span class="k">as</span> <span class="n">_Path</span>
+
+    <span class="n">claim_dir</span> <span class="o">=</span> <span class="n">_Path</span><span class="p">(</span><span class="n">claim_dir</span><span class="p">)</span>
+    <span class="n">claim_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_sweep</span><span class="p">(</span><span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">islice</span>
+
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">islice</span><span class="p">(</span><span class="n">claim_dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">(),</span> <span class="n">limit</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">now</span> <span class="o">-</span> <span class="n">entry</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_mtime</span> <span class="o">&gt;</span> <span class="n">keep_seconds</span><span class="p">:</span>
+                    <span class="n">entry</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">release</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Hand a claim back after a failed rotation."""</span>
+        <span class="k">with</span> <span class="n">suppress</span><span class="p">(</span><span class="ne">OSError</span><span class="p">):</span>
+            <span class="p">(</span><span class="n">claim_dir</span> <span class="o">/</span> <span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">claim</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="c1"># `key` is a sha256 hex digest, so it is already a safe filename.</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">claim_dir</span> <span class="o">/</span> <span class="n">key</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">os</span><span class="o">.</span><span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">O_EXCL</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">O_WRONLY</span><span class="p">,</span> <span class="mo">0o600</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileExistsError</span><span class="p">:</span>
+            <span class="c1"># A claim older than the window belonged to a worker that died before</span>
+            <span class="c1"># it could consume the token. Without taking it over, that token is</span>
+            <span class="c1"># unredeemable forever while its record still reads unconsumed -- and</span>
+            <span class="c1"># the client's own retries can never heal it, because they never</span>
+            <span class="c1"># reach the sweep below. Take it over exactly once.</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_mtime</span> <span class="o">&lt;=</span> <span class="n">keep_seconds</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+                <span class="n">path</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+                <span class="n">fd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">os</span><span class="o">.</span><span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">O_EXCL</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">O_WRONLY</span><span class="p">,</span> <span class="mo">0o600</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+                <span class="c1"># Someone else won the takeover, or the file vanished. Either way</span>
+                <span class="c1"># we do not hold the claim.</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="c1"># Fail CLOSED: if we cannot prove we are the only claimant, do not</span>
+            <span class="c1"># pretend we are. The caller treats this as "already consumed",</span>
+            <span class="c1"># which costs one re-authorization rather than risking a double mint.</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+        <span class="n">_sweep</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="n">claim</span><span class="o">.</span><span class="n">release</span> <span class="o">=</span> <span class="n">release</span>  <span class="c1"># type: ignore[attr-defined]</span>
+    <span class="k">return</span> <span class="n">claim</span>
+
 
 <span class="c1"># Minimum accepted signing-key length. ``secrets.token_urlsafe(32)`` yields 43</span>
 <span class="c1"># chars; anything shorter is a stub and should be rejected.</span>
@@ -391,6 +485,9 @@
             <span class="p">)</span>
 
             <span class="n">osc</span> <span class="o">=</span> <span class="n">auth_cfg</span><span class="o">.</span><span class="n">oauth_server</span>
+            <span class="n">_oauth_claim</span> <span class="o">=</span> <span class="n">_make_file_claim</span><span class="p">(</span>
+                <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">stores</span><span class="o">.</span><span class="n">path</span><span class="p">))</span> <span class="o">/</span> <span class="s2">"oauth_refresh_claims"</span>
+            <span class="p">)</span>
             <span class="n">oauth_server_router</span> <span class="o">=</span> <span class="n">make_oauth_server_router</span><span class="p">(</span>
                 <span class="n">session_store</span><span class="o">=</span><span class="n">session_store</span><span class="p">,</span>
                 <span class="n">signing_key</span><span class="o">=</span><span class="n">signing_key</span><span class="p">,</span>
@@ -398,9 +495,28 @@
                 <span class="n">session_max_age</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_max_age_seconds</span><span class="p">,</span>
                 <span class="n">client_store</span><span class="o">=</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">"oauth_clients"</span><span class="p">),</span>
                 <span class="n">code_store</span><span class="o">=</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">"oauth_codes"</span><span class="p">),</span>
+                <span class="n">refresh_store</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">platform_factory</span><span class="p">(</span><span class="s2">"oauth_refresh_tokens"</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">osc</span><span class="o">.</span><span class="n">refresh_token_ttl_seconds</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                    <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
+                <span class="c1"># Rotation is a read-modify-write and the platform runs several</span>
+                <span class="c1"># worker PROCESSES over one shared store, so consumption needs a</span>
+                <span class="c1"># cross-process claim. Without it two concurrent redemptions both</span>
+                <span class="c1"># mint a live successor and reuse detection never fires.</span>
+                <span class="n">claim_once</span><span class="o">=</span><span class="n">_oauth_claim</span><span class="p">,</span>
+                <span class="n">release_claim</span><span class="o">=</span><span class="n">_oauth_claim</span><span class="o">.</span><span class="n">release</span><span class="p">,</span>
+                <span class="c1"># Re-checked on every refresh: a deleted account must not keep</span>
+                <span class="c1"># renewing its own connector session.</span>
+                <span class="n">is_active</span><span class="o">=</span><span class="n">_make_is_active</span><span class="p">(</span><span class="n">user_backend</span><span class="p">),</span>
                 <span class="n">keys</span><span class="o">=</span><span class="n">OAuthKeys</span><span class="p">(</span><span class="n">osc</span><span class="o">.</span><span class="n">key_dir</span><span class="p">),</span>
                 <span class="n">issuer</span><span class="o">=</span><span class="n">osc</span><span class="o">.</span><span class="n">issuer</span><span class="p">,</span>
                 <span class="n">access_token_ttl</span><span class="o">=</span><span class="n">osc</span><span class="o">.</span><span class="n">access_token_ttl_seconds</span><span class="p">,</span>
+                <span class="n">refresh_token_ttl</span><span class="o">=</span><span class="n">osc</span><span class="o">.</span><span class="n">refresh_token_ttl_seconds</span><span class="p">,</span>
+                <span class="n">refresh_reuse_grace</span><span class="o">=</span><span class="n">osc</span><span class="o">.</span><span class="n">refresh_reuse_grace_seconds</span><span class="p">,</span>
+                <span class="n">refresh_reuse_detection</span><span class="o">=</span><span class="n">osc</span><span class="o">.</span><span class="n">refresh_reuse_detection_seconds</span><span class="p">,</span>
+                <span class="n">refresh_family_max_lifetime</span><span class="o">=</span><span class="n">osc</span><span class="o">.</span><span class="n">refresh_family_max_lifetime_seconds</span><span class="p">,</span>
+                <span class="n">client_ttl</span><span class="o">=</span><span class="n">osc</span><span class="o">.</span><span class="n">client_ttl_seconds</span><span class="p">,</span>
                 <span class="n">code_ttl</span><span class="o">=</span><span class="n">osc</span><span class="o">.</span><span class="n">code_ttl_seconds</span><span class="p">,</span>
                 <span class="n">scopes_supported</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">osc</span><span class="o">.</span><span class="n">scopes_supported</span><span class="p">),</span>
                 <span class="n">require_consent</span><span class="o">=</span><span class="n">osc</span><span class="o">.</span><span class="n">require_consent</span><span class="p">,</span>

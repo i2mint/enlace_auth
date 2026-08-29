@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>enlace_auth.config &mdash; enlace_auth 0.1.20 documentation</title>
+  <title>enlace_auth.config &mdash; enlace_auth 0.1.21 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=17aaaefc"></script>
+      <script src="../../_static/documentation_options.js?v=b3d22ae5"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -166,6 +166,57 @@
     <span class="p">)</span>
     <span class="n">key_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"~/.enlace/oauth_keys"</span>
     <span class="n">access_token_ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3600</span>
+    <span class="n">refresh_token_ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">2592000</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"Lifetime of a refresh token (default 30 days). Refresh tokens let a "</span>
+            <span class="s2">"connector renew its own access token unattended; without them an "</span>
+            <span class="s2">"access token's expiry ends the session until a human re-runs the "</span>
+            <span class="s2">"browser authorization. Set to 0 to disable the refresh grant "</span>
+            <span class="s2">"entirely -- only sensible if every client can tolerate being "</span>
+            <span class="s2">"re-authorized by hand roughly every access_token_ttl_seconds."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">refresh_reuse_grace_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"How long after a refresh token is spent its holder may retry with "</span>
+            <span class="s2">"it. The server consumes the token before the response is written, "</span>
+            <span class="s2">"so a dropped response leaves an honest client holding a spent "</span>
+            <span class="s2">"token; within this window that is treated as a retry and reissued "</span>
+            <span class="s2">"rather than as theft. Zero means any re-presentation revokes the "</span>
+            <span class="s2">"session, which makes a single lost response cost a manual "</span>
+            <span class="s2">"re-authorization."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">refresh_reuse_detection_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">86400</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"How long a spent refresh token is remembered so that replaying it "</span>
+            <span class="s2">"is recognised as theft rather than merely unknown. Below this, "</span>
+            <span class="s2">"reuse detection silently stops working; far above it, tombstones "</span>
+            <span class="s2">"accumulate."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">refresh_family_max_lifetime_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">7776000</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"Absolute ceiling on one authorization (default 90 days). "</span>
+            <span class="s2">"refresh_token_ttl_seconds is an IDLE timeout that every rotation "</span>
+            <span class="s2">"resets, so without this ceiling an actively-used connector would "</span>
+            <span class="s2">"never face a human again."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">client_ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">15552000</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"How long an unused dynamic client registration is kept (default "</span>
+            <span class="s2">"180 days). Registration is unauthenticated by design, so without "</span>
+            <span class="s2">"an expiry the client store is an anonymous, never-reclaimed "</span>
+            <span class="s2">"disk-write primitive. A client still being used has its expiry "</span>
+            <span class="s2">"extended on every successful token exchange."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
     <span class="n">code_ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">120</span>
     <span class="n">scopes_supported</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="s2">"mcp:read"</span><span class="p">])</span>
     <span class="n">require_consent</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
