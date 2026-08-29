@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from enlace_auth.auth.cookies import sign_cookie  # noqa: E402
 from enlace_auth.auth.oauth_server import (  # noqa: E402
     OAuthKeys,
+    _hash_refresh,
     make_oauth_server_router,
 )
 from enlace_auth.auth.sessions import SessionStore  # noqa: E402
@@ -728,7 +729,7 @@ def test_expired_refresh_token_is_rejected_and_dropped(tmp_path):
     (key,) = list(store)
     store[key] = {**store[key], "exp": 1}
     assert _refresh(client, body["refresh_token"], cid).status_code == 400
-    assert store == {}  # and the dead record is not left behind
+    assert _live(store) == []  # and the dead record is not left behind
 
 
 def test_refresh_re_evaluates_the_allowlist(tmp_path):
@@ -771,7 +772,7 @@ def test_refresh_re_evaluates_the_allowlist(tmp_path):
         },
     )
     assert r.status_code == 400
-    assert refresh_store == {}  # family burned, not merely this one token
+    assert _live(refresh_store) == []  # family burned, not merely this token
 
 
 def test_refresh_is_unsupported_when_no_store_is_configured(tmp_path):
@@ -859,7 +860,7 @@ def test_replay_after_the_grace_window_still_revokes(tmp_path):
     second = _refresh(client, body["refresh_token"], cid).json()
     assert _refresh(client, body["refresh_token"], cid).status_code == 400
     assert _refresh(client, second["refresh_token"], cid).status_code == 400
-    assert store == {}
+    assert _live(store) == []
 
 
 def test_a_family_cannot_outlive_its_absolute_ceiling(tmp_path):
@@ -871,7 +872,7 @@ def test_a_family_cannot_outlive_its_absolute_ceiling(tmp_path):
     cid = _register(client)
     body = _flow(client, cookie, cid=cid)
     assert _refresh(client, body["refresh_token"], cid).status_code == 400
-    assert store == {}
+    assert _live(store) == []
 
 
 def test_family_ceiling_survives_rotation(tmp_path):
@@ -1131,7 +1132,7 @@ def test_the_retry_path_cannot_bypass_the_absolute_ceiling(tmp_path):
     for k in list(store):
         store[k] = {**store[k], "family_exp": 1}
     assert _refresh(client, body["refresh_token"], cid).status_code == 400
-    assert store == {}
+    assert _live(store) == []
 
 
 def test_a_bogus_grant_type_does_no_store_work(tmp_path):
@@ -1197,3 +1198,38 @@ def test_a_failed_rotation_hands_the_claim_back(tmp_path):
         _refresh(client, body["refresh_token"], cid)
     assert released, "the claim was not released after a failed rotation"
     assert not claims, "a stuck claim makes the token permanently unredeemable"
+
+
+def test_revocation_survives_a_concurrent_rotation(tmp_path):
+    """Revocation must be a positive fact, not the absence of records.
+
+    Expressed as a scan-and-delete it raced rotation: a successor written after
+    the snapshot survived, and a tombstone write resurrected a parent the scan
+    had just deleted, so a chain that happened to be rotating defeated detection
+    outright (~22% of attempts across real processes). A marker cannot be raced.
+    """
+    store = {}
+    client, cookie = _build(tmp_path, refresh_store=store, refresh_reuse_grace=0)
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid)
+    survivor = _refresh(client, body["refresh_token"], cid).json()["refresh_token"]
+
+    assert _refresh(client, body["refresh_token"], cid).status_code == 400  # revoke
+    (marker_key,) = [k for k in store if k.startswith("family:")]
+
+    # A record the delete scan missed, exactly as a concurrent rotation produces.
+    store[_hash_refresh(survivor)] = {
+        "family": marker_key.split("family:", 1)[1],
+        "client_id": cid,
+        "resource": RESOURCE,
+        "scope": "mcp:read",
+        "email": EMAIL,
+        "iat": 1,
+        "exp": 9999999999,
+        "family_exp": 9999999999,
+        "consumed_at": None,
+        "successor": None,
+    }
+    assert _refresh(client, survivor, cid).status_code == 400, (
+        "a token that escaped the revocation scan was still honoured"
+    )

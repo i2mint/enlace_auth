@@ -112,3 +112,18 @@ def test_a_corrupt_record_is_a_miss_not_a_crash(tmp_path):
         store["broken"]
     # and iterating/sweeping past it must not explode
     assert sorted(store) == ["broken", "good"]
+
+
+def test_a_concurrent_delete_reads_as_a_miss_not_a_crash(tmp_path):
+    """exists()-then-open is a TOCTOU; callers only guard against KeyError."""
+    from enlace_auth.stores.backends import make_file_store_factory
+
+    root = tmp_path / "s"
+    store = make_file_store_factory(str(root))("codes")
+    store["gone"] = {"a": 1}
+    (root / "codes" / "gone").unlink()  # another worker swept it
+
+    with pytest.raises(KeyError):
+        store["gone"]
+    with pytest.raises(KeyError):
+        del store["gone"]

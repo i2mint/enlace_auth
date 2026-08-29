@@ -57,3 +57,30 @@ def test_an_unreadable_user_store_does_not_revoke_everyone(caplog):
 def test_a_readable_store_still_reports_a_missing_account(tmp_path):
     assert _make_is_active({"a@example.com": {}})("a@example.com") is True
     assert _make_is_active({"a@example.com": {}})("gone@example.com") is False
+
+
+def test_a_stale_claim_is_taken_over(tmp_path):
+    """A worker killed after claiming must not strand the token forever.
+
+    claim() returning False on FileExistsError meant the client's own retries
+    could never heal it: they never reach the sweep that would clear the file.
+    """
+    import os
+    import time
+
+    claim = _make_file_claim(str(tmp_path), keep_seconds=1)
+    key = "d" * 64
+    assert claim(key) is True
+    assert claim(key) is False  # still fresh: nobody may take it
+
+    stale = tmp_path / key
+    os.utime(stale, (time.time() - 10, time.time() - 10))
+    assert claim(key) is True, "a dead worker's claim stranded the token forever"
+
+
+def test_takeover_does_not_apply_to_a_live_claim(tmp_path):
+    claim = _make_file_claim(str(tmp_path), keep_seconds=3600)
+    key = "e" * 64
+    assert claim(key) is True
+    assert claim(key) is False
+    assert claim(key) is False

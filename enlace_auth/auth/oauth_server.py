@@ -364,6 +364,19 @@ def make_oauth_server_router(
         """
         if refresh_store is None:
             return 0
+        # Write the marker FIRST. Revocation used to be expressed as the ABSENCE
+        # of records, which cannot work while another worker is concurrently
+        # creating them: a successor written after the scan snapshot survived,
+        # and a tombstone write resurrected a parent the scan had just deleted,
+        # so a chain that happened to be rotating defeated detection outright
+        # (measured at ~22% of attempts). A single positive fact cannot be raced.
+        now = _now()
+        refresh_store[_revoked_key(family)] = {
+            "revoked_at": now,
+            "reason": reason,
+            # Must outlive every token that could still belong to this family.
+            "exp": now + max(refresh_token_ttl, refresh_reuse_detection),
+        }
         revoked = 0
         for key in list(refresh_store):
             try:
@@ -371,7 +384,7 @@ def make_oauth_server_router(
             except KeyError:
                 continue
             if (record or {}).get("family") != family:
-                continue
+                continue  # (the marker itself carries no "family" key)
             try:
                 del refresh_store[key]
                 revoked += 1
@@ -423,6 +436,13 @@ def make_oauth_server_router(
         record = client_store.get(client_id)
         if record:
             client_store[client_id] = {**record, "exp": now + client_ttl}
+
+    def _revoked_key(family: str) -> str:
+        """Store key for the tombstone that marks a whole family revoked."""
+        return f"family:{family}"
+
+    def _family_revoked(family: Optional[str]) -> bool:
+        return bool(family) and refresh_store.get(_revoked_key(family)) is not None
 
     def _grace_key(key: str) -> str:
         """Store key for the short-lived retry copy of a successor plaintext."""
@@ -862,6 +882,11 @@ def make_oauth_server_router(
         if record is None:
             return JSONResponse({"error": "invalid_grant"}, status_code=400)
 
+        # A revoked family stays revoked even if this record outlived the sweep
+        # that was meant to delete it.
+        if _family_revoked(record.get("family")):
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+
         if record.get("consumed_at") is not None:
             return _replayed(
                 request, key=key, record=record, client_id=client_id, now=now
@@ -1056,6 +1081,8 @@ def make_oauth_server_router(
         re-authorization.
         """
         family = record.get("family")
+        if _family_revoked(family):
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
         within_grace = now - (record.get("consumed_at") or 0) < refresh_reuse_grace
         same_client = record.get("client_id") == client_id
 

@@ -103,7 +103,20 @@ def _make_file_claim(claim_dir, *, keep_seconds: int = 600):
         try:
             fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         except FileExistsError:
-            return False
+            # A claim older than the window belonged to a worker that died before
+            # it could consume the token. Without taking it over, that token is
+            # unredeemable forever while its record still reads unconsumed -- and
+            # the client's own retries can never heal it, because they never
+            # reach the sweep below. Take it over exactly once.
+            try:
+                if time.time() - path.stat().st_mtime <= keep_seconds:
+                    return False
+                path.unlink()
+                fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            except (OSError, ValueError):
+                # Someone else won the takeover, or the file vanished. Either way
+                # we do not hold the claim.
+                return False
         except OSError:
             # Fail CLOSED: if we cannot prove we are the only claimant, do not
             # pretend we are. The caller treats this as "already consumed",

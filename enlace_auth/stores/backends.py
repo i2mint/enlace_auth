@@ -48,10 +48,18 @@ class _FileDict(MutableMapping):
 
     def __getitem__(self, key: str):
         p = self._path(key)
-        if not p.exists():
-            raise KeyError(key)
-        with p.open("rb") as f:
-            raw = f.read()
+        try:
+            with p.open("rb") as f:
+                raw = f.read()
+        except FileNotFoundError:
+            # exists()-then-open is a TOCTOU: another process sweeping or
+            # revoking can delete the file in between, and the raw
+            # FileNotFoundError escaped every `except KeyError` guard in the
+            # callers -- surfacing as a 500 under exactly the concurrency those
+            # guards were written for.
+            raise KeyError(key) from None
+        except IsADirectoryError:
+            raise KeyError(key) from None
         try:
             return json.loads(raw)
         except ValueError as exc:
@@ -81,10 +89,10 @@ class _FileDict(MutableMapping):
             raise
 
     def __delitem__(self, key: str) -> None:
-        p = self._path(key)
-        if not p.exists():
-            raise KeyError(key)
-        p.unlink()
+        try:
+            self._path(key).unlink()
+        except FileNotFoundError:
+            raise KeyError(key) from None
 
     def __iter__(self) -> Iterator[str]:
         for p in self._root.rglob("*"):
