@@ -383,6 +383,90 @@ def list_grants(*, app: str = None, json: bool = False, toml: str = "platform.to
         print(f"{g.get('app_id')}  {g.get('email')}  {status}")
 
 
+def _load_refresh_store(toml_path: Path = Path("platform.toml")):
+    """Open the OAuth refresh-token store for the configured platform."""
+    from enlace_auth.stores import make_file_store_factory
+
+    config = PlatformConfig.from_toml(toml_path)
+    auth = coerce_auth_config(config.auth)
+    factory = make_file_store_factory(auth.stores.path)
+    return factory("oauth_refresh_tokens")
+
+
+def list_connector_sessions(*, json: bool = False, toml: str = "platform.toml"):
+    """List live MCP connector sessions (one row per refresh-token family).
+
+    Answers the question that went unanswered for a day during the outage this
+    was written after: *does this connector currently have a working session,
+    and whose is it?* A connector's process being healthy says nothing about it.
+    """
+    import json as json_module
+
+    store = _load_refresh_store(Path(toml))
+    families: dict[str, dict] = {}
+    for key in store:
+        try:
+            record = store[key]
+        except KeyError:
+            continue
+        if not record or record.get("consumed_at") is not None:
+            continue  # spent tokens are tombstones, not sessions
+        families[record.get("family", key)] = {
+            "family": record.get("family"),
+            "email": record.get("email"),
+            "resource": record.get("resource"),
+            "client_id": record.get("client_id"),
+            "issued_at": record.get("iat"),
+            "expires_at": record.get("exp"),
+            "family_expires_at": record.get("family_exp"),
+        }
+    rows = sorted(
+        families.values(), key=lambda r: (r["resource"] or "", r["email"] or "")
+    )
+    if json:
+        print(json_module.dumps(rows, indent=2, default=str))
+        return
+    if not rows:
+        print("No live connector sessions.")
+        return
+    for row in rows:
+        print(f"{row['resource']}  {row['email']}  family={row['family']}")
+
+
+def revoke_connector_session(
+    family: str = None, *, email: str = None, toml: str = "platform.toml"
+):
+    """Revoke connector sessions by refresh-token *family* or by *email*.
+
+    The access tokens this server issues are self-contained JWTs with no
+    denylist, so revoking here stops *renewal*: the session ends within one
+    access-token lifetime rather than instantly. That is the only revocation
+    path there is, which is the reason to keep access-token TTLs short.
+    """
+    if not family and not email:
+        print("Give a family id or --email.")
+        return
+    store = _load_refresh_store(Path(toml))
+    removed = 0
+    for key in list(store):
+        try:
+            record = store[key]
+        except KeyError:
+            continue
+        if not record:
+            continue
+        if (family and record.get("family") == family) or (
+            email and (record.get("email") or "").lower() == email.lower()
+        ):
+            try:
+                del store[key]
+                removed += 1
+            except KeyError:
+                pass
+    target = family or email
+    print(f"Revoked {removed} refresh token(s) for {target}.")
+
+
 def main():
     argh.dispatch_commands(
         [
@@ -397,6 +481,8 @@ def main():
             grant,
             revoke_grant,
             list_grants,
+            list_connector_sessions,
+            revoke_connector_session,
         ]
     )
 

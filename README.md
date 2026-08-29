@@ -66,6 +66,13 @@ connector — the `resource` the client asks for:
 enabled = true
 issuer = "https://apps.example.com"
 
+# How long a connector works before it must renew (default 3600); how long it
+# may sit IDLE before its refresh token lapses (default 30 days); and the
+# absolute ceiling on one authorization regardless of activity (default 90 days).
+access_token_ttl_seconds = 3600
+refresh_token_ttl_seconds = 2592000
+refresh_family_max_lifetime_seconds = 7776000
+
 # Who may authorize for each connector. A resource that is not listed is open
 # to any authenticated user; a listed one denies everyone else.
 [auth.oauth_server.resource_allowlist]
@@ -78,6 +85,49 @@ issuer = "https://apps.example.com"
 "https://apps.example.com/connector-a-mcp" = "Connector A"
 "https://apps.example.com/connector-b-mcp" = "Connector B"
 ```
+
+#### Keeping a connector alive
+
+Access tokens are short-lived by design; **refresh tokens are what keep a
+connector working**. With the refresh grant enabled (the default) a client
+renews its own access token in the background and a person is involved only
+once, at first connect. Set `refresh_token_ttl_seconds = 0` and you get the
+opposite: every session dies `access_token_ttl_seconds` after it started, the
+connector returns 401 forever, and the *only* way back is a human re-running the
+browser authorization. Nothing errors when this happens — the connector process
+stays healthy and expiry is logged at INFO on the resource server — so it
+surfaces as a user saying the connector "has been down all day". `enlace_auth`'s
+doctor checks (`oauth_refresh` and the discovery-metadata HTTP check) fail on
+exactly this, including the case where config enables refresh but the *deployed*
+build is older than the config and cannot honour it. They run wherever
+`enlace doctor` runs, via `enlace.doctor.discover_plugin_checks` — which needs
+`enlace` new enough to have it (i2mint/enlace#34); on older `enlace` the checks
+exist but nothing invokes them.
+
+`refresh_token_ttl_seconds` is an **idle** timeout, not a session ceiling: every
+rotation resets it, so a connector refreshing hourly would otherwise never face a
+human again. `refresh_family_max_lifetime_seconds` is the absolute cap, set once
+when the session is authorized and carried unchanged through every rotation.
+
+Refresh tokens rotate: each use consumes the presented token and returns a
+successor. Tokens are stored hashed, never verbatim.
+
+Replaying a spent token is theft *unless* it looks like a retry. The server
+consumes a token before its response is written, so a dropped response (proxy
+502, TLS reset, client timeout) leaves an honest client holding a spent token —
+and revoking there would strand the connector exactly as an absent refresh grant
+does. Within `refresh_reuse_grace_seconds`, from the same client, with the
+successor still unused and the subject still authorized, that is treated as a
+retry and reissued. Anything else revokes the whole family. Spent tokens are
+remembered for `refresh_reuse_detection_seconds` so that a replay is recognised
+rather than merely unknown.
+
+Because access tokens are self-contained JWTs with no denylist, **the allowlist
+is re-evaluated on every refresh** — that is the only revocation path this server
+has. Removing someone from `resource_allowlist` (and redeploying) stops them
+within one access-token lifetime rather than one refresh-token lifetime. Keep
+`access_token_ttl_seconds` short for that reason: with refresh in place, a short
+access token costs nothing and is what bounds revocation lag.
 
 Plus environment variables:
 

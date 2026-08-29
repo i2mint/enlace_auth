@@ -58,6 +58,57 @@ class OAuthServerConfig(BaseModel):
     )
     key_dir: str = "~/.enlace/oauth_keys"
     access_token_ttl_seconds: int = 3600
+    refresh_token_ttl_seconds: int = Field(
+        default=2592000,
+        description=(
+            "Lifetime of a refresh token (default 30 days). Refresh tokens let a "
+            "connector renew its own access token unattended; without them an "
+            "access token's expiry ends the session until a human re-runs the "
+            "browser authorization. Set to 0 to disable the refresh grant "
+            "entirely -- only sensible if every client can tolerate being "
+            "re-authorized by hand roughly every access_token_ttl_seconds."
+        ),
+    )
+    refresh_reuse_grace_seconds: int = Field(
+        default=60,
+        description=(
+            "How long after a refresh token is spent its holder may retry with "
+            "it. The server consumes the token before the response is written, "
+            "so a dropped response leaves an honest client holding a spent "
+            "token; within this window that is treated as a retry and reissued "
+            "rather than as theft. Zero means any re-presentation revokes the "
+            "session, which makes a single lost response cost a manual "
+            "re-authorization."
+        ),
+    )
+    refresh_reuse_detection_seconds: int = Field(
+        default=86400,
+        description=(
+            "How long a spent refresh token is remembered so that replaying it "
+            "is recognised as theft rather than merely unknown. Below this, "
+            "reuse detection silently stops working; far above it, tombstones "
+            "accumulate."
+        ),
+    )
+    refresh_family_max_lifetime_seconds: int = Field(
+        default=7776000,
+        description=(
+            "Absolute ceiling on one authorization (default 90 days). "
+            "refresh_token_ttl_seconds is an IDLE timeout that every rotation "
+            "resets, so without this ceiling an actively-used connector would "
+            "never face a human again."
+        ),
+    )
+    client_ttl_seconds: int = Field(
+        default=15552000,
+        description=(
+            "How long an unused dynamic client registration is kept (default "
+            "180 days). Registration is unauthenticated by design, so without "
+            "an expiry the client store is an anonymous, never-reclaimed "
+            "disk-write primitive. A client still being used has its expiry "
+            "extended on every successful token exchange."
+        ),
+    )
     code_ttl_seconds: int = 120
     scopes_supported: list[str] = Field(default_factory=lambda: ["mcp:read"])
     require_consent: bool = True
