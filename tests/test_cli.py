@@ -1,8 +1,14 @@
-"""Tests for the enlace-auth CLI's user-store commands.
+"""The *verb functions* behind the enlace-auth CLI, called as Python functions.
 
-The CLI's session/sign-key helpers are exercised indirectly elsewhere; here
-we focus on ``set_password`` and ``list_users`` because they mutate / read
-the user store and are the easiest way to lock yourself out if they regress.
+Focus is on ``set_password``, ``list_users`` and the grant/connector verbs,
+because they mutate or read the stores and are the easiest way to lock yourself
+out if they regress.
+
+**Nothing in this file exercises the command line.** These call the functions
+with keyword arguments; the parser, the argv spellings and the exit codes are
+not in scope here, and every test below would still pass if the dispatch call in
+``enlace_auth/__main__.py`` were deleted outright — which was verified, not
+assumed. ``tests/test_cli_surface.py`` is where the CLI grammar is pinned.
 """
 
 from __future__ import annotations

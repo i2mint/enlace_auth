@@ -26,7 +26,7 @@ import sys
 from getpass import getpass
 from pathlib import Path
 
-import argh
+import cw
 from enlace.base import PlatformConfig
 
 from enlace_auth.config import coerce_auth_config
@@ -467,24 +467,37 @@ def revoke_connector_session(
     print(f"Revoked {removed} refresh token(s) for {target}.")
 
 
+#: The SSOT for the CLI surface: a verb that is not in this list does not exist.
+COMMANDS = [
+    init,
+    generate_signing_key,
+    hash_password,
+    list_sessions,
+    revoke_session,
+    list_users,
+    set_password,
+    reset_link,
+    grant,
+    revoke_grant,
+    list_grants,
+    list_connector_sessions,
+    revoke_connector_session,
+]
+
+
 def main():
-    argh.dispatch_commands(
-        [
-            init,
-            generate_signing_key,
-            hash_password,
-            list_sessions,
-            revoke_session,
-            list_users,
-            set_password,
-            reset_link,
-            grant,
-            revoke_grant,
-            list_grants,
-            list_connector_sessions,
-            revoke_connector_session,
-        ]
-    )
+    """Dispatch the ``enlace-auth`` command.
+
+    ``cw.dispatch`` *returns* the exit code where ``argh`` exited by itself, so the
+    ``SystemExit`` is load-bearing: without it every usage error would exit 0.
+
+    The convention is cw's default (:data:`cw.ARGH`) on purpose.
+    ``revoke_connector_session(family=None, *, ...)`` is a *defaulted positional*, which
+    the default renders as the option ``--family``; ``cw.MODERN`` would turn it into the
+    positional ``enlace-auth revoke-connector-session <family>``. That reinterpretation
+    parses, runs, and revokes something else. See ``tests/test_cli_surface.py``.
+    """
+    raise SystemExit(cw.dispatch(COMMANDS))
 
 
 if __name__ == "__main__":
