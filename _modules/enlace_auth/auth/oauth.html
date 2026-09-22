@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=4fa33042"></script>
+    <script src="../../../_static/documentation_options.js?v=785bba28"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.25" />
+  <meta name="docsearch:version" content="0.1.26" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -705,12 +705,35 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">in TOML). On callback we create a local session — the upstream tokens are</span>
 <span class="sd">discarded because we use OAuth for identity only, not API access.</span>
 
+<span class="sd">Two rules keep an OAuth login from being weaker than the account it opens:</span>
+
+<span class="sd">- **The anti-CSRF state lives in a signed cookie** scoped to ``/auth``</span>
+<span class="sd">  (:func:`_oauth_state_session`). Authlib keeps the ``state``, nonce and PKCE</span>
+<span class="sd">  verifier in ``request.session``; the plugin installs no Starlette</span>
+<span class="sd">  ``SessionMiddleware``, so this module supplies that session itself. A callback</span>
+<span class="sd">  whose ``state`` was not issued to *this* browser is refused.</span>
+<span class="sd">- **An identity is bound to the provider's stable subject** (``sub``, or</span>
+<span class="sd">  ``tid``/``oid`` for Microsoft, GitHub's numeric ``id``), recorded as</span>
+<span class="sd">  ``oauth_links[provider]`` on the account. A later login must present the same</span>
+<span class="sd">  subject. An existing *password* account, or one linked to another provider, is</span>
+<span class="sd">  never taken over by an email match alone.</span>
+
+<span class="sd">Residual limits, by design: the state cookie is signed but not bound to the</span>
+<span class="sd">browser, so a script that can set cookies on the platform origin (any</span>
+<span class="sd">co-hosted app) could plant its own state for a browser that has none and so</span>
+<span class="sd">log that browser in as the attacker (two cookies of the name are refused). An</span>
+<span class="sd">account created by a provider before links existed is bound to the first</span>
+<span class="sd">subject that signs in to it after the upgrade. A password reset (admin, emailed</span>
+<span class="sd">link, CLI) unlinks every external sign-in. The cookie path assumes the router</span>
+<span class="sd">is mounted at ``/auth`` with no root path.</span>
+
 <span class="sd">Built-in provider presets for Google and GitHub auto-fill the well-known</span>
 <span class="sd">endpoints; other providers need explicit URLs in the config.</span>
 <span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
@@ -719,7 +742,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">Response</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSONResponse</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.cookies</span><span class="w"> </span><span class="kn">import</span> <span class="n">sign_cookie</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.cookies</span><span class="w"> </span><span class="kn">import</span> <span class="n">sign_cookie</span><span class="p">,</span> <span class="n">verify_cookie</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.sessions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SessionStore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">OAuthProviderConfig</span>
 
@@ -775,6 +798,82 @@ window.runMermaid = runMermaid;</script>
     <span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_entra_issuer</span><span class="p">(</span><span class="n">iss</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""True for Microsoft Entra ID token issuers."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlparse</span>
+
+    <span class="n">host</span> <span class="o">=</span> <span class="p">(</span><span class="n">urlparse</span><span class="p">(</span><span class="n">iss</span><span class="p">)</span><span class="o">.</span><span class="n">hostname</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">host</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"login.microsoftonline.com"</span><span class="p">,</span> <span class="s2">"sts.windows.net"</span><span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_cookie_count</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""How many cookies called *name* the request carries (Starlette keeps one)."""</span>
+    <span class="n">raw</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"cookie"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">";"</span><span class="p">)</span> <span class="k">if</span> <span class="n">part</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"="</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">name</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_stable_subject</span><span class="p">(</span><span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">claims</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The provider's stable, non-reassignable id for the signed-in identity.</span>
+
+<span class="sd">    &gt;&gt;&gt; _stable_subject("google", {"sub": "123", "email": "a@x.io"})</span>
+<span class="sd">    '123'</span>
+<span class="sd">    &gt;&gt;&gt; _stable_subject("microsoft", {"sub": "s", "tid": "T", "oid": "O",</span>
+<span class="sd">    ...     "iss": "https://login.microsoftonline.com/T/v2.0"})</span>
+<span class="sd">    'T/O'</span>
+<span class="sd">    &gt;&gt;&gt; _stable_subject("custom", {"sub": "s", "tid": "T", "oid": "O"})</span>
+<span class="sd">    's'</span>
+<span class="sd">    &gt;&gt;&gt; _stable_subject("github", {"id": 42})</span>
+<span class="sd">    '42'</span>
+<span class="sd">    &gt;&gt;&gt; _stable_subject("x", {"email": "a@x.io"}) is None</span>
+<span class="sd">    True</span>
+<span class="sd">    """</span>
+    <span class="n">tid</span><span class="p">,</span> <span class="n">oid</span> <span class="o">=</span> <span class="n">claims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tid"</span><span class="p">),</span> <span class="n">claims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"oid"</span><span class="p">)</span>
+    <span class="n">iss</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">claims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"iss"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">tid</span> <span class="ow">and</span> <span class="n">oid</span> <span class="ow">and</span> <span class="n">_is_entra_issuer</span><span class="p">(</span><span class="n">iss</span><span class="p">):</span>
+        <span class="c1"># Entra ID: `sub` is pairwise per app; tid/oid is the user. Only for</span>
+        <span class="c1"># Entra's own issuers -- elsewhere these are ordinary, maybe</span>
+        <span class="c1"># user-influenced, claims.</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">tid</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">oid</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"sub"</span><span class="p">,</span> <span class="s2">"id"</span><span class="p">):</span>  <span class="c1"># OIDC, then GitHub's /user</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">claims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">""</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_login_refusal</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">subject</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Why *record* must not be opened by this OAuth identity, or None if it may.</span>
+
+<span class="sd">    &gt;&gt;&gt; _login_refusal({"password_hash": "h"}, "google", "1") is not None</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; _login_refusal({"oauth_links": {"google": "1"}}, "google", "1") is None</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; _login_refusal({"oauth_links": {"google": "1"}}, "google", "2") is not None</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; _login_refusal({"password_hash": None, "oauth_provider": "google"},</span>
+<span class="sd">    ...                "google", "1") is None</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; _login_refusal({"password_hash": None, "oauth_provider": "github"},</span>
+<span class="sd">    ...                "google", "1") is not None</span>
+<span class="sd">    True</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"This account cannot be opened with an external sign-in."</span>
+    <span class="n">links</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"oauth_links"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">provider</span> <span class="ow">in</span> <span class="n">links</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">subject</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">links</span><span class="p">[</span><span class="n">provider</span><span class="p">]</span> <span class="o">==</span> <span class="n">subject</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="s2">"This sign-in does not match the identity linked to this account."</span>
+    <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"password_hash"</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">"This email belongs to a password account. Sign in with your "</span>
+            <span class="s2">"password; an external sign-in is not linked to it."</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"oauth_provider"</span><span class="p">)</span> <span class="o">==</span> <span class="n">provider</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># created by this provider before links were recorded</span>
+    <span class="k">return</span> <span class="s2">"This account is linked to a different sign-in method."</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_build_oauth_registry</span><span class="p">(</span><span class="n">providers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">OAuthProviderConfig</span><span class="p">]):</span>
     <span class="n">OAuth</span> <span class="o">=</span> <span class="n">_import_authlib</span><span class="p">()</span>
     <span class="n">oauth</span> <span class="o">=</span> <span class="n">OAuth</span><span class="p">()</span>
@@ -823,8 +922,16 @@ window.runMermaid = runMermaid;</script>
     <span class="n">session_max_age</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">86400</span><span class="p">,</span>
     <span class="n">secure_cookies</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">can_register</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">state_cookie_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"enlace_oauth_state"</span><span class="p">,</span>
+    <span class="n">state_max_age</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">600</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">APIRouter</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Build an OAuth router or return None if no providers are configured."""</span>
+<span class="w">    </span><span class="sd">"""Build an OAuth router or return None if no providers are configured.</span>
+
+<span class="sd">    *state_cookie_name* / *state_max_age* name and bound the signed cookie that</span>
+<span class="sd">    carries Authlib's per-login state between ``/auth/login/{provider}`` and the</span>
+<span class="sd">    callback (see the module docstring). It is only used when no Starlette</span>
+<span class="sd">    ``SessionMiddleware`` already provides ``request.session``.</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">providers</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
 
@@ -844,6 +951,61 @@ window.runMermaid = runMermaid;</script>
             <span class="n">attrs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Secure"</span><span class="p">)</span>
         <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"set-cookie"</span><span class="p">,</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">attrs</span><span class="p">))</span>
 
+    <span class="n">_state_salt</span> <span class="o">=</span> <span class="s2">"oauth-state"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_oauth_state_session</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Give Authlib a ``request.session`` backed by the signed state cookie.</span>
+
+<span class="sd">        Returns True when this module owns the session (and so must write it</span>
+<span class="sd">        back), False when a real ``SessionMiddleware`` already provides one.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="s2">"session"</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">scope</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">token</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">cookies</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">state_cookie_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_cookie_count</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">state_cookie_name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># Two cookies of this name means one was planted at another path</span>
+            <span class="c1"># (cookie tossing) to smuggle in someone else's login state.</span>
+            <span class="n">token</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">verify_cookie</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">signing_key</span><span class="p">,</span> <span class="n">max_age</span><span class="o">=</span><span class="n">state_max_age</span><span class="p">,</span> <span class="n">salt</span><span class="o">=</span><span class="n">_state_salt</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">token</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">raw</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">loaded</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loaded</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">loaded</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">scope</span><span class="p">[</span><span class="s2">"session"</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_state_cookie_header</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">session</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">sign_cookie</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">session</span><span class="p">),</span> <span class="n">signing_key</span><span class="p">,</span> <span class="n">salt</span><span class="o">=</span><span class="n">_state_salt</span><span class="p">)</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">state_cookie_name</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"Path=/auth"</span><span class="p">,</span>
+                <span class="s2">"HttpOnly"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"Max-Age=</span><span class="si">{</span><span class="n">state_max_age</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"SameSite=Lax"</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">state_cookie_name</span><span class="si">}</span><span class="s2">="</span><span class="p">,</span> <span class="s2">"Path=/auth"</span><span class="p">,</span> <span class="s2">"HttpOnly"</span><span class="p">,</span> <span class="s2">"Max-Age=0"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">secure_cookies</span><span class="p">:</span>
+            <span class="n">attrs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Secure"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write_state_cookie</span><span class="p">(</span><span class="n">response</span><span class="p">:</span> <span class="n">Response</span><span class="p">,</span> <span class="n">session</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"set-cookie"</span><span class="p">,</span> <span class="n">_state_cookie_header</span><span class="p">(</span><span class="n">session</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_drop_provider_states</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""A callback spends every pending state of its provider, win or lose."""</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">session</span> <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">"_state_</span><span class="si">{</span><span class="n">provider</span><span class="si">}</span><span class="s2">_"</span><span class="p">)]:</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
     <span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/login/</span><span class="si">{provider}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">login</span><span class="p">(</span><span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">):</span>
         <span class="n">client</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">oauth</span><span class="p">,</span> <span class="n">provider</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
@@ -851,8 +1013,12 @@ window.runMermaid = runMermaid;</script>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
                 <span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Unknown provider '</span><span class="si">{</span><span class="n">provider</span><span class="si">}</span><span class="s2">'"</span>
             <span class="p">)</span>
+        <span class="n">owns_session</span> <span class="o">=</span> <span class="n">_oauth_state_session</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
         <span class="n">redirect_uri</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">url_for</span><span class="p">(</span><span class="s2">"oauth_callback"</span><span class="p">,</span> <span class="n">provider</span><span class="o">=</span><span class="n">provider</span><span class="p">))</span>
-        <span class="k">return</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">authorize_redirect</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">redirect_uri</span><span class="p">)</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">authorize_redirect</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">redirect_uri</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">owns_session</span><span class="p">:</span>
+            <span class="n">_write_state_cookie</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">resp</span>
 
     <span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/callback/</span><span class="si">{provider}</span><span class="s2">"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"oauth_callback"</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">callback</span><span class="p">(</span><span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">):</span>
@@ -861,6 +1027,23 @@ window.runMermaid = runMermaid;</script>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
                 <span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Unknown provider '</span><span class="si">{</span><span class="n">provider</span><span class="si">}</span><span class="s2">'"</span>
             <span class="p">)</span>
+        <span class="n">owns_session</span> <span class="o">=</span> <span class="n">_oauth_state_session</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="n">_complete_login</span><span class="p">(</span><span class="n">provider</span><span class="p">,</span> <span class="n">client</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">HTTPException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">owns_session</span><span class="p">:</span>
+                <span class="n">_drop_provider_states</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="n">provider</span><span class="p">)</span>
+                <span class="n">e</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="o">**</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">headers</span> <span class="ow">or</span> <span class="p">{}),</span>
+                    <span class="s2">"set-cookie"</span><span class="p">:</span> <span class="n">_state_cookie_header</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">),</span>
+                <span class="p">}</span>
+            <span class="k">raise</span>
+        <span class="k">if</span> <span class="n">owns_session</span><span class="p">:</span>
+            <span class="n">_drop_provider_states</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="n">provider</span><span class="p">)</span>
+            <span class="n">_write_state_cookie</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">resp</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_complete_login</span><span class="p">(</span><span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">client</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">token</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">authorize_access_token</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -898,7 +1081,12 @@ window.runMermaid = runMermaid;</script>
             <span class="p">)</span>
 
         <span class="n">email</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">email</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">user_store</span><span class="p">:</span>
+        <span class="n">subject</span> <span class="o">=</span> <span class="n">_stable_subject</span><span class="p">(</span><span class="n">provider</span><span class="p">,</span> <span class="n">claims</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="n">user_store</span><span class="p">[</span><span class="n">email</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">record</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">can_register</span><span class="p">(</span><span class="n">email</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
                     <span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span>
@@ -911,7 +1099,29 @@ window.runMermaid = runMermaid;</script>
                 <span class="s2">"password_hash"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                 <span class="s2">"created_at"</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
                 <span class="s2">"oauth_provider"</span><span class="p">:</span> <span class="n">provider</span><span class="p">,</span>
+                <span class="s2">"oauth_links"</span><span class="p">:</span> <span class="p">{</span><span class="n">provider</span><span class="p">:</span> <span class="n">subject</span><span class="p">}</span> <span class="k">if</span> <span class="n">subject</span> <span class="k">else</span> <span class="p">{},</span>
             <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">refusal</span> <span class="o">=</span> <span class="n">_login_refusal</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">provider</span><span class="p">,</span> <span class="n">subject</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">refusal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">"OAuth sign-in via </span><span class="si">%s</span><span class="s2"> refused for </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">provider</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">refusal</span>
+                <span class="p">)</span>
+                <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="n">refusal</span><span class="p">)</span>
+            <span class="n">links</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"oauth_links"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="n">subject</span> <span class="ow">and</span> <span class="n">provider</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">links</span><span class="p">:</span>
+                <span class="c1"># A legacy account this provider created: bind it to the</span>
+                <span class="c1"># subject now, so the email alone never opens it again.</span>
+                <span class="c1"># Re-read so a password change racing this login is not</span>
+                <span class="c1"># overwritten with the copy read above.</span>
+                <span class="n">current</span> <span class="o">=</span> <span class="n">user_store</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+                <span class="n">user_store</span><span class="p">[</span><span class="n">email</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="o">**</span><span class="n">current</span><span class="p">,</span>
+                    <span class="s2">"oauth_links"</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="o">**</span><span class="p">(</span><span class="n">current</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"oauth_links"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}),</span>
+                        <span class="n">provider</span><span class="p">:</span> <span class="n">subject</span><span class="p">,</span>
+                    <span class="p">},</span>
+                <span class="p">}</span>
         <span class="n">session_id</span> <span class="o">=</span> <span class="n">session_store</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">email</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">)</span>
         <span class="n">resp</span> <span class="o">=</span> <span class="n">JSONResponse</span><span class="p">({</span><span class="s2">"ok"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">:</span> <span class="n">email</span><span class="p">})</span>
         <span class="n">_set_session_cookie</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="n">session_id</span><span class="p">)</span>

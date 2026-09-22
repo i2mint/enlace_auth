@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=4fa33042"></script>
+    <script src="../_static/documentation_options.js?v=785bba28"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="enlace_auth.auth.middleware" href="enlace_auth.auth.middleware.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.25" />
+  <meta name="docsearch:version" content="0.1.26" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -410,6 +410,27 @@ are configured in <code class="docutils literal notranslate"><span class="pre">p
 <code class="docutils literal notranslate"><span class="pre">client_id_env</span></code> / <code class="docutils literal notranslate"><span class="pre">client_secret_env</span></code> pointing at env vars (secrets never
 in TOML). On callback we create a local session — the upstream tokens are
 discarded because we use OAuth for identity only, not API access.</p>
+<p>Two rules keep an OAuth login from being weaker than the account it opens:</p>
+<ul class="simple">
+<li><p><strong>The anti-CSRF state lives in a signed cookie</strong> scoped to <code class="docutils literal notranslate"><span class="pre">/auth</span></code>
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">_oauth_state_session()</span></code>). Authlib keeps the <code class="docutils literal notranslate"><span class="pre">state</span></code>, nonce and PKCE
+verifier in <code class="docutils literal notranslate"><span class="pre">request.session</span></code>; the plugin installs no Starlette
+<code class="docutils literal notranslate"><span class="pre">SessionMiddleware</span></code>, so this module supplies that session itself. A callback
+whose <code class="docutils literal notranslate"><span class="pre">state</span></code> was not issued to <em>this</em> browser is refused.</p></li>
+<li><p><strong>An identity is bound to the provider’s stable subject</strong> (<code class="docutils literal notranslate"><span class="pre">sub</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">tid</span></code>/<code class="docutils literal notranslate"><span class="pre">oid</span></code> for Microsoft, GitHub’s numeric <code class="docutils literal notranslate"><span class="pre">id</span></code>), recorded as
+<code class="docutils literal notranslate"><span class="pre">oauth_links[provider]</span></code> on the account. A later login must present the same
+subject. An existing <em>password</em> account, or one linked to another provider, is
+never taken over by an email match alone.</p></li>
+</ul>
+<p>Residual limits, by design: the state cookie is signed but not bound to the
+browser, so a script that can set cookies on the platform origin (any
+co-hosted app) could plant its own state for a browser that has none and so
+log that browser in as the attacker (two cookies of the name are refused). An
+account created by a provider before links existed is bound to the first
+subject that signs in to it after the upgrade. A password reset (admin, emailed
+link, CLI) unlinks every external sign-in. The cookie path assumes the router
+is mounted at <code class="docutils literal notranslate"><span class="pre">/auth</span></code> with no root path.</p>
 <p>Built-in provider presets for Google and GitHub auto-fill the well-known
 endpoints; other providers need explicit URLs in the config.</p>
 <p class="rubric">Functions</p>
@@ -423,8 +444,12 @@ endpoints; other providers need explicit URLs in the config.</p>
 </div>
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_auth.auth.oauth.make_oauth_router">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.oauth.</span></span><span class="sig-name descname"><span class="pre">make_oauth_router</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">providers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cookie_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'enlace_session'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">86400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">secure_cookies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">can_register</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/oauth.html#make_oauth_router"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.oauth.make_oauth_router" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.oauth.</span></span><span class="sig-name descname"><span class="pre">make_oauth_router</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">providers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cookie_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'enlace_session'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">86400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">secure_cookies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">can_register</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_cookie_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'enlace_oauth_state'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">600</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/oauth.html#make_oauth_router"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.oauth.make_oauth_router" title="Link to this definition">#</a></dt>
 <dd><p>Build an OAuth router or return None if no providers are configured.</p>
+<p><em>state_cookie_name</em> / <em>state_max_age</em> name and bound the signed cookie that
+carries Authlib’s per-login state between <code class="docutils literal notranslate"><span class="pre">/auth/login/{provider}</span></code> and the
+callback (see the module docstring). It is only used when no Starlette
+<code class="docutils literal notranslate"><span class="pre">SessionMiddleware</span></code> already provides <code class="docutils literal notranslate"><span class="pre">request.session</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">APIRouter</span></code>]</span></p>

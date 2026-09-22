@@ -31,7 +31,7 @@
 - [enlace_auth.stores.middleware](_autosummary/enlace_auth.stores.middleware.html.md): Store injection middleware and per-app store router.
 - [enlace_auth.stores.prefixed](_autosummary/enlace_auth.stores.prefixed.html.md): PrefixedStore — MutableMapping wrapper that scopes keys under a prefix.
 - [enlace_auth.stores.validation](_autosummary/enlace_auth.stores.validation.html.md): Key sanitization for user-supplied store keys.
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-09-22 16:33 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-09-22 16:39 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
 
 ## Optional
 

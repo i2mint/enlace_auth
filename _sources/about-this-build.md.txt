@@ -5,19 +5,19 @@ orphan: true
 
 # About this build
 
-This documentation was built on **2026-09-22 16:33 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce"><code>b1bf0bc</code></a> on branch <code>main</code>, for **enlace&#95;auth 0.1.25** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-09-22 16:39 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/aab55a3b13902b24fb37db127fbcfee2b16747c0"><code>aab55a3</code></a> on branch <code>main</code>, for **enlace&#95;auth 0.1.26** (from <code>pyproject.toml</code>).
 
 :::{warning}
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.25) is behind the latest release on PyPI (0.1.26): `pip install enlace_auth` gives newer code than these docs describe.
+- The documented version (0.1.26) is behind the latest release on PyPI (0.1.27): `pip install enlace_auth` gives newer code than these docs describe.
 :::
 
 ## Source
 
 | | |
 |---|---|
-| Commit | <a href="https://github.com/i2mint/enlace_auth/commit/b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce"><code>b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce</code></a> |
+| Commit | <a href="https://github.com/i2mint/enlace_auth/commit/aab55a3b13902b24fb37db127fbcfee2b16747c0"><code>aab55a3b13902b24fb37db127fbcfee2b16747c0</code></a> |
 | Branch | <code>main</code> |
 | Tags at this commit | none |
 | Working tree | clean |
@@ -28,9 +28,9 @@ The documentation and the package may be misaligned:
 | | |
 |---|---|
 | Repository | <code>i2mint/enlace&#95;auth</code> |
-| Run | <a href="https://github.com/i2mint/enlace_auth/actions/runs/35754587510">35754587510</a> |
+| Run | <a href="https://github.com/i2mint/enlace_auth/actions/runs/35755310190">35755310190</a> |
 | Ref | <code>refs/heads/main</code> |
-| Event commit | <code>b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce</code> (in the history of the built commit) |
+| Event commit | <code>aab55a3b13902b24fb37db127fbcfee2b16747c0</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -55,13 +55,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.26/">0.1.26</a>, newer than the documented version (0.1.25).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.27/">0.1.27</a>, newer than the documented version (0.1.26).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce
+git checkout aab55a3b13902b24fb37db127fbcfee2b16747c0
 pip install "epythet==0.2.12"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -1,4 +1,4 @@
-> built 2026-09-22 16:33 UTC from b1bf0bc (main) · enlace_auth 0.1.25. Details: build_info.json
+> built 2026-09-22 16:39 UTC from aab55a3 (main) · enlace_auth 0.1.26. Details: build_info.json
 
 # index.html.md
 
@@ -998,6 +998,28 @@ are configured in `platform.toml` under `[auth.oauth.{name}]` with
 in TOML). On callback we create a local session — the upstream tokens are
 discarded because we use OAuth for identity only, not API access.
 
+Two rules keep an OAuth login from being weaker than the account it opens:
+
+- **The anti-CSRF state lives in a signed cookie** scoped to `/auth`
+  (`_oauth_state_session()`). Authlib keeps the `state`, nonce and PKCE
+  verifier in `request.session`; the plugin installs no Starlette
+  `SessionMiddleware`, so this module supplies that session itself. A callback
+  whose `state` was not issued to *this* browser is refused.
+- **An identity is bound to the provider’s stable subject** (`sub`, or
+  `tid`/`oid` for Microsoft, GitHub’s numeric `id`), recorded as
+  `oauth_links[provider]` on the account. A later login must present the same
+  subject. An existing *password* account, or one linked to another provider, is
+  never taken over by an email match alone.
+
+Residual limits, by design: the state cookie is signed but not bound to the
+browser, so a script that can set cookies on the platform origin (any
+co-hosted app) could plant its own state for a browser that has none and so
+log that browser in as the attacker (two cookies of the name are refused). An
+account created by a provider before links existed is bound to the first
+subject that signs in to it after the upgrade. A password reset (admin, emailed
+link, CLI) unlinks every external sign-in. The cookie path assumes the router
+is mounted at `/auth` with no root path.
+
 Built-in provider presets for Google and GitHub auto-fill the well-known
 endpoints; other providers need explicit URLs in the config.
 
@@ -1006,9 +1028,14 @@ endpoints; other providers need explicit URLs in the config.
 | [`make_oauth_router`](_autosummary/enlace_auth.auth.oauth.html.md#enlace_auth.auth.oauth.make_oauth_router)(\*, providers, ...[, ...])   | Build an OAuth router or return None if no providers are configured.   |
 |-------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
 
-### enlace_auth.auth.oauth.make_oauth_router(\*, providers, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, can_register=<function <lambda>>)
+### enlace_auth.auth.oauth.make_oauth_router(\*, providers, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, can_register=<function <lambda>>, state_cookie_name='enlace_oauth_state', state_max_age=600)
 
 Build an OAuth router or return None if no providers are configured.
+
+*state_cookie_name* / *state_max_age* name and bound the signed cookie that
+carries Authlib’s per-login state between `/auth/login/{provider}` and the
+callback (see the module docstring). It is only used when no Starlette
+`SessionMiddleware` already provides `request.session`.
 
 * **Return type:**
   [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`APIRouter`]
@@ -2185,18 +2212,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-09-22 16:33 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce"><code>b1bf0bc</code></a> on branch <code>main</code>, for **enlace_auth 0.1.25** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-09-22 16:39 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/aab55a3b13902b24fb37db127fbcfee2b16747c0"><code>aab55a3</code></a> on branch <code>main</code>, for **enlace_auth 0.1.26** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.25) is behind the latest release on PyPI (0.1.26): `pip install enlace_auth` gives newer code than these docs describe.
+- The documented version (0.1.26) is behind the latest release on PyPI (0.1.27): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce"><code>b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/aab55a3b13902b24fb37db127fbcfee2b16747c0"><code>aab55a3b13902b24fb37db127fbcfee2b16747c0</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -2207,9 +2234,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/35754587510">35754587510</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/35755310190">35755310190</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce</code> (in the history of the built commit) |
+| Event commit | <code>aab55a3b13902b24fb37db127fbcfee2b16747c0</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2234,13 +2261,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.26/">0.1.26</a>, newer than the documented version (0.1.25).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.27/">0.1.27</a>, newer than the documented version (0.1.26).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce
+git checkout aab55a3b13902b24fb37db127fbcfee2b16747c0
 pip install "epythet==0.2.12"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
