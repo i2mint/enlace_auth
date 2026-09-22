@@ -86,6 +86,7 @@ def make_auth_router(
     can_register: Callable[[str], bool] = lambda _: False,
     send_email: Optional[EmailSender] = None,
     reset_token_max_age: int = DEFAULT_EMAIL_TTL,
+    public_base_url: Optional[str] = None,
 ) -> APIRouter:
     """Build a FastAPI router exposing ``/auth/*`` endpoints.
 
@@ -102,6 +103,12 @@ def make_auth_router(
         reset_token_max_age: lifetime of an emailed password-reset link, in
             seconds (default 30 minutes). Links an admin mints by hand carry
             their own, longer lifetime — see ``enlace_auth.auth.reset_tokens``.
+        public_base_url: the platform's public origin (``https://example.com``),
+            used to build the link in a password-reset email. Set it in any
+            deployment: without it the link is built from the request's
+            ``Host`` header, which the requester controls -- a forged ``Host``
+            would mail the victim a link that hands their reset token to
+            another site, unless a proxy in front only forwards known hosts.
     """
     router = APIRouter(prefix="/auth")
     # Distinguish "no delivery channel configured" from "a sender was wired":
@@ -379,7 +386,7 @@ def make_auth_router(
                 signing_key=signing_key,
                 ttl_seconds=reset_token_max_age,
             )
-            base = str(request.base_url).rstrip("/")
+            base = (public_base_url or str(request.base_url)).rstrip("/")
             link = reset_url(base, token)
             minutes = max(1, reset_token_max_age // 60)
             email_sender(

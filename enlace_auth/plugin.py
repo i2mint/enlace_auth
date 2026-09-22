@@ -221,6 +221,22 @@ def _expand_allowed_users(
     return out
 
 
+def _public_base_url(config, auth_cfg) -> Optional[str]:
+    """The platform's public origin, if the config pins one.
+
+    Same precedence as the ``reset-link`` CLI: the OAuth issuer, else
+    ``https://{domain}``. ``None`` for the default ``localhost`` domain, so a
+    local dev server keeps building links from the request it is serving.
+    """
+    issuer = getattr(getattr(auth_cfg, "oauth_server", None), "issuer", None)
+    if issuer:
+        return issuer
+    domain = getattr(config, "domain", None)
+    if domain and domain != "localhost":
+        return f"https://{domain}"
+    return None
+
+
 def _build_can_register(
     auth_cfg, admin_emails: tuple[str, ...]
 ) -> Callable[[str], bool]:
@@ -385,6 +401,7 @@ def wire(parent: "FastAPI", config) -> None:
         shared_password_for=shared_hashes.get,
         can_register=can_register,
         send_email=email_sender,
+        public_base_url=_public_base_url(config, auth_cfg),
     )
     parent.include_router(auth_router)
 
