@@ -86,6 +86,7 @@ def make_admin_router(
     reset_link_ttl: int = DEFAULT_HANDOFF_TTL,
     resource_allowlist: Optional[Mapping[str, list[str]]] = None,
     public_base_url: Optional[str] = None,
+    on_credentials_changed=None,  # CredentialsChanged; default: sessions only
 ) -> APIRouter:
     """Build a FastAPI router exposing ``/_admin/api/*`` endpoints.
 
@@ -115,7 +116,17 @@ def make_admin_router(
     (it isn't) or, worse, to make some *other* app public by analogy (which
     would be). Passing the allow-list lets the dashboard show who can actually
     reach each one.
+
+    ``on_credentials_changed`` (``hook(email, *, keep=None)``) runs after a
+    user is deleted or has their password set. The default revokes the
+    account's browser sessions; the plugin injects one that also revokes its
+    OAuth connector refresh families (``enlace_auth.auth.revocation``).
     """
+    from enlace_auth.auth.revocation import make_on_credentials_changed
+
+    credentials_changed = on_credentials_changed or make_on_credentials_changed(
+        session_store
+    )
     admin_set = frozenset(e.lower() for e in admin_emails)
     apps_snapshot = list(apps)
     app_by_name = {a.name: a for a in apps_snapshot}
@@ -214,7 +225,7 @@ def make_admin_router(
         # a deleted account keeps working until its cookie expires unless its
         # sessions go too. (An actor deleting themselves is logged out.)
         _ = actor
-        session_store.revoke_user(target)
+        credentials_changed(target)
         return {"ok": True, "email": target}
 
     @router.post("/users/{email}/password")
@@ -234,7 +245,7 @@ def make_admin_router(
         user_store[target] = record
         # An admin reset is how a compromised account is recovered: whoever
         # holds a session opened with the old password must lose it.
-        session_store.revoke_user(target)
+        credentials_changed(target)
         return {"ok": True, "email": target}
 
     @router.post("/users/{email}/reset-link")

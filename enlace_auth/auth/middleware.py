@@ -36,6 +36,7 @@ from typing import Callable, Iterable, Optional
 from urllib.parse import unquote
 
 from enlace_auth.auth.cookies import verify_cookie
+from enlace_auth.auth.revocation import shared_cookie_valid
 from enlace_auth.auth.sessions import SessionStore
 
 _logger = logging.getLogger("enlace_auth.middleware")
@@ -291,16 +292,21 @@ class PlatformAuthMiddleware:
             app_id = rule.app_id if rule is not None else ""
             name = f"shared_auth_{app_id}"
             token = cookies.get(name)
-            if (
-                not token
-                or verify_cookie(
+            # The cookie must carry the fingerprint of the app's CURRENT shared
+            # password hash: rotating the password ends every older cookie, and
+            # an app with no configured password admits no cookie at all.
+            value = (
+                verify_cookie(
                     token,
                     self._signing_key,
                     max_age=self._max_age,
                     salt=f"shared:{app_id}",
                 )
-                is None
-            ):
+                if token
+                else None
+            )
+            expected_hash = rule.shared_password_hash if rule is not None else None
+            if not shared_cookie_valid(value, expected_hash, self._signing_key):
                 return await self._deny(scope, send, "shared")
             state["user_id"] = "shared"
             await self.app(scope, receive, send)
