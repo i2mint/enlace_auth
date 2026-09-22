@@ -278,3 +278,115 @@ def _csrf_shared(client: TestClient) -> dict:
     client.get("/api/public_app/ping")
     raw = verify_cookie(client.cookies.get("enlace_csrf"), _SIGNING_KEY, salt="csrf")
     return {"X-CSRF-Token": raw}
+
+
+# ---- races the scan cannot see (review of #29) -------------------------------
+
+
+def _pkce_pair():
+    import base64
+    import hashlib
+
+    verifier = "v" * 64
+    challenge = (
+        base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest())
+        .rstrip(b"=")
+        .decode()
+    )
+    return verifier, challenge
+
+
+def _revoke_vic_via_admin(client):
+    csrf = _csrf(client)
+    _register(client, "boss@example.com", "bosspw1!", csrf)
+    client.post(
+        "/_admin/api/users",
+        json={"email": "vic@example.com", "password": "victim-pw1"},
+        headers=csrf,
+    )
+    r = client.post(
+        "/_admin/api/users/vic@example.com/password",
+        json={"password": "brand-new-pw1"},
+        headers=csrf,
+    )
+    assert r.status_code == 200, r.text
+
+
+def test_family_created_during_revocation_cannot_refresh(platform):
+    """A family written after the scan (code already consumed) is still dead."""
+    from enlace_auth.auth.oauth_server import _hash_refresh
+
+    client, refresh, _codes = platform
+    _revoke_vic_via_admin(client)
+    # The racing code grant read the clock before the revocation and wrote its
+    # family after the scan.
+    rec = _refresh_record("frace", "vic@example.com")
+    rec["auth_at"] = int(time.time()) - 5
+    refresh[_hash_refresh("racer")] = rec
+    r = client.post(
+        "/auth/oauth/token",
+        data={
+            "grant_type": "refresh_token",
+            "client_id": "c",
+            "refresh_token": "racer",
+        },
+    )
+    assert r.status_code == 400
+    assert refresh.get(revoked_family_key("frace")) is not None
+
+
+def test_family_authorized_after_revocation_still_refreshes(platform):
+    from enlace_auth.auth.oauth_server import _hash_refresh
+
+    client, refresh, _codes = platform
+    _revoke_vic_via_admin(client)
+    rec = _refresh_record("flater", "vic@example.com")
+    rec["auth_at"] = int(time.time()) + 5
+    refresh[_hash_refresh("later")] = rec
+    r = client.post(
+        "/auth/oauth/token",
+        data={
+            "grant_type": "refresh_token",
+            "client_id": "c",
+            "refresh_token": "later",
+        },
+    )
+    assert r.status_code == 200, r.text
+
+
+def test_code_issued_before_revocation_but_written_after_is_refused(platform):
+    client, _refresh, codes = platform
+    _revoke_vic_via_admin(client)
+    verifier, challenge = _pkce_pair()
+    now = int(time.time())
+    codes["late-code"] = {
+        "iat": now - 5,  # session read before the change, code written after
+        "client_id": "c",
+        "email": "vic@example.com",
+        "redirect_uri": "http://localhost/cb",
+        "code_challenge": challenge,
+        "scope": "mcp:read",
+        "resource": "https://x/api/mcp",
+        "exp": now + 60,
+    }
+    r = client.post(
+        "/auth/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "client_id": "c",
+            "code": "late-code",
+            "redirect_uri": "http://localhost/cb",
+            "code_verifier": verifier,
+        },
+    )
+    assert r.status_code == 400
+    assert r.json()["error"] == "invalid_grant"
+
+
+def test_session_sweep_is_throttled():
+    backend: dict = {}
+    sessions = SessionStore(backend, max_age=60, sweep_interval=3600)
+    sessions.create("a")
+    backend["old"] = {"user_id": "a", "created_at": time.time() - 999}
+    sessions.create("b")
+    assert "old" in backend, "second create within the interval must not sweep"

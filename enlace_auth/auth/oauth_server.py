@@ -61,6 +61,7 @@ from enlace_auth.auth.revocation import (
     refresh_tombstone_ttl,
     revoke_refresh_family,
     revoked_family_key,
+    subject_revoked_before,
 )
 from enlace_auth.auth.sessions import SessionStore
 from enlace_auth.stores.validation import sanitize_key
@@ -402,6 +403,8 @@ def make_oauth_server_router(
             "scope": scope,
             "email": email,
             "iat": now,
+            # When the family was authorized; carried through every rotation.
+            "auth_at": now,
             "exp": now + refresh_token_ttl,
             "family_exp": family_exp,
             "consumed_at": None,
@@ -421,6 +424,18 @@ def make_oauth_server_router(
 
     def _family_revoked(family: Optional[str]) -> bool:
         return bool(family) and refresh_store.get(_revoked_key(family)) is not None
+
+    def _authorized_before_revocation(record: dict) -> bool:
+        """True if the subject's credentials changed after this family began."""
+        revoked_before = subject_revoked_before(refresh_store, record.get("email"))
+        if revoked_before is None:
+            return False
+        auth_at = record.get("auth_at")
+        if not isinstance(auth_at, (int, float)):
+            # Records minted before ``auth_at`` existed: derive it from the
+            # absolute ceiling, which is fixed at authorization.
+            auth_at = (record.get("family_exp") or 0) - refresh_family_max_lifetime
+        return auth_at <= revoked_before
 
     def _grace_key(key: str) -> str:
         """Store key for the short-lived retry copy of a successor plaintext."""
@@ -640,9 +655,15 @@ def make_oauth_server_router(
         )
         return auth, None
 
-    def _issue_code(auth: _Authorized, email: str) -> str:
+    def _issue_code(auth: _Authorized, email: str, *, issued_at: int) -> str:
+        """Mint a code; *issued_at* is when the session was read, not written.
+
+        A credential change between reading the session and writing the code
+        would otherwise miss this code (see ``subject_revoked_before``).
+        """
         code = secrets.token_urlsafe(32)
         code_store[code] = {
+            "iat": issued_at,
             "client_id": auth.client_id,
             "email": email,
             "redirect_uri": auth.redirect_uri,
@@ -668,6 +689,7 @@ def make_oauth_server_router(
                 auth.redirect_uri, "invalid_request", auth.state, "PKCE S256 required"
             )
 
+        session_read_at = _now()
         email = _current_email(request)
         if not email:
             # Reuse the platform login, returning here once authenticated.
@@ -680,7 +702,7 @@ def make_oauth_server_router(
             return HTMLResponse(_denied_page(email), status_code=403)
 
         if not require_consent:
-            code = _issue_code(auth, email)
+            code = _issue_code(auth, email, issued_at=session_read_at)
             return RedirectResponse(
                 _with_query(auth.redirect_uri, {"code": code, "state": auth.state}),
                 status_code=302,
@@ -703,6 +725,7 @@ def make_oauth_server_router(
         csrf: str = Form(...),
         decision: str = Form(...),
     ):
+        session_read_at = _now()
         email = _current_email(request)
         if not email:
             return JSONResponse({"error": "login_required"}, status_code=401)
@@ -726,7 +749,7 @@ def make_oauth_server_router(
             return _redirect_error(redirect_uri, "access_denied", state)
         if decision != "approve":
             return _redirect_error(redirect_uri, "access_denied", state)
-        code = _issue_code(auth, email)
+        code = _issue_code(auth, email, issued_at=session_read_at)
         return RedirectResponse(
             _with_query(redirect_uri, {"code": code, "state": state}),
             status_code=302,
@@ -847,6 +870,12 @@ def make_oauth_server_router(
             or not _verify_pkce_s256(code_verifier, data["code_challenge"])
         ):
             return JSONResponse({"error": "invalid_grant"}, status_code=400)
+        # Issued before the account's credentials changed: dead, even if the
+        # revocation's scan could not see it (i2mint/enlace_auth#26).
+        revoked_before = subject_revoked_before(refresh_store, data["email"])
+        code_iat = data.get("iat", data["exp"] - code_ttl)
+        if revoked_before is not None and code_iat <= revoked_before:
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
 
         body, _ = _token_payload(
             iss=_issuer(request),
@@ -886,6 +915,11 @@ def make_oauth_server_router(
         # A revoked family stays revoked even if this record outlived the sweep
         # that was meant to delete it.
         if _family_revoked(record.get("family")):
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+        if _authorized_before_revocation(record):
+            _revoke_family(
+                record.get("family"), reason="the account's credentials changed"
+            )
             return JSONResponse({"error": "invalid_grant"}, status_code=400)
 
         if record.get("consumed_at") is not None:
@@ -1015,6 +1049,7 @@ def make_oauth_server_router(
             "scope": scope,
             "email": email,
             "iat": now,
+            "auth_at": record.get("auth_at"),
             "exp": now + refresh_token_ttl,
             "family_exp": family_exp,
             "consumed_at": None,
@@ -1083,6 +1118,9 @@ def make_oauth_server_router(
         """
         family = record.get("family")
         if _family_revoked(family):
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+        if _authorized_before_revocation(record):
+            _revoke_family(family, reason="the account's credentials changed")
             return JSONResponse({"error": "invalid_grant"}, status_code=400)
         within_grace = now - (record.get("consumed_at") or 0) < refresh_reuse_grace
         same_client = record.get("client_id") == client_id

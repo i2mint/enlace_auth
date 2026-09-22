@@ -32,6 +32,8 @@ __all__ = [
     "revoke_refresh_family",
     "revoke_refresh_subject",
     "revoked_family_key",
+    "subject_marker_key",
+    "subject_revoked_before",
     "shared_cookie_valid",
     "shared_password_fingerprint",
 ]
@@ -50,6 +52,34 @@ class CredentialsChanged(Protocol):
 def revoked_family_key(family: str) -> str:
     """Store key of the tombstone that marks a whole refresh family revoked."""
     return f"family:{family}"
+
+
+def subject_marker_key(email: str) -> str:
+    """Store key of the marker that says "nothing *email* authorized before T"."""
+    digest = hashlib.sha256(email.lower().encode()).hexdigest()
+    return f"subject:{digest}"
+
+
+def subject_revoked_before(
+    refresh_store: Optional[MutableMapping[str, Any]], email: Optional[str]
+) -> Optional[int]:
+    """The time before which every authorization by *email* is revoked, if any.
+
+    A scan-and-delete revocation cannot see a family that another worker is
+    creating at that very moment (its code already consumed, its first refresh
+    record not yet written), nor a code issued from a session read just before
+    the change. The marker closes both: the code grant refuses codes issued at
+    or before it, and the refresh grant refuses families authorized at or
+    before it.
+    """
+    if refresh_store is None or not email:
+        return None
+    try:
+        record = refresh_store.get(subject_marker_key(email))
+    except Exception:  # noqa: BLE001 - an unreadable marker is no marker
+        return None
+    value = (record or {}).get("revoked_before") if isinstance(record, dict) else None
+    return value if isinstance(value, (int, float)) else None
 
 
 def refresh_tombstone_ttl(
@@ -110,18 +140,27 @@ def revoke_refresh_subject(
     reason: str,
     tombstone_ttl: int,
     code_store: Optional[MutableMapping[str, Any]] = None,
+    marker_ttl: int = 0,
     now: Optional[int] = None,
 ) -> int:
     """Revoke every refresh family issued to *email*; return how many families.
 
-    Matches the subject case-insensitively. Also drops the subject's unredeemed
-    authorization codes from *code_store* when given, so a code minted just
-    before the change cannot start a fresh family after it. Access JWTs already
-    issued are self-contained and live out their (short) TTL.
+    Matches the subject case-insensitively. First writes a subject marker (see
+    :func:`subject_revoked_before`) that lives *marker_ttl* seconds -- give it
+    the family max lifetime -- so authorizations racing this call are refused
+    too. Then tombstones each existing family and drops the subject's
+    unredeemed authorization codes from *code_store* when given. Access JWTs
+    already issued are self-contained and live out their (short) TTL.
     """
     if not email:
         raise ValueError("revoke_refresh_subject needs a non-empty email")
     target = email.lower()
+    now = int(time.time()) if now is None else now
+    refresh_store[subject_marker_key(target)] = {
+        "revoked_before": now,
+        "reason": reason,
+        "exp": now + max(marker_ttl, tombstone_ttl),
+    }
 
     def _is_subjects(record: Any) -> bool:
         subject = (record or {}).get("email") if isinstance(record, dict) else None
@@ -159,6 +198,7 @@ def make_on_credentials_changed(
     refresh_store: Optional[MutableMapping[str, Any]] = None,
     code_store: Optional[MutableMapping[str, Any]] = None,
     tombstone_ttl: int = 0,
+    marker_ttl: int = 0,
     reason: str = "the account's credentials changed",
 ) -> CredentialsChanged:
     """Return the hook every credential-changing path calls.
@@ -173,24 +213,28 @@ def make_on_credentials_changed(
         raise ValueError("tombstone_ttl must be positive when refresh_store is given")
 
     def on_credentials_changed(email: str, *, keep: Optional[str] = None) -> None:
-        session_store.revoke_user(email, keep=keep)
-        if refresh_store is None:
-            return
+        # Connector revocation runs even if the session revocation fails, and
+        # vice versa; a session-store failure still surfaces to the caller.
         try:
-            revoke_refresh_subject(
-                refresh_store,
-                email,
-                reason=reason,
-                tombstone_ttl=tombstone_ttl,
-                code_store=code_store,
-            )
-        except Exception:  # noqa: BLE001 - sessions are already gone; say so loudly
-            _logger.exception(
-                "enlace_auth: could not revoke connector sessions for %r after a "
-                "credential change; revoke them with "
-                "`enlace-auth revoke-connector-session --email`",
-                email,
-            )
+            session_store.revoke_user(email, keep=keep)
+        finally:
+            if refresh_store is not None:
+                try:
+                    revoke_refresh_subject(
+                        refresh_store,
+                        email,
+                        reason=reason,
+                        tombstone_ttl=tombstone_ttl,
+                        marker_ttl=marker_ttl,
+                        code_store=code_store,
+                    )
+                except Exception:  # noqa: BLE001 - say so loudly, don't mask
+                    _logger.exception(
+                        "enlace_auth: could not revoke connector sessions for %r "
+                        "after a credential change; revoke them with "
+                        "`enlace-auth revoke-connector-session --email`",
+                        email,
+                    )
 
     return on_credentials_changed
 

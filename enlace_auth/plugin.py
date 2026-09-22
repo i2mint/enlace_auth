@@ -436,8 +436,15 @@ def wire(parent: "FastAPI", config) -> None:
                 refresh_token_ttl=osc.refresh_token_ttl_seconds,
                 refresh_reuse_detection=osc.refresh_reuse_detection_seconds,
             ),
+            marker_ttl=osc.refresh_family_max_lifetime_seconds,
         )
-        if osc.enabled and osc.refresh_token_ttl_seconds > 0
+        # Wired even while the OAuth server is off: families minted before it
+        # was disabled come back to life if it is re-enabled.
+        if refresh_tombstone_ttl(
+            refresh_token_ttl=osc.refresh_token_ttl_seconds,
+            refresh_reuse_detection=osc.refresh_reuse_detection_seconds,
+        )
+        > 0
         else {}
     )
     on_credentials_changed = make_on_credentials_changed(

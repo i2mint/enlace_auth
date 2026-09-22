@@ -118,6 +118,7 @@ def _revoke_connector_subject(email: str, toml_path: Path) -> int:
         email,
         reason="revoked by the enlace-auth CLI",
         tombstone_ttl=_connector_tombstone_ttl(toml_path),
+        marker_ttl=auth.oauth_server.refresh_family_max_lifetime_seconds,
         code_store=factory("oauth_codes"),
     )
 
@@ -255,7 +256,16 @@ def set_password(email: str, *, toml: str = "platform.toml"):
     store[key] = updated
     # Same rule as the HTTP reset paths: a new password ends the old sessions.
     revoked = _load_session_store(Path(toml)).revoke_user(key)
-    families = _revoke_connector_subject(key, Path(toml))
+    try:
+        families = _revoke_connector_subject(key, Path(toml))
+    except Exception as e:  # noqa: BLE001 - the password IS changed; say what isn't
+        print(
+            f"Password updated for {key}; {revoked} existing session(s) revoked, "
+            f"but connector sessions were NOT revoked ({e}). Run "
+            f"`enlace-auth revoke-connector-session --email {key}`.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     print(
         f"Password updated for {key}; {revoked} existing session(s) and "
         f"{families} connector session(s) revoked."
@@ -444,6 +454,8 @@ def list_connector_sessions(*, json: bool = False, toml: str = "platform.toml"):
             continue
         if not record or record.get("consumed_at") is not None:
             continue  # spent tokens are tombstones, not sessions
+        if not record.get("family") or not record.get("email"):
+            continue  # revocation markers, not sessions
         families[record.get("family", key)] = {
             "family": record.get("family"),
             "email": record.get("email"),
