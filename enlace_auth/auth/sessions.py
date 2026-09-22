@@ -43,6 +43,33 @@ class SessionStore:
         except KeyError:
             return False
 
+    def revoke_user(self, user: Optional[str], *, keep: Optional[str] = None) -> int:
+        """Delete every session belonging to *user*; return how many went.
+
+        A session is matched on its ``user_id`` or its ``email``,
+        case-insensitively (emails are the platform's user ids, and a record
+        written before lower-casing was consistent must still be caught).
+        *keep* names one session id to spare -- the browser that just changed
+        its own password stays signed in while every other copy of the
+        account is logged out.
+
+        Call this whenever an account's credentials change hands: deletion,
+        an admin password reset, a self-service change, a reset-link redemption.
+        Without it a session outlives the change for the full cookie lifetime.
+        """
+        if not user:
+            raise ValueError("revoke_user needs a non-empty user id")
+        target = user.lower()
+        revoked = 0
+        for sid, record in self.list_all():
+            if sid == keep:
+                continue
+            ids = (record.get("user_id"), record.get("email"))
+            if any(isinstance(i, str) and i.lower() == target for i in ids):
+                if self.delete(sid):
+                    revoked += 1
+        return revoked
+
     def list_all(self) -> list[tuple[str, dict[str, Any]]]:
         out: list[tuple[str, dict[str, Any]]] = []
         for sid in list(self._store):

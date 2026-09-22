@@ -86,6 +86,7 @@ def make_auth_router(
     can_register: Callable[[str], bool] = lambda _: False,
     send_email: Optional[EmailSender] = None,
     reset_token_max_age: int = DEFAULT_EMAIL_TTL,
+    public_base_url: Optional[str] = None,
 ) -> APIRouter:
     """Build a FastAPI router exposing ``/auth/*`` endpoints.
 
@@ -102,6 +103,12 @@ def make_auth_router(
         reset_token_max_age: lifetime of an emailed password-reset link, in
             seconds (default 30 minutes). Links an admin mints by hand carry
             their own, longer lifetime — see ``enlace_auth.auth.reset_tokens``.
+        public_base_url: the platform's public origin (``https://example.com``),
+            used to build the link in a password-reset email. Set it in any
+            deployment: without it the link is built from the request's
+            ``Host`` header, which the requester controls -- a forged ``Host``
+            would mail the victim a link that hands their reset token to
+            another site, unless a proxy in front only forwards known hosts.
     """
     router = APIRouter(prefix="/auth")
     # Distinguish "no delivery channel configured" from "a sender was wired":
@@ -129,6 +136,15 @@ def make_auth_router(
             "set-cookie",
             f"{name}=; Path=/; Max-Age=0; SameSite=Lax"
             + ("; Secure" if secure_cookies else ""),
+        )
+
+    def _current_session_id(request: Request) -> Optional[str]:
+        """The session id carried by this request's cookie, if it verifies."""
+        token = request.cookies.get(cookie_name)
+        if not token:
+            return None
+        return verify_cookie(
+            token, signing_key, max_age=session_max_age, salt="session"
         )
 
     @router.post("/register")
@@ -273,6 +289,9 @@ def make_auth_router(
         record = dict(record)
         record["password_hash"] = hash_password(body.new_password)
         user_store[email] = record
+        # Log out every OTHER browser holding this account: a password change
+        # is what a user does when they suspect someone else is signed in.
+        session_store.revoke_user(email, keep=_current_session_id(request))
         return {"ok": True, "email": email}
 
     # ----- Password recovery ---------------------------------------------
@@ -367,7 +386,7 @@ def make_auth_router(
                 signing_key=signing_key,
                 ttl_seconds=reset_token_max_age,
             )
-            base = str(request.base_url).rstrip("/")
+            base = (public_base_url or str(request.base_url)).rstrip("/")
             link = reset_url(base, token)
             minutes = max(1, reset_token_max_age // 60)
             email_sender(
@@ -404,6 +423,9 @@ def make_auth_router(
         record = dict(record)
         record["password_hash"] = hash_password(body.new_password)
         user_store[email] = record
+        # A reset is the recovery path for a compromised account, so every
+        # session opened with the old password ends here.
+        session_store.revoke_user(email)
         session_id = session_store.create(user_id=email, email=email)
         _set_session_cookie(
             response,

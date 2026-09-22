@@ -85,6 +85,7 @@ def make_admin_router(
     signing_key: Optional[str] = None,
     reset_link_ttl: int = DEFAULT_HANDOFF_TTL,
     resource_allowlist: Optional[Mapping[str, list[str]]] = None,
+    public_base_url: Optional[str] = None,
 ) -> APIRouter:
     """Build a FastAPI router exposing ``/_admin/api/*`` endpoints.
 
@@ -99,6 +100,9 @@ def make_admin_router(
     ``signing_key`` enables the reset-link endpoint (same key the auth router
     signs with, so the link it mints verifies there). Omit it and that endpoint
     returns 503, mirroring how ``grant_store`` gates the grant endpoints.
+    ``public_base_url`` is the platform's public origin for minted reset links
+    (falls back to the request origin).
+
     ``reset_link_ttl`` is how long a minted link stays usable — longer than an
     emailed one, because delivery is a human round trip.
 
@@ -206,9 +210,11 @@ def make_admin_router(
             del user_store[target]
         except KeyError:
             raise HTTPException(status_code=404, detail="User not found")
-        # Defensive: actor deleting themselves still returns ok, but their
-        # session will fail on next request. Clients should refresh.
+        # Sessions are not checked against the user store on each request, so
+        # a deleted account keeps working until its cookie expires unless its
+        # sessions go too. (An actor deleting themselves is logged out.)
         _ = actor
+        session_store.revoke_user(target)
         return {"ok": True, "email": target}
 
     @router.post("/users/{email}/password")
@@ -226,6 +232,9 @@ def make_admin_router(
         record = dict(record)
         record["password_hash"] = hash_password(body.password)
         user_store[target] = record
+        # An admin reset is how a compromised account is recovered: whoever
+        # holds a session opened with the old password must lose it.
+        session_store.revoke_user(target)
         return {"ok": True, "email": target}
 
     @router.post("/users/{email}/reset-link")
@@ -258,7 +267,7 @@ def make_admin_router(
         return {
             "ok": True,
             "email": target,
-            "url": reset_url(str(request.base_url), token),
+            "url": reset_url(public_base_url or str(request.base_url), token),
             "expires_in_seconds": reset_link_ttl,
         }
 

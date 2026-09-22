@@ -27,7 +27,7 @@ import os
 import time
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Callable, Iterable, Optional
 
 from enlace_auth.config import coerce_auth_config, coerce_stores_map
 
@@ -186,6 +186,82 @@ def _read_admin_emails(env_var: str) -> tuple[str, ...]:
     return tuple(e.strip().lower() for e in raw.split(",") if e.strip())
 
 
+# ``allowed_users = ["@admins"]`` in an app.toml means "the platform admins"
+# (``admin_emails_env``). It lets an owner-only app say so without committing
+# anyone's email address, and keeps one source of truth for who the owner is.
+ADMINS_ALIAS = "@admins"
+
+
+def _expand_allowed_users(
+    allowed: Iterable[str], admin_emails: tuple[str, ...], *, app_name: str = ""
+) -> list[str]:
+    """Replace :data:`ADMINS_ALIAS` in *allowed* by the admin emails.
+
+    Fails CLOSED: with no admins configured the alias is kept verbatim. It can
+    never equal a real (validated) email, so the list stays non-empty and the
+    app admits nobody -- dropping it would empty the list, and an empty
+    ``allowed_users`` means "any signed-in user".
+    """
+    allowed = list(allowed)
+    if ADMINS_ALIAS not in allowed:
+        return allowed
+    if not admin_emails:
+        _logger.warning(
+            "enlace_auth: app %r allows %r but no admin emails are configured; "
+            "the app will admit nobody until they are.",
+            app_name,
+            ADMINS_ALIAS,
+        )
+        return allowed
+    out: list[str] = []
+    for entry in allowed:
+        for email in admin_emails if entry == ADMINS_ALIAS else (entry,):
+            if email not in out:
+                out.append(email)
+    return out
+
+
+def _require_user_gate_for_admins_alias(app) -> None:
+    """Make an app that names :data:`ADMINS_ALIAS` a ``protected:user`` app.
+
+    ``allowed_users`` is only enforced at the ``protected:user`` level; on a
+    ``public``/``local`` (the default!) or ``protected:shared`` app it is
+    ignored. The alias exists to lock owner-only tools down, so an app that
+    uses it but forgot ``access = "protected:user"`` is raised to that level
+    -- failing closed -- rather than silently served to everyone. Refusing to
+    start would take every other app down with it.
+    """
+    if ADMINS_ALIAS not in (getattr(app, "allowed_users", None) or ()):
+        return
+    if app.access != "protected:user":
+        _logger.error(
+            "enlace_auth: app %r lists %r in allowed_users but has access=%r, "
+            "where allowed_users is not enforced; treating it as "
+            "access='protected:user'. Set that in its app.toml.",
+            app.name,
+            ADMINS_ALIAS,
+            app.access,
+        )
+        app.access = "protected:user"
+
+
+def _public_base_url(config, auth_cfg) -> Optional[str]:
+    """The platform's public origin, if the config pins one.
+
+    Same precedence as the ``reset-link`` CLI: the OAuth issuer, else
+    ``https://{domain}``. ``None`` for the default ``localhost`` domain, so a
+    local dev server keeps building links from the request it is serving.
+    """
+    osc = getattr(auth_cfg, "oauth_server", None)
+    issuer = getattr(osc, "issuer", None) if getattr(osc, "enabled", True) else None
+    if issuer:
+        return issuer
+    domain = getattr(config, "domain", None)
+    if domain and domain != "localhost":
+        return f"https://{domain}"
+    return None
+
+
 def _build_can_register(
     auth_cfg, admin_emails: tuple[str, ...]
 ) -> Callable[[str], bool]:
@@ -286,6 +362,7 @@ def wire(parent: "FastAPI", config) -> None:
     access_rules: list[AccessRule] = []
     protected_user_apps: set[str] = set()
     for app in getattr(config, "apps", []):
+        _require_user_gate_for_admins_alias(app)
         h: Optional[str] = None
         shared_env = getattr(app, "shared_password_env", None)
         if app.access == "protected:shared" and shared_env:
@@ -294,7 +371,15 @@ def wire(parent: "FastAPI", config) -> None:
                 shared_hashes[app.name] = h
         if app.access == "protected:user":
             protected_user_apps.add(app.name)
-        allowed = tuple(getattr(app, "allowed_users", ()))
+        allowed = tuple(
+            _expand_allowed_users(
+                getattr(app, "allowed_users", ()), admin_emails, app_name=app.name
+            )
+        )
+        if list(allowed) != list(getattr(app, "allowed_users", ())):
+            # Write the expansion back so enlace core's /_apps visibility check
+            # (which reads app.allowed_users directly) agrees with the gate.
+            app.allowed_users = list(allowed)
         access_rules.append(
             AccessRule(
                 prefix=app.route_prefix,
@@ -342,6 +427,7 @@ def wire(parent: "FastAPI", config) -> None:
         shared_password_for=shared_hashes.get,
         can_register=can_register,
         send_email=email_sender,
+        public_base_url=_public_base_url(config, auth_cfg),
     )
     parent.include_router(auth_router)
 
@@ -472,6 +558,7 @@ def wire(parent: "FastAPI", config) -> None:
         protected_user_apps=protected_user_apps,
         signing_key=signing_key,
         resource_allowlist=auth_cfg.oauth_server.resource_allowlist,
+        public_base_url=_public_base_url(config, auth_cfg),
     )
     parent.include_router(admin_router)
     if admin_emails:
