@@ -1,3 +1,4 @@
+# ruff: noqa: F811 -- admin_client is a fixture imported from test_admin.
 """OAuth login: real Authlib state round trip, and subject-bound account links.
 
 i2mint/enlace_auth#28. The older ``test_oauth.py`` mocks both
@@ -19,6 +20,7 @@ from fastapi.testclient import TestClient
 
 from enlace_auth.auth import SessionStore
 from enlace_auth.config import OAuthProviderConfig
+from tests.test_admin import admin_client  # noqa: F401 - fixture
 
 SIGNING_KEY = "oauth-signing-key-32bytes-minlen"
 
@@ -182,3 +184,82 @@ def test_linked_account_refuses_an_identity_without_subject(claims):
     users = {"alice@example.com": {"password_hash": None, "oauth_links": {"stub": "s"}}}
     r, _ = _signin(users, claims)
     assert r.status_code == 403
+
+
+# ---- review of #30 -----------------------------------------------------------
+
+
+def test_a_failed_callback_spends_the_state():
+    """An error callback must not leave the state usable for a later code."""
+    client, sessions = _make_app({}, claims=CLAIMS)
+    state = _start_login(client)
+    r = client.get(f"/auth/callback/stub?error=access_denied&state={state}")
+    assert r.status_code == 401
+    r = client.get(f"/auth/callback/stub?code=c&state={state}")
+    assert r.status_code == 401
+    assert sessions.list_all() == []
+
+
+def test_a_refused_login_spends_the_state():
+    users = {"alice@example.com": {"password_hash": "h", "created_at": 0}}
+    client, _ = _make_app(users, claims=CLAIMS)
+    state = _start_login(client)
+    assert client.get(f"/auth/callback/stub?code=c&state={state}").status_code == 403
+    assert client.get(f"/auth/callback/stub?code=c&state={state}").status_code == 401
+
+
+def test_duplicate_state_cookies_are_refused():
+    """Cookie tossing: a second state cookie planted at another path."""
+    attacker, _ = _make_app({}, claims=CLAIMS)
+    state = _start_login(attacker)
+    planted = attacker.cookies.get("enlace_oauth_state")
+    victim, sessions = _make_app({}, claims=CLAIMS)
+    _start_login(victim)
+    genuine = victim.cookies.get("enlace_oauth_state")
+    r = victim.get(
+        f"/auth/callback/stub?code=c&state={state}",
+        headers={
+            "cookie": f"enlace_oauth_state={genuine}; enlace_oauth_state={planted}"
+        },
+    )
+    assert r.status_code == 401
+    assert sessions.list_all() == []
+
+
+def test_admin_password_reset_unlinks_external_sign_ins(admin_client, tmp_path):
+    from enlace_auth.stores import make_file_store_factory
+    from tests.test_admin import _csrf, _register
+
+    csrf = _csrf(admin_client)
+    _register(admin_client, "boss@example.com", "bosspw1!", csrf)
+    r = admin_client.post(
+        "/_admin/api/users",
+        json={"email": "vic@example.com", "password": "victim-pw1"},
+        headers=csrf,
+    )
+    assert r.status_code == 200, r.text
+    users = make_file_store_factory(str(tmp_path / "platform"))("users")
+    users["vic@example.com"] = {
+        **users["vic@example.com"],
+        "oauth_links": {"google": "attacker-subject"},
+    }
+    r = admin_client.post(
+        "/_admin/api/users/vic@example.com/password",
+        json={"password": "brand-new-pw1"},
+        headers=csrf,
+    )
+    assert r.status_code == 200, r.text
+    assert "oauth_links" not in users["vic@example.com"]
+
+
+def test_stable_subject_ignores_tid_oid_outside_entra():
+    from enlace_auth.auth.oauth import _stable_subject
+
+    assert _stable_subject("x", {"sub": "s", "tid": "t", "oid": "o"}) == "s"
+    assert (
+        _stable_subject(
+            "x",
+            {"sub": "s", "tid": "t", "oid": "o", "iss": "https://sts.windows.net/t/"},
+        )
+        == "t/o"
+    )

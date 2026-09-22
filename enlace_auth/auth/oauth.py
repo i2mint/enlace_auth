@@ -19,6 +19,15 @@ Two rules keep an OAuth login from being weaker than the account it opens:
   subject. An existing *password* account, or one linked to another provider, is
   never taken over by an email match alone.
 
+Residual limits, by design: the state cookie is signed but not bound to the
+browser, so a script that can set cookies on the platform origin (any
+co-hosted app) could plant its own state for a browser that has none and so
+log that browser in as the attacker (two cookies of the name are refused). An
+account created by a provider before links existed is bound to the first
+subject that signs in to it after the upgrade. A password reset (admin, emailed
+link, CLI) unlinks every external sign-in. The cookie path assumes the router
+is mounted at ``/auth`` with no root path.
+
 Built-in provider presets for Google and GitHub auto-fill the well-known
 endpoints; other providers need explicit URLs in the config.
 """
@@ -90,20 +99,41 @@ def _email_trusted(provider: str, cfg, claims: dict) -> bool:
     )
 
 
+def _is_entra_issuer(iss: str) -> bool:
+    """True for Microsoft Entra ID token issuers."""
+    from urllib.parse import urlparse
+
+    host = (urlparse(iss).hostname or "").lower()
+    return host in {"login.microsoftonline.com", "sts.windows.net"}
+
+
+def _cookie_count(request: Request, name: str) -> int:
+    """How many cookies called *name* the request carries (Starlette keeps one)."""
+    raw = request.headers.get("cookie", "")
+    return sum(1 for part in raw.split(";") if part.strip().split("=", 1)[0] == name)
+
+
 def _stable_subject(provider: str, claims: dict) -> Optional[str]:
     """The provider's stable, non-reassignable id for the signed-in identity.
 
     >>> _stable_subject("google", {"sub": "123", "email": "a@x.io"})
     '123'
-    >>> _stable_subject("microsoft", {"sub": "s", "tid": "T", "oid": "O"})
+    >>> _stable_subject("microsoft", {"sub": "s", "tid": "T", "oid": "O",
+    ...     "iss": "https://login.microsoftonline.com/T/v2.0"})
     'T/O'
+    >>> _stable_subject("custom", {"sub": "s", "tid": "T", "oid": "O"})
+    's'
     >>> _stable_subject("github", {"id": 42})
     '42'
     >>> _stable_subject("x", {"email": "a@x.io"}) is None
     True
     """
     tid, oid = claims.get("tid"), claims.get("oid")
-    if tid and oid:  # Entra ID: `sub` is pairwise per app; tid/oid is the user
+    iss = str(claims.get("iss") or "")
+    if tid and oid and _is_entra_issuer(iss):
+        # Entra ID: `sub` is pairwise per app; tid/oid is the user. Only for
+        # Entra's own issuers -- elsewhere these are ordinary, maybe
+        # user-influenced, claims.
         return f"{tid}/{oid}"
     for key in ("sub", "id"):  # OIDC, then GitHub's /user
         value = claims.get(key)
@@ -232,6 +262,10 @@ def make_oauth_router(
             return False
         data: dict = {}
         token = request.cookies.get(state_cookie_name)
+        if _cookie_count(request, state_cookie_name) > 1:
+            # Two cookies of this name means one was planted at another path
+            # (cookie tossing) to smuggle in someone else's login state.
+            token = None
         raw = (
             verify_cookie(token, signing_key, max_age=state_max_age, salt=_state_salt)
             if token
@@ -247,7 +281,7 @@ def make_oauth_router(
         request.scope["session"] = data
         return True
 
-    def _write_state_cookie(response: Response, session: dict) -> None:
+    def _state_cookie_header(session: dict) -> str:
         if session:
             value = sign_cookie(json.dumps(session), signing_key, salt=_state_salt)
             attrs = [
@@ -261,7 +295,15 @@ def make_oauth_router(
             attrs = [f"{state_cookie_name}=", "Path=/auth", "HttpOnly", "Max-Age=0"]
         if secure_cookies:
             attrs.append("Secure")
-        response.headers.append("set-cookie", "; ".join(attrs))
+        return "; ".join(attrs)
+
+    def _write_state_cookie(response: Response, session: dict) -> None:
+        response.headers.append("set-cookie", _state_cookie_header(session))
+
+    def _drop_provider_states(session: dict, provider: str) -> None:
+        """A callback spends every pending state of its provider, win or lose."""
+        for key in [k for k in session if k.startswith(f"_state_{provider}_")]:
+            session.pop(key, None)
 
     @router.get("/login/{provider}")
     async def login(provider: str, request: Request):
@@ -285,6 +327,22 @@ def make_oauth_router(
                 status_code=404, detail=f"Unknown provider '{provider}'"
             )
         owns_session = _oauth_state_session(request)
+        try:
+            resp = await _complete_login(provider, client, request)
+        except HTTPException as e:
+            if owns_session:
+                _drop_provider_states(request.session, provider)
+                e.headers = {
+                    **(e.headers or {}),
+                    "set-cookie": _state_cookie_header(request.session),
+                }
+            raise
+        if owns_session:
+            _drop_provider_states(request.session, provider)
+            _write_state_cookie(resp, request.session)
+        return resp
+
+    async def _complete_login(provider: str, client, request: Request) -> Response:
         try:
             token = await client.authorize_access_token(request)
         except Exception as e:
@@ -353,15 +411,19 @@ def make_oauth_router(
             if subject and provider not in links:
                 # A legacy account this provider created: bind it to the
                 # subject now, so the email alone never opens it again.
+                # Re-read so a password change racing this login is not
+                # overwritten with the copy read above.
+                current = user_store.get(email, record)
                 user_store[email] = {
-                    **record,
-                    "oauth_links": {**links, provider: subject},
+                    **current,
+                    "oauth_links": {
+                        **(current.get("oauth_links") or {}),
+                        provider: subject,
+                    },
                 }
         session_id = session_store.create(user_id=email, email=email)
         resp = JSONResponse({"ok": True, "email": email})
         _set_session_cookie(resp, session_id)
-        if owns_session:
-            _write_state_cookie(resp, request.session)
         return resp
 
     return router
