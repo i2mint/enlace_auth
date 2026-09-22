@@ -181,7 +181,9 @@ allowed_users = ["owner@example.com"]   # always allowed; edit-in-code baseline
 `"@admins"` in that list stands for the platform admins (the emails in
 `admin_emails_env`), so an owner-only tool can be declared without committing
 an address: `allowed_users = ["@admins"]`. If no admins are configured, such an
-app admits nobody (it never falls open).
+app admits nobody. Because `allowed_users` is only enforced for
+`protected:user`, an app using the alias is treated as `protected:user` even if
+its `access` says otherwise (an error is logged) — it never falls open.
 
 On top of that baseline you can grant access **at runtime — no redeploy** — from
 the admin dashboard or the CLI. Runtime grants are *additive* (effective access =

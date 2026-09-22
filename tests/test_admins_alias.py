@@ -15,11 +15,16 @@ from starlette.testclient import TestClient
 
 from enlace_auth import plugin as auth_plugin
 from enlace_auth.plugin import ADMINS_ALIAS, _expand_allowed_users
-
 from tests.test_admin import _SIGNING_KEY, _csrf, _login, _register  # noqa: F401
 
 
-def _client(tmp_path, monkeypatch, *, admins: str) -> TestClient:
+def _client(
+    tmp_path,
+    monkeypatch,
+    *,
+    admins: str,
+    access_line: str = 'access = "protected:user"\n',
+) -> TestClient:
     apps_dir = tmp_path / "apps"
     (apps_dir / "ping").mkdir(parents=True)
     (apps_dir / "ping" / "server.py").write_text(
@@ -32,7 +37,7 @@ def _client(tmp_path, monkeypatch, *, admins: str) -> TestClient:
         "@app.get('/x')\ndef x():\n    return {'ok': True}\n"
     )
     (apps_dir / "owner_tool" / "app.toml").write_text(
-        'access = "protected:user"\nallowed_users = ["@admins"]\n'
+        access_line + 'allowed_users = ["@admins"]\n'
     )
     monkeypatch.setenv("ENLACE_SIGNING_KEY", _SIGNING_KEY)
     monkeypatch.setenv("ENLACE_ADMIN_EMAILS", admins)
@@ -99,3 +104,23 @@ def test_no_admins_configured_fails_closed(tmp_path, monkeypatch):
 )
 def test_expand_allowed_users(allowed, admins, expected):
     assert _expand_allowed_users(allowed, admins) == expected
+
+
+@pytest.mark.parametrize(
+    "access_line", ["", 'access = "public"\n', 'access = "protected:shared"\n']
+)
+def test_alias_without_user_gate_still_fails_closed(tmp_path, monkeypatch, access_line):
+    """allowed_users is only enforced for protected:user; the alias forces it."""
+    c = _client(
+        tmp_path, monkeypatch, admins="boss@example.com", access_line=access_line
+    )
+    assert c.get("/api/owner_tool/x").status_code == 401
+    assert "owner_tool" not in _app_names(c)
+    _signed_in(c, "eve@example.com")
+    assert c.get("/api/owner_tool/x").status_code == 401
+    assert "owner_tool" not in _app_names(c)
+
+
+def test_no_admins_configured_hides_the_app(tmp_path, monkeypatch):
+    c = _signed_in(_client(tmp_path, monkeypatch, admins=""), "eve@example.com")
+    assert "owner_tool" not in _app_names(c)

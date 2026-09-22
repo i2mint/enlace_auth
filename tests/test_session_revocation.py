@@ -1,3 +1,5 @@
+# ruff: noqa: F811 -- the admin_client fixture is imported from test_admin, and
+# pytest injects it by parameter name, which ruff reads as a redefinition.
 """Sessions must end when the account they belong to changes hands.
 
 A session outlives its cookie's signature only as long as ``session_max_age``
@@ -16,7 +18,6 @@ import pytest
 from starlette.testclient import TestClient
 
 from enlace_auth.auth.sessions import SessionStore
-
 from tests.test_admin import (  # noqa: F401 - fixture re-export
     _SIGNING_KEY,
     _csrf,
@@ -136,7 +137,6 @@ def test_session_store_revoke_user_refuses_empty(bad):
 def test_cli_set_password_revokes_that_users_sessions(tmp_path, monkeypatch):
     from enlace_auth.__main__ import _load_session_store, _load_user_store, set_password
     from enlace_auth.auth.passwords import hash_password
-
     from tests.test_cli import _make_platform_toml
 
     toml = _make_platform_toml(tmp_path)

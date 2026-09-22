@@ -507,7 +507,7 @@ def make_oauth_server_router(
         params = {"error": error, "state": state}
         if desc:
             params["error_description"] = desc
-        return RedirectResponse(f"{redirect_uri}?{urlencode(params)}", status_code=302)
+        return RedirectResponse(_with_query(redirect_uri, params), status_code=302)
 
     # ------------------------------------------------------------------ #
     # Discovery
@@ -634,7 +634,13 @@ def make_oauth_server_router(
         # (a 500) instead of returning None — so a missing/blank client_id must
         # short-circuit to the clean "unknown client" page below.
         client = client_store.get(client_id) if client_id else None
-        if not client or redirect_uri not in client.get("redirect_uris", []):
+        if (
+            not client
+            or redirect_uri not in client.get("redirect_uris", [])
+            # Re-checked here, not only at registration: clients registered
+            # before the check existed must not keep an unsafe destination.
+            or _redirect_uri_problem(redirect_uri) is not None
+        ):
             # Cannot safely redirect to an unverified URI — show an error page.
             return None, HTMLResponse(
                 pages._page(
@@ -698,7 +704,7 @@ def make_oauth_server_router(
         if not require_consent:
             code = _issue_code(auth, email)
             return RedirectResponse(
-                f"{auth.redirect_uri}?{urlencode({'code': code, 'state': auth.state})}",
+                _with_query(auth.redirect_uri, {"code": code, "state": auth.state}),
                 status_code=302,
             )
         return HTMLResponse(
@@ -744,7 +750,7 @@ def make_oauth_server_router(
             return _redirect_error(redirect_uri, "access_denied", state)
         code = _issue_code(auth, email)
         return RedirectResponse(
-            f"{redirect_uri}?{urlencode({'code': code, 'state': state})}",
+            _with_query(redirect_uri, {"code": code, "state": state}),
             status_code=302,
         )
 
@@ -1253,6 +1259,11 @@ def _redirect_uri_problem(uri: object) -> Optional[str]:
         return f"redirect_uri scheme {scheme!r} is not allowed"
     if scheme in ("http", "https") and not host:
         return "redirect_uri must name a host"
+    if "@" in parts.netloc or "\\" in uri:
+        # Userinfo (``https://trusted@evil/``) and backslashes are where URL
+        # parsers disagree with browsers, and they let a destination read as a
+        # different host than the one a browser actually visits.
+        return "redirect_uri must not contain userinfo or backslashes"
     if scheme == "http" and host not in _LOOPBACK_HOSTS:
         return "plain-http redirect_uri is only allowed on a loopback host"
     return None
@@ -1262,10 +1273,26 @@ def _redirect_destination(uri: str) -> str:
     """The part of a redirect URI a person can judge: its origin, or scheme."""
     from urllib.parse import urlsplit
 
-    parts = urlsplit(uri)
-    if parts.scheme.lower() in ("http", "https"):
-        return f"{parts.scheme}://{parts.netloc}"
+    try:
+        parts = urlsplit(uri)
+        host, port = parts.hostname, parts.port
+    except ValueError:
+        return "an unrecognised address"
+    if parts.scheme.lower() in ("http", "https") and host:
+        try:
+            # Punycode, so a look-alike Unicode host cannot pass for another.
+            host = host.encode("idna").decode("ascii")
+        except UnicodeError:
+            pass
+        if ":" in host:
+            host = f"[{host}]"
+        return f"{parts.scheme.lower()}://{host}" + (f":{port}" if port else "")
     return f"{parts.scheme}:"
+
+
+def _with_query(uri: str, params: dict) -> str:
+    """Append *params* to *uri*, respecting a query it already carries."""
+    return f"{uri}{'&' if '?' in uri else '?'}{urlencode(params)}"
 
 
 def _denied_page(email: str) -> str:

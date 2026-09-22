@@ -221,6 +221,30 @@ def _expand_allowed_users(
     return out
 
 
+def _require_user_gate_for_admins_alias(app) -> None:
+    """Make an app that names :data:`ADMINS_ALIAS` a ``protected:user`` app.
+
+    ``allowed_users`` is only enforced at the ``protected:user`` level; on a
+    ``public``/``local`` (the default!) or ``protected:shared`` app it is
+    ignored. The alias exists to lock owner-only tools down, so an app that
+    uses it but forgot ``access = "protected:user"`` is raised to that level
+    -- failing closed -- rather than silently served to everyone. Refusing to
+    start would take every other app down with it.
+    """
+    if ADMINS_ALIAS not in (getattr(app, "allowed_users", None) or ()):
+        return
+    if app.access != "protected:user":
+        _logger.error(
+            "enlace_auth: app %r lists %r in allowed_users but has access=%r, "
+            "where allowed_users is not enforced; treating it as "
+            "access='protected:user'. Set that in its app.toml.",
+            app.name,
+            ADMINS_ALIAS,
+            app.access,
+        )
+        app.access = "protected:user"
+
+
 def _public_base_url(config, auth_cfg) -> Optional[str]:
     """The platform's public origin, if the config pins one.
 
@@ -228,7 +252,8 @@ def _public_base_url(config, auth_cfg) -> Optional[str]:
     ``https://{domain}``. ``None`` for the default ``localhost`` domain, so a
     local dev server keeps building links from the request it is serving.
     """
-    issuer = getattr(getattr(auth_cfg, "oauth_server", None), "issuer", None)
+    osc = getattr(auth_cfg, "oauth_server", None)
+    issuer = getattr(osc, "issuer", None) if getattr(osc, "enabled", True) else None
     if issuer:
         return issuer
     domain = getattr(config, "domain", None)
@@ -337,6 +362,7 @@ def wire(parent: "FastAPI", config) -> None:
     access_rules: list[AccessRule] = []
     protected_user_apps: set[str] = set()
     for app in getattr(config, "apps", []):
+        _require_user_gate_for_admins_alias(app)
         h: Optional[str] = None
         shared_env = getattr(app, "shared_password_env", None)
         if app.access == "protected:shared" and shared_env:
@@ -532,6 +558,7 @@ def wire(parent: "FastAPI", config) -> None:
         protected_user_apps=protected_user_apps,
         signing_key=signing_key,
         resource_allowlist=auth_cfg.oauth_server.resource_allowlist,
+        public_base_url=_public_base_url(config, auth_cfg),
     )
     parent.include_router(admin_router)
     if admin_emails:
