@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="_static/documentation_options.js?v=ebdbb45b"></script>
+    <script src="_static/documentation_options.js?v=4fa33042"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -56,7 +56,7 @@
     <link rel="next" title="API reference" href="api.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.24" />
+  <meta name="docsearch:version" content="0.1.25" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -439,6 +439,16 @@ has. Removing someone from <code class="docutils literal notranslate"><span clas
 within one access-token lifetime rather than one refresh-token lifetime. Keep
 <code class="docutils literal notranslate"><span class="pre">access_token_ttl_seconds</span></code> short for that reason: with refresh in place, a short
 access token costs nothing and is what bounds revocation lag.</p>
+<p><strong>A credential change ends connector sessions too.</strong> Deleting a user, an admin
+password set, a self-service password change, a reset-link redemption and the
+<code class="docutils literal notranslate"><span class="pre">set-password</span></code> CLI all revoke the account’s browser sessions <em>and</em> its refresh
+families (plus any unredeemed authorization codes); the connector must be
+re-authorized. Already-issued access tokens live out their TTL.</p>
+<p><strong>Rotating a shared password ends its cookies.</strong> A <code class="docutils literal notranslate"><span class="pre">shared_auth_&lt;app&gt;</span></code> cookie
+carries a keyed fingerprint of the app’s shared-password hash at the time it was
+minted, so after you change the hash (and restart), every cookie from the old
+password is refused. Upgrading to this version signs everyone out of
+shared-password apps once.</p>
 <p>Plus environment variables:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">ENLACE_SIGNING_KEY</span></code> — signing key (32+ chars). Generate with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-c</span> <span class="pre">&quot;import</span> <span class="pre">secrets;</span> <span class="pre">print(secrets.token_urlsafe(32))&quot;</span></code>.</p></li>
@@ -541,7 +551,7 @@ ships separately as a normal enlaced app.</p>
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-09-22 15:49 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/ffa758648422060f4e7ed671a1cb6bab027ebd53">ffa7586</a> (main) · enlace_auth 0.1.24 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-09-22 16:33 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce">b1bf0bc</a> (main) · enlace_auth 0.1.25 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               

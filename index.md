@@ -131,6 +131,18 @@ within one access-token lifetime rather than one refresh-token lifetime. Keep
 `access_token_ttl_seconds` short for that reason: with refresh in place, a short
 access token costs nothing and is what bounds revocation lag.
 
+**A credential change ends connector sessions too.** Deleting a user, an admin
+password set, a self-service password change, a reset-link redemption and the
+`set-password` CLI all revoke the account’s browser sessions *and* its refresh
+families (plus any unredeemed authorization codes); the connector must be
+re-authorized. Already-issued access tokens live out their TTL.
+
+**Rotating a shared password ends its cookies.** A `shared_auth_<app>` cookie
+carries a keyed fingerprint of the app’s shared-password hash at the time it was
+minted, so after you change the hash (and restart), every cookie from the old
+password is refused. Upgrading to this version signs everyone out of
+shared-password apps once.
+
 Plus environment variables:
 
 - `ENLACE_SIGNING_KEY` — signing key (32+ chars). Generate with `python -c "import secrets; print(secrets.token_urlsafe(32))"`.

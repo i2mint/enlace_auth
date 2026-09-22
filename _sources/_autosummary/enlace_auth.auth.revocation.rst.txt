@@ -1,0 +1,26 @@
+enlace\_auth.auth.revocation
+============================
+
+.. automodule:: enlace_auth.auth.revocation
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_on_credentials_changed
+      refresh_tombstone_ttl
+      revoke_refresh_family
+      revoke_refresh_subject
+      revoked_family_key
+      subject_marker_key
+      subject_revoked_before
+      shared_cookie_valid
+      shared_password_fingerprint
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      CredentialsChanged
+   

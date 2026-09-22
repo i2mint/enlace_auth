@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=ebdbb45b"></script>
+    <script src="../_static/documentation_options.js?v=4fa33042"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="enlace_auth.admin" href="enlace_auth.admin.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.24" />
+  <meta name="docsearch:version" content="0.1.25" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -320,6 +320,7 @@
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.pages.html">enlace_auth.auth.pages</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.passwords.html">enlace_auth.auth.passwords</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.reset_tokens.html">enlace_auth.auth.reset_tokens</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.revocation.html">enlace_auth.auth.revocation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.routes.html">enlace_auth.auth.routes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.sessions.html">enlace_auth.auth.sessions</a></li>
 </ul>
@@ -450,7 +451,7 @@ reaches this router, the caller is an admin.</p></li>
 </div>
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_auth.admin.routes.make_admin_router">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.admin.routes.</span></span><span class="sig-name descname"><span class="pre">make_admin_router</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">admin_emails</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grant_store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protected_user_apps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_link_ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">259200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resource_allowlist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">public_base_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/admin/routes.html#make_admin_router"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.admin.routes.make_admin_router" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.admin.routes.</span></span><span class="sig-name descname"><span class="pre">make_admin_router</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">admin_emails</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grant_store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protected_user_apps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_link_ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">259200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resource_allowlist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">public_base_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_credentials_changed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/admin/routes.html#make_admin_router"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.admin.routes.make_admin_router" title="Link to this definition">#</a></dt>
 <dd><p>Build a FastAPI router exposing <code class="docutils literal notranslate"><span class="pre">/_admin/api/*</span></code> endpoints.</p>
 <p><code class="docutils literal notranslate"><span class="pre">admin_emails</span></code> is captured by closure so the router can enforce
 last-admin protection on delete. The middleware handles the broader
@@ -474,6 +475,10 @@ tell the truth about connectors: an OAuth resource server is declared
 (it isn’t) or, worse, to make some <em>other</em> app public by analogy (which
 would be). Passing the allow-list lets the dashboard show who can actually
 reach each one.</p>
+<p><code class="docutils literal notranslate"><span class="pre">on_credentials_changed</span></code> (<code class="docutils literal notranslate"><span class="pre">hook(email,</span> <span class="pre">*,</span> <span class="pre">keep=None)</span></code>) runs after a
+user is deleted or has their password set. The default revokes the
+account’s browser sessions; the plugin injects one that also revokes its
+OAuth connector refresh families (<code class="docutils literal notranslate"><span class="pre">enlace_auth.auth.revocation</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">APIRouter</span></code></span></p>

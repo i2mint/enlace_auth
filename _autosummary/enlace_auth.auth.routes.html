@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=ebdbb45b"></script>
+    <script src="../_static/documentation_options.js?v=4fa33042"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -54,10 +54,10 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="enlace_auth.auth.sessions" href="enlace_auth.auth.sessions.html" />
-    <link rel="prev" title="enlace_auth.auth.reset_tokens" href="enlace_auth.auth.reset_tokens.html" />
+    <link rel="prev" title="enlace_auth.auth.revocation" href="enlace_auth.auth.revocation.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.24" />
+  <meta name="docsearch:version" content="0.1.25" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -320,6 +320,7 @@
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.pages.html">enlace_auth.auth.pages</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.passwords.html">enlace_auth.auth.passwords</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.reset_tokens.html">enlace_auth.auth.reset_tokens</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.revocation.html">enlace_auth.auth.revocation</a></li>
 <li class="toctree-l3 current active"><a class="current reference internal" href="#">enlace_auth.auth.routes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.sessions.html">enlace_auth.auth.sessions</a></li>
 </ul>
@@ -430,7 +431,7 @@ Authlib dependency stays lazy.</p>
 </div>
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_auth.auth.routes.make_auth_router">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.routes.</span></span><span class="sig-name descname"><span class="pre">make_auth_router</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cookie_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'enlace_session'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">86400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">secure_cookies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_password_for</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">can_register</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">send_email</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_token_max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">public_base_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/routes.html#make_auth_router"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.routes.make_auth_router" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.routes.</span></span><span class="sig-name descname"><span class="pre">make_auth_router</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cookie_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'enlace_session'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">86400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">secure_cookies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_password_for</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">can_register</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">send_email</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_token_max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">public_base_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_credentials_changed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/routes.html#make_auth_router"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.routes.make_auth_router" title="Link to this definition">#</a></dt>
 <dd><p>Build a FastAPI router exposing <code class="docutils literal notranslate"><span class="pre">/auth/*</span></code> endpoints.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -453,6 +454,11 @@ deployment: without it the link is built from the request’s
 <code class="docutils literal notranslate"><span class="pre">Host</span></code> header, which the requester controls – a forged <code class="docutils literal notranslate"><span class="pre">Host</span></code>
 would mail the victim a link that hands their reset token to
 another site, unless a proxy in front only forwards known hosts.</p></li>
+<li><p><strong>on_credentials_changed</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference internal" href="enlace_auth.auth.revocation.html#enlace_auth.auth.revocation.CredentialsChanged" title="enlace_auth.auth.revocation.CredentialsChanged"><code class="xref py py-class docutils literal notranslate"><span class="pre">CredentialsChanged</span></code></a>]</span>) – <code class="docutils literal notranslate"><span class="pre">hook(email,</span> <span class="pre">*,</span> <span class="pre">keep=None)</span></code> called after a
+password change or reset. Defaults to revoking the account’s
+browser sessions only; the plugin injects one that also revokes the
+account’s OAuth connector refresh families (see
+<code class="docutils literal notranslate"><span class="pre">enlace_auth.auth.revocation</span></code>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -474,12 +480,12 @@ another site, unless a proxy in front only forwards known hosts.</p></li>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="enlace_auth.auth.reset_tokens.html"
+       href="enlace_auth.auth.revocation.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">enlace_auth.auth.reset_tokens</p>
+        <p class="prev-next-title">enlace_auth.auth.revocation</p>
       </div>
     </a>
     <a class="right-next"

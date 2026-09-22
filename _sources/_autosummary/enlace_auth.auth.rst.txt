@@ -40,5 +40,6 @@ enlace\_auth.auth
    pages
    passwords
    reset_tokens
+   revocation
    routes
    sessions

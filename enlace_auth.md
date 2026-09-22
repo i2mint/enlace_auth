@@ -1,4 +1,4 @@
-> built 2026-09-22 15:49 UTC from ffa7586 (main) · enlace_auth 0.1.24. Details: build_info.json
+> built 2026-09-22 16:33 UTC from b1bf0bc (main) · enlace_auth 0.1.25. Details: build_info.json
 
 # index.html.md
 
@@ -135,6 +135,18 @@ within one access-token lifetime rather than one refresh-token lifetime. Keep
 `access_token_ttl_seconds` short for that reason: with refresh in place, a short
 access token costs nothing and is what bounds revocation lag.
 
+**A credential change ends connector sessions too.** Deleting a user, an admin
+password set, a self-service password change, a reset-link redemption and the
+`set-password` CLI all revoke the account’s browser sessions *and* its refresh
+families (plus any unredeemed authorization codes); the connector must be
+re-authorized. Already-issued access tokens live out their TTL.
+
+**Rotating a shared password ends its cookies.** A `shared_auth_<app>` cookie
+carries a keyed fingerprint of the app’s shared-password hash at the time it was
+minted, so after you change the hash (and restart), every cookie from the old
+password is refused. Upgrading to this version signs everyone out of
+shared-password apps once.
+
 Plus environment variables:
 
 - `ENLACE_SIGNING_KEY` — signing key (32+ chars). Generate with `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
@@ -248,7 +260,7 @@ authenticated user” gate for self-service endpoints like `/me/password`.
 | [`make_admin_router`](_autosummary/enlace_auth.admin.html.md#enlace_auth.admin.make_admin_router)(\*, user_store, session_store)   | Build a FastAPI router exposing `/_admin/api/*` endpoints.   |
 |-----------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
 
-### enlace_auth.admin.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None)
+### enlace_auth.admin.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None, on_credentials_changed=None)
 
 Build a FastAPI router exposing `/_admin/api/*` endpoints.
 
@@ -278,6 +290,11 @@ tell the truth about connectors: an OAuth resource server is declared
 (it isn’t) or, worse, to make some *other* app public by analogy (which
 would be). Passing the allow-list lets the dashboard show who can actually
 reach each one.
+
+`on_credentials_changed` (`hook(email, *, keep=None)`) runs after a
+user is deleted or has their password set. The default revokes the
+account’s browser sessions; the plugin injects one that also revokes its
+OAuth connector refresh families (`enlace_auth.auth.revocation`).
 
 * **Return type:**
   `APIRouter`
@@ -335,7 +352,7 @@ Runtime grants are ADDITIVE on top of each app’s static `app.toml`
 |-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | [`make_admin_ui_router`](_autosummary/enlace_auth.admin.routes.html.md#enlace_auth.admin.routes.make_admin_ui_router)()                             | Build a FastAPI router that serves the bundled HTML dashboard. |
 
-### enlace_auth.admin.routes.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None)
+### enlace_auth.admin.routes.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None, on_credentials_changed=None)
 
 Build a FastAPI router exposing `/_admin/api/*` endpoints.
 
@@ -365,6 +382,11 @@ tell the truth about connectors: an OAuth resource server is declared
 (it isn’t) or, worse, to make some *other* app public by analogy (which
 would be). Passing the allow-list lets the dashboard show who can actually
 reach each one.
+
+`on_credentials_changed` (`hook(email, *, keep=None)`) runs after a
+user is deleted or has their password set. The default revokes the
+account’s browser sessions; the plugin injects one that also revokes its
+OAuth connector refresh families (`enlace_auth.auth.revocation`).
 
 * **Return type:**
   `APIRouter`
@@ -692,7 +714,7 @@ Public helpers:
 | [`CSRFMiddleware`](_autosummary/enlace_auth.auth.html.md#enlace_auth.auth.CSRFMiddleware)(app, \*, signing_key[, ...])        | Signed double-submit CSRF for state-changing requests.              |
 | [`GrantStore`](_autosummary/enlace_auth.auth.html.md#enlace_auth.auth.GrantStore)(backend, \*[, root])                    | Thin adapter over a `MutableMapping` that speaks grant semantics.   |
 | [`PlatformAuthMiddleware`](_autosummary/enlace_auth.auth.html.md#enlace_auth.auth.PlatformAuthMiddleware)(app, \*, access_rules, ...) | Pure-ASGI auth middleware.                                          |
-| [`SessionStore`](_autosummary/enlace_auth.auth.html.md#enlace_auth.auth.SessionStore)(store)                                | Thin adapter around a MutableMapping that speaks session semantics. |
+| [`SessionStore`](_autosummary/enlace_auth.auth.html.md#enlace_auth.auth.SessionStore)(store, \*[, max_age, ...])            | Thin adapter around a MutableMapping that speaks session semantics. |
 
 ### *class* enlace_auth.auth.AccessRule(prefix, level, app_id, shared_password_hash=None, allowed_users=())
 
@@ -762,7 +784,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Pure-ASGI auth middleware. See module docstring for behavior.
 
-### *class* enlace_auth.auth.SessionStore(store)
+### *class* enlace_auth.auth.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -786,6 +808,17 @@ Without it a session outlives the change for the full cookie lifetime.
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
+#### sweep_expired(, now=None)
+
+Delete up to *sweep_batch* records older than *max_age*; return count.
+
+No-op without a *max_age*. A cursor carries the position across calls
+(wrapping at the end) so successive sweeps walk the whole store. A
+record without a numeric `created_at` is left alone.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
 ### enlace_auth.auth.hash_password(password)
 
 Return an argon2id hash string for `password`.
@@ -793,7 +826,7 @@ Return an argon2id hash string for `password`.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, can_register=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None)
+### enlace_auth.auth.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, can_register=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None)
 
 Build a FastAPI router exposing `/auth/*` endpoints.
 
@@ -816,6 +849,11 @@ Build a FastAPI router exposing `/auth/*` endpoints.
     `Host` header, which the requester controls – a forged `Host`
     would mail the victim a link that hands their reset token to
     another site, unless a proxy in front only forwards known hosts.
+  * **on_credentials_changed** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`CredentialsChanged`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.CredentialsChanged)]) – `hook(email, *, keep=None)` called after a
+    password change or reset. Defaults to revoking the account’s
+    browser sessions only; the plugin injects one that also revokes the
+    account’s OAuth connector refresh families (see
+    `enlace_auth.auth.revocation`).
 * **Return type:**
   `APIRouter`
 
@@ -861,18 +899,19 @@ Return True iff `password` matches the stored `hashed` value.
 
 ### Modules
 
-| [`cookies`](_autosummary/enlace_auth.auth.cookies.html.md#module-enlace_auth.auth.cookies)           | Signed cookie helpers built on itsdangerous.                              |
-|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| [`email`](_autosummary/enlace_auth.auth.email.html.md#module-enlace_auth.auth.email)               | Outbound email for enlace_auth — used by the password-recovery flow.      |
-| [`grants`](_autosummary/enlace_auth.auth.grants.html.md#module-enlace_auth.auth.grants)             | Runtime per-app access grants, with optional UTC expiry.                  |
-| [`middleware`](_autosummary/enlace_auth.auth.middleware.html.md#module-enlace_auth.auth.middleware)     | Platform auth middleware (pure ASGI).                                     |
-| [`oauth`](_autosummary/enlace_auth.auth.oauth.html.md#module-enlace_auth.auth.oauth)               | OAuth2/OIDC login via Authlib.                                            |
-| [`oauth_server`](_autosummary/enlace_auth.auth.oauth_server.html.md#module-enlace_auth.auth.oauth_server) | OAuth 2.1 authorization server — issue tokens for MCP custom connectors.  |
-| [`pages`](_autosummary/enlace_auth.auth.pages.html.md#module-enlace_auth.auth.pages)               | HTML pages for the enlace_auth browser-facing flows.                      |
-| [`passwords`](_autosummary/enlace_auth.auth.passwords.html.md#module-enlace_auth.auth.passwords)       | Password hashing via argon2id.                                            |
-| [`reset_tokens`](_autosummary/enlace_auth.auth.reset_tokens.html.md#module-enlace_auth.auth.reset_tokens) | Password-reset tokens — minting, verification, and the link they live in. |
-| [`routes`](_autosummary/enlace_auth.auth.routes.html.md#module-enlace_auth.auth.routes)             | Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.  |
-| [`sessions`](_autosummary/enlace_auth.auth.sessions.html.md#module-enlace_auth.auth.sessions)         | Session storage backed by a MutableMapping.                               |
+| [`cookies`](_autosummary/enlace_auth.auth.cookies.html.md#module-enlace_auth.auth.cookies)           | Signed cookie helpers built on itsdangerous.                                        |
+|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| [`email`](_autosummary/enlace_auth.auth.email.html.md#module-enlace_auth.auth.email)               | Outbound email for enlace_auth — used by the password-recovery flow.                |
+| [`grants`](_autosummary/enlace_auth.auth.grants.html.md#module-enlace_auth.auth.grants)             | Runtime per-app access grants, with optional UTC expiry.                            |
+| [`middleware`](_autosummary/enlace_auth.auth.middleware.html.md#module-enlace_auth.auth.middleware)     | Platform auth middleware (pure ASGI).                                               |
+| [`oauth`](_autosummary/enlace_auth.auth.oauth.html.md#module-enlace_auth.auth.oauth)               | OAuth2/OIDC login via Authlib.                                                      |
+| [`oauth_server`](_autosummary/enlace_auth.auth.oauth_server.html.md#module-enlace_auth.auth.oauth_server) | OAuth 2.1 authorization server — issue tokens for MCP custom connectors.            |
+| [`pages`](_autosummary/enlace_auth.auth.pages.html.md#module-enlace_auth.auth.pages)               | HTML pages for the enlace_auth browser-facing flows.                                |
+| [`passwords`](_autosummary/enlace_auth.auth.passwords.html.md#module-enlace_auth.auth.passwords)       | Password hashing via argon2id.                                                      |
+| [`reset_tokens`](_autosummary/enlace_auth.auth.reset_tokens.html.md#module-enlace_auth.auth.reset_tokens) | Password-reset tokens — minting, verification, and the link they live in.           |
+| [`revocation`](_autosummary/enlace_auth.auth.revocation.html.md#module-enlace_auth.auth.revocation)     | Credential revocation: end everything an account holds when its credentials change. |
+| [`routes`](_autosummary/enlace_auth.auth.routes.html.md#module-enlace_auth.auth.routes)             | Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.            |
+| [`sessions`](_autosummary/enlace_auth.auth.sessions.html.md#module-enlace_auth.auth.sessions)         | Session storage backed by a MutableMapping.                                         |
 
 
 # _autosummary/enlace_auth.auth.middleware.html.md
@@ -1395,6 +1434,146 @@ fingerprint still matches the stored hash (the single-use property).
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]]
 
 
+# _autosummary/enlace_auth.auth.revocation.html.md
+
+# enlace_auth.auth.revocation
+
+Credential revocation: end everything an account holds when its credentials change.
+
+An account’s access outlives a password change in three places, each with its own
+lifetime: browser **sessions** (`session_max_age`), OAuth connector
+**refresh-token families** (`refresh_family_max_lifetime`), and the per-app
+**shared-password cookies** (which are not per account at all – see
+[`shared_password_fingerprint()`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.shared_password_fingerprint)). This module is the one place that knows how
+to end the first two, so every path that changes an account’s credentials
+(admin delete, admin password set, self-service change, reset-link redemption,
+the `set-password` CLI) calls a single [`make_on_credentials_changed()`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.make_on_credentials_changed) hook
+instead of each remembering its own list.
+
+Kept free of FastAPI/Authlib imports so the CLI can use it without the
+`[oauth]` extra.
+
+### Functions
+
+| [`make_on_credentials_changed`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.make_on_credentials_changed)(session_store, \*)    | Return the hook every credential-changing path calls.                       |
+|----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| [`refresh_tombstone_ttl`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.refresh_tombstone_ttl)(\*, refresh_token_ttl, ...) | How long a family tombstone must live: past every token of the family.      |
+| [`revoke_refresh_family`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.revoke_refresh_family)(refresh_store, family, ...) | Revoke one refresh-token family; return how many token records went.        |
+| [`revoke_refresh_subject`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.revoke_refresh_subject)(refresh_store, email, ...) | Revoke every refresh family issued to *email*; return how many families.    |
+| [`revoked_family_key`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.revoked_family_key)(family)                        | Store key of the tombstone that marks a whole refresh family revoked.       |
+| [`subject_marker_key`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.subject_marker_key)(email)                         | Store key of the marker that says "nothing *email* authorized before T".    |
+| [`subject_revoked_before`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.subject_revoked_before)(refresh_store, email)      | The time before which every authorization by *email* is revoked, if any.    |
+| [`shared_cookie_valid`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.shared_cookie_valid)(value, password_hash, ...)    | True iff a verified shared-cookie *value* was minted under *password_hash*. |
+| [`shared_password_fingerprint`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.shared_password_fingerprint)(password_hash, ...)   | A short keyed fingerprint of an app's CURRENT shared-password hash.         |
+
+### Classes
+
+| [`CredentialsChanged`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.CredentialsChanged)(\*args, \*\*kwargs)   | `on_credentials_changed(email, *, keep=None) -> None`.   |
+|-------------------------------------------------------------------------------------------|----------------------------------------------------------|
+
+### *class* enlace_auth.auth.revocation.CredentialsChanged(\*args, \*\*kwargs)
+
+Bases: [`Protocol`](https://docs.python.org/3/library/typing.html#typing.Protocol)
+
+`on_credentials_changed(email, *, keep=None) -> None`.
+
+*keep* names one browser session id to spare (the browser that just changed
+its own password stays signed in).
+
+### enlace_auth.auth.revocation.make_on_credentials_changed(session_store, , refresh_store=None, code_store=None, tombstone_ttl=0, marker_ttl=0, reason="the account's credentials changed")
+
+Return the hook every credential-changing path calls.
+
+Always revokes the account’s browser sessions (sparing *keep*); when a
+*refresh_store* is given, also revokes the account’s connector refresh
+families (and unredeemed codes in *code_store*). A failure to revoke
+connector families is logged loudly but does not undo the password change,
+which has already been written by the caller.
+
+* **Return type:**
+  [`CredentialsChanged`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.CredentialsChanged)
+
+### enlace_auth.auth.revocation.refresh_tombstone_ttl(, refresh_token_ttl, refresh_reuse_detection)
+
+How long a family tombstone must live: past every token of the family.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+### enlace_auth.auth.revocation.revoke_refresh_family(refresh_store, family, , reason, tombstone_ttl, now=None)
+
+Revoke one refresh-token family; return how many token records went.
+
+The tombstone is written FIRST: revocation expressed only as the absence of
+records loses to a worker concurrently rotating the family (its successor is
+written after our scan). A positive marker cannot be raced – the refresh
+grant refuses any record whose family carries one.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+### enlace_auth.auth.revocation.revoke_refresh_subject(refresh_store, email, , reason, tombstone_ttl, code_store=None, marker_ttl=0, now=None)
+
+Revoke every refresh family issued to *email*; return how many families.
+
+Matches the subject case-insensitively. First writes a subject marker (see
+[`subject_revoked_before()`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.subject_revoked_before)) that lives *marker_ttl* seconds – give it
+the family max lifetime – so authorizations racing this call are refused
+too. Then tombstones each existing family and drops the subject’s
+unredeemed authorization codes from *code_store* when given. Access JWTs
+already issued are self-contained and live out their (short) TTL.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+### enlace_auth.auth.revocation.revoked_family_key(family)
+
+Store key of the tombstone that marks a whole refresh family revoked.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.auth.revocation.shared_cookie_valid(value, password_hash, signing_key)
+
+True iff a verified shared-cookie *value* was minted under *password_hash*.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### enlace_auth.auth.revocation.shared_password_fingerprint(password_hash, signing_key)
+
+A short keyed fingerprint of an app’s CURRENT shared-password hash.
+
+Signed into the `shared_auth_<app>` cookie and compared by the middleware,
+so rotating the shared password invalidates every cookie minted under the
+old one. Keyed with *signing_key* so the cookie (whose payload is readable,
+only signed) reveals nothing about the hash.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.auth.revocation.subject_marker_key(email)
+
+Store key of the marker that says “nothing *email* authorized before T”.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.auth.revocation.subject_revoked_before(refresh_store, email)
+
+The time before which every authorization by *email* is revoked, if any.
+
+A scan-and-delete revocation cannot see a family that another worker is
+creating at that very moment (its code already consumed, its first refresh
+record not yet written), nor a code issued from a session read just before
+the change. The marker closes both: the code grant refuses codes issued at
+or before it, and the refresh grant refuses families authorized at or
+before it.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`int`](https://docs.python.org/3/builtins/functions.html#int)]
+
+
 # _autosummary/enlace_auth.auth.routes.html.md
 
 # enlace_auth.auth.routes
@@ -1424,7 +1603,7 @@ Authlib dependency stays lazy.
 | [`make_auth_router`](_autosummary/enlace_auth.auth.routes.html.md#enlace_auth.auth.routes.make_auth_router)(\*, session_store, ...[, ...])   | Build a FastAPI router exposing `/auth/*` endpoints.   |
 |----------------------------------------------------------------------------------------------------|--------------------------------------------------------|
 
-### enlace_auth.auth.routes.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, can_register=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None)
+### enlace_auth.auth.routes.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, can_register=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None)
 
 Build a FastAPI router exposing `/auth/*` endpoints.
 
@@ -1447,6 +1626,11 @@ Build a FastAPI router exposing `/auth/*` endpoints.
     `Host` header, which the requester controls – a forged `Host`
     would mail the victim a link that hands their reset token to
     another site, unless a proxy in front only forwards known hosts.
+  * **on_credentials_changed** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`CredentialsChanged`](_autosummary/enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.CredentialsChanged)]) – `hook(email, *, keep=None)` called after a
+    password change or reset. Defaults to revoking the account’s
+    browser sessions only; the plugin injects one that also revokes the
+    account’s OAuth connector refresh families (see
+    `enlace_auth.auth.revocation`).
 * **Return type:**
   `APIRouter`
 
@@ -1460,12 +1644,17 @@ Session storage backed by a MutableMapping.
 A session is `{"user_id": str, "email": str | None, "created_at": float}`.
 Session IDs are 32-byte urlsafe tokens. Revocation is a simple delete.
 
+Records are otherwise only deleted by logout, so given a *max_age* the store
+sweeps records older than it, a bounded batch at a time, when a session is
+created (at most once per *sweep_interval* per process) – keeping the
+store (and [`SessionStore.revoke_user()`](_autosummary/enlace_auth.auth.sessions.html.md#enlace_auth.auth.sessions.SessionStore.revoke_user)’s scan) from growing without bound.
+
 ### Classes
 
-| [`SessionStore`](_autosummary/enlace_auth.auth.sessions.html.md#enlace_auth.auth.sessions.SessionStore)(store)   | Thin adapter around a MutableMapping that speaks session semantics.   |
-|------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| [`SessionStore`](_autosummary/enlace_auth.auth.sessions.html.md#enlace_auth.auth.sessions.SessionStore)(store, \*[, max_age, ...])   | Thin adapter around a MutableMapping that speaks session semantics.   |
+|--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 
-### *class* enlace_auth.auth.sessions.SessionStore(store)
+### *class* enlace_auth.auth.sessions.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -1485,6 +1674,17 @@ account is logged out.
 Call this whenever an account’s credentials change hands: deletion,
 an admin password reset, a self-service change, a reset-link redemption.
 Without it a session outlives the change for the full cookie lifetime.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### sweep_expired(, now=None)
+
+Delete up to *sweep_batch* records older than *max_age*; return count.
+
+No-op without a *max_age*. A cursor carries the position across calls
+(wrapping at the end) so successive sweeps walk the whole store. A
+record without a numeric `created_at` is left alone.
 
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
@@ -1985,18 +2185,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-09-22 15:49 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/ffa758648422060f4e7ed671a1cb6bab027ebd53"><code>ffa7586</code></a> on branch <code>main</code>, for **enlace_auth 0.1.24** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-09-22 16:33 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce"><code>b1bf0bc</code></a> on branch <code>main</code>, for **enlace_auth 0.1.25** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.24) is behind the latest release on PyPI (0.1.25): `pip install enlace_auth` gives newer code than these docs describe.
+- The documented version (0.1.25) is behind the latest release on PyPI (0.1.26): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/ffa758648422060f4e7ed671a1cb6bab027ebd53"><code>ffa758648422060f4e7ed671a1cb6bab027ebd53</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce"><code>b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -2007,9 +2207,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/35749668580">35749668580</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/35754587510">35754587510</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>ffa758648422060f4e7ed671a1cb6bab027ebd53</code> (in the history of the built commit) |
+| Event commit | <code>b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2034,13 +2234,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.25/">0.1.25</a>, newer than the documented version (0.1.24).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.26/">0.1.26</a>, newer than the documented version (0.1.25).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout ffa758648422060f4e7ed671a1cb6bab027ebd53
+git checkout b1bf0bcc26fc6b63b2d8768a19dc9a189425d0ce
 pip install "epythet==0.2.12"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

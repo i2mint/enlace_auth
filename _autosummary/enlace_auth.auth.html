@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=ebdbb45b"></script>
+    <script src="../_static/documentation_options.js?v=4fa33042"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="enlace_auth.appmeta" href="enlace_auth.appmeta.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.24" />
+  <meta name="docsearch:version" content="0.1.25" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -320,6 +320,7 @@
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.pages.html">enlace_auth.auth.pages</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.passwords.html">enlace_auth.auth.passwords</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.reset_tokens.html">enlace_auth.auth.reset_tokens</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.revocation.html">enlace_auth.auth.revocation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.routes.html">enlace_auth.auth.routes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.sessions.html">enlace_auth.auth.sessions</a></li>
 </ul>
@@ -451,7 +452,7 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.PlatformAuthMiddleware" title="enlace_auth.auth.PlatformAuthMiddleware"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PlatformAuthMiddleware</span></code></a>(app, *, access_rules, ...)</p></td>
 <td><p>Pure-ASGI auth middleware.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.SessionStore" title="enlace_auth.auth.SessionStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SessionStore</span></code></a>(store)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.SessionStore" title="enlace_auth.auth.SessionStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SessionStore</span></code></a>(store, *[, max_age, ...])</p></td>
 <td><p>Thin adapter around a MutableMapping that speaks session semantics.</p></td>
 </tr>
 </tbody>
@@ -550,7 +551,7 @@ before calling this.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="enlace_auth.auth.SessionStore">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.</span></span><span class="sig-name descname"><span class="pre">SessionStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/sessions.html#SessionStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.SessionStore" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.</span></span><span class="sig-name descname"><span class="pre">SessionStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3600.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/sessions.html#SessionStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.SessionStore" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Thin adapter around a MutableMapping that speaks session semantics.</p>
 <dl class="field-list simple">
@@ -575,6 +576,20 @@ Without it a session outlives the change for the full cookie lifetime.</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.auth.SessionStore.sweep_expired">
+<span class="sig-name descname"><span class="pre">sweep_expired</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">now</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/sessions.html#SessionStore.sweep_expired"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.SessionStore.sweep_expired" title="Link to this definition">#</a></dt>
+<dd><p>Delete up to <em>sweep_batch</em> records older than <em>max_age</em>; return count.</p>
+<p>No-op without a <em>max_age</em>. A cursor carries the position across calls
+(wrapping at the end) so successive sweeps walk the whole store. A
+record without a numeric <code class="docutils literal notranslate"><span class="pre">created_at</span></code> is left alone.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py function">
@@ -590,7 +605,7 @@ Without it a session outlives the change for the full cookie lifetime.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_auth.auth.make_auth_router">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.</span></span><span class="sig-name descname"><span class="pre">make_auth_router</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cookie_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'enlace_session'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">86400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">secure_cookies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_password_for</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">can_register</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">send_email</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_token_max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">public_base_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/routes.html#make_auth_router"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.make_auth_router" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.</span></span><span class="sig-name descname"><span class="pre">make_auth_router</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cookie_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'enlace_session'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">86400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">secure_cookies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_password_for</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">can_register</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">send_email</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_token_max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">public_base_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_credentials_changed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/routes.html#make_auth_router"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.make_auth_router" title="Link to this definition">#</a></dt>
 <dd><p>Build a FastAPI router exposing <code class="docutils literal notranslate"><span class="pre">/auth/*</span></code> endpoints.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -613,6 +628,11 @@ deployment: without it the link is built from the request’s
 <code class="docutils literal notranslate"><span class="pre">Host</span></code> header, which the requester controls – a forged <code class="docutils literal notranslate"><span class="pre">Host</span></code>
 would mail the victim a link that hands their reset token to
 another site, unless a proxy in front only forwards known hosts.</p></li>
+<li><p><strong>on_credentials_changed</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference internal" href="enlace_auth.auth.revocation.html#enlace_auth.auth.revocation.CredentialsChanged" title="enlace_auth.auth.revocation.CredentialsChanged"><code class="xref py py-class docutils literal notranslate"><span class="pre">CredentialsChanged</span></code></a>]</span>) – <code class="docutils literal notranslate"><span class="pre">hook(email,</span> <span class="pre">*,</span> <span class="pre">keep=None)</span></code> called after a
+password change or reset. Defaults to revoking the account’s
+browser sessions only; the plugin injects one that also revokes the
+account’s OAuth connector refresh families (see
+<code class="docutils literal notranslate"><span class="pre">enlace_auth.auth.revocation</span></code>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -706,10 +726,13 @@ naive timestamp is assumed to be UTC.</p></li>
 <tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.reset_tokens.html#module-enlace_auth.auth.reset_tokens" title="enlace_auth.auth.reset_tokens"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset_tokens</span></code></a></p></td>
 <td><p>Password-reset tokens — minting, verification, and the link they live in.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.routes.html#module-enlace_auth.auth.routes" title="enlace_auth.auth.routes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">routes</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.revocation.html#module-enlace_auth.auth.revocation" title="enlace_auth.auth.revocation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">revocation</span></code></a></p></td>
+<td><p>Credential revocation: end everything an account holds when its credentials change.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.routes.html#module-enlace_auth.auth.routes" title="enlace_auth.auth.routes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">routes</span></code></a></p></td>
 <td><p>Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.sessions.html#module-enlace_auth.auth.sessions" title="enlace_auth.auth.sessions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sessions</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.sessions.html#module-enlace_auth.auth.sessions" title="enlace_auth.auth.sessions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sessions</span></code></a></p></td>
 <td><p>Session storage backed by a MutableMapping.</p></td>
 </tr>
 </tbody>
@@ -775,6 +798,7 @@ naive timestamp is assumed to be UTC.</p></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.PlatformAuthMiddleware"><code class="docutils literal notranslate"><span class="pre">PlatformAuthMiddleware</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.SessionStore"><code class="docutils literal notranslate"><span class="pre">SessionStore</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.SessionStore.revoke_user"><code class="docutils literal notranslate"><span class="pre">SessionStore.revoke_user()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.SessionStore.sweep_expired"><code class="docutils literal notranslate"><span class="pre">SessionStore.sweep_expired()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.hash_password"><code class="docutils literal notranslate"><span class="pre">hash_password()</span></code></a></li>

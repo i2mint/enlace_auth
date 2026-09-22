@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=ebdbb45b"></script>
+    <script src="../../../_static/documentation_options.js?v=4fa33042"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.24" />
+  <meta name="docsearch:version" content="0.1.25" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -735,6 +735,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">unquote</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.cookies</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_cookie</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.revocation</span><span class="w"> </span><span class="kn">import</span> <span class="n">shared_cookie_valid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.sessions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SessionStore</span>
 
 <span class="n">_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">"enlace_auth.middleware"</span><span class="p">)</span>
@@ -995,16 +996,21 @@ window.runMermaid = runMermaid;</script>
             <span class="n">app_id</span> <span class="o">=</span> <span class="n">rule</span><span class="o">.</span><span class="n">app_id</span> <span class="k">if</span> <span class="n">rule</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">""</span>
             <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"shared_auth_</span><span class="si">{</span><span class="n">app_id</span><span class="si">}</span><span class="s2">"</span>
             <span class="n">token</span> <span class="o">=</span> <span class="n">cookies</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-            <span class="k">if</span> <span class="p">(</span>
-                <span class="ow">not</span> <span class="n">token</span>
-                <span class="ow">or</span> <span class="n">verify_cookie</span><span class="p">(</span>
+            <span class="c1"># The cookie must carry the fingerprint of the app's CURRENT shared</span>
+            <span class="c1"># password hash: rotating the password ends every older cookie, and</span>
+            <span class="c1"># an app with no configured password admits no cookie at all.</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">verify_cookie</span><span class="p">(</span>
                     <span class="n">token</span><span class="p">,</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_signing_key</span><span class="p">,</span>
                     <span class="n">max_age</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_age</span><span class="p">,</span>
                     <span class="n">salt</span><span class="o">=</span><span class="sa">f</span><span class="s2">"shared:</span><span class="si">{</span><span class="n">app_id</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="ow">is</span> <span class="kc">None</span>
-            <span class="p">):</span>
+                <span class="k">if</span> <span class="n">token</span>
+                <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">)</span>
+            <span class="n">expected_hash</span> <span class="o">=</span> <span class="n">rule</span><span class="o">.</span><span class="n">shared_password_hash</span> <span class="k">if</span> <span class="n">rule</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">shared_cookie_valid</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">expected_hash</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_signing_key</span><span class="p">):</span>
                 <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deny</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">send</span><span class="p">,</span> <span class="s2">"shared"</span><span class="p">)</span>
             <span class="n">state</span><span class="p">[</span><span class="s2">"user_id"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"shared"</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">)</span>

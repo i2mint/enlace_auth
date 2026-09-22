@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=ebdbb45b"></script>
+    <script src="../_static/documentation_options.js?v=4fa33042"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="enlace_auth.auth.routes" href="enlace_auth.auth.routes.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.24" />
+  <meta name="docsearch:version" content="0.1.25" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -320,6 +320,7 @@
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.pages.html">enlace_auth.auth.pages</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.passwords.html">enlace_auth.auth.passwords</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.reset_tokens.html">enlace_auth.auth.reset_tokens</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.revocation.html">enlace_auth.auth.revocation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.routes.html">enlace_auth.auth.routes</a></li>
 <li class="toctree-l3 current active"><a class="current reference internal" href="#">enlace_auth.auth.sessions</a></li>
 </ul>
@@ -406,10 +407,14 @@
 <p>Session storage backed by a MutableMapping.</p>
 <p>A session is <code class="docutils literal notranslate"><span class="pre">{&quot;user_id&quot;:</span> <span class="pre">str,</span> <span class="pre">&quot;email&quot;:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None,</span> <span class="pre">&quot;created_at&quot;:</span> <span class="pre">float}</span></code>.
 Session IDs are 32-byte urlsafe tokens. Revocation is a simple delete.</p>
+<p>Records are otherwise only deleted by logout, so given a <em>max_age</em> the store
+sweeps records older than it, a bounded batch at a time, when a session is
+created (at most once per <em>sweep_interval</em> per process) – keeping the
+store (and <a class="reference internal" href="#enlace_auth.auth.sessions.SessionStore.revoke_user" title="enlace_auth.auth.sessions.SessionStore.revoke_user"><code class="xref py py-meth docutils literal notranslate"><span class="pre">SessionStore.revoke_user()</span></code></a>’s scan) from growing without bound.</p>
 <p class="rubric">Classes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.sessions.SessionStore" title="enlace_auth.auth.sessions.SessionStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SessionStore</span></code></a>(store)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.sessions.SessionStore" title="enlace_auth.auth.sessions.SessionStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SessionStore</span></code></a>(store, *[, max_age, ...])</p></td>
 <td><p>Thin adapter around a MutableMapping that speaks session semantics.</p></td>
 </tr>
 </tbody>
@@ -417,7 +422,7 @@ Session IDs are 32-byte urlsafe tokens. Revocation is a simple delete.</p>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="enlace_auth.auth.sessions.SessionStore">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.sessions.</span></span><span class="sig-name descname"><span class="pre">SessionStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/sessions.html#SessionStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.sessions.SessionStore" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.sessions.</span></span><span class="sig-name descname"><span class="pre">SessionStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3600.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/sessions.html#SessionStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.sessions.SessionStore" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Thin adapter around a MutableMapping that speaks session semantics.</p>
 <dl class="field-list simple">
@@ -435,6 +440,20 @@ account is logged out.</p>
 <p>Call this whenever an account’s credentials change hands: deletion,
 an admin password reset, a self-service change, a reset-link redemption.
 Without it a session outlives the change for the full cookie lifetime.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.auth.sessions.SessionStore.sweep_expired">
+<span class="sig-name descname"><span class="pre">sweep_expired</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">now</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/sessions.html#SessionStore.sweep_expired"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.sessions.SessionStore.sweep_expired" title="Link to this definition">#</a></dt>
+<dd><p>Delete up to <em>sweep_batch</em> records older than <em>max_age</em>; return count.</p>
+<p>No-op without a <em>max_age</em>. A cursor carries the position across calls
+(wrapping at the end) so successive sweeps walk the whole store. A
+record without a numeric <code class="docutils literal notranslate"><span class="pre">created_at</span></code> is left alone.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
@@ -495,6 +514,7 @@ Without it a session outlives the change for the full cookie lifetime.</p>
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.sessions.SessionStore"><code class="docutils literal notranslate"><span class="pre">SessionStore</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.sessions.SessionStore.revoke_user"><code class="docutils literal notranslate"><span class="pre">SessionStore.revoke_user()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.sessions.SessionStore.sweep_expired"><code class="docutils literal notranslate"><span class="pre">SessionStore.sweep_expired()</span></code></a></li>
 </ul>
 </li>
 </ul>

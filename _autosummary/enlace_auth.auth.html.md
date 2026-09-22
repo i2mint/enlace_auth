@@ -31,7 +31,7 @@ Public helpers:
 | [`CSRFMiddleware`](#enlace_auth.auth.CSRFMiddleware)(app, \*, signing_key[, ...])        | Signed double-submit CSRF for state-changing requests.              |
 | [`GrantStore`](#enlace_auth.auth.GrantStore)(backend, \*[, root])                    | Thin adapter over a `MutableMapping` that speaks grant semantics.   |
 | [`PlatformAuthMiddleware`](#enlace_auth.auth.PlatformAuthMiddleware)(app, \*, access_rules, ...) | Pure-ASGI auth middleware.                                          |
-| [`SessionStore`](#enlace_auth.auth.SessionStore)(store)                                | Thin adapter around a MutableMapping that speaks session semantics. |
+| [`SessionStore`](#enlace_auth.auth.SessionStore)(store, \*[, max_age, ...])            | Thin adapter around a MutableMapping that speaks session semantics. |
 
 ### *class* enlace_auth.auth.AccessRule(prefix, level, app_id, shared_password_hash=None, allowed_users=())
 
@@ -101,7 +101,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Pure-ASGI auth middleware. See module docstring for behavior.
 
-### *class* enlace_auth.auth.SessionStore(store)
+### *class* enlace_auth.auth.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -125,6 +125,17 @@ Without it a session outlives the change for the full cookie lifetime.
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
+#### sweep_expired(, now=None)
+
+Delete up to *sweep_batch* records older than *max_age*; return count.
+
+No-op without a *max_age*. A cursor carries the position across calls
+(wrapping at the end) so successive sweeps walk the whole store. A
+record without a numeric `created_at` is left alone.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
 ### enlace_auth.auth.hash_password(password)
 
 Return an argon2id hash string for `password`.
@@ -132,7 +143,7 @@ Return an argon2id hash string for `password`.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, can_register=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None)
+### enlace_auth.auth.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, can_register=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None)
 
 Build a FastAPI router exposing `/auth/*` endpoints.
 
@@ -155,6 +166,11 @@ Build a FastAPI router exposing `/auth/*` endpoints.
     `Host` header, which the requester controls – a forged `Host`
     would mail the victim a link that hands their reset token to
     another site, unless a proxy in front only forwards known hosts.
+  * **on_credentials_changed** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`CredentialsChanged`](enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.CredentialsChanged)]) – `hook(email, *, keep=None)` called after a
+    password change or reset. Defaults to revoking the account’s
+    browser sessions only; the plugin injects one that also revokes the
+    account’s OAuth connector refresh families (see
+    `enlace_auth.auth.revocation`).
 * **Return type:**
   `APIRouter`
 
@@ -200,15 +216,16 @@ Return True iff `password` matches the stored `hashed` value.
 
 ### Modules
 
-| [`cookies`](enlace_auth.auth.cookies.html.md#module-enlace_auth.auth.cookies)           | Signed cookie helpers built on itsdangerous.                              |
-|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| [`email`](enlace_auth.auth.email.html.md#module-enlace_auth.auth.email)               | Outbound email for enlace_auth — used by the password-recovery flow.      |
-| [`grants`](enlace_auth.auth.grants.html.md#module-enlace_auth.auth.grants)             | Runtime per-app access grants, with optional UTC expiry.                  |
-| [`middleware`](enlace_auth.auth.middleware.html.md#module-enlace_auth.auth.middleware)     | Platform auth middleware (pure ASGI).                                     |
-| [`oauth`](enlace_auth.auth.oauth.html.md#module-enlace_auth.auth.oauth)               | OAuth2/OIDC login via Authlib.                                            |
-| [`oauth_server`](enlace_auth.auth.oauth_server.html.md#module-enlace_auth.auth.oauth_server) | OAuth 2.1 authorization server — issue tokens for MCP custom connectors.  |
-| [`pages`](enlace_auth.auth.pages.html.md#module-enlace_auth.auth.pages)               | HTML pages for the enlace_auth browser-facing flows.                      |
-| [`passwords`](enlace_auth.auth.passwords.html.md#module-enlace_auth.auth.passwords)       | Password hashing via argon2id.                                            |
-| [`reset_tokens`](enlace_auth.auth.reset_tokens.html.md#module-enlace_auth.auth.reset_tokens) | Password-reset tokens — minting, verification, and the link they live in. |
-| [`routes`](enlace_auth.auth.routes.html.md#module-enlace_auth.auth.routes)             | Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.  |
-| [`sessions`](enlace_auth.auth.sessions.html.md#module-enlace_auth.auth.sessions)         | Session storage backed by a MutableMapping.                               |
+| [`cookies`](enlace_auth.auth.cookies.html.md#module-enlace_auth.auth.cookies)           | Signed cookie helpers built on itsdangerous.                                        |
+|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| [`email`](enlace_auth.auth.email.html.md#module-enlace_auth.auth.email)               | Outbound email for enlace_auth — used by the password-recovery flow.                |
+| [`grants`](enlace_auth.auth.grants.html.md#module-enlace_auth.auth.grants)             | Runtime per-app access grants, with optional UTC expiry.                            |
+| [`middleware`](enlace_auth.auth.middleware.html.md#module-enlace_auth.auth.middleware)     | Platform auth middleware (pure ASGI).                                               |
+| [`oauth`](enlace_auth.auth.oauth.html.md#module-enlace_auth.auth.oauth)               | OAuth2/OIDC login via Authlib.                                                      |
+| [`oauth_server`](enlace_auth.auth.oauth_server.html.md#module-enlace_auth.auth.oauth_server) | OAuth 2.1 authorization server — issue tokens for MCP custom connectors.            |
+| [`pages`](enlace_auth.auth.pages.html.md#module-enlace_auth.auth.pages)               | HTML pages for the enlace_auth browser-facing flows.                                |
+| [`passwords`](enlace_auth.auth.passwords.html.md#module-enlace_auth.auth.passwords)       | Password hashing via argon2id.                                                      |
+| [`reset_tokens`](enlace_auth.auth.reset_tokens.html.md#module-enlace_auth.auth.reset_tokens) | Password-reset tokens — minting, verification, and the link they live in.           |
+| [`revocation`](enlace_auth.auth.revocation.html.md#module-enlace_auth.auth.revocation)     | Credential revocation: end everything an account holds when its credentials change. |
+| [`routes`](enlace_auth.auth.routes.html.md#module-enlace_auth.auth.routes)             | Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.            |
+| [`sessions`](enlace_auth.auth.sessions.html.md#module-enlace_auth.auth.sessions)         | Session storage backed by a MutableMapping.                                         |

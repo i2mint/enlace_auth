@@ -43,7 +43,7 @@ Runtime grants are ADDITIVE on top of each app’s static `app.toml`
 |-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | [`make_admin_ui_router`](#enlace_auth.admin.routes.make_admin_ui_router)()                             | Build a FastAPI router that serves the bundled HTML dashboard. |
 
-### enlace_auth.admin.routes.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None)
+### enlace_auth.admin.routes.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None, on_credentials_changed=None)
 
 Build a FastAPI router exposing `/_admin/api/*` endpoints.
 
@@ -73,6 +73,11 @@ tell the truth about connectors: an OAuth resource server is declared
 (it isn’t) or, worse, to make some *other* app public by analogy (which
 would be). Passing the allow-list lets the dashboard show who can actually
 reach each one.
+
+`on_credentials_changed` (`hook(email, *, keep=None)`) runs after a
+user is deleted or has their password set. The default revokes the
+account’s browser sessions; the plugin injects one that also revokes its
+OAuth connector refresh families (`enlace_auth.auth.revocation`).
 
 * **Return type:**
   `APIRouter`

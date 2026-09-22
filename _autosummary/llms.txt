@@ -19,6 +19,7 @@
 - [enlace_auth.auth.pages](enlace_auth.auth.pages.html.md): HTML pages for the enlace_auth browser-facing flows.
 - [enlace_auth.auth.passwords](enlace_auth.auth.passwords.html.md): Password hashing via argon2id.
 - [enlace_auth.auth.reset_tokens](enlace_auth.auth.reset_tokens.html.md): Password-reset tokens — minting, verification, and the link they live in.
+- [enlace_auth.auth.revocation](enlace_auth.auth.revocation.html.md): Credential revocation: end everything an account holds when its credentials change.
 - [enlace_auth.auth.routes](enlace_auth.auth.routes.html.md): Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.
 - [enlace_auth.auth.sessions](enlace_auth.auth.sessions.html.md): Session storage backed by a MutableMapping.
 - [enlace_auth.config](enlace_auth.config.html.md): Auth-side configuration models.

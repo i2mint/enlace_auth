@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=ebdbb45b"></script>
+    <script src="../../../_static/documentation_options.js?v=4fa33042"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.24" />
+  <meta name="docsearch:version" content="0.1.25" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -737,6 +737,12 @@ window.runMermaid = runMermaid;</script>
     <span class="n">reset_url</span><span class="p">,</span>
     <span class="n">verify_reset_token</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.revocation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CredentialsChanged</span><span class="p">,</span>
+    <span class="n">make_on_credentials_changed</span><span class="p">,</span>
+    <span class="n">shared_cookie_valid</span><span class="p">,</span>
+    <span class="n">shared_password_fingerprint</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.sessions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SessionStore</span>
 
 
@@ -788,6 +794,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">send_email</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">EmailSender</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">reset_token_max_age</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_EMAIL_TTL</span><span class="p">,</span>
     <span class="n">public_base_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">on_credentials_changed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CredentialsChanged</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">APIRouter</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build a FastAPI router exposing ``/auth/*`` endpoints.</span>
 
@@ -810,8 +817,16 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            ``Host`` header, which the requester controls -- a forged ``Host``</span>
 <span class="sd">            would mail the victim a link that hands their reset token to</span>
 <span class="sd">            another site, unless a proxy in front only forwards known hosts.</span>
+<span class="sd">        on_credentials_changed: ``hook(email, *, keep=None)`` called after a</span>
+<span class="sd">            password change or reset. Defaults to revoking the account's</span>
+<span class="sd">            browser sessions only; the plugin injects one that also revokes the</span>
+<span class="sd">            account's OAuth connector refresh families (see</span>
+<span class="sd">            ``enlace_auth.auth.revocation``).</span>
 <span class="sd">    """</span>
     <span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">"/auth"</span><span class="p">)</span>
+    <span class="n">credentials_changed</span><span class="p">:</span> <span class="n">CredentialsChanged</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">on_credentials_changed</span> <span class="ow">or</span> <span class="n">make_on_credentials_changed</span><span class="p">(</span><span class="n">session_store</span><span class="p">)</span>
+    <span class="p">)</span>
     <span class="c1"># Distinguish "no delivery channel configured" from "a sender was wired":</span>
     <span class="c1"># the page copy must not promise an email the platform cannot send.</span>
     <span class="n">email_delivery_configured</span> <span class="o">=</span> <span class="n">send_email</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -931,7 +946,13 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="n">existing</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">cookies</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">"shared_auth_</span><span class="si">{</span><span class="n">app</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">existing</span> <span class="ow">and</span> <span class="n">verify_cookie</span><span class="p">(</span><span class="n">existing</span><span class="p">,</span> <span class="n">signing_key</span><span class="p">,</span> <span class="n">salt</span><span class="o">=</span><span class="sa">f</span><span class="s2">"shared:</span><span class="si">{</span><span class="n">app</span><span class="si">}</span><span class="s2">"</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">existing</span> <span class="ow">and</span> <span class="n">shared_cookie_valid</span><span class="p">(</span>
+            <span class="n">verify_cookie</span><span class="p">(</span>
+                <span class="n">existing</span><span class="p">,</span> <span class="n">signing_key</span><span class="p">,</span> <span class="n">max_age</span><span class="o">=</span><span class="n">session_max_age</span><span class="p">,</span> <span class="n">salt</span><span class="o">=</span><span class="sa">f</span><span class="s2">"shared:</span><span class="si">{</span><span class="n">app</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">),</span>
+            <span class="n">shared_password_for</span><span class="p">(</span><span class="n">app</span><span class="p">),</span>
+            <span class="n">signing_key</span><span class="p">,</span>
+        <span class="p">):</span>
             <span class="k">return</span> <span class="n">RedirectResponse</span><span class="p">(</span><span class="n">next_url</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">303</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">HTMLResponse</span><span class="p">(</span><span class="n">pages</span><span class="o">.</span><span class="n">render_shared_login_page</span><span class="p">(</span><span class="n">app</span><span class="o">=</span><span class="n">app</span><span class="p">,</span> <span class="n">next_url</span><span class="o">=</span><span class="n">next_url</span><span class="p">))</span>
 
@@ -944,7 +965,13 @@ window.runMermaid = runMermaid;</script>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Unknown app '</span><span class="si">{</span><span class="n">body</span><span class="o">.</span><span class="n">app</span><span class="si">}</span><span class="s2">'"</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">verify_password</span><span class="p">(</span><span class="n">stored_hash</span><span class="p">,</span> <span class="n">body</span><span class="o">.</span><span class="n">password</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">401</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Invalid password"</span><span class="p">)</span>
-        <span class="n">token</span> <span class="o">=</span> <span class="n">sign_cookie</span><span class="p">(</span><span class="s2">"1"</span><span class="p">,</span> <span class="n">signing_key</span><span class="p">,</span> <span class="n">salt</span><span class="o">=</span><span class="sa">f</span><span class="s2">"shared:</span><span class="si">{</span><span class="n">body</span><span class="o">.</span><span class="n">app</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="c1"># The cookie carries a fingerprint of the CURRENT password hash, so</span>
+        <span class="c1"># rotating the shared password ends every cookie minted under the old.</span>
+        <span class="n">token</span> <span class="o">=</span> <span class="n">sign_cookie</span><span class="p">(</span>
+            <span class="n">shared_password_fingerprint</span><span class="p">(</span><span class="n">stored_hash</span><span class="p">,</span> <span class="n">signing_key</span><span class="p">),</span>
+            <span class="n">signing_key</span><span class="p">,</span>
+            <span class="n">salt</span><span class="o">=</span><span class="sa">f</span><span class="s2">"shared:</span><span class="si">{</span><span class="n">body</span><span class="o">.</span><span class="n">app</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="n">cookie_name_shared</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"shared_auth_</span><span class="si">{</span><span class="n">body</span><span class="o">.</span><span class="n">app</span><span class="si">}</span><span class="s2">"</span>
         <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">cookie_name_shared</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
@@ -992,7 +1019,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">user_store</span><span class="p">[</span><span class="n">email</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span>
         <span class="c1"># Log out every OTHER browser holding this account: a password change</span>
         <span class="c1"># is what a user does when they suspect someone else is signed in.</span>
-        <span class="n">session_store</span><span class="o">.</span><span class="n">revoke_user</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="n">_current_session_id</span><span class="p">(</span><span class="n">request</span><span class="p">))</span>
+        <span class="n">credentials_changed</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="n">_current_session_id</span><span class="p">(</span><span class="n">request</span><span class="p">))</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">"ok"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">:</span> <span class="n">email</span><span class="p">}</span>
 
     <span class="c1"># ----- Password recovery ---------------------------------------------</span>
@@ -1126,7 +1153,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">user_store</span><span class="p">[</span><span class="n">email</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span>
         <span class="c1"># A reset is the recovery path for a compromised account, so every</span>
         <span class="c1"># session opened with the old password ends here.</span>
-        <span class="n">session_store</span><span class="o">.</span><span class="n">revoke_user</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+        <span class="n">credentials_changed</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
         <span class="n">session_id</span> <span class="o">=</span> <span class="n">session_store</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">email</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">)</span>
         <span class="n">_set_session_cookie</span><span class="p">(</span>
             <span class="n">response</span><span class="p">,</span>

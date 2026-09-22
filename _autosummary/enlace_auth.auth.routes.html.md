@@ -25,7 +25,7 @@ Authlib dependency stays lazy.
 | [`make_auth_router`](#enlace_auth.auth.routes.make_auth_router)(\*, session_store, ...[, ...])   | Build a FastAPI router exposing `/auth/*` endpoints.   |
 |----------------------------------------------------------------------------------------------------|--------------------------------------------------------|
 
-### enlace_auth.auth.routes.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, can_register=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None)
+### enlace_auth.auth.routes.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, can_register=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None)
 
 Build a FastAPI router exposing `/auth/*` endpoints.
 
@@ -48,5 +48,10 @@ Build a FastAPI router exposing `/auth/*` endpoints.
     `Host` header, which the requester controls – a forged `Host`
     would mail the victim a link that hands their reset token to
     another site, unless a proxy in front only forwards known hosts.
+  * **on_credentials_changed** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`CredentialsChanged`](enlace_auth.auth.revocation.html.md#enlace_auth.auth.revocation.CredentialsChanged)]) – `hook(email, *, keep=None)` called after a
+    password change or reset. Defaults to revoking the account’s
+    browser sessions only; the plugin injects one that also revokes the
+    account’s OAuth connector refresh families (see
+    `enlace_auth.auth.revocation`).
 * **Return type:**
   `APIRouter`
