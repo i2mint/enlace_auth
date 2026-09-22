@@ -27,7 +27,7 @@ import os
 import time
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Callable, Iterable, Optional
 
 from enlace_auth.config import coerce_auth_config, coerce_stores_map
 
@@ -186,6 +186,41 @@ def _read_admin_emails(env_var: str) -> tuple[str, ...]:
     return tuple(e.strip().lower() for e in raw.split(",") if e.strip())
 
 
+# ``allowed_users = ["@admins"]`` in an app.toml means "the platform admins"
+# (``admin_emails_env``). It lets an owner-only app say so without committing
+# anyone's email address, and keeps one source of truth for who the owner is.
+ADMINS_ALIAS = "@admins"
+
+
+def _expand_allowed_users(
+    allowed: Iterable[str], admin_emails: tuple[str, ...], *, app_name: str = ""
+) -> list[str]:
+    """Replace :data:`ADMINS_ALIAS` in *allowed* by the admin emails.
+
+    Fails CLOSED: with no admins configured the alias is kept verbatim. It can
+    never equal a real (validated) email, so the list stays non-empty and the
+    app admits nobody -- dropping it would empty the list, and an empty
+    ``allowed_users`` means "any signed-in user".
+    """
+    allowed = list(allowed)
+    if ADMINS_ALIAS not in allowed:
+        return allowed
+    if not admin_emails:
+        _logger.warning(
+            "enlace_auth: app %r allows %r but no admin emails are configured; "
+            "the app will admit nobody until they are.",
+            app_name,
+            ADMINS_ALIAS,
+        )
+        return allowed
+    out: list[str] = []
+    for entry in allowed:
+        for email in admin_emails if entry == ADMINS_ALIAS else (entry,):
+            if email not in out:
+                out.append(email)
+    return out
+
+
 def _build_can_register(
     auth_cfg, admin_emails: tuple[str, ...]
 ) -> Callable[[str], bool]:
@@ -294,7 +329,15 @@ def wire(parent: "FastAPI", config) -> None:
                 shared_hashes[app.name] = h
         if app.access == "protected:user":
             protected_user_apps.add(app.name)
-        allowed = tuple(getattr(app, "allowed_users", ()))
+        allowed = tuple(
+            _expand_allowed_users(
+                getattr(app, "allowed_users", ()), admin_emails, app_name=app.name
+            )
+        )
+        if list(allowed) != list(getattr(app, "allowed_users", ())):
+            # Write the expansion back so enlace core's /_apps visibility check
+            # (which reads app.allowed_users directly) agrees with the gate.
+            app.allowed_users = list(allowed)
         access_rules.append(
             AccessRule(
                 prefix=app.route_prefix,
