@@ -46,6 +46,15 @@ def _import_authlib():
     return OAuth
 
 
+def _unverified(flag) -> bool:
+    """True when an ``email_verified`` claim explicitly says "not verified".
+
+    >>> _unverified(False), _unverified("false"), _unverified(True), _unverified(None)
+    (True, True, False, False)
+    """
+    return flag is False or (isinstance(flag, str) and flag.strip().lower() == "false")
+
+
 def _build_oauth_registry(providers: dict[str, OAuthProviderConfig]):
     OAuth = _import_authlib()
     oauth = OAuth()
@@ -136,20 +145,33 @@ def make_oauth_router(
             raise HTTPException(status_code=401, detail=f"OAuth failed: {e}") from e
 
         email = None
+        claims: dict = {}
         userinfo = token.get("userinfo") if isinstance(token, dict) else None
         if userinfo and isinstance(userinfo, dict):
+            claims = userinfo
             email = userinfo.get("email")
 
         if not email and hasattr(client, "userinfo"):
             try:
                 info = await client.userinfo(token=token)
                 if isinstance(info, dict):
+                    claims = info
                     email = info.get("email")
             except Exception:
                 pass
 
         if not email:
             raise HTTPException(status_code=401, detail="No email from OAuth provider")
+        # Accounts are keyed by email, so an address the provider has not
+        # verified would let someone sign in as whoever owns it here --
+        # including an existing password account. Refuse when the provider
+        # says so (OIDC ``email_verified``); providers that omit the claim
+        # (e.g. GitHub's /user, which only exposes verified emails) pass.
+        if _unverified(claims.get("email_verified")):
+            raise HTTPException(
+                status_code=401,
+                detail="The OAuth provider has not verified this email address",
+            )
 
         email = email.lower()
         if email not in user_store:

@@ -14,7 +14,7 @@ from enlace_auth.config import OAuthProviderConfig
 SIGNING_KEY = "oauth-signing-key-32bytes-minlen"
 
 
-def _make_app(providers, user_store, session_store):
+def _make_app(providers, user_store, session_store, *, userinfo=None):
     """Build a FastAPI app with the OAuth router and env vars set."""
     os.environ["G_ID"] = "fake-client-id"
     os.environ["G_SECRET"] = "fake-client-secret"
@@ -26,7 +26,7 @@ def _make_app(providers, user_store, session_store):
         return_value=RedirectResponse("http://example.com/fake-authorize")
     )
     fake_client.authorize_access_token = AsyncMock(
-        return_value={"userinfo": {"email": "alice@example.com"}}
+        return_value={"userinfo": userinfo or {"email": "alice@example.com"}}
     )
     fake_registry = MagicMock()
     fake_registry.google = fake_client
@@ -98,3 +98,40 @@ def test_no_providers_returns_none():
         )
         is None
     )
+
+
+def test_unverified_provider_email_is_refused():
+    """An unverified address must not sign in as (or create) that account."""
+    providers = {
+        "google": OAuthProviderConfig(
+            client_id_env="G_ID", client_secret_env="G_SECRET"
+        )
+    }
+    users = {"alice@example.com": {"password_hash": "x", "created_at": 0}}
+    sessions = SessionStore({})
+    app, _ = _make_app(
+        providers,
+        users,
+        sessions,
+        userinfo={"email": "alice@example.com", "email_verified": False},
+    )
+    r = TestClient(app).get("/auth/callback/google")
+    assert r.status_code == 401
+    assert "enlace_session=" not in r.headers.get("set-cookie", "")
+    assert sessions.list_all() == []
+
+
+def test_verified_provider_email_signs_in():
+    providers = {
+        "google": OAuthProviderConfig(
+            client_id_env="G_ID", client_secret_env="G_SECRET"
+        )
+    }
+    users: dict = {}
+    app, _ = _make_app(
+        providers,
+        users,
+        SessionStore({}),
+        userinfo={"email": "alice@example.com", "email_verified": True},
+    )
+    assert TestClient(app).get("/auth/callback/google").status_code == 200
