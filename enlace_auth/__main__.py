@@ -253,6 +253,8 @@ def set_password(email: str, *, toml: str = "platform.toml"):
 
     updated = dict(record)
     updated["password_hash"] = _hash(pw)
+    # Account recovery: unlink external sign-ins too (see the HTTP reset paths).
+    updated.pop("oauth_links", None)
     store[key] = updated
     # Same rule as the HTTP reset paths: a new password ends the old sessions.
     revoked = _load_session_store(Path(toml)).revoke_user(key)

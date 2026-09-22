@@ -449,6 +449,9 @@ def make_auth_router(
             )
         record = dict(record)
         record["password_hash"] = hash_password(body.new_password)
+        # A reset is account recovery: external sign-ins linked to the account
+        # are unlinked too, or whoever linked one walks straight back in.
+        record.pop("oauth_links", None)
         user_store[email] = record
         # A reset is the recovery path for a compromised account, so every
         # session opened with the old password ends here.

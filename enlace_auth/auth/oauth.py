@@ -6,12 +6,35 @@ are configured in ``platform.toml`` under ``[auth.oauth.{name}]`` with
 in TOML). On callback we create a local session — the upstream tokens are
 discarded because we use OAuth for identity only, not API access.
 
+Two rules keep an OAuth login from being weaker than the account it opens:
+
+- **The anti-CSRF state lives in a signed cookie** scoped to ``/auth``
+  (:func:`_oauth_state_session`). Authlib keeps the ``state``, nonce and PKCE
+  verifier in ``request.session``; the plugin installs no Starlette
+  ``SessionMiddleware``, so this module supplies that session itself. A callback
+  whose ``state`` was not issued to *this* browser is refused.
+- **An identity is bound to the provider's stable subject** (``sub``, or
+  ``tid``/``oid`` for Microsoft, GitHub's numeric ``id``), recorded as
+  ``oauth_links[provider]`` on the account. A later login must present the same
+  subject. An existing *password* account, or one linked to another provider, is
+  never taken over by an email match alone.
+
+Residual limits, by design: the state cookie is signed but not bound to the
+browser, so a script that can set cookies on the platform origin (any
+co-hosted app) could plant its own state for a browser that has none and so
+log that browser in as the attacker (two cookies of the name are refused). An
+account created by a provider before links existed is bound to the first
+subject that signs in to it after the upgrade. A password reset (admin, emailed
+link, CLI) unlinks every external sign-in. The cookie path assumes the router
+is mounted at ``/auth`` with no root path.
+
 Built-in provider presets for Google and GitHub auto-fill the well-known
 endpoints; other providers need explicit URLs in the config.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import time
@@ -20,7 +43,7 @@ from typing import Any, Callable, Optional
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 
-from enlace_auth.auth.cookies import sign_cookie
+from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.sessions import SessionStore
 from enlace_auth.config import OAuthProviderConfig
 
@@ -76,6 +99,82 @@ def _email_trusted(provider: str, cfg, claims: dict) -> bool:
     )
 
 
+def _is_entra_issuer(iss: str) -> bool:
+    """True for Microsoft Entra ID token issuers."""
+    from urllib.parse import urlparse
+
+    host = (urlparse(iss).hostname or "").lower()
+    return host in {"login.microsoftonline.com", "sts.windows.net"}
+
+
+def _cookie_count(request: Request, name: str) -> int:
+    """How many cookies called *name* the request carries (Starlette keeps one)."""
+    raw = request.headers.get("cookie", "")
+    return sum(1 for part in raw.split(";") if part.strip().split("=", 1)[0] == name)
+
+
+def _stable_subject(provider: str, claims: dict) -> Optional[str]:
+    """The provider's stable, non-reassignable id for the signed-in identity.
+
+    >>> _stable_subject("google", {"sub": "123", "email": "a@x.io"})
+    '123'
+    >>> _stable_subject("microsoft", {"sub": "s", "tid": "T", "oid": "O",
+    ...     "iss": "https://login.microsoftonline.com/T/v2.0"})
+    'T/O'
+    >>> _stable_subject("custom", {"sub": "s", "tid": "T", "oid": "O"})
+    's'
+    >>> _stable_subject("github", {"id": 42})
+    '42'
+    >>> _stable_subject("x", {"email": "a@x.io"}) is None
+    True
+    """
+    tid, oid = claims.get("tid"), claims.get("oid")
+    iss = str(claims.get("iss") or "")
+    if tid and oid and _is_entra_issuer(iss):
+        # Entra ID: `sub` is pairwise per app; tid/oid is the user. Only for
+        # Entra's own issuers -- elsewhere these are ordinary, maybe
+        # user-influenced, claims.
+        return f"{tid}/{oid}"
+    for key in ("sub", "id"):  # OIDC, then GitHub's /user
+        value = claims.get(key)
+        if value not in (None, ""):
+            return str(value)
+    return None
+
+
+def _login_refusal(record: Any, provider: str, subject: Optional[str]) -> Optional[str]:
+    """Why *record* must not be opened by this OAuth identity, or None if it may.
+
+    >>> _login_refusal({"password_hash": "h"}, "google", "1") is not None
+    True
+    >>> _login_refusal({"oauth_links": {"google": "1"}}, "google", "1") is None
+    True
+    >>> _login_refusal({"oauth_links": {"google": "1"}}, "google", "2") is not None
+    True
+    >>> _login_refusal({"password_hash": None, "oauth_provider": "google"},
+    ...                "google", "1") is None
+    True
+    >>> _login_refusal({"password_hash": None, "oauth_provider": "github"},
+    ...                "google", "1") is not None
+    True
+    """
+    if not isinstance(record, dict):
+        return "This account cannot be opened with an external sign-in."
+    links = record.get("oauth_links") or {}
+    if provider in links:
+        if subject is not None and links[provider] == subject:
+            return None
+        return "This sign-in does not match the identity linked to this account."
+    if record.get("password_hash"):
+        return (
+            "This email belongs to a password account. Sign in with your "
+            "password; an external sign-in is not linked to it."
+        )
+    if record.get("oauth_provider") == provider:
+        return None  # created by this provider before links were recorded
+    return "This account is linked to a different sign-in method."
+
+
 def _build_oauth_registry(providers: dict[str, OAuthProviderConfig]):
     OAuth = _import_authlib()
     oauth = OAuth()
@@ -122,8 +221,16 @@ def make_oauth_router(
     session_max_age: int = 86400,
     secure_cookies: bool = True,
     can_register: Callable[[str], bool] = lambda _: False,
+    state_cookie_name: str = "enlace_oauth_state",
+    state_max_age: int = 600,
 ) -> Optional[APIRouter]:
-    """Build an OAuth router or return None if no providers are configured."""
+    """Build an OAuth router or return None if no providers are configured.
+
+    *state_cookie_name* / *state_max_age* name and bound the signed cookie that
+    carries Authlib's per-login state between ``/auth/login/{provider}`` and the
+    callback (see the module docstring). It is only used when no Starlette
+    ``SessionMiddleware`` already provides ``request.session``.
+    """
     if not providers:
         return None
 
@@ -143,6 +250,61 @@ def make_oauth_router(
             attrs.append("Secure")
         response.headers.append("set-cookie", "; ".join(attrs))
 
+    _state_salt = "oauth-state"
+
+    def _oauth_state_session(request: Request) -> bool:
+        """Give Authlib a ``request.session`` backed by the signed state cookie.
+
+        Returns True when this module owns the session (and so must write it
+        back), False when a real ``SessionMiddleware`` already provides one.
+        """
+        if "session" in request.scope:
+            return False
+        data: dict = {}
+        token = request.cookies.get(state_cookie_name)
+        if _cookie_count(request, state_cookie_name) > 1:
+            # Two cookies of this name means one was planted at another path
+            # (cookie tossing) to smuggle in someone else's login state.
+            token = None
+        raw = (
+            verify_cookie(token, signing_key, max_age=state_max_age, salt=_state_salt)
+            if token
+            else None
+        )
+        if raw:
+            try:
+                loaded = json.loads(raw)
+                if isinstance(loaded, dict):
+                    data = loaded
+            except ValueError:
+                pass
+        request.scope["session"] = data
+        return True
+
+    def _state_cookie_header(session: dict) -> str:
+        if session:
+            value = sign_cookie(json.dumps(session), signing_key, salt=_state_salt)
+            attrs = [
+                f"{state_cookie_name}={value}",
+                "Path=/auth",
+                "HttpOnly",
+                f"Max-Age={state_max_age}",
+                "SameSite=Lax",
+            ]
+        else:
+            attrs = [f"{state_cookie_name}=", "Path=/auth", "HttpOnly", "Max-Age=0"]
+        if secure_cookies:
+            attrs.append("Secure")
+        return "; ".join(attrs)
+
+    def _write_state_cookie(response: Response, session: dict) -> None:
+        response.headers.append("set-cookie", _state_cookie_header(session))
+
+    def _drop_provider_states(session: dict, provider: str) -> None:
+        """A callback spends every pending state of its provider, win or lose."""
+        for key in [k for k in session if k.startswith(f"_state_{provider}_")]:
+            session.pop(key, None)
+
     @router.get("/login/{provider}")
     async def login(provider: str, request: Request):
         client = getattr(oauth, provider, None)
@@ -150,8 +312,12 @@ def make_oauth_router(
             raise HTTPException(
                 status_code=404, detail=f"Unknown provider '{provider}'"
             )
+        owns_session = _oauth_state_session(request)
         redirect_uri = str(request.url_for("oauth_callback", provider=provider))
-        return await client.authorize_redirect(request, redirect_uri)
+        resp = await client.authorize_redirect(request, redirect_uri)
+        if owns_session:
+            _write_state_cookie(resp, request.session)
+        return resp
 
     @router.get("/callback/{provider}", name="oauth_callback")
     async def callback(provider: str, request: Request):
@@ -160,6 +326,23 @@ def make_oauth_router(
             raise HTTPException(
                 status_code=404, detail=f"Unknown provider '{provider}'"
             )
+        owns_session = _oauth_state_session(request)
+        try:
+            resp = await _complete_login(provider, client, request)
+        except HTTPException as e:
+            if owns_session:
+                _drop_provider_states(request.session, provider)
+                e.headers = {
+                    **(e.headers or {}),
+                    "set-cookie": _state_cookie_header(request.session),
+                }
+            raise
+        if owns_session:
+            _drop_provider_states(request.session, provider)
+            _write_state_cookie(resp, request.session)
+        return resp
+
+    async def _complete_login(provider: str, client, request: Request) -> Response:
         try:
             token = await client.authorize_access_token(request)
         except Exception as e:
@@ -197,7 +380,12 @@ def make_oauth_router(
             )
 
         email = email.lower()
-        if email not in user_store:
+        subject = _stable_subject(provider, claims)
+        try:
+            record = user_store[email]
+        except KeyError:
+            record = None
+        if record is None:
             if not can_register(email):
                 raise HTTPException(
                     status_code=403,
@@ -210,7 +398,29 @@ def make_oauth_router(
                 "password_hash": None,
                 "created_at": time.time(),
                 "oauth_provider": provider,
+                "oauth_links": {provider: subject} if subject else {},
             }
+        else:
+            refusal = _login_refusal(record, provider, subject)
+            if refusal is not None:
+                _logger.warning(
+                    "OAuth sign-in via %s refused for %s: %s", provider, email, refusal
+                )
+                raise HTTPException(status_code=403, detail=refusal)
+            links = record.get("oauth_links") or {}
+            if subject and provider not in links:
+                # A legacy account this provider created: bind it to the
+                # subject now, so the email alone never opens it again.
+                # Re-read so a password change racing this login is not
+                # overwritten with the copy read above.
+                current = user_store.get(email, record)
+                user_store[email] = {
+                    **current,
+                    "oauth_links": {
+                        **(current.get("oauth_links") or {}),
+                        provider: subject,
+                    },
+                }
         session_id = session_store.create(user_id=email, email=email)
         resp = JSONResponse({"ok": True, "email": email})
         _set_session_cookie(resp, session_id)

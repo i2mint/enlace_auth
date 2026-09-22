@@ -242,6 +242,9 @@ def make_admin_router(
             raise HTTPException(status_code=500, detail="Corrupt user record")
         record = dict(record)
         record["password_hash"] = hash_password(body.password)
+        # A reset is account recovery: external sign-ins linked to the account
+        # are unlinked too, or whoever linked one walks straight back in.
+        record.pop("oauth_links", None)
         user_store[target] = record
         # An admin reset is how a compromised account is recovered: whoever
         # holds a session opened with the old password must lose it.
