@@ -203,12 +203,45 @@ def test_longest_prefix_wins():
 
 
 def test_protected_shared_with_valid_cookie():
+    # A valid shared cookie carries the fingerprint of the app's CURRENT
+    # shared-password hash (i2mint/enlace_auth#26), not a constant.
+    from enlace_auth.auth.revocation import shared_password_fingerprint
+
+    rule = AccessRule(
+        prefix="/s", level="protected:shared", app_id="s", shared_password_hash="h1"
+    )
+    mw = _make_mw([rule])
+    token = sign_cookie(
+        shared_password_fingerprint("h1", SIGNING_KEY), SIGNING_KEY, salt="shared:s"
+    )
+    cap = _Capture()
+    _run(mw(_http_scope("/s/page", {"shared_auth_s": token}), cap.receive, cap.send))
+    assert cap.status() == 200
+
+
+def test_protected_shared_cookie_minted_under_another_password_denied():
+    from enlace_auth.auth.revocation import shared_password_fingerprint
+
+    rule = AccessRule(
+        prefix="/s", level="protected:shared", app_id="s", shared_password_hash="h2"
+    )
+    mw = _make_mw([rule])
+    for value in ("1", shared_password_fingerprint("h1", SIGNING_KEY)):
+        token = sign_cookie(value, SIGNING_KEY, salt="shared:s")
+        cap = _Capture()
+        _run(
+            mw(_http_scope("/s/page", {"shared_auth_s": token}), cap.receive, cap.send)
+        )
+        assert cap.status() == 401, value
+
+
+def test_protected_shared_without_configured_password_admits_no_cookie():
     rule = AccessRule(prefix="/s", level="protected:shared", app_id="s")
     mw = _make_mw([rule])
     token = sign_cookie("1", SIGNING_KEY, salt="shared:s")
     cap = _Capture()
     _run(mw(_http_scope("/s/page", {"shared_auth_s": token}), cap.receive, cap.send))
-    assert cap.status() == 200
+    assert cap.status() == 401
 
 
 def test_protected_shared_without_cookie_denied():

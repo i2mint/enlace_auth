@@ -95,6 +95,33 @@ def _load_session_store(toml_path: Path = Path("platform.toml")):
     return SessionStore(factory("sessions"))
 
 
+def _connector_tombstone_ttl(toml_path: Path = Path("platform.toml")) -> int:
+    """The refresh-family tombstone lifetime the configured OAuth server uses."""
+    from enlace_auth.auth.revocation import refresh_tombstone_ttl
+
+    osc = coerce_auth_config(PlatformConfig.from_toml(toml_path).auth).oauth_server
+    return refresh_tombstone_ttl(
+        refresh_token_ttl=osc.refresh_token_ttl_seconds,
+        refresh_reuse_detection=osc.refresh_reuse_detection_seconds,
+    )
+
+
+def _revoke_connector_subject(email: str, toml_path: Path) -> int:
+    """Revoke *email*'s connector refresh families (tombstoned); return count."""
+    from enlace_auth.auth.revocation import revoke_refresh_subject
+    from enlace_auth.stores import make_file_store_factory
+
+    auth = coerce_auth_config(PlatformConfig.from_toml(toml_path).auth)
+    factory = make_file_store_factory(auth.stores.path)
+    return revoke_refresh_subject(
+        factory("oauth_refresh_tokens"),
+        email,
+        reason="revoked by the enlace-auth CLI",
+        tombstone_ttl=_connector_tombstone_ttl(toml_path),
+        code_store=factory("oauth_codes"),
+    )
+
+
 def _load_user_store(toml_path: Path = Path("platform.toml")):
     """Open the platform's user store (email -> {password_hash, ...})."""
     from enlace_auth.stores import make_file_store_factory
@@ -228,7 +255,11 @@ def set_password(email: str, *, toml: str = "platform.toml"):
     store[key] = updated
     # Same rule as the HTTP reset paths: a new password ends the old sessions.
     revoked = _load_session_store(Path(toml)).revoke_user(key)
-    print(f"Password updated for {key}; {revoked} existing session(s) revoked.")
+    families = _revoke_connector_subject(key, Path(toml))
+    print(
+        f"Password updated for {key}; {revoked} existing session(s) and "
+        f"{families} connector session(s) revoked."
+    )
 
 
 def reset_link(

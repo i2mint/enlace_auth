@@ -38,6 +38,12 @@ from enlace_auth.auth.reset_tokens import (
     reset_url,
     verify_reset_token,
 )
+from enlace_auth.auth.revocation import (
+    CredentialsChanged,
+    make_on_credentials_changed,
+    shared_cookie_valid,
+    shared_password_fingerprint,
+)
 from enlace_auth.auth.sessions import SessionStore
 
 
@@ -87,6 +93,7 @@ def make_auth_router(
     send_email: Optional[EmailSender] = None,
     reset_token_max_age: int = DEFAULT_EMAIL_TTL,
     public_base_url: Optional[str] = None,
+    on_credentials_changed: Optional[CredentialsChanged] = None,
 ) -> APIRouter:
     """Build a FastAPI router exposing ``/auth/*`` endpoints.
 
@@ -109,8 +116,16 @@ def make_auth_router(
             ``Host`` header, which the requester controls -- a forged ``Host``
             would mail the victim a link that hands their reset token to
             another site, unless a proxy in front only forwards known hosts.
+        on_credentials_changed: ``hook(email, *, keep=None)`` called after a
+            password change or reset. Defaults to revoking the account's
+            browser sessions only; the plugin injects one that also revokes the
+            account's OAuth connector refresh families (see
+            ``enlace_auth.auth.revocation``).
     """
     router = APIRouter(prefix="/auth")
+    credentials_changed: CredentialsChanged = (
+        on_credentials_changed or make_on_credentials_changed(session_store)
+    )
     # Distinguish "no delivery channel configured" from "a sender was wired":
     # the page copy must not promise an email the platform cannot send.
     email_delivery_configured = send_email is not None
@@ -230,7 +245,13 @@ def make_auth_router(
                 status_code=404,
             )
         existing = request.cookies.get(f"shared_auth_{app}")
-        if existing and verify_cookie(existing, signing_key, salt=f"shared:{app}"):
+        if existing and shared_cookie_valid(
+            verify_cookie(
+                existing, signing_key, max_age=session_max_age, salt=f"shared:{app}"
+            ),
+            shared_password_for(app),
+            signing_key,
+        ):
             return RedirectResponse(next_url, status_code=303)
         return HTMLResponse(pages.render_shared_login_page(app=app, next_url=next_url))
 
@@ -243,7 +264,13 @@ def make_auth_router(
             raise HTTPException(status_code=404, detail=f"Unknown app '{body.app}'")
         if not verify_password(stored_hash, body.password):
             raise HTTPException(status_code=401, detail="Invalid password")
-        token = sign_cookie("1", signing_key, salt=f"shared:{body.app}")
+        # The cookie carries a fingerprint of the CURRENT password hash, so
+        # rotating the shared password ends every cookie minted under the old.
+        token = sign_cookie(
+            shared_password_fingerprint(stored_hash, signing_key),
+            signing_key,
+            salt=f"shared:{body.app}",
+        )
         cookie_name_shared = f"shared_auth_{body.app}"
         attrs = [
             f"{cookie_name_shared}={token}",
@@ -291,7 +318,7 @@ def make_auth_router(
         user_store[email] = record
         # Log out every OTHER browser holding this account: a password change
         # is what a user does when they suspect someone else is signed in.
-        session_store.revoke_user(email, keep=_current_session_id(request))
+        credentials_changed(email, keep=_current_session_id(request))
         return {"ok": True, "email": email}
 
     # ----- Password recovery ---------------------------------------------
@@ -425,7 +452,7 @@ def make_auth_router(
         user_store[email] = record
         # A reset is the recovery path for a compromised account, so every
         # session opened with the old password ends here.
-        session_store.revoke_user(email)
+        credentials_changed(email)
         session_id = session_store.create(user_id=email, email=email)
         _set_session_cookie(
             response,

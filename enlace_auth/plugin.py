@@ -334,7 +334,9 @@ def wire(parent: "FastAPI", config) -> None:
     platform_factory = make_file_store_factory(auth_cfg.stores.path)
     session_backend = platform_factory("sessions")
     user_backend = platform_factory("users")
-    session_store = SessionStore(session_backend)
+    session_store = SessionStore(
+        session_backend, max_age=auth_cfg.session_max_age_seconds
+    )
 
     # Runtime per-app access grants (additive, optional UTC expiry). Lives beside
     # sessions/ and users/ under the same persistent store root — outside the
@@ -417,6 +419,31 @@ def wire(parent: "FastAPI", config) -> None:
     # beneath a more specific prefix via longest-prefix match.
     access_rules.append(AccessRule(prefix="/", level="public", app_id="_root"))
 
+    # One hook for every path that changes an account's credentials: browser
+    # sessions always go; the account's OAuth connector refresh families go too
+    # when the OAuth server keeps them (i2mint/enlace_auth#26).
+    from enlace_auth.auth.revocation import (
+        make_on_credentials_changed,
+        refresh_tombstone_ttl,
+    )
+
+    osc = auth_cfg.oauth_server
+    _connector_revocation = (
+        dict(
+            refresh_store=platform_factory("oauth_refresh_tokens"),
+            code_store=platform_factory("oauth_codes"),
+            tombstone_ttl=refresh_tombstone_ttl(
+                refresh_token_ttl=osc.refresh_token_ttl_seconds,
+                refresh_reuse_detection=osc.refresh_reuse_detection_seconds,
+            ),
+        )
+        if osc.enabled and osc.refresh_token_ttl_seconds > 0
+        else {}
+    )
+    on_credentials_changed = make_on_credentials_changed(
+        session_store, **_connector_revocation
+    )
+
     auth_router = make_auth_router(
         session_store=session_store,
         user_store=user_backend,
@@ -428,6 +455,7 @@ def wire(parent: "FastAPI", config) -> None:
         can_register=can_register,
         send_email=email_sender,
         public_base_url=_public_base_url(config, auth_cfg),
+        on_credentials_changed=on_credentials_changed,
     )
     parent.include_router(auth_router)
 
@@ -559,6 +587,7 @@ def wire(parent: "FastAPI", config) -> None:
         signing_key=signing_key,
         resource_allowlist=auth_cfg.oauth_server.resource_allowlist,
         public_base_url=_public_base_url(config, auth_cfg),
+        on_credentials_changed=on_credentials_changed,
     )
     parent.include_router(admin_router)
     if admin_emails:

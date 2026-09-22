@@ -57,6 +57,11 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from enlace_auth.auth import pages
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
+from enlace_auth.auth.revocation import (
+    refresh_tombstone_ttl,
+    revoke_refresh_family,
+    revoked_family_key,
+)
 from enlace_auth.auth.sessions import SessionStore
 from enlace_auth.stores.validation import sanitize_key
 
@@ -301,6 +306,10 @@ def make_oauth_server_router(
     # One flag, consulted everywhere: a store with a zero TTL is NOT refresh
     # support, and metadata that says otherwise mints tokens dead on arrival.
     _refresh_enabled = refresh_store is not None and refresh_token_ttl > 0
+    _tombstone_ttl = refresh_tombstone_ttl(
+        refresh_token_ttl=refresh_token_ttl,
+        refresh_reuse_detection=refresh_reuse_detection,
+    )
     _local_claims: set[str] = set()
     _local_claim_lock = threading.Lock()
     _client_sweep_cursor: dict = {"pos": 0}
@@ -364,40 +373,9 @@ def make_oauth_server_router(
         """
         if refresh_store is None:
             return 0
-        # Write the marker FIRST. Revocation used to be expressed as the ABSENCE
-        # of records, which cannot work while another worker is concurrently
-        # creating them: a successor written after the scan snapshot survived,
-        # and a tombstone write resurrected a parent the scan had just deleted,
-        # so a chain that happened to be rotating defeated detection outright
-        # (measured at ~22% of attempts). A single positive fact cannot be raced.
-        now = _now()
-        refresh_store[_revoked_key(family)] = {
-            "revoked_at": now,
-            "reason": reason,
-            # Must outlive every token that could still belong to this family.
-            "exp": now + max(refresh_token_ttl, refresh_reuse_detection),
-        }
-        revoked = 0
-        for key in list(refresh_store):
-            try:
-                record = refresh_store[key]
-            except KeyError:
-                continue
-            if (record or {}).get("family") != family:
-                continue  # (the marker itself carries no "family" key)
-            try:
-                del refresh_store[key]
-                revoked += 1
-            except KeyError:
-                pass
-        _logger.warning(
-            "oauth: revoked refresh family %s (%d token(s)) — %s. The connector "
-            "using it is now dead until a human re-authorizes it.",
-            family,
-            revoked,
-            reason,
+        return revoke_refresh_family(
+            refresh_store, family, reason=reason, tombstone_ttl=_tombstone_ttl
         )
-        return revoked
 
     def _issue_refresh(
         *,
@@ -439,7 +417,7 @@ def make_oauth_server_router(
 
     def _revoked_key(family: str) -> str:
         """Store key for the tombstone that marks a whole family revoked."""
-        return f"family:{family}"
+        return revoked_family_key(family)
 
     def _family_revoked(family: Optional[str]) -> bool:
         return bool(family) and refresh_store.get(_revoked_key(family)) is not None
