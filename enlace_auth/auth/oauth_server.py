@@ -563,7 +563,18 @@ def make_oauth_server_router(
     # ------------------------------------------------------------------ #
     @router.post("/auth/oauth/register", include_in_schema=False)
     async def register(request: Request):
-        body = await request.json()
+        try:
+            body = await request.json()
+        except ValueError:
+            body = None
+        if not isinstance(body, dict):
+            return JSONResponse(
+                {
+                    "error": "invalid_client_metadata",
+                    "error_description": "body must be a JSON object",
+                },
+                status_code=400,
+            )
         redirect_uris = body.get("redirect_uris")
         if not isinstance(redirect_uris, list) or not redirect_uris:
             return JSONResponse(
@@ -571,6 +582,14 @@ def make_oauth_server_router(
                     "error": "invalid_redirect_uri",
                     "error_description": "redirect_uris required",
                 },
+                status_code=400,
+            )
+        bad = next(
+            (e for e in map(_redirect_uri_problem, redirect_uris) if e), None
+        )
+        if bad:
+            return JSONResponse(
+                {"error": "invalid_redirect_uri", "error_description": bad},
                 status_code=400,
             )
         client_id = secrets.token_urlsafe(24)
@@ -1186,9 +1205,69 @@ _CONSENT_FORM = """<form method="post" action="/auth/oauth/authorize">
   <input type="hidden" name="scope" value="{scope}">
   <input type="hidden" name="resource" value="{resource}">
   <input type="hidden" name="csrf" value="{csrf}">
+  <p>Approving sends you, with an access code, to <strong>{destination}</strong>.
+  Only approve if you started this from that application.</p>
   <button type="submit" name="decision" value="approve">Approve</button>
   <button type="submit" name="decision" value="deny">Deny</button>
 </form>"""
+
+
+# Schemes a redirect_uri may never use: each either runs script in, or reads
+# local state from, the page it lands on. (Browsers already refuse most of
+# them as a Location target; refusing them at registration keeps them out of
+# the store and off the consent screen.)
+_FORBIDDEN_REDIRECT_SCHEMES = frozenset(
+    {"javascript", "data", "vbscript", "file", "blob", "about", "filesystem"}
+)
+_LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+_MAX_REDIRECT_URI_LEN = 2048
+
+
+def _redirect_uri_problem(uri: object) -> Optional[str]:
+    """Why *uri* is not an acceptable registered redirect URI, or ``None``.
+
+    Follows OAuth 2.1 / RFC 8252 for public clients: an absolute URI with no
+    fragment; ``https`` for web clients; plain ``http`` only on a loopback host
+    (native apps on a local port); private-use schemes (``cursor://...``) are
+    allowed for native apps; script- and local-content schemes never are.
+    Registration is anonymous, so this is the only gate on where an
+    authorization code can be sent.
+    """
+    from urllib.parse import urlsplit
+
+    if not isinstance(uri, str) or not uri:
+        return "each redirect_uri must be a non-empty string"
+    if len(uri) > _MAX_REDIRECT_URI_LEN:
+        return "redirect_uri is too long"
+    if any(c.isspace() or ord(c) < 0x20 or ord(c) == 0x7F for c in uri):
+        return "redirect_uri must not contain whitespace or control characters"
+    try:
+        parts = urlsplit(uri)
+        host = parts.hostname
+    except ValueError:
+        return "redirect_uri is not a valid URI"
+    scheme = parts.scheme.lower()
+    if not scheme:
+        return "redirect_uri must be an absolute URI"
+    if parts.fragment or uri.endswith("#"):
+        return "redirect_uri must not contain a fragment"
+    if scheme in _FORBIDDEN_REDIRECT_SCHEMES:
+        return f"redirect_uri scheme {scheme!r} is not allowed"
+    if scheme in ("http", "https") and not host:
+        return "redirect_uri must name a host"
+    if scheme == "http" and host not in _LOOPBACK_HOSTS:
+        return "plain-http redirect_uri is only allowed on a loopback host"
+    return None
+
+
+def _redirect_destination(uri: str) -> str:
+    """The part of a redirect URI a person can judge: its origin, or scheme."""
+    from urllib.parse import urlsplit
+
+    parts = urlsplit(uri)
+    if parts.scheme.lower() in ("http", "https"):
+        return f"{parts.scheme}://{parts.netloc}"
+    return f"{parts.scheme}:"
 
 
 def _denied_page(email: str) -> str:
@@ -1232,6 +1311,7 @@ def _consent_page(
         scope=auth.scope,
         resource=auth.resource,
         csrf=csrf,
+        destination=_redirect_destination(auth.redirect_uri),
     )
     body = f"<h1>Authorize access</h1>\n{prompt}\n{form}\n"
     return pages._page("Authorize access", body)
