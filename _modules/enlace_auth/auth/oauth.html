@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=20522496"></script>
+    <script src="../../../_static/documentation_options.js?v=ebdbb45b"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.23" />
+  <meta name="docsearch:version" content="0.1.24" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -711,15 +711,19 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">Response</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSONResponse</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.cookies</span><span class="w"> </span><span class="kn">import</span> <span class="n">sign_cookie</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.sessions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SessionStore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">OAuthProviderConfig</span>
+
+<span class="n">_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">"enlace_auth.oauth"</span><span class="p">)</span>
 
 <span class="n">_PROVIDER_PRESETS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">"google"</span><span class="p">:</span> <span class="p">{</span>
@@ -743,6 +747,32 @@ window.runMermaid = runMermaid;</script>
             <span class="s2">"authlib is required for OAuth. Install via `pip install enlace[oauth]`."</span>
         <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
     <span class="k">return</span> <span class="n">OAuth</span>
+
+
+<span class="c1">#: Presets whose userinfo exposes only verified emails, without a claim saying so.</span>
+<span class="n">_EMAIL_VERIFIED_BY_PRESET</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"github"</span><span class="p">})</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_verified</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""True only when an ``email_verified`` claim affirms the address.</span>
+
+<span class="sd">    &gt;&gt;&gt; _verified(True), _verified("true"), _verified(False), _verified(None)</span>
+<span class="sd">    (True, True, False, False)</span>
+<span class="sd">    &gt;&gt;&gt; _verified(1)</span>
+<span class="sd">    False</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">flag</span> <span class="ow">is</span> <span class="kc">True</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">flag</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"true"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_email_trusted</span><span class="p">(</span><span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">claims</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether an email returned by *provider* may identify an account here."""</span>
+    <span class="k">if</span> <span class="n">_verified</span><span class="p">(</span><span class="n">claims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email_verified"</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">claims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email_verified"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>  <span class="c1"># the provider said "not verified" (in whatever form)</span>
+    <span class="k">return</span> <span class="n">provider</span> <span class="ow">in</span> <span class="n">_EMAIL_VERIFIED_BY_PRESET</span> <span class="ow">or</span> <span class="nb">bool</span><span class="p">(</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"trust_unverified_email"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_build_oauth_registry</span><span class="p">(</span><span class="n">providers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">OAuthProviderConfig</span><span class="p">]):</span>
@@ -834,23 +864,38 @@ window.runMermaid = runMermaid;</script>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">token</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">authorize_access_token</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">401</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">"OAuth failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+            <span class="c1"># The error text can echo attacker-supplied callback parameters.</span>
+            <span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"OAuth callback failed for </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">provider</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">401</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"OAuth sign-in failed"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
         <span class="n">email</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">claims</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">userinfo</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"userinfo"</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">userinfo</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">userinfo</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">claims</span> <span class="o">=</span> <span class="n">userinfo</span>
             <span class="n">email</span> <span class="o">=</span> <span class="n">userinfo</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">email</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s2">"userinfo"</span><span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">info</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">userinfo</span><span class="p">(</span><span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">)</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">claims</span> <span class="o">=</span> <span class="n">info</span>
                     <span class="n">email</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
                 <span class="k">pass</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">email</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">401</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"No email from OAuth provider"</span><span class="p">)</span>
+        <span class="c1"># Accounts are keyed by email, so an address the provider has not</span>
+        <span class="c1"># verified would let someone sign in as whoever owns it here --</span>
+        <span class="c1"># including an existing password account. Require the provider to</span>
+        <span class="c1"># affirm it (OIDC ``email_verified``); providers that never send the</span>
+        <span class="c1"># claim pass only if known to verify (github preset) or opted in.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_email_trusted</span><span class="p">(</span><span class="n">provider</span><span class="p">,</span> <span class="n">providers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">provider</span><span class="p">),</span> <span class="n">claims</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="mi">401</span><span class="p">,</span>
+                <span class="n">detail</span><span class="o">=</span><span class="s2">"The OAuth provider has not verified this email address"</span><span class="p">,</span>
+            <span class="p">)</span>
 
         <span class="n">email</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">email</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">user_store</span><span class="p">:</span>
@@ -868,10 +913,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="s2">"oauth_provider"</span><span class="p">:</span> <span class="n">provider</span><span class="p">,</span>
             <span class="p">}</span>
         <span class="n">session_id</span> <span class="o">=</span> <span class="n">session_store</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">email</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">)</span>
-        <span class="n">resp</span> <span class="o">=</span> <span class="n">Response</span><span class="p">(</span>
-            <span class="n">content</span><span class="o">=</span><span class="sa">f</span><span class="s1">'</span><span class="se">{{</span><span class="s1">"ok":true,"email":"</span><span class="si">{</span><span class="n">email</span><span class="si">}</span><span class="s1">"</span><span class="se">}}</span><span class="s1">'</span><span class="p">,</span>
-            <span class="n">media_type</span><span class="o">=</span><span class="s2">"application/json"</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">JSONResponse</span><span class="p">({</span><span class="s2">"ok"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">:</span> <span class="n">email</span><span class="p">})</span>
         <span class="n">_set_session_cookie</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="n">session_id</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">resp</span>
 

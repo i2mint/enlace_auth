@@ -1,32 +1,32 @@
 {
   "schema_version": 1,
-  "built_at": "2026-09-22T15:06:43Z",
+  "built_at": "2026-09-22T15:49:44Z",
   "package": {
     "name": "enlace_auth",
-    "version": "0.1.23",
+    "version": "0.1.24",
     "display_name": "enlace_auth",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "2f4e4b14e07ffa78b853e105c7dece43d6976c66",
-    "short_commit": "2f4e4b1",
+    "commit": "ffa758648422060f4e7ed671a1cb6bab027ebd53",
+    "short_commit": "ffa7586",
     "branch": "main",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/i2mint/enlace_auth",
-    "commit_url": "https://github.com/i2mint/enlace_auth/commit/2f4e4b14e07ffa78b853e105c7dece43d6976c66",
+    "commit_url": "https://github.com/i2mint/enlace_auth/commit/ffa758648422060f4e7ed671a1cb6bab027ebd53",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "i2mint/enlace_auth",
-    "sha": "2f4e4b14e07ffa78b853e105c7dece43d6976c66",
+    "sha": "ffa758648422060f4e7ed671a1cb6bab027ebd53",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "35744730201",
-    "run_url": "https://github.com/i2mint/enlace_auth/actions/runs/35744730201",
+    "run_id": "35749668580",
+    "run_url": "https://github.com/i2mint/enlace_auth/actions/runs/35749668580",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -60,14 +60,16 @@
   },
   "pypi": {
     "checked": true,
-    "latest": "0.1.23",
-    "relation": "same",
+    "latest": "0.1.25",
+    "relation": "behind",
     "error": null
   },
-  "reproduce": "git clone https://github.com/i2mint/enlace_auth && cd enlace_auth\ngit checkout 2f4e4b14e07ffa78b853e105c7dece43d6976c66\npip install \"epythet==0.2.12\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/i2mint/enlace_auth && cd enlace_auth\ngit checkout ffa758648422060f4e7ed671a1cb6bab027ebd53\npip install \"epythet==0.2.12\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
-    "aligned": true,
-    "notes": []
+    "aligned": false,
+    "notes": [
+      "The documented version (0.1.24) is behind the latest release on PyPI (0.1.25): `pip install enlace_auth` gives newer code than these docs describe."
+    ]
   }
 }
