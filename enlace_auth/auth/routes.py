@@ -131,6 +131,15 @@ def make_auth_router(
             + ("; Secure" if secure_cookies else ""),
         )
 
+    def _current_session_id(request: Request) -> Optional[str]:
+        """The session id carried by this request's cookie, if it verifies."""
+        token = request.cookies.get(cookie_name)
+        if not token:
+            return None
+        return verify_cookie(
+            token, signing_key, max_age=session_max_age, salt="session"
+        )
+
     @router.post("/register")
     async def register(body: _RegisterBody, response: Response) -> dict[str, Any]:
         email = body.email.lower()
@@ -273,6 +282,9 @@ def make_auth_router(
         record = dict(record)
         record["password_hash"] = hash_password(body.new_password)
         user_store[email] = record
+        # Log out every OTHER browser holding this account: a password change
+        # is what a user does when they suspect someone else is signed in.
+        session_store.revoke_user(email, keep=_current_session_id(request))
         return {"ok": True, "email": email}
 
     # ----- Password recovery ---------------------------------------------
@@ -404,6 +416,9 @@ def make_auth_router(
         record = dict(record)
         record["password_hash"] = hash_password(body.new_password)
         user_store[email] = record
+        # A reset is the recovery path for a compromised account, so every
+        # session opened with the old password ends here.
+        session_store.revoke_user(email)
         session_id = session_store.create(user_id=email, email=email)
         _set_session_cookie(
             response,

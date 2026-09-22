@@ -206,9 +206,11 @@ def make_admin_router(
             del user_store[target]
         except KeyError:
             raise HTTPException(status_code=404, detail="User not found")
-        # Defensive: actor deleting themselves still returns ok, but their
-        # session will fail on next request. Clients should refresh.
+        # Sessions are not checked against the user store on each request, so
+        # a deleted account keeps working until its cookie expires unless its
+        # sessions go too. (An actor deleting themselves is logged out.)
         _ = actor
+        session_store.revoke_user(target)
         return {"ok": True, "email": target}
 
     @router.post("/users/{email}/password")
@@ -226,6 +228,9 @@ def make_admin_router(
         record = dict(record)
         record["password_hash"] = hash_password(body.password)
         user_store[target] = record
+        # An admin reset is how a compromised account is recovered: whoever
+        # holds a session opened with the old password must lose it.
+        session_store.revoke_user(target)
         return {"ok": True, "email": target}
 
     @router.post("/users/{email}/reset-link")

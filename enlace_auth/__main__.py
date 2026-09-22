@@ -226,7 +226,9 @@ def set_password(email: str, *, toml: str = "platform.toml"):
     updated = dict(record)
     updated["password_hash"] = _hash(pw)
     store[key] = updated
-    print(f"Password updated for {key}.")
+    # Same rule as the HTTP reset paths: a new password ends the old sessions.
+    revoked = _load_session_store(Path(toml)).revoke_user(key)
+    print(f"Password updated for {key}; {revoked} existing session(s) revoked.")
 
 
 def reset_link(
