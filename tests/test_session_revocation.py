@@ -68,8 +68,9 @@ def test_changing_own_password_ends_other_sessions_but_keeps_this_one(admin_clie
     _csrf_admin, holder = _setup_admin_and_user(admin_client)
     other_browser = _second_client(admin_client)
     assert (
-        _login(other_browser, "vic@example.com", "victim-pw1", _csrf(other_browser))
-        .status_code
+        _login(
+            other_browser, "vic@example.com", "victim-pw1", _csrf(other_browser)
+        ).status_code
         == 200
     )
     r = holder.post(

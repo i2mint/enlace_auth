@@ -62,13 +62,17 @@ def _app_names(client):
 
 
 def test_admin_reaches_admins_only_app(tmp_path, monkeypatch):
-    c = _signed_in(_client(tmp_path, monkeypatch, admins="Boss@example.com"), "boss@example.com")
+    c = _signed_in(
+        _client(tmp_path, monkeypatch, admins="Boss@example.com"), "boss@example.com"
+    )
     assert c.get("/api/owner_tool/x").status_code == 200
     assert "owner_tool" in _app_names(c)
 
 
 def test_other_user_is_refused_and_does_not_see_it(tmp_path, monkeypatch):
-    c = _signed_in(_client(tmp_path, monkeypatch, admins="boss@example.com"), "eve@example.com")
+    c = _signed_in(
+        _client(tmp_path, monkeypatch, admins="boss@example.com"), "eve@example.com"
+    )
     assert c.get("/api/owner_tool/x").status_code == 401
     assert "owner_tool" not in _app_names(c)
 

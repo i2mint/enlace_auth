@@ -584,9 +584,7 @@ def make_oauth_server_router(
                 },
                 status_code=400,
             )
-        bad = next(
-            (e for e in map(_redirect_uri_problem, redirect_uris) if e), None
-        )
+        bad = next((e for e in map(_redirect_uri_problem, redirect_uris) if e), None)
         if bad:
             return JSONResponse(
                 {"error": "invalid_redirect_uri", "error_description": bad},
