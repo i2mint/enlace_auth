@@ -1,0 +1,12 @@
+enlace\_auth.stores.prefixed
+============================
+
+.. automodule:: enlace_auth.stores.prefixed
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      PrefixedStore
+   

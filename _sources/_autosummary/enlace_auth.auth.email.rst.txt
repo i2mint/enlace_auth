@@ -1,0 +1,19 @@
+enlace\_auth.auth.email
+=======================
+
+.. automodule:: enlace_auth.auth.email
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_console_sender
+      make_smtp_sender
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      EmailSender
+   

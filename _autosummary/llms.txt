@@ -1,0 +1,34 @@
+# enlace_auth
+
+> Authentication, sessions, admin dashboard, and per-user stores for the enlace platform
+
+
+## Pages in this subsection
+
+- [enlace_auth](enlace_auth.html.md): enlace_auth — authentication, sessions, admin dashboard, and per-user stores.
+- [enlace_auth.admin](enlace_auth.admin.html.md): Admin subsystem for enlace_auth.
+- [enlace_auth.admin.routes](enlace_auth.admin.routes.html.md): Admin HTTP routes: user CRUD, password reset, app policy + grants.
+- [enlace_auth.appmeta](enlace_auth.appmeta.html.md): Editable app-metadata overlay: the write surface for the launcher.
+- [enlace_auth.auth](enlace_auth.auth.html.md): Authentication subsystem for enlace.
+- [enlace_auth.auth.cookies](enlace_auth.auth.cookies.html.md): Signed cookie helpers built on itsdangerous.
+- [enlace_auth.auth.email](enlace_auth.auth.email.html.md): Outbound email for enlace_auth — used by the password-recovery flow.
+- [enlace_auth.auth.grants](enlace_auth.auth.grants.html.md): Runtime per-app access grants, with optional UTC expiry.
+- [enlace_auth.auth.middleware](enlace_auth.auth.middleware.html.md): Platform auth middleware (pure ASGI).
+- [enlace_auth.auth.oauth](enlace_auth.auth.oauth.html.md): OAuth2/OIDC login via Authlib.
+- [enlace_auth.auth.oauth_server](enlace_auth.auth.oauth_server.html.md): OAuth 2.1 authorization server — issue tokens for MCP custom connectors.
+- [enlace_auth.auth.pages](enlace_auth.auth.pages.html.md): HTML pages for the enlace_auth browser-facing flows.
+- [enlace_auth.auth.passwords](enlace_auth.auth.passwords.html.md): Password hashing via argon2id.
+- [enlace_auth.auth.reset_tokens](enlace_auth.auth.reset_tokens.html.md): Password-reset tokens — minting, verification, and the link they live in.
+- [enlace_auth.auth.routes](enlace_auth.auth.routes.html.md): Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.
+- [enlace_auth.auth.sessions](enlace_auth.auth.sessions.html.md): Session storage backed by a MutableMapping.
+- [enlace_auth.config](enlace_auth.config.html.md): Auth-side configuration models.
+- [enlace_auth.diagnostics](enlace_auth.diagnostics.html.md): Auth-specific doctor checks that plug into &#96;enlace.doctor.run_doctor&#96;.
+- [enlace_auth.stores](enlace_auth.stores.html.md): Per-user stores for enlace.
+- [enlace_auth.stores.backends](enlace_auth.stores.backends.html.md): MutableMapping-backed store factories for enlace.
+- [enlace_auth.stores.middleware](enlace_auth.stores.middleware.html.md): Store injection middleware and per-app store router.
+- [enlace_auth.stores.prefixed](enlace_auth.stores.prefixed.html.md): PrefixedStore — MutableMapping wrapper that scopes keys under a prefix.
+- [enlace_auth.stores.validation](enlace_auth.stores.validation.html.md): Key sanitization for user-supplied store keys.
+
+## Optional
+
+- [Top-level llms.txt](../llms.txt): Complete documentation index.

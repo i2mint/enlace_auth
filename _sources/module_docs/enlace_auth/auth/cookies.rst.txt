@@ -1,4 +1,0 @@
-enlace_auth.auth.cookies
-========================
-.. automodule:: enlace_auth.auth.cookies
-   :members:

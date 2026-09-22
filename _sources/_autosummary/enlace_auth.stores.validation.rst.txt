@@ -1,0 +1,12 @@
+enlace\_auth.stores.validation
+==============================
+
+.. automodule:: enlace_auth.stores.validation
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      sanitize_key
+   

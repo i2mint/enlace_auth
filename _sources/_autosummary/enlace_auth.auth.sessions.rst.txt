@@ -1,0 +1,12 @@
+enlace\_auth.auth.sessions
+==========================
+
+.. automodule:: enlace_auth.auth.sessions
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      SessionStore
+   

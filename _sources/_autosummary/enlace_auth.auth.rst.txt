@@ -1,0 +1,44 @@
+enlace\_auth.auth
+=================
+
+.. automodule:: enlace_auth.auth
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      hash_password
+      make_auth_router
+      parse_expires_at
+      sign_cookie
+      verify_cookie
+      verify_password
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AccessRule
+      CSRFMiddleware
+      GrantStore
+      PlatformAuthMiddleware
+      SessionStore
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   cookies
+   email
+   grants
+   middleware
+   oauth
+   oauth_server
+   pages
+   passwords
+   reset_tokens
+   routes
+   sessions

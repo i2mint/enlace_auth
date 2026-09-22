@@ -1,114 +1,690 @@
 
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="./">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; enlace_auth 0.1.22 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
-      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="alternate" type="text/markdown" href="genindex.html.md">
+<link rel="describedby" href="llms.txt" type="text/markdown">
+    <title>Index &#8212; enlace_auth</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/epythet.css?v=d146b16c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="_static/documentation_options.js?v=20522496"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=fd10adb8"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = "pre.mermaid {\n    /* Same as .mermaid-container > pre */\n    display: block;\n    width: 100%;\n}\n\npre.mermaid > svg {\n    /* Same as .mermaid-container > pre > svg */\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}";
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = ".mermaid-container {\n    position: relative;\n    display: flex;\n    flex-direction: row;\n    width: 100%;\n}\n\n.mermaid-container > pre {\n    display: block;\n    width: 100%;\n}\n\n.mermaid-container > pre > svg {\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}\n\n.mermaid-fullscreen-btn {\n    position: absolute;\n    width: 28px;\n    height: 28px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.3);\n    border-radius: 4px;\n    cursor: pointer;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    transition: all 0.2s;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);\n    font-size: 14px;\n    line-height: 1;\n    padding: 0;\n    color: #333;\n}\n\n.mermaid-fullscreen-btn:hover {\n    opacity: 100% !important;\n    background: rgba(255, 255, 255, 1);\n    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-btn.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.3);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-btn.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal {\n    display: none;\n    position: fixed !important;\n    top: 0 !important;\n    left: 0 !important;\n    width: 95vw;\n    height: 100vh;\n    background: rgba(255, 255, 255, 0.98);\n    z-index: 9999;\n    padding: 20px;\n    overflow: auto;\n}\n\n.mermaid-fullscreen-modal.dark-theme {\n    background: rgba(0, 0, 0, 0.98);\n}\n\n.mermaid-fullscreen-modal.active {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen {\n    position: relative;\n    width: 95vw;\n    height: 90vh;\n    max-width: 95vw;\n    max-height: 90vh;\n    background: white;\n    border-radius: 8px;\n    padding: 20px;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);\n    overflow: auto;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen.dark-theme {\n    background: #1a1a1a;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);\n}\n\n.mermaid-container-fullscreen pre.mermaid {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen .mermaid svg {\n    height: 100% !important;\n    width: 100% !important;\n    cursor: grab;\n}\n\n.mermaid-fullscreen-close {\n    position: fixed !important;\n    top: 20px !important;\n    right: 20px !important;\n    width: 40px;\n    height: 40px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.2);\n    border-radius: 50%;\n    cursor: pointer;\n    z-index: 10000;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);\n    transition: all 0.2s;\n    font-size: 24px;\n    line-height: 1;\n    color: #333;\n}\n\n.mermaid-fullscreen-close:hover {\n    background: white;\n    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-close.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.2);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-close.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal .mermaid-fullscreen-btn {\n    display: none !important;\n}";
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+let _lazyObserver = null;
+let _renderQueue = Promise.resolve();
+let closeModal = () => {};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal?.classList.contains('active')) {
+        closeModal();
+    }
+});
+
+// Apply d3 zoom to each SVG. Idempotent: an SVG already wrapped is skipped,
+// so this is safe to call both for the initial batch and for diagrams that
+// render lazily once they become visible.
+const addZoomToSvgs = (svgs) => {
+    svgs.each(function() {
+        if (this.getAttribute('data-zoom-applied') === 'true') return;
+        var svg = d3.select(this);
+        svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+        var inner = svg.select("g");
+        var zoom = d3.zoom().on("zoom", function(event) {
+            inner.attr("transform", event.transform);
+        });
+        svg.call(zoom);
+        this.setAttribute('data-zoom-applied', 'true');
+    });
+};
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        // Disconnect any previous lazy rendering observer
+        if (_lazyObserver) {
+            _lazyObserver.disconnect();
+            _lazyObserver = null;
+        }
+
+        all_mermaids.forEach((el) => {
+            el.removeAttribute('data-mermaid-deferred');
+            el.removeAttribute('data-mermaid-render-failed');
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+
+        // Separate visible and hidden elements. Mermaid's layout engine measures
+        // text dimensions via the DOM, which fails for elements hidden by a parent
+        // (e.g., Reveal.js non-active slides, sphinx-design unopened tabs),
+        // producing broken SVGs. Render visible elements now, defer hidden ones.
+        const visible = [];
+        const hidden = [];
+        all_mermaids.forEach((el) => {
+            // offsetParent is null for display:none ancestors.
+            // getClientRects().length > 0 catches position:fixed elements
+            // (which also have null offsetParent but are still visible).
+            if (el.offsetParent !== null || el.getClientRects().length > 0) {
+                visible.push(el);
+            } else {
+                hidden.push(el);
+                el.setAttribute('data-mermaid-deferred', 'true');
+            }
+        });
+
+        if (visible.length > 0) {
+            try {
+                await mermaid.run({ nodes: visible });
+            } catch (e) {
+                console.error("Mermaid rendering failed:", e);
+            }
+        }
+
+        // Lazily render hidden elements when they become visible.
+        // Uses a promise chain (_renderQueue) to serialize rendering,
+        // since IntersectionObserver may report multiple entries at once
+        // and mermaid.run() is not safe to call concurrently.
+        if (hidden.length > 0) {
+            if (typeof IntersectionObserver === 'undefined') {
+                console.warn("IntersectionObserver not available; hidden mermaid diagrams will not render.");
+            } else {
+                _renderQueue = Promise.resolve();
+                _lazyObserver = new IntersectionObserver((entries) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting && entry.target.getAttribute("data-processed") !== "true") {
+                            _lazyObserver.unobserve(entry.target);
+                            const el = entry.target;
+                            _renderQueue = _renderQueue.then(async () => {
+                                try {
+                                    await mermaid.run({ nodes: [el] });
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    // Apply zoom to the now-rendered diagram, matching
+                                    // the decoration visible diagrams receive.
+                                    if (false) {
+                                        addZoomToSvgs(d3.selectAll("").select(function() {
+                                            return this.querySelector("svg");
+                                        }));
+                                    }
+                                } catch (e) {
+                                    console.error("Mermaid deferred rendering failed:", e);
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    el.setAttribute('data-mermaid-render-failed', 'true');
+                                }
+                            });
+                        }
+                    }
+                });
+                hidden.forEach((el) => _lazyObserver.observe(el));
+            }
+        }
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    // Exclude deferred (hidden) and render-failed elements from completion checks
+    const mermaids_active = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])");
+    const mermaids_processed = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])[data-processed='true']");
+
+    if (false) {
+        const mermaids_to_add_zoom = 0 === -1 ? mermaids_active.length : 0;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("").select(function() {
+                return this.querySelector("svg");
+            });
+            // Wait until every active (visible) diagram has rendered. Deferred
+            // diagrams are excluded, so a fixed d3_node_count that counts a
+            // hidden diagram no longer loops forever waiting for its SVG.
+            if(mermaids_active.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            }
+            addZoomToSvgs(svgs);
+        }
+    } else if(mermaids_active.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if (!true) return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = "\u26f6";
+        fullscreenBtn.style.opacity = "50%";
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scrollX, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.display = 'block';
+
+                if (false) {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+
+
+const load = async () => {
+    initStyles();
+
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...{"startOnLoad": false},
+                ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...{"startOnLoad": false},
+    ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'genindex';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="#" />
+    <link rel="search" title="Search" href="search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.23" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
 
   
-      <script src="_static/jquery.js?v=5d32c60e"></script>
-      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=842aa08f"></script>
-      <script src="_static/doctools.js?v=fd6eb6e6"></script>
-      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
-      <script src="_static/toggleprompt.js?v=d7ede5d2"></script>
-      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
-      <script src="_static/copybutton.js?v=f281be69"></script>
-    <script src="_static/js/theme.js"></script>
-    <link rel="index" title="Index" href="#" />
-    <link rel="search" title="Search" href="search.html" /> 
-</head>
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
 
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
-
-          
-          
-          <a href="index.html" class="icon icon-home">
-            enlace_auth
-          </a>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth.html">enlace_auth</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/__main__.html">enlace_auth.__main__</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/admin.html">enlace_auth.admin</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/admin/routes.html">enlace_auth.admin.routes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/appmeta.html">enlace_auth.appmeta</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth.html">enlace_auth.auth</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/cookies.html">enlace_auth.auth.cookies</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/email.html">enlace_auth.auth.email</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/grants.html">enlace_auth.auth.grants</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/middleware.html">enlace_auth.auth.middleware</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/oauth.html">enlace_auth.auth.oauth</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/oauth_server.html">enlace_auth.auth.oauth_server</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/pages.html">enlace_auth.auth.pages</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/passwords.html">enlace_auth.auth.passwords</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/reset_tokens.html">enlace_auth.auth.reset_tokens</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/routes.html">enlace_auth.auth.routes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/sessions.html">enlace_auth.auth.sessions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/config.html">enlace_auth.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/diagnostics.html">enlace_auth.diagnostics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/plugin.html">enlace_auth.plugin</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores.html">enlace_auth.stores</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores/backends.html">enlace_auth.stores.backends</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores/middleware.html">enlace_auth.stores.middleware</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores/prefixed.html">enlace_auth.stores.prefixed</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores/validation.html">enlace_auth.stores.validation</a></li>
-</ul>
 
-        </div>
-      </div>
-    </nav>
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">enlace_auth</a>
-      </nav>
+  
+    
+  
 
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Index</li>
-      <li class="wy-breadcrumbs-aside">
-      </li>
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">enlace_auth</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api.html">
+    API reference
+  </a>
+</li>
+
   </ul>
-  <hr/>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_auth" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api.html">
+    API reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_auth" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none"></div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
 
 <h1 id="index">Index</h1>
 
 <div class="genindex-jumpbox">
  <a href="#A"><strong>A</strong></a>
  | <a href="#C"><strong>C</strong></a>
+ | <a href="#D"><strong>D</strong></a>
  | <a href="#E"><strong>E</strong></a>
+ | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
  | <a href="#H"><strong>H</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
+ | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#V"><strong>V</strong></a>
  | <a href="#W"><strong>W</strong></a>
@@ -117,16 +693,24 @@
 <h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth/auth/middleware.html#enlace_auth.auth.middleware.AccessRule">AccessRule (class in enlace_auth.auth.middleware)</a>
-</li>
-      <li><a href="module_docs/enlace_auth/auth/grants.html#enlace_auth.auth.grants.GrantStore.active_emails_for_app">active_emails_for_app() (enlace_auth.auth.grants.GrantStore method)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth.html#enlace_auth.AuthConfig">AuthConfig (class in enlace_auth)</a>
+      <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.AccessRule">AccessRule (class in enlace_auth.auth)</a>
 
       <ul>
-        <li><a href="module_docs/enlace_auth/config.html#enlace_auth.config.AuthConfig">(class in enlace_auth.config)</a>
+        <li><a href="_autosummary/enlace_auth.auth.middleware.html#enlace_auth.auth.middleware.AccessRule">(class in enlace_auth.auth.middleware)</a>
+</li>
+      </ul></li>
+      <li><a href="_autosummary/enlace_auth.auth.grants.html#enlace_auth.auth.grants.GrantStore.active_emails_for_app">active_emails_for_app() (enlace_auth.auth.grants.GrantStore method)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.GrantStore.active_emails_for_app">(enlace_auth.auth.GrantStore method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/enlace_auth.html#enlace_auth.AuthConfig">AuthConfig (class in enlace_auth)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.config.html#enlace_auth.config.AuthConfig">(class in enlace_auth.config)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -135,13 +719,35 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth/config.html#enlace_auth.config.coerce_auth_config">coerce_auth_config() (in module enlace_auth.config)</a>
+      <li><a href="_autosummary/enlace_auth.diagnostics.html#enlace_auth.diagnostics.check_connector_session_longevity">check_connector_session_longevity() (in module enlace_auth.diagnostics)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.diagnostics.html#enlace_auth.diagnostics.check_csrf">check_csrf() (in module enlace_auth.diagnostics)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.diagnostics.html#enlace_auth.diagnostics.check_oauth_server_advertises_refresh">check_oauth_server_advertises_refresh() (in module enlace_auth.diagnostics)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth/config.html#enlace_auth.config.coerce_stores_map">coerce_stores_map() (in module enlace_auth.config)</a>
+      <li><a href="_autosummary/enlace_auth.config.html#enlace_auth.config.coerce_auth_config">coerce_auth_config() (in module enlace_auth.config)</a>
 </li>
-      <li><a href="module_docs/enlace_auth/auth/middleware.html#enlace_auth.auth.middleware.CSRFMiddleware">CSRFMiddleware (class in enlace_auth.auth.middleware)</a>
+      <li><a href="_autosummary/enlace_auth.config.html#enlace_auth.config.coerce_stores_map">coerce_stores_map() (in module enlace_auth.config)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.CSRFMiddleware">CSRFMiddleware (class in enlace_auth.auth)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.middleware.html#enlace_auth.auth.middleware.CSRFMiddleware">(class in enlace_auth.auth.middleware)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="D">D</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/enlace_auth.auth.reset_tokens.html#enlace_auth.auth.reset_tokens.DEFAULT_EMAIL_TTL">DEFAULT_EMAIL_TTL (in module enlace_auth.auth.reset_tokens)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/enlace_auth.auth.reset_tokens.html#enlace_auth.auth.reset_tokens.DEFAULT_HANDOFF_TTL">DEFAULT_HANDOFF_TTL (in module enlace_auth.auth.reset_tokens)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -149,79 +755,180 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/enlace_auth.auth.email.html#enlace_auth.auth.email.EmailSender">EmailSender (class in enlace_auth.auth.email)</a>
+</li>
       <li>
     enlace_auth
 
       <ul>
-        <li><a href="module_docs/enlace_auth.html#module-enlace_auth">module</a>
+        <li><a href="_autosummary/enlace_auth.html#module-enlace_auth">module</a>
+</li>
+      </ul></li>
+      <li>
+    enlace_auth.admin
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.admin.html#module-enlace_auth.admin">module</a>
+</li>
+      </ul></li>
+      <li>
+    enlace_auth.admin.routes
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.admin.routes.html#module-enlace_auth.admin.routes">module</a>
+</li>
+      </ul></li>
+      <li>
+    enlace_auth.appmeta
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.appmeta.html#module-enlace_auth.appmeta">module</a>
+</li>
+      </ul></li>
+      <li>
+    enlace_auth.auth
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.html#module-enlace_auth.auth">module</a>
 </li>
       </ul></li>
       <li>
     enlace_auth.auth.cookies
 
       <ul>
-        <li><a href="module_docs/enlace_auth/auth/cookies.html#module-enlace_auth.auth.cookies">module</a>
+        <li><a href="_autosummary/enlace_auth.auth.cookies.html#module-enlace_auth.auth.cookies">module</a>
+</li>
+      </ul></li>
+      <li>
+    enlace_auth.auth.email
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.email.html#module-enlace_auth.auth.email">module</a>
 </li>
       </ul></li>
       <li>
     enlace_auth.auth.grants
 
       <ul>
-        <li><a href="module_docs/enlace_auth/auth/grants.html#module-enlace_auth.auth.grants">module</a>
+        <li><a href="_autosummary/enlace_auth.auth.grants.html#module-enlace_auth.auth.grants">module</a>
 </li>
       </ul></li>
       <li>
     enlace_auth.auth.middleware
 
       <ul>
-        <li><a href="module_docs/enlace_auth/auth/middleware.html#module-enlace_auth.auth.middleware">module</a>
+        <li><a href="_autosummary/enlace_auth.auth.middleware.html#module-enlace_auth.auth.middleware">module</a>
 </li>
       </ul></li>
       <li>
-    enlace_auth.auth.passwords
+    enlace_auth.auth.oauth
 
       <ul>
-        <li><a href="module_docs/enlace_auth/auth/passwords.html#module-enlace_auth.auth.passwords">module</a>
+        <li><a href="_autosummary/enlace_auth.auth.oauth.html#module-enlace_auth.auth.oauth">module</a>
+</li>
+      </ul></li>
+      <li>
+    enlace_auth.auth.oauth_server
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.oauth_server.html#module-enlace_auth.auth.oauth_server">module</a>
+</li>
+      </ul></li>
+      <li>
+    enlace_auth.auth.pages
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.pages.html#module-enlace_auth.auth.pages">module</a>
 </li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li>
+    enlace_auth.auth.passwords
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.passwords.html#module-enlace_auth.auth.passwords">module</a>
+</li>
+      </ul></li>
+      <li>
+    enlace_auth.auth.reset_tokens
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.reset_tokens.html#module-enlace_auth.auth.reset_tokens">module</a>
+</li>
+      </ul></li>
+      <li>
+    enlace_auth.auth.routes
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.routes.html#module-enlace_auth.auth.routes">module</a>
+</li>
+      </ul></li>
+      <li>
     enlace_auth.auth.sessions
 
       <ul>
-        <li><a href="module_docs/enlace_auth/auth/sessions.html#module-enlace_auth.auth.sessions">module</a>
+        <li><a href="_autosummary/enlace_auth.auth.sessions.html#module-enlace_auth.auth.sessions">module</a>
 </li>
       </ul></li>
       <li>
     enlace_auth.config
 
       <ul>
-        <li><a href="module_docs/enlace_auth/config.html#module-enlace_auth.config">module</a>
+        <li><a href="_autosummary/enlace_auth.config.html#module-enlace_auth.config">module</a>
 </li>
       </ul></li>
       <li>
-    enlace_auth.plugin
+    enlace_auth.diagnostics
 
       <ul>
-        <li><a href="module_docs/enlace_auth/plugin.html#module-enlace_auth.plugin">module</a>
+        <li><a href="_autosummary/enlace_auth.diagnostics.html#module-enlace_auth.diagnostics">module</a>
+</li>
+      </ul></li>
+      <li>
+    enlace_auth.stores
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.stores.html#module-enlace_auth.stores">module</a>
 </li>
       </ul></li>
       <li>
     enlace_auth.stores.backends
 
       <ul>
-        <li><a href="module_docs/enlace_auth/stores/backends.html#module-enlace_auth.stores.backends">module</a>
+        <li><a href="_autosummary/enlace_auth.stores.backends.html#module-enlace_auth.stores.backends">module</a>
+</li>
+      </ul></li>
+      <li>
+    enlace_auth.stores.middleware
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.stores.middleware.html#module-enlace_auth.stores.middleware">module</a>
+</li>
+      </ul></li>
+      <li>
+    enlace_auth.stores.prefixed
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.stores.prefixed.html#module-enlace_auth.stores.prefixed">module</a>
 </li>
       </ul></li>
       <li>
     enlace_auth.stores.validation
 
       <ul>
-        <li><a href="module_docs/enlace_auth/stores/validation.html#module-enlace_auth.stores.validation">module</a>
+        <li><a href="_autosummary/enlace_auth.stores.validation.html#module-enlace_auth.stores.validation">module</a>
 </li>
       </ul></li>
-      <li><a href="module_docs/enlace_auth.html#enlace_auth.EnlaceAuthConfigError">EnlaceAuthConfigError</a>, <a href="module_docs/enlace_auth/plugin.html#enlace_auth.plugin.EnlaceAuthConfigError">[1]</a>
+      <li><a href="_autosummary/enlace_auth.html#enlace_auth.EnlaceAuthConfigError">EnlaceAuthConfigError</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="F">F</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.fill_template">fill_template() (in module enlace_auth.auth.pages)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -229,77 +936,161 @@
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth/auth/grants.html#enlace_auth.auth.grants.GrantStore.grant">grant() (enlace_auth.auth.grants.GrantStore method)</a>
+      <li><a href="_autosummary/enlace_auth.auth.grants.html#enlace_auth.auth.grants.GrantStore.grant">grant() (enlace_auth.auth.grants.GrantStore method)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.GrantStore.grant">(enlace_auth.auth.GrantStore method)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth/auth/grants.html#enlace_auth.auth.grants.GrantError">GrantError</a>
+      <li><a href="_autosummary/enlace_auth.auth.grants.html#enlace_auth.auth.grants.GrantError">GrantError</a>
 </li>
-      <li><a href="module_docs/enlace_auth/auth/grants.html#enlace_auth.auth.grants.GrantStore">GrantStore (class in enlace_auth.auth.grants)</a>
+      <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.GrantStore">GrantStore (class in enlace_auth.auth)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.grants.html#enlace_auth.auth.grants.GrantStore">(class in enlace_auth.auth.grants)</a>
 </li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="H">H</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth/auth/passwords.html#enlace_auth.auth.passwords.hash_password">hash_password() (in module enlace_auth.auth.passwords)</a>
+      <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.hash_password">hash_password() (in module enlace_auth.auth)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.passwords.html#enlace_auth.auth.passwords.hash_password">(in module enlace_auth.auth.passwords)</a>
 </li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth/auth/grants.html#enlace_auth.auth.grants.GrantStore.list_all">list_all() (enlace_auth.auth.grants.GrantStore method)</a>
+      <li><a href="_autosummary/enlace_auth.auth.grants.html#enlace_auth.auth.grants.GrantStore.list_all">list_all() (enlace_auth.auth.grants.GrantStore method)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.GrantStore.list_all">(enlace_auth.auth.GrantStore method)</a>
 </li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth/stores/backends.html#enlace_auth.stores.backends.make_file_store_factory">make_file_store_factory() (in module enlace_auth.stores.backends)</a>
-</li>
-      <li><a href="module_docs/enlace_auth.html#enlace_auth.AuthConfig.model_config">model_config (enlace_auth.AuthConfig attribute)</a>
+      <li><a href="_autosummary/enlace_auth.admin.html#enlace_auth.admin.make_admin_router">make_admin_router() (in module enlace_auth.admin)</a>
 
       <ul>
-        <li><a href="module_docs/enlace_auth/config.html#enlace_auth.config.AuthConfig.model_config">(enlace_auth.config.AuthConfig attribute)</a>
-</li>
-        <li><a href="module_docs/enlace_auth/config.html#enlace_auth.config.OAuthProviderConfig.model_config">(enlace_auth.config.OAuthProviderConfig attribute)</a>
-</li>
-        <li><a href="module_docs/enlace_auth/config.html#enlace_auth.config.OAuthServerConfig.model_config">(enlace_auth.config.OAuthServerConfig attribute)</a>
-</li>
-        <li><a href="module_docs/enlace_auth/config.html#enlace_auth.config.StoreBackendConfig.model_config">(enlace_auth.config.StoreBackendConfig attribute)</a>
-</li>
-        <li><a href="module_docs/enlace_auth.html#enlace_auth.OAuthProviderConfig.model_config">(enlace_auth.OAuthProviderConfig attribute)</a>
-</li>
-        <li><a href="module_docs/enlace_auth.html#enlace_auth.StoreBackendConfig.model_config">(enlace_auth.StoreBackendConfig attribute)</a>
+        <li><a href="_autosummary/enlace_auth.admin.routes.html#enlace_auth.admin.routes.make_admin_router">(in module enlace_auth.admin.routes)</a>
 </li>
       </ul></li>
+      <li><a href="_autosummary/enlace_auth.admin.routes.html#enlace_auth.admin.routes.make_admin_ui_router">make_admin_ui_router() (in module enlace_auth.admin.routes)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.appmeta.html#enlace_auth.appmeta.make_appmeta_can_edit">make_appmeta_can_edit() (in module enlace_auth.appmeta)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.appmeta.html#enlace_auth.appmeta.make_appmeta_router">make_appmeta_router() (in module enlace_auth.appmeta)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.make_auth_router">make_auth_router() (in module enlace_auth.auth)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.routes.html#enlace_auth.auth.routes.make_auth_router">(in module enlace_auth.auth.routes)</a>
+</li>
+      </ul></li>
+      <li><a href="_autosummary/enlace_auth.auth.email.html#enlace_auth.auth.email.make_console_sender">make_console_sender() (in module enlace_auth.auth.email)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.stores.html#enlace_auth.stores.make_file_store_factory">make_file_store_factory() (in module enlace_auth.stores)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.stores.backends.html#enlace_auth.stores.backends.make_file_store_factory">(in module enlace_auth.stores.backends)</a>
+</li>
+      </ul></li>
+      <li><a href="_autosummary/enlace_auth.auth.oauth.html#enlace_auth.auth.oauth.make_oauth_router">make_oauth_router() (in module enlace_auth.auth.oauth)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.auth.oauth_server.html#enlace_auth.auth.oauth_server.make_oauth_server_router">make_oauth_server_router() (in module enlace_auth.auth.oauth_server)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.auth.email.html#enlace_auth.auth.email.make_smtp_sender">make_smtp_sender() (in module enlace_auth.auth.email)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.stores.html#enlace_auth.stores.make_store_router">make_store_router() (in module enlace_auth.stores)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.stores.middleware.html#enlace_auth.stores.middleware.make_store_router">(in module enlace_auth.stores.middleware)</a>
+</li>
+      </ul></li>
+      <li><a href="_autosummary/enlace_auth.auth.reset_tokens.html#enlace_auth.auth.reset_tokens.MAX_TTL_SECONDS">MAX_TTL_SECONDS (in module enlace_auth.auth.reset_tokens)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.auth.reset_tokens.html#enlace_auth.auth.reset_tokens.mint_reset_token">mint_reset_token() (in module enlace_auth.auth.reset_tokens)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.html#enlace_auth.AuthConfig.model_config">model_config (enlace_auth.AuthConfig attribute)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.config.html#enlace_auth.config.AuthConfig.model_config">(enlace_auth.config.AuthConfig attribute)</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.config.html#enlace_auth.config.OAuthProviderConfig.model_config">(enlace_auth.config.OAuthProviderConfig attribute)</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.config.html#enlace_auth.config.OAuthServerConfig.model_config">(enlace_auth.config.OAuthServerConfig attribute)</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.config.html#enlace_auth.config.StoreBackendConfig.model_config">(enlace_auth.config.StoreBackendConfig attribute)</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.html#enlace_auth.OAuthProviderConfig.model_config">(enlace_auth.OAuthProviderConfig attribute)</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.html#enlace_auth.StoreBackendConfig.model_config">(enlace_auth.StoreBackendConfig attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     module
 
       <ul>
-        <li><a href="module_docs/enlace_auth.html#module-enlace_auth">enlace_auth</a>
+        <li><a href="_autosummary/enlace_auth.html#module-enlace_auth">enlace_auth</a>
 </li>
-        <li><a href="module_docs/enlace_auth/auth/cookies.html#module-enlace_auth.auth.cookies">enlace_auth.auth.cookies</a>
+        <li><a href="_autosummary/enlace_auth.admin.html#module-enlace_auth.admin">enlace_auth.admin</a>
 </li>
-        <li><a href="module_docs/enlace_auth/auth/grants.html#module-enlace_auth.auth.grants">enlace_auth.auth.grants</a>
+        <li><a href="_autosummary/enlace_auth.admin.routes.html#module-enlace_auth.admin.routes">enlace_auth.admin.routes</a>
 </li>
-        <li><a href="module_docs/enlace_auth/auth/middleware.html#module-enlace_auth.auth.middleware">enlace_auth.auth.middleware</a>
+        <li><a href="_autosummary/enlace_auth.appmeta.html#module-enlace_auth.appmeta">enlace_auth.appmeta</a>
 </li>
-        <li><a href="module_docs/enlace_auth/auth/passwords.html#module-enlace_auth.auth.passwords">enlace_auth.auth.passwords</a>
+        <li><a href="_autosummary/enlace_auth.auth.html#module-enlace_auth.auth">enlace_auth.auth</a>
 </li>
-        <li><a href="module_docs/enlace_auth/auth/sessions.html#module-enlace_auth.auth.sessions">enlace_auth.auth.sessions</a>
+        <li><a href="_autosummary/enlace_auth.auth.cookies.html#module-enlace_auth.auth.cookies">enlace_auth.auth.cookies</a>
 </li>
-        <li><a href="module_docs/enlace_auth/config.html#module-enlace_auth.config">enlace_auth.config</a>
+        <li><a href="_autosummary/enlace_auth.auth.email.html#module-enlace_auth.auth.email">enlace_auth.auth.email</a>
 </li>
-        <li><a href="module_docs/enlace_auth/plugin.html#module-enlace_auth.plugin">enlace_auth.plugin</a>
+        <li><a href="_autosummary/enlace_auth.auth.grants.html#module-enlace_auth.auth.grants">enlace_auth.auth.grants</a>
 </li>
-        <li><a href="module_docs/enlace_auth/stores/backends.html#module-enlace_auth.stores.backends">enlace_auth.stores.backends</a>
+        <li><a href="_autosummary/enlace_auth.auth.middleware.html#module-enlace_auth.auth.middleware">enlace_auth.auth.middleware</a>
 </li>
-        <li><a href="module_docs/enlace_auth/stores/validation.html#module-enlace_auth.stores.validation">enlace_auth.stores.validation</a>
+        <li><a href="_autosummary/enlace_auth.auth.oauth.html#module-enlace_auth.auth.oauth">enlace_auth.auth.oauth</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.auth.oauth_server.html#module-enlace_auth.auth.oauth_server">enlace_auth.auth.oauth_server</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.auth.pages.html#module-enlace_auth.auth.pages">enlace_auth.auth.pages</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.auth.passwords.html#module-enlace_auth.auth.passwords">enlace_auth.auth.passwords</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.auth.reset_tokens.html#module-enlace_auth.auth.reset_tokens">enlace_auth.auth.reset_tokens</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.auth.routes.html#module-enlace_auth.auth.routes">enlace_auth.auth.routes</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.auth.sessions.html#module-enlace_auth.auth.sessions">enlace_auth.auth.sessions</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.config.html#module-enlace_auth.config">enlace_auth.config</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.diagnostics.html#module-enlace_auth.diagnostics">enlace_auth.diagnostics</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.stores.html#module-enlace_auth.stores">enlace_auth.stores</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.stores.backends.html#module-enlace_auth.stores.backends">enlace_auth.stores.backends</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.stores.middleware.html#module-enlace_auth.stores.middleware">enlace_auth.stores.middleware</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.stores.prefixed.html#module-enlace_auth.stores.prefixed">enlace_auth.stores.prefixed</a>
+</li>
+        <li><a href="_autosummary/enlace_auth.stores.validation.html#module-enlace_auth.stores.validation">enlace_auth.stores.validation</a>
 </li>
       </ul></li>
   </ul></td>
@@ -308,15 +1099,17 @@
 <h2 id="O">O</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth.html#enlace_auth.OAuthProviderConfig">OAuthProviderConfig (class in enlace_auth)</a>
+      <li><a href="_autosummary/enlace_auth.auth.oauth_server.html#enlace_auth.auth.oauth_server.OAuthKeys">OAuthKeys (class in enlace_auth.auth.oauth_server)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.html#enlace_auth.OAuthProviderConfig">OAuthProviderConfig (class in enlace_auth)</a>
 
       <ul>
-        <li><a href="module_docs/enlace_auth/config.html#enlace_auth.config.OAuthProviderConfig">(class in enlace_auth.config)</a>
+        <li><a href="_autosummary/enlace_auth.config.html#enlace_auth.config.OAuthProviderConfig">(class in enlace_auth.config)</a>
 </li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth/config.html#enlace_auth.config.OAuthServerConfig">OAuthServerConfig (class in enlace_auth.config)</a>
+      <li><a href="_autosummary/enlace_auth.config.html#enlace_auth.config.OAuthServerConfig">OAuthServerConfig (class in enlace_auth.config)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -324,16 +1117,56 @@
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth/auth/grants.html#enlace_auth.auth.grants.parse_expires_at">parse_expires_at() (in module enlace_auth.auth.grants)</a>
+      <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.parse_expires_at">parse_expires_at() (in module enlace_auth.auth)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.grants.html#enlace_auth.auth.grants.parse_expires_at">(in module enlace_auth.auth.grants)</a>
 </li>
-      <li><a href="module_docs/enlace_auth/auth/middleware.html#enlace_auth.auth.middleware.PlatformAuthMiddleware">PlatformAuthMiddleware (class in enlace_auth.auth.middleware)</a>
+      </ul></li>
+      <li><a href="_autosummary/enlace_auth.auth.reset_tokens.html#enlace_auth.auth.reset_tokens.password_fingerprint">password_fingerprint() (in module enlace_auth.auth.reset_tokens)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.PlatformAuthMiddleware">PlatformAuthMiddleware (class in enlace_auth.auth)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.middleware.html#enlace_auth.auth.middleware.PlatformAuthMiddleware">(class in enlace_auth.auth.middleware)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/enlace_auth.html#enlace_auth.plugin">plugin() (in module enlace_auth)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.stores.html#enlace_auth.stores.PrefixedStore">PrefixedStore (class in enlace_auth.stores)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.stores.prefixed.html#enlace_auth.stores.prefixed.PrefixedStore">(class in enlace_auth.stores.prefixed)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="R">R</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.render_account_page">render_account_page() (in module enlace_auth.auth.pages)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.render_forgot_page">render_forgot_page() (in module enlace_auth.auth.pages)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.render_login_page">render_login_page() (in module enlace_auth.auth.pages)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.render_notice_page">render_notice_page() (in module enlace_auth.auth.pages)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth.html#enlace_auth.plugin">plugin() (in module enlace_auth)</a>
+      <li><a href="_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.render_reset_page">render_reset_page() (in module enlace_auth.auth.pages)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.render_shared_login_page">render_shared_login_page() (in module enlace_auth.auth.pages)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.auth.reset_tokens.html#enlace_auth.auth.reset_tokens.reset_url">reset_url() (in module enlace_auth.auth.reset_tokens)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.auth.sessions.html#enlace_auth.auth.sessions.SessionStore.revoke_user">revoke_user() (enlace_auth.auth.sessions.SessionStore method)</a>
 
       <ul>
-        <li><a href="module_docs/enlace_auth/plugin.html#enlace_auth.plugin.plugin">(in module enlace_auth.plugin)</a>
+        <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.SessionStore.revoke_user">(enlace_auth.auth.SessionStore method)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -342,18 +1175,38 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth/stores/validation.html#enlace_auth.stores.validation.sanitize_key">sanitize_key() (in module enlace_auth.stores.validation)</a>
+      <li><a href="_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.safe_next">safe_next() (in module enlace_auth.auth.pages)</a>
 </li>
-      <li><a href="module_docs/enlace_auth/auth/sessions.html#enlace_auth.auth.sessions.SessionStore">SessionStore (class in enlace_auth.auth.sessions)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth/auth/cookies.html#enlace_auth.auth.cookies.sign_cookie">sign_cookie() (in module enlace_auth.auth.cookies)</a>
-</li>
-      <li><a href="module_docs/enlace_auth.html#enlace_auth.StoreBackendConfig">StoreBackendConfig (class in enlace_auth)</a>
+      <li><a href="_autosummary/enlace_auth.stores.html#enlace_auth.stores.sanitize_key">sanitize_key() (in module enlace_auth.stores)</a>
 
       <ul>
-        <li><a href="module_docs/enlace_auth/config.html#enlace_auth.config.StoreBackendConfig">(class in enlace_auth.config)</a>
+        <li><a href="_autosummary/enlace_auth.stores.validation.html#enlace_auth.stores.validation.sanitize_key">(in module enlace_auth.stores.validation)</a>
+</li>
+      </ul></li>
+      <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.SessionStore">SessionStore (class in enlace_auth.auth)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.sessions.html#enlace_auth.auth.sessions.SessionStore">(class in enlace_auth.auth.sessions)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.sign_cookie">sign_cookie() (in module enlace_auth.auth)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.cookies.html#enlace_auth.auth.cookies.sign_cookie">(in module enlace_auth.auth.cookies)</a>
+</li>
+      </ul></li>
+      <li><a href="_autosummary/enlace_auth.html#enlace_auth.StoreBackendConfig">StoreBackendConfig (class in enlace_auth)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.config.html#enlace_auth.config.StoreBackendConfig">(class in enlace_auth.config)</a>
+</li>
+      </ul></li>
+      <li><a href="_autosummary/enlace_auth.stores.html#enlace_auth.stores.StoreInjectionMiddleware">StoreInjectionMiddleware (class in enlace_auth.stores)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.stores.middleware.html#enlace_auth.stores.middleware.StoreInjectionMiddleware">(class in enlace_auth.stores.middleware)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -362,11 +1215,21 @@
 <h2 id="V">V</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth/auth/cookies.html#enlace_auth.auth.cookies.verify_cookie">verify_cookie() (in module enlace_auth.auth.cookies)</a>
+      <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.verify_cookie">verify_cookie() (in module enlace_auth.auth)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.cookies.html#enlace_auth.auth.cookies.verify_cookie">(in module enlace_auth.auth.cookies)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth/auth/passwords.html#enlace_auth.auth.passwords.verify_password">verify_password() (in module enlace_auth.auth.passwords)</a>
+      <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.verify_password">verify_password() (in module enlace_auth.auth)</a>
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.auth.passwords.html#enlace_auth.auth.passwords.verify_password">(in module enlace_auth.auth.passwords)</a>
+</li>
+      </ul></li>
+      <li><a href="_autosummary/enlace_auth.auth.reset_tokens.html#enlace_auth.auth.reset_tokens.verify_reset_token">verify_reset_token() (in module enlace_auth.auth.reset_tokens)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -374,42 +1237,60 @@
 <h2 id="W">W</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_auth.html#enlace_auth.wire">wire() (in module enlace_auth)</a>
-
-      <ul>
-        <li><a href="module_docs/enlace_auth/plugin.html#enlace_auth.plugin.wire">(in module enlace_auth.plugin)</a>
+      <li><a href="_autosummary/enlace_auth.html#enlace_auth.wire">wire() (in module enlace_auth)</a>
 </li>
-      </ul></li>
   </ul></td>
 </tr></table>
 
 
 
-           </div>
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
           </div>
-          <footer>
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p></p>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
   </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
 
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
 
-</footer>
-        </div>
-      </div>
-    </section>
-  </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script> 
-
-</body>
+  </footer>
+  </body>
 </html>

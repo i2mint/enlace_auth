@@ -1,0 +1,31 @@
+enlace\_auth.stores
+===================
+
+.. automodule:: enlace_auth.stores
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_file_store_factory
+      make_store_router
+      sanitize_key
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      PrefixedStore
+      StoreInjectionMiddleware
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   backends
+   middleware
+   prefixed
+   validation

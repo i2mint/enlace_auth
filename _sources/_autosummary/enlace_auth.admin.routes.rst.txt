@@ -1,0 +1,13 @@
+enlace\_auth.admin.routes
+=========================
+
+.. automodule:: enlace_auth.admin.routes
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_admin_router
+      make_admin_ui_router
+   

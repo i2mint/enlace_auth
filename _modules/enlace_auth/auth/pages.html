@@ -1,0 +1,1423 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="alternate" type="text/markdown" href="pages.html.md">
+<link rel="describedby" href="../../../llms.txt" type="text/markdown">
+    <title>enlace_auth.auth.pages &#8212; enlace_auth</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/epythet.css?v=d146b16c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../../../_static/documentation_options.js?v=20522496"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=fd10adb8"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = "pre.mermaid {\n    /* Same as .mermaid-container > pre */\n    display: block;\n    width: 100%;\n}\n\npre.mermaid > svg {\n    /* Same as .mermaid-container > pre > svg */\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}";
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = ".mermaid-container {\n    position: relative;\n    display: flex;\n    flex-direction: row;\n    width: 100%;\n}\n\n.mermaid-container > pre {\n    display: block;\n    width: 100%;\n}\n\n.mermaid-container > pre > svg {\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}\n\n.mermaid-fullscreen-btn {\n    position: absolute;\n    width: 28px;\n    height: 28px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.3);\n    border-radius: 4px;\n    cursor: pointer;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    transition: all 0.2s;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);\n    font-size: 14px;\n    line-height: 1;\n    padding: 0;\n    color: #333;\n}\n\n.mermaid-fullscreen-btn:hover {\n    opacity: 100% !important;\n    background: rgba(255, 255, 255, 1);\n    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-btn.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.3);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-btn.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal {\n    display: none;\n    position: fixed !important;\n    top: 0 !important;\n    left: 0 !important;\n    width: 95vw;\n    height: 100vh;\n    background: rgba(255, 255, 255, 0.98);\n    z-index: 9999;\n    padding: 20px;\n    overflow: auto;\n}\n\n.mermaid-fullscreen-modal.dark-theme {\n    background: rgba(0, 0, 0, 0.98);\n}\n\n.mermaid-fullscreen-modal.active {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen {\n    position: relative;\n    width: 95vw;\n    height: 90vh;\n    max-width: 95vw;\n    max-height: 90vh;\n    background: white;\n    border-radius: 8px;\n    padding: 20px;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);\n    overflow: auto;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen.dark-theme {\n    background: #1a1a1a;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);\n}\n\n.mermaid-container-fullscreen pre.mermaid {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen .mermaid svg {\n    height: 100% !important;\n    width: 100% !important;\n    cursor: grab;\n}\n\n.mermaid-fullscreen-close {\n    position: fixed !important;\n    top: 20px !important;\n    right: 20px !important;\n    width: 40px;\n    height: 40px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.2);\n    border-radius: 50%;\n    cursor: pointer;\n    z-index: 10000;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);\n    transition: all 0.2s;\n    font-size: 24px;\n    line-height: 1;\n    color: #333;\n}\n\n.mermaid-fullscreen-close:hover {\n    background: white;\n    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-close.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.2);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-close.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal .mermaid-fullscreen-btn {\n    display: none !important;\n}";
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+let _lazyObserver = null;
+let _renderQueue = Promise.resolve();
+let closeModal = () => {};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal?.classList.contains('active')) {
+        closeModal();
+    }
+});
+
+// Apply d3 zoom to each SVG. Idempotent: an SVG already wrapped is skipped,
+// so this is safe to call both for the initial batch and for diagrams that
+// render lazily once they become visible.
+const addZoomToSvgs = (svgs) => {
+    svgs.each(function() {
+        if (this.getAttribute('data-zoom-applied') === 'true') return;
+        var svg = d3.select(this);
+        svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+        var inner = svg.select("g");
+        var zoom = d3.zoom().on("zoom", function(event) {
+            inner.attr("transform", event.transform);
+        });
+        svg.call(zoom);
+        this.setAttribute('data-zoom-applied', 'true');
+    });
+};
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        // Disconnect any previous lazy rendering observer
+        if (_lazyObserver) {
+            _lazyObserver.disconnect();
+            _lazyObserver = null;
+        }
+
+        all_mermaids.forEach((el) => {
+            el.removeAttribute('data-mermaid-deferred');
+            el.removeAttribute('data-mermaid-render-failed');
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+
+        // Separate visible and hidden elements. Mermaid's layout engine measures
+        // text dimensions via the DOM, which fails for elements hidden by a parent
+        // (e.g., Reveal.js non-active slides, sphinx-design unopened tabs),
+        // producing broken SVGs. Render visible elements now, defer hidden ones.
+        const visible = [];
+        const hidden = [];
+        all_mermaids.forEach((el) => {
+            // offsetParent is null for display:none ancestors.
+            // getClientRects().length > 0 catches position:fixed elements
+            // (which also have null offsetParent but are still visible).
+            if (el.offsetParent !== null || el.getClientRects().length > 0) {
+                visible.push(el);
+            } else {
+                hidden.push(el);
+                el.setAttribute('data-mermaid-deferred', 'true');
+            }
+        });
+
+        if (visible.length > 0) {
+            try {
+                await mermaid.run({ nodes: visible });
+            } catch (e) {
+                console.error("Mermaid rendering failed:", e);
+            }
+        }
+
+        // Lazily render hidden elements when they become visible.
+        // Uses a promise chain (_renderQueue) to serialize rendering,
+        // since IntersectionObserver may report multiple entries at once
+        // and mermaid.run() is not safe to call concurrently.
+        if (hidden.length > 0) {
+            if (typeof IntersectionObserver === 'undefined') {
+                console.warn("IntersectionObserver not available; hidden mermaid diagrams will not render.");
+            } else {
+                _renderQueue = Promise.resolve();
+                _lazyObserver = new IntersectionObserver((entries) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting && entry.target.getAttribute("data-processed") !== "true") {
+                            _lazyObserver.unobserve(entry.target);
+                            const el = entry.target;
+                            _renderQueue = _renderQueue.then(async () => {
+                                try {
+                                    await mermaid.run({ nodes: [el] });
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    // Apply zoom to the now-rendered diagram, matching
+                                    // the decoration visible diagrams receive.
+                                    if (false) {
+                                        addZoomToSvgs(d3.selectAll("").select(function() {
+                                            return this.querySelector("svg");
+                                        }));
+                                    }
+                                } catch (e) {
+                                    console.error("Mermaid deferred rendering failed:", e);
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    el.setAttribute('data-mermaid-render-failed', 'true');
+                                }
+                            });
+                        }
+                    }
+                });
+                hidden.forEach((el) => _lazyObserver.observe(el));
+            }
+        }
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    // Exclude deferred (hidden) and render-failed elements from completion checks
+    const mermaids_active = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])");
+    const mermaids_processed = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])[data-processed='true']");
+
+    if (false) {
+        const mermaids_to_add_zoom = 0 === -1 ? mermaids_active.length : 0;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("").select(function() {
+                return this.querySelector("svg");
+            });
+            // Wait until every active (visible) diagram has rendered. Deferred
+            // diagrams are excluded, so a fixed d3_node_count that counts a
+            // hidden diagram no longer loops forever waiting for its SVG.
+            if(mermaids_active.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            }
+            addZoomToSvgs(svgs);
+        }
+    } else if(mermaids_active.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if (!true) return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = "\u26f6";
+        fullscreenBtn.style.opacity = "50%";
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scrollX, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.display = 'block';
+
+                if (false) {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+
+
+const load = async () => {
+    initStyles();
+
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...{"startOnLoad": false},
+                ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...{"startOnLoad": false},
+    ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/enlace_auth/auth/pages';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.23" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">enlace_auth</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api.html">
+    API reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_auth" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api.html">
+    API reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_auth" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">enlace_auth.auth.pages</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for enlace_auth.auth.pages</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""HTML pages for the enlace_auth browser-facing flows.</span>
+
+<span class="sd">Single source of truth for the auth UI: the sign-in page, the account page</span>
+<span class="sd">(change your own password), the password-recovery pages, and a generic notice</span>
+<span class="sd">page. Pages are returned as plain HTML strings — the</span>
+<span class="sd">same inline-HTML, no-build-step pattern used elsewhere in enlace</span>
+<span class="sd">(``enlace.frontend._NOT_FOUND_PAGE``). All pages share one dark, minimal</span>
+<span class="sd">stylesheet so the platform feels consistent from the very first unauthenticated</span>
+<span class="sd">screen.</span>
+
+<span class="sd">``PlatformAuthMiddleware`` 303-redirects a blocked browser navigation to</span>
+<span class="sd">``/auth/login?login_required=1&amp;next=&lt;path&gt;``; :func:`render_login_page` is the</span>
+<span class="sd">page that redirect lands on, and it threads ``next`` back through after sign-in.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">html</span><span class="w"> </span><span class="kn">import</span> <span class="n">escape</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_js_string</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Encode a Python string as a JS string literal safe to embed inline in a</span>
+<span class="sd">    ``&lt;script&gt;`` element.</span>
+
+<span class="sd">    ``html.escape`` is WRONG here: inside a ``&lt;script&gt;`` element the browser does</span>
+<span class="sd">    not decode HTML entities, so escaping ``&amp;`` to ``&amp;amp;`` corrupts the string</span>
+<span class="sd">    at runtime (e.g. a ``next`` URL's ``?a=1&amp;b=2`` query becomes ``?a=1&amp;amp;b=2``,</span>
+<span class="sd">    dropping every parameter after the first). JSON is the correct encoding for a</span>
+<span class="sd">    JS string literal; the extra ``\\uXXXX`` replacements keep ``&amp;``/``&lt;``/``&gt;``</span>
+<span class="sd">    inert in the HTML tokenizer (no ``&lt;/script&gt;`` breakout) while the JS engine</span>
+<span class="sd">    decodes them back to the original characters at runtime. Returns the literal</span>
+<span class="sd">    *including* its surrounding quotes.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"&amp;"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">u0026"</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"&lt;"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">u003c"</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"&gt;"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">u003e"</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"</span><span class="se">\u2028</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">u2028"</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"</span><span class="se">\u2029</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">u2029"</span><span class="p">)</span>
+    <span class="p">)</span>
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># Shared chrome</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+
+<span class="n">_CSS</span> <span class="o">=</span> <span class="s2">"""</span>
+<span class="s2">*{box-sizing:border-box}</span>
+<span class="s2">body{font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;</span>
+<span class="s2">     background:#0f1115;color:#e6e8eb;margin:0;min-height:100vh;</span>
+<span class="s2">     display:grid;place-items:center;padding:20px}</span>
+<span class="s2">.card{width:100%;max-width:400px;background:#171a21;border:1px solid #2a2e38;</span>
+<span class="s2">      border-radius:12px;padding:28px 32px}</span>
+<span class="s2">.card.wide{max-width:560px}</span>
+<span class="s2">h1{margin:0 0 6px;font-size:21px;font-weight:600;text-align:center}</span>
+<span class="s2">.sub{margin:0 0 20px;color:#8a90a0;font-size:14px;text-align:center}</span>
+<span class="s2">p{color:#c4c8d0;margin:0 0 16px}</span>
+<span class="s2">label{display:block;font-size:13px;color:#8a90a0;margin:14px 0 4px}</span>
+<span class="s2">input{width:100%;background:#0f1115;border:1px solid #2a2e38;border-radius:8px;</span>
+<span class="s2">      color:#e6e8eb;font-size:15px;padding:10px 12px}</span>
+<span class="s2">input:focus{outline:none;border-color:#7cc4ff}</span>
+<span class="s2">button{width:100%;margin-top:20px;background:#7cc4ff;color:#0a1420;border:0;</span>
+<span class="s2">       border-radius:8px;font-size:15px;font-weight:600;padding:11px;</span>
+<span class="s2">       cursor:pointer}</span>
+<span class="s2">button:hover{background:#9aa6ff}</span>
+<span class="s2">button:disabled{opacity:.6;cursor:default}</span>
+<span class="s2">a{color:#7cc4ff;text-decoration:none}</span>
+<span class="s2">a:hover{text-decoration:underline}</span>
+<span class="s2">a.btn{display:inline-block;width:auto;background:#7cc4ff;color:#0a1420;</span>
+<span class="s2">      font-weight:600;padding:9px 18px;border-radius:8px;margin-top:4px}</span>
+<span class="s2">a.btn:hover{background:#9aa6ff;text-decoration:none}</span>
+<span class="s2">.nav{margin-top:18px;text-align:center;font-size:13px}</span>
+<span class="s2">.nav a{margin:0 8px}</span>
+<span class="s2">.msg{margin-top:14px;padding:9px 12px;border-radius:8px;font-size:14px;</span>
+<span class="s2">     display:none}</span>
+<span class="s2">.msg.err{display:block;background:#2a1416;border:1px solid #5a2a2e;</span>
+<span class="s2">         color:#ffb4b4}</span>
+<span class="s2">.msg.ok{display:block;background:#13241a;border:1px solid #2a5a3a;</span>
+<span class="s2">        color:#a4e8c0}</span>
+<span class="s2">.muted{color:#8a90a0;font-size:13px;text-align:center;margin-top:14px}</span>
+<span class="s2">code{background:#0f1115;padding:1px 6px;border-radius:4px;</span>
+<span class="s2">     border:1px solid #2a2e38;color:#e6e8eb;word-break:break-all}</span>
+<span class="s2">.actions{text-align:center}</span>
+<span class="s2">.pw-wrap{position:relative}</span>
+<span class="s2">.pw-wrap input{padding-right:64px}</span>
+<span class="s2">.pw-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);</span>
+<span class="s2">           width:auto;margin:0;background:transparent;color:#8a90a0;border:0;</span>
+<span class="s2">           font-size:13px;font-weight:500;padding:4px 8px;cursor:pointer}</span>
+<span class="s2">.pw-toggle:hover{background:transparent;color:#7cc4ff;text-decoration:underline}</span>
+<span class="s2">"""</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+<span class="n">_SHELL</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"&lt;!doctype html&gt;</span><span class="se">\n</span><span class="s2">"</span>
+    <span class="s1">'&lt;html lang="en"&gt;&lt;head&gt;&lt;meta charset="utf-8"&gt;</span><span class="se">\n</span><span class="s1">'</span>
+    <span class="s1">'&lt;meta name="viewport" content="width=device-width,initial-scale=1"&gt;</span><span class="se">\n</span><span class="s1">'</span>
+    <span class="s2">"&lt;title&gt;__TITLE__&lt;/title&gt;</span><span class="se">\n</span><span class="s2">"</span>
+    <span class="s2">"&lt;style&gt;__CSS__&lt;/style&gt;&lt;/head&gt;&lt;body&gt;</span><span class="se">\n</span><span class="s2">"</span>
+    <span class="s2">"__BODY__</span><span class="se">\n</span><span class="s2">"</span>
+    <span class="s2">"&lt;/body&gt;&lt;/html&gt;"</span>
+<span class="p">)</span>
+
+<span class="c1"># Shared client helper: the CSRF double-submit dance. enlace's CSRFMiddleware</span>
+<span class="c1"># requires GET /auth/csrf first, then the unsigned token echoed in a header on</span>
+<span class="c1"># every mutating request.</span>
+<span class="n">_CSRF_JS</span> <span class="o">=</span> <span class="s2">"""</span>
+<span class="s2">async function csrfToken(){</span>
+<span class="s2">  const r = await fetch('/auth/csrf', {credentials:'include'});</span>
+<span class="s2">  if(!r.ok) throw new Error('Could not get a security token. Reload and retry.');</span>
+<span class="s2">  return (await r.json()).csrf;</span>
+<span class="s2">}</span>
+<span class="s2">async function postJSON(url, data){</span>
+<span class="s2">  const token = await csrfToken();</span>
+<span class="s2">  const r = await fetch(url, {</span>
+<span class="s2">    method:'POST', credentials:'include',</span>
+<span class="s2">    headers:{'Content-Type':'application/json','X-CSRF-Token':token},</span>
+<span class="s2">    body: JSON.stringify(data),</span>
+<span class="s2">  });</span>
+<span class="s2">  let body = </span><span class="si">{}</span><span class="s2">;</span>
+<span class="s2">  try { body = await r.json(); } catch(e) </span><span class="si">{}</span>
+<span class="s2">  return {ok:r.ok, status:r.status, detail:(body &amp;&amp; body.detail) || ''};</span>
+<span class="s2">}</span>
+<span class="s2">"""</span>
+
+
+<span class="c1"># Shared client helper: wire every ``.pw-toggle`` button to flip its target</span>
+<span class="c1"># input between ``password`` and ``text``. One handler covers all password</span>
+<span class="c1"># fields on a page (login has one; the reset page has two).</span>
+<span class="n">_PW_TOGGLE_JS</span> <span class="o">=</span> <span class="s2">"""</span>
+<span class="s2">function wirePasswordToggles(){</span>
+<span class="s2">  document.querySelectorAll('.pw-toggle').forEach(function(btn){</span>
+<span class="s2">    btn.addEventListener('click', function(){</span>
+<span class="s2">      var inp = document.getElementById(btn.dataset.target);</span>
+<span class="s2">      if(!inp) return;</span>
+<span class="s2">      var reveal = inp.type === 'password';</span>
+<span class="s2">      inp.type = reveal ? 'text' : 'password';</span>
+<span class="s2">      btn.textContent = reveal ? 'Hide' : 'Show';</span>
+<span class="s2">      btn.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');</span>
+<span class="s2">    });</span>
+<span class="s2">  });</span>
+<span class="s2">}</span>
+<span class="s2">wirePasswordToggles();</span>
+<span class="s2">"""</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_password_input</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">autocomplete</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">extra</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Render a password input wrapped with a show/hide visibility toggle.</span>
+
+<span class="sd">    The toggle button carries ``data-target`` so the shared</span>
+<span class="sd">    :data:`_PW_TOGGLE_JS` handler can flip the field's ``type``. ``extra``</span>
+<span class="sd">    threads through any additional input attributes (e.g. ``minlength``).</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s1">'&lt;div class="pw-wrap"&gt;'</span>
+        <span class="sa">f</span><span class="s1">'&lt;input id="</span><span class="si">{</span><span class="nb">id</span><span class="si">}</span><span class="s1">" name="</span><span class="si">{</span><span class="nb">id</span><span class="si">}</span><span class="s1">" type="password" required '</span>
+        <span class="sa">f</span><span class="s1">'autocomplete="</span><span class="si">{</span><span class="n">autocomplete</span><span class="si">}</span><span class="s1">"</span><span class="si">{</span><span class="n">extra</span><span class="si">}</span><span class="s1">&gt;'</span>
+        <span class="sa">f</span><span class="s1">'&lt;button type="button" class="pw-toggle" data-target="</span><span class="si">{</span><span class="nb">id</span><span class="si">}</span><span class="s1">" '</span>
+        <span class="sa">f</span><span class="s1">'aria-label="Show password"&gt;Show&lt;/button&gt;'</span>
+        <span class="sa">f</span><span class="s2">"&lt;/div&gt;"</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="fill_template">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.fill_template">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fill_template</span><span class="p">(</span><span class="n">template</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">**</span><span class="n">values</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Fill ``{name}`` placeholders in *template* with HTML-escaped *values*.</span>
+
+<span class="sd">    The escaping boundary for any page that interpolates request- or</span>
+<span class="sd">    user-supplied data into HTML. Escaping happens **here**, once, rather than</span>
+<span class="sd">    at each interpolation site: a value cannot reach the markup without passing</span>
+<span class="sd">    through :func:`html.escape`, so a placeholder added later is safe by</span>
+<span class="sd">    construction instead of by the author remembering. Note that :func:`_page`</span>
+<span class="sd">    escapes only the page *title* — the body it receives is inserted verbatim,</span>
+<span class="sd">    so a body built by string interpolation must come through this function.</span>
+
+<span class="sd">    ``quote=True`` covers both sinks used here: element text, and attribute</span>
+<span class="sd">    values in either quote style.</span>
+
+<span class="sd">    *template* is trusted, static markup and must contain no literal braces</span>
+<span class="sd">    other than its placeholders (:meth:`str.format` rules apply). Compose a</span>
+<span class="sd">    page from several ``fill_template`` results rather than leaving an</span>
+<span class="sd">    un-escaped hole in one big template.</span>
+
+<span class="sd">    &gt;&gt;&gt; fill_template('&lt;input value="{v}"&gt;', v='" onx=1')</span>
+<span class="sd">    '&lt;input value="&amp;quot; onx=1"&gt;'</span>
+
+<span class="sd">    Only *values* are escaped; the template's own markup passes through as-is:</span>
+
+<span class="sd">    &gt;&gt;&gt; fill_template("&lt;p&gt;{who} &amp;amp; {what}&lt;/p&gt;", who="a&lt;b", what="c&gt;d")</span>
+<span class="sd">    '&lt;p&gt;a&amp;lt;b &amp;amp; c&amp;gt;d&lt;/p&gt;'</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">quote</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_page</span><span class="p">(</span><span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Wrap ``body`` HTML in the shared shell with ``title``.</span>
+
+<span class="sd">    ``body`` is inserted **verbatim** — it is expected to be markup the caller</span>
+<span class="sd">    assembled, so any dynamic value in it must already have gone through</span>
+<span class="sd">    :func:`fill_template`.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">_SHELL</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"__TITLE__"</span><span class="p">,</span> <span class="n">escape</span><span class="p">(</span><span class="n">title</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"__CSS__"</span><span class="p">,</span> <span class="n">_CSS</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"__BODY__"</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_msg_div</span><span class="p">(</span><span class="n">error</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the ``#msg`` status element, pre-populated when ``error`` is set.</span>
+
+<span class="sd">    Forms reuse a single status line: server-rendered errors land here on first</span>
+<span class="sd">    paint, and the client script rewrites the same element after a submit.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">'&lt;div id="msg" class="msg err"&gt;</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="si">}</span><span class="s1">&lt;/div&gt;'</span>
+    <span class="k">return</span> <span class="s1">'&lt;div id="msg" class="msg"&gt;&lt;/div&gt;'</span>
+
+
+<div class="viewcode-block" id="safe_next">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.safe_next">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">safe_next</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"/"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return a same-origin path safe to redirect to, or ``default``.</span>
+
+<span class="sd">    Guards against open-redirect: only local absolute paths are accepted —</span>
+<span class="sd">    no scheme, no ``//host`` form, no control characters. This is applied to</span>
+<span class="sd">    every ``?next=`` value before it reaches a page or a redirect.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">raw</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">default</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">raw</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">raw</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"//"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">raw</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"/</span><span class="se">\\</span><span class="s2">"</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">default</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span> <span class="ow">in</span> <span class="n">raw</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\r</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">"</span><span class="p">))</span> <span class="ow">or</span> <span class="s2">":"</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"?"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">default</span>
+    <span class="k">return</span> <span class="n">raw</span></div>
+
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># Sign-in</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="render_login_page">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.render_login_page">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">render_login_page</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">next_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"/"</span><span class="p">,</span>
+    <span class="n">error</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">show_register_hint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Render the sign-in form.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        next_url: where to send the browser after a successful login. Already</span>
+<span class="sd">            sanitized by the caller via :func:`safe_next`.</span>
+<span class="sd">        error: optional error banner (e.g. a stale-session note).</span>
+<span class="sd">        show_register_hint: whether to show the "ask an admin" footnote.</span>
+<span class="sd">    """</span>
+    <span class="n">next_js</span> <span class="o">=</span> <span class="n">_js_string</span><span class="p">(</span><span class="n">next_url</span><span class="p">)</span>
+    <span class="n">hint</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s1">'&lt;p class="muted"&gt;No account? Accounts are created by the platform admin.&lt;/p&gt;'</span>
+        <span class="k">if</span> <span class="n">show_register_hint</span>
+        <span class="k">else</span> <span class="s2">""</span>
+    <span class="p">)</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""&lt;div class="card"&gt;</span>
+<span class="s2">&lt;h1&gt;Sign in&lt;/h1&gt;</span>
+<span class="s2">&lt;p class="sub"&gt;Access your apps on this platform.&lt;/p&gt;</span>
+<span class="s2">&lt;form id="f" autocomplete="on"&gt;</span>
+<span class="s2">  &lt;label for="email"&gt;Email&lt;/label&gt;</span>
+<span class="s2">  &lt;input id="email" name="email" type="email" required autocomplete="username"</span>
+<span class="s2">         autofocus&gt;</span>
+<span class="s2">  &lt;label for="password"&gt;Password&lt;/label&gt;</span>
+<span class="s2">  </span><span class="si">{</span><span class="n">_password_input</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"password"</span><span class="p">,</span><span class="w"> </span><span class="n">autocomplete</span><span class="o">=</span><span class="s2">"current-password"</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">  &lt;button id="submit" type="submit"&gt;Sign in&lt;/button&gt;</span>
+<span class="s2">&lt;/form&gt;</span>
+<span class="si">{</span><span class="n">_msg_div</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">&lt;div class="nav"&gt;</span>
+<span class="s2">  &lt;a href="/auth/forgot-password"&gt;Forgot password?&lt;/a&gt;</span>
+<span class="s2">  &lt;a href="/"&gt;Back to apps&lt;/a&gt;</span>
+<span class="s2">&lt;/div&gt;</span>
+<span class="si">{</span><span class="n">hint</span><span class="si">}</span>
+<span class="s2">&lt;/div&gt;</span>
+<span class="s2">&lt;script&gt;</span>
+<span class="si">{</span><span class="n">_CSRF_JS</span><span class="si">}</span>
+<span class="si">{</span><span class="n">_PW_TOGGLE_JS</span><span class="si">}</span>
+<span class="s2">const NEXT = </span><span class="si">{</span><span class="n">next_js</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">const f = document.getElementById('f');</span>
+<span class="s2">const msg = document.getElementById('msg');</span>
+<span class="s2">const submit = document.getElementById('submit');</span>
+<span class="s2">f.addEventListener('submit', async (e) =&gt; </span><span class="se">{{</span>
+<span class="s2">  e.preventDefault();</span>
+<span class="s2">  msg.className = 'msg'; submit.disabled = true; submit.textContent = 'Signing in…';</span>
+<span class="s2">  try </span><span class="se">{{</span>
+<span class="s2">    const res = await postJSON('/auth/login', </span><span class="se">{{</span>
+<span class="s2">      email: document.getElementById('email').value.trim(),</span>
+<span class="s2">      password: document.getElementById('password').value,</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    if (res.ok) </span><span class="se">{{</span><span class="s2"> window.location.assign(NEXT || '/'); return; </span><span class="se">}}</span>
+<span class="s2">    msg.textContent = res.detail || ('Sign in failed (' + res.status + ').');</span>
+<span class="s2">    msg.className = 'msg err';</span>
+<span class="s2">  </span><span class="se">}}</span><span class="s2"> catch (err) </span><span class="se">{{</span>
+<span class="s2">    msg.textContent = err.message || 'Something went wrong.';</span>
+<span class="s2">    msg.className = 'msg err';</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="s2">  submit.disabled = false; submit.textContent = 'Sign in';</span>
+<span class="se">}}</span><span class="s2">);</span>
+<span class="s2">&lt;/script&gt;"""</span>
+    <span class="k">return</span> <span class="n">_page</span><span class="p">(</span><span class="s2">"Sign in"</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># Shared-password sign-in (protected:shared apps)</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="render_shared_login_page">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.render_shared_login_page">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">render_shared_login_page</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">app</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">next_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"/"</span><span class="p">,</span>
+    <span class="n">error</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Render the shared-password form for a ``protected:shared`` app.</span>
+
+<span class="sd">    Unlike :func:`render_login_page` this asks for a single shared password</span>
+<span class="sd">    (no email) and posts to ``/auth/shared-login`` with the ``app`` id, so a</span>
+<span class="sd">    browser hitting a password-gated app with no frontend has something to</span>
+<span class="sd">    fill in.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        app: the app id whose shared password is being entered. Shown to the</span>
+<span class="sd">            user and threaded into the POST body.</span>
+<span class="sd">        next_url: where to send the browser after success. Already sanitized</span>
+<span class="sd">            by the caller via :func:`safe_next`.</span>
+<span class="sd">        error: optional error banner.</span>
+<span class="sd">    """</span>
+    <span class="n">app_js</span> <span class="o">=</span> <span class="n">escape</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">quote</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">next_js</span> <span class="o">=</span> <span class="n">_js_string</span><span class="p">(</span><span class="n">next_url</span><span class="p">)</span>
+    <span class="n">app_disp</span> <span class="o">=</span> <span class="n">escape</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""&lt;div class="card"&gt;</span>
+<span class="s2">&lt;h1&gt;Enter password&lt;/h1&gt;</span>
+<span class="s2">&lt;p class="sub"&gt;&lt;code&gt;</span><span class="si">{</span><span class="n">app_disp</span><span class="si">}</span><span class="s2">&lt;/code&gt; is protected by a shared password.&lt;/p&gt;</span>
+<span class="s2">&lt;form id="f"&gt;</span>
+<span class="s2">  &lt;label for="password"&gt;Password&lt;/label&gt;</span>
+<span class="s2">  &lt;input id="password" name="password" type="password" required autofocus</span>
+<span class="s2">         autocomplete="current-password"&gt;</span>
+<span class="s2">  &lt;button id="submit" type="submit"&gt;Continue&lt;/button&gt;</span>
+<span class="s2">&lt;/form&gt;</span>
+<span class="si">{</span><span class="n">_msg_div</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">&lt;div class="nav"&gt;</span>
+<span class="s2">  &lt;a href="/"&gt;Back to apps&lt;/a&gt;</span>
+<span class="s2">&lt;/div&gt;</span>
+<span class="s2">&lt;/div&gt;</span>
+<span class="s2">&lt;script&gt;</span>
+<span class="si">{</span><span class="n">_CSRF_JS</span><span class="si">}</span>
+<span class="s2">const APP = "</span><span class="si">{</span><span class="n">app_js</span><span class="si">}</span><span class="s2">";</span>
+<span class="s2">const NEXT = </span><span class="si">{</span><span class="n">next_js</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">const f = document.getElementById('f');</span>
+<span class="s2">const msg = document.getElementById('msg');</span>
+<span class="s2">const submit = document.getElementById('submit');</span>
+<span class="s2">f.addEventListener('submit', async (e) =&gt; </span><span class="se">{{</span>
+<span class="s2">  e.preventDefault();</span>
+<span class="s2">  msg.className = 'msg'; submit.disabled = true; submit.textContent = 'Checking…';</span>
+<span class="s2">  try </span><span class="se">{{</span>
+<span class="s2">    const res = await postJSON('/auth/shared-login', </span><span class="se">{{</span>
+<span class="s2">      app: APP,</span>
+<span class="s2">      password: document.getElementById('password').value,</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    if (res.ok) </span><span class="se">{{</span><span class="s2"> window.location.assign(NEXT || '/'); return; </span><span class="se">}}</span>
+<span class="s2">    msg.textContent = res.detail || ('Sign in failed (' + res.status + ').');</span>
+<span class="s2">    msg.className = 'msg err';</span>
+<span class="s2">  </span><span class="se">}}</span><span class="s2"> catch (err) </span><span class="se">{{</span>
+<span class="s2">    msg.textContent = err.message || 'Something went wrong.';</span>
+<span class="s2">    msg.className = 'msg err';</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="s2">  submit.disabled = false; submit.textContent = 'Continue';</span>
+<span class="se">}}</span><span class="s2">);</span>
+<span class="s2">&lt;/script&gt;"""</span>
+    <span class="k">return</span> <span class="n">_page</span><span class="p">(</span><span class="s2">"Enter password"</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># Forgot password — request a reset link</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="render_forgot_page">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.render_forgot_page">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">render_forgot_page</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">email_delivery_configured</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Render the "request a password-reset link" form.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        error: optional error banner.</span>
+<span class="sd">        email_delivery_configured: whether the platform has a mail sender</span>
+<span class="sd">            wired. When it does not, the page says so and points at the admin</span>
+<span class="sd">            instead of inviting the user to watch an inbox nothing will arrive</span>
+<span class="sd">            in. This is a property of the deployment, not of any account, so</span>
+<span class="sd">            showing it leaks nothing about who is registered — the *submit*</span>
+<span class="sd">            response stays identical either way.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">email_delivery_configured</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">render_notice_page</span><span class="p">(</span>
+            <span class="n">title</span><span class="o">=</span><span class="s2">"Reset your password"</span><span class="p">,</span>
+            <span class="n">heading</span><span class="o">=</span><span class="s2">"Ask the admin for a reset link"</span><span class="p">,</span>
+            <span class="n">message</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">"This platform has no email delivery configured, so it can't "</span>
+                <span class="s2">"send you a reset link. Contact the platform admin and they "</span>
+                <span class="s2">"can generate one for you."</span>
+            <span class="p">),</span>
+            <span class="n">links</span><span class="o">=</span><span class="p">[(</span><span class="s2">"Back to sign in"</span><span class="p">,</span> <span class="s2">"/auth/login"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)],</span>
+        <span class="p">)</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""&lt;div class="card"&gt;</span>
+<span class="s2">&lt;h1&gt;Reset your password&lt;/h1&gt;</span>
+<span class="s2">&lt;p class="sub"&gt;We'll email you a link to set a new password.&lt;/p&gt;</span>
+<span class="s2">&lt;form id="f"&gt;</span>
+<span class="s2">  &lt;label for="email"&gt;Email&lt;/label&gt;</span>
+<span class="s2">  &lt;input id="email" name="email" type="email" required autocomplete="username"</span>
+<span class="s2">         autofocus&gt;</span>
+<span class="s2">  &lt;button id="submit" type="submit"&gt;Email me a reset link&lt;/button&gt;</span>
+<span class="s2">&lt;/form&gt;</span>
+<span class="si">{</span><span class="n">_msg_div</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">&lt;div class="nav"&gt;</span>
+<span class="s2">  &lt;a href="/auth/login"&gt;Back to sign in&lt;/a&gt;</span>
+<span class="s2">&lt;/div&gt;</span>
+<span class="s2">&lt;/div&gt;</span>
+<span class="s2">&lt;script&gt;</span>
+<span class="si">{</span><span class="n">_CSRF_JS</span><span class="si">}</span>
+<span class="s2">const f = document.getElementById('f');</span>
+<span class="s2">const msg = document.getElementById('msg');</span>
+<span class="s2">const submit = document.getElementById('submit');</span>
+<span class="s2">f.addEventListener('submit', async (e) =&gt; </span><span class="se">{{</span>
+<span class="s2">  e.preventDefault();</span>
+<span class="s2">  msg.className = 'msg'; submit.disabled = true; submit.textContent = 'Sending…';</span>
+<span class="s2">  try </span><span class="se">{{</span>
+<span class="s2">    const res = await postJSON('/auth/password-reset/request', </span><span class="se">{{</span>
+<span class="s2">      email: document.getElementById('email').value.trim(),</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    if (res.ok) </span><span class="se">{{</span>
+<span class="s2">      msg.textContent = "If that email has an account, a reset link is on its "</span>
+<span class="s2">        + "way. Check your inbox (and spam).";</span>
+<span class="s2">      msg.className = 'msg ok';</span>
+<span class="s2">      f.style.display = 'none';</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2"> else </span><span class="se">{{</span>
+<span class="s2">      msg.textContent = res.detail || ('Request failed (' + res.status + ').');</span>
+<span class="s2">      msg.className = 'msg err';</span>
+<span class="s2">      submit.disabled = false; submit.textContent = 'Email me a reset link';</span>
+<span class="s2">    </span><span class="se">}}</span>
+<span class="s2">  </span><span class="se">}}</span><span class="s2"> catch (err) </span><span class="se">{{</span>
+<span class="s2">    msg.textContent = err.message || 'Something went wrong.';</span>
+<span class="s2">    msg.className = 'msg err';</span>
+<span class="s2">    submit.disabled = false; submit.textContent = 'Email me a reset link';</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="se">}}</span><span class="s2">);</span>
+<span class="s2">&lt;/script&gt;"""</span>
+    <span class="k">return</span> <span class="n">_page</span><span class="p">(</span><span class="s2">"Reset your password"</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># Reset password — set a new one from a token</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="render_reset_page">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.render_reset_page">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">render_reset_page</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Render the "set a new password" form for a reset ``token``."""</span>
+    <span class="n">token_js</span> <span class="o">=</span> <span class="n">escape</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">quote</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">pw_field</span> <span class="o">=</span> <span class="n">_password_input</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">"pw"</span><span class="p">,</span> <span class="n">autocomplete</span><span class="o">=</span><span class="s2">"new-password"</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s1">' minlength="8" autofocus'</span>
+    <span class="p">)</span>
+    <span class="n">pw2_field</span> <span class="o">=</span> <span class="n">_password_input</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">"pw2"</span><span class="p">,</span> <span class="n">autocomplete</span><span class="o">=</span><span class="s2">"new-password"</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s1">' minlength="8"'</span>
+    <span class="p">)</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""&lt;div class="card"&gt;</span>
+<span class="s2">&lt;h1&gt;Choose a new password&lt;/h1&gt;</span>
+<span class="s2">&lt;p class="sub"&gt;Enter a new password for your account.&lt;/p&gt;</span>
+<span class="s2">&lt;form id="f"&gt;</span>
+<span class="s2">  &lt;label for="pw"&gt;New password&lt;/label&gt;</span>
+<span class="s2">  </span><span class="si">{</span><span class="n">pw_field</span><span class="si">}</span>
+<span class="s2">  &lt;label for="pw2"&gt;Confirm new password&lt;/label&gt;</span>
+<span class="s2">  </span><span class="si">{</span><span class="n">pw2_field</span><span class="si">}</span>
+<span class="s2">  &lt;button id="submit" type="submit"&gt;Set new password&lt;/button&gt;</span>
+<span class="s2">&lt;/form&gt;</span>
+<span class="si">{</span><span class="n">_msg_div</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">&lt;div class="nav"&gt;</span>
+<span class="s2">  &lt;a href="/auth/login"&gt;Back to sign in&lt;/a&gt;</span>
+<span class="s2">&lt;/div&gt;</span>
+<span class="s2">&lt;/div&gt;</span>
+<span class="s2">&lt;script&gt;</span>
+<span class="si">{</span><span class="n">_CSRF_JS</span><span class="si">}</span>
+<span class="si">{</span><span class="n">_PW_TOGGLE_JS</span><span class="si">}</span>
+<span class="s2">const TOKEN = "</span><span class="si">{</span><span class="n">token_js</span><span class="si">}</span><span class="s2">";</span>
+<span class="s2">const f = document.getElementById('f');</span>
+<span class="s2">const msg = document.getElementById('msg');</span>
+<span class="s2">const submit = document.getElementById('submit');</span>
+<span class="s2">f.addEventListener('submit', async (e) =&gt; </span><span class="se">{{</span>
+<span class="s2">  e.preventDefault();</span>
+<span class="s2">  const pw = document.getElementById('pw').value;</span>
+<span class="s2">  const pw2 = document.getElementById('pw2').value;</span>
+<span class="s2">  msg.className = 'msg';</span>
+<span class="s2">  if (pw !== pw2) </span><span class="se">{{</span>
+<span class="s2">    msg.textContent = "The two passwords don't match.";</span>
+<span class="s2">    msg.className = 'msg err'; return;</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="s2">  if (pw.length &lt; 8) </span><span class="se">{{</span>
+<span class="s2">    msg.textContent = 'Use at least 8 characters.';</span>
+<span class="s2">    msg.className = 'msg err'; return;</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="s2">  submit.disabled = true; submit.textContent = 'Saving…';</span>
+<span class="s2">  try </span><span class="se">{{</span>
+<span class="s2">    const res = await postJSON('/auth/password-reset/confirm', </span><span class="se">{{</span>
+<span class="s2">      token: TOKEN, new_password: pw,</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    if (res.ok) </span><span class="se">{{</span>
+<span class="s2">      msg.textContent = "Password updated — you're now signed in.";</span>
+<span class="s2">      msg.className = 'msg ok';</span>
+<span class="s2">      f.style.display = 'none';</span>
+<span class="s2">      setTimeout(() =&gt; window.location.assign('/'), 1200);</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2"> else </span><span class="se">{{</span>
+<span class="s2">      msg.textContent = res.detail || ('Reset failed (' + res.status + ').');</span>
+<span class="s2">      msg.className = 'msg err';</span>
+<span class="s2">      submit.disabled = false; submit.textContent = 'Set new password';</span>
+<span class="s2">    </span><span class="se">}}</span>
+<span class="s2">  </span><span class="se">}}</span><span class="s2"> catch (err) </span><span class="se">{{</span>
+<span class="s2">    msg.textContent = err.message || 'Something went wrong.';</span>
+<span class="s2">    msg.className = 'msg err';</span>
+<span class="s2">    submit.disabled = false; submit.textContent = 'Set new password';</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="se">}}</span><span class="s2">);</span>
+<span class="s2">&lt;/script&gt;"""</span>
+    <span class="k">return</span> <span class="n">_page</span><span class="p">(</span><span class="s2">"Choose a new password"</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># Account — change your own password</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="render_account_page">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.render_account_page">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">render_account_page</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Render the signed-in user's "change my password" form.</span>
+
+<span class="sd">    Posts to ``/auth/me/password``, which requires the *current* password —</span>
+<span class="sd">    so this page is safe to leave reachable on a shared machine: possession of</span>
+<span class="sd">    a live session alone doesn't let someone change the password out from</span>
+<span class="sd">    under the owner.</span>
+<span class="sd">    """</span>
+    <span class="n">who</span> <span class="o">=</span> <span class="n">fill_template</span><span class="p">(</span><span class="s1">'&lt;p class="sub"&gt;Signed in as </span><span class="si">{email}</span><span class="s1">&lt;/p&gt;'</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">)</span>
+    <span class="n">old_field</span> <span class="o">=</span> <span class="n">_password_input</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">"old"</span><span class="p">,</span> <span class="n">autocomplete</span><span class="o">=</span><span class="s2">"current-password"</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s2">" autofocus"</span>
+    <span class="p">)</span>
+    <span class="n">pw_field</span> <span class="o">=</span> <span class="n">_password_input</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">"pw"</span><span class="p">,</span> <span class="n">autocomplete</span><span class="o">=</span><span class="s2">"new-password"</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s1">' minlength="8"'</span>
+    <span class="p">)</span>
+    <span class="n">pw2_field</span> <span class="o">=</span> <span class="n">_password_input</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">"pw2"</span><span class="p">,</span> <span class="n">autocomplete</span><span class="o">=</span><span class="s2">"new-password"</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s1">' minlength="8"'</span>
+    <span class="p">)</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""&lt;div class="card"&gt;</span>
+<span class="s2">&lt;h1&gt;Change your password&lt;/h1&gt;</span>
+<span class="si">{</span><span class="n">who</span><span class="si">}</span>
+<span class="s2">&lt;form id="f"&gt;</span>
+<span class="s2">  &lt;label for="old"&gt;Current password&lt;/label&gt;</span>
+<span class="s2">  </span><span class="si">{</span><span class="n">old_field</span><span class="si">}</span>
+<span class="s2">  &lt;label for="pw"&gt;New password&lt;/label&gt;</span>
+<span class="s2">  </span><span class="si">{</span><span class="n">pw_field</span><span class="si">}</span>
+<span class="s2">  &lt;label for="pw2"&gt;Confirm new password&lt;/label&gt;</span>
+<span class="s2">  </span><span class="si">{</span><span class="n">pw2_field</span><span class="si">}</span>
+<span class="s2">  &lt;button id="submit" type="submit"&gt;Change password&lt;/button&gt;</span>
+<span class="s2">&lt;/form&gt;</span>
+<span class="si">{</span><span class="n">_msg_div</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">&lt;div class="nav"&gt;</span>
+<span class="s2">  &lt;a href="/"&gt;Back to apps&lt;/a&gt;</span>
+<span class="s2">&lt;/div&gt;</span>
+<span class="s2">&lt;/div&gt;</span>
+<span class="s2">&lt;script&gt;</span>
+<span class="si">{</span><span class="n">_CSRF_JS</span><span class="si">}</span>
+<span class="si">{</span><span class="n">_PW_TOGGLE_JS</span><span class="si">}</span>
+<span class="s2">const f = document.getElementById('f');</span>
+<span class="s2">const msg = document.getElementById('msg');</span>
+<span class="s2">const submit = document.getElementById('submit');</span>
+<span class="s2">f.addEventListener('submit', async (e) =&gt; </span><span class="se">{{</span>
+<span class="s2">  e.preventDefault();</span>
+<span class="s2">  const old = document.getElementById('old').value;</span>
+<span class="s2">  const pw = document.getElementById('pw').value;</span>
+<span class="s2">  const pw2 = document.getElementById('pw2').value;</span>
+<span class="s2">  msg.className = 'msg';</span>
+<span class="s2">  if (pw !== pw2) </span><span class="se">{{</span>
+<span class="s2">    msg.textContent = "The two new passwords don't match.";</span>
+<span class="s2">    msg.className = 'msg err'; return;</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="s2">  if (pw.length &lt; 8) </span><span class="se">{{</span>
+<span class="s2">    msg.textContent = 'Use at least 8 characters.';</span>
+<span class="s2">    msg.className = 'msg err'; return;</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="s2">  submit.disabled = true; submit.textContent = 'Saving…';</span>
+<span class="s2">  try </span><span class="se">{{</span>
+<span class="s2">    const res = await postJSON('/auth/me/password', </span><span class="se">{{</span>
+<span class="s2">      old_password: old, new_password: pw,</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    if (res.ok) </span><span class="se">{{</span>
+<span class="s2">      msg.textContent = 'Password changed.';</span>
+<span class="s2">      msg.className = 'msg ok';</span>
+<span class="s2">      f.style.display = 'none';</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2"> else </span><span class="se">{{</span>
+<span class="s2">      msg.textContent = res.detail || ('Change failed (' + res.status + ').');</span>
+<span class="s2">      msg.className = 'msg err';</span>
+<span class="s2">      submit.disabled = false; submit.textContent = 'Change password';</span>
+<span class="s2">    </span><span class="se">}}</span>
+<span class="s2">  </span><span class="se">}}</span><span class="s2"> catch (err) </span><span class="se">{{</span>
+<span class="s2">    msg.textContent = err.message || 'Something went wrong.';</span>
+<span class="s2">    msg.className = 'msg err';</span>
+<span class="s2">    submit.disabled = false; submit.textContent = 'Change password';</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="se">}}</span><span class="s2">);</span>
+<span class="s2">&lt;/script&gt;"""</span>
+    <span class="k">return</span> <span class="n">_page</span><span class="p">(</span><span class="s2">"Change your password"</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># Generic notice page (errors, confirmations)</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="render_notice_page">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.render_notice_page">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">render_notice_page</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">heading</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">links</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]],</span>
+    <span class="n">wide</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Render a centered notice card.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        title: ``&lt;title&gt;`` text.</span>
+<span class="sd">        heading: the card's ``&lt;h1&gt;``.</span>
+<span class="sd">        message: a sentence or two of explanation (HTML-escaped here).</span>
+<span class="sd">        links: ``(label, href, is_primary)`` tuples rendered as a row of</span>
+<span class="sd">            actions; primary links get the filled-button style.</span>
+<span class="sd">        wide: use the wider card (for longer content).</span>
+<span class="sd">    """</span>
+    <span class="n">link_html</span> <span class="o">=</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="p">(</span>
+            <span class="sa">f</span><span class="s1">'&lt;a class="btn" href="</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="n">href</span><span class="p">,</span><span class="w"> </span><span class="n">quote</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="si">}</span><span class="s1">"&gt;</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="n">label</span><span class="p">)</span><span class="si">}</span><span class="s1">&lt;/a&gt;'</span>
+            <span class="k">if</span> <span class="n">primary</span>
+            <span class="k">else</span> <span class="sa">f</span><span class="s1">'&lt;a href="</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="n">href</span><span class="p">,</span><span class="w"> </span><span class="n">quote</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="si">}</span><span class="s1">"&gt;</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="n">label</span><span class="p">)</span><span class="si">}</span><span class="s1">&lt;/a&gt;'</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">href</span><span class="p">,</span> <span class="n">primary</span> <span class="ow">in</span> <span class="n">links</span>
+    <span class="p">)</span>
+    <span class="bp">cls</span> <span class="o">=</span> <span class="s2">"card wide"</span> <span class="k">if</span> <span class="n">wide</span> <span class="k">else</span> <span class="s2">"card"</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""&lt;div class="</span><span class="si">{</span><span class="bp">cls</span><span class="si">}</span><span class="s2">"&gt;</span>
+<span class="s2">&lt;h1&gt;</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="n">heading</span><span class="p">)</span><span class="si">}</span><span class="s2">&lt;/h1&gt;</span>
+<span class="s2">&lt;p style="text-align:center"&gt;</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="si">}</span><span class="s2">&lt;/p&gt;</span>
+<span class="s2">&lt;div class="actions"&gt;</span><span class="si">{</span><span class="n">link_html</span><span class="si">}</span><span class="s2">&lt;/div&gt;</span>
+<span class="s2">&lt;/div&gt;"""</span>
+    <span class="k">return</span> <span class="n">_page</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

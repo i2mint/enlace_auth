@@ -1,0 +1,22 @@
+enlace\_auth.config
+===================
+
+.. automodule:: enlace_auth.config
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      coerce_auth_config
+      coerce_stores_map
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AuthConfig
+      OAuthProviderConfig
+      OAuthServerConfig
+      StoreBackendConfig
+   

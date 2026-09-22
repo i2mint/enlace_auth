@@ -1,0 +1,17 @@
+enlace\_auth.diagnostics
+========================
+
+.. automodule:: enlace_auth.diagnostics
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      check_connector_session_longevity
+      check_csrf
+      check_oauth_importable
+      check_oauth_server_advertises_refresh
+      check_shared_passwords
+      check_signing_key
+   

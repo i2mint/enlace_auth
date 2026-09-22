@@ -1,0 +1,12 @@
+enlace\_auth.auth.routes
+========================
+
+.. automodule:: enlace_auth.auth.routes
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_auth_router
+   

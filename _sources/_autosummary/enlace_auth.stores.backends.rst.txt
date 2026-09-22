@@ -1,0 +1,12 @@
+enlace\_auth.stores.backends
+============================
+
+.. automodule:: enlace_auth.stores.backends
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_file_store_factory
+   

@@ -1,0 +1,18 @@
+enlace\_auth.stores.middleware
+==============================
+
+.. automodule:: enlace_auth.stores.middleware
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_store_router
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      StoreInjectionMiddleware
+   

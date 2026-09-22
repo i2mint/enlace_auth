@@ -1,0 +1,39 @@
+﻿enlace\_auth
+============
+
+.. automodule:: enlace_auth
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      plugin
+      wire
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AuthConfig
+      OAuthProviderConfig
+      StoreBackendConfig
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      EnlaceAuthConfigError
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   admin
+   appmeta
+   auth
+   config
+   diagnostics
+   stores

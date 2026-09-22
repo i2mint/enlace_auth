@@ -1,4 +1,0 @@
-enlace_auth.stores
-==================
-.. automodule:: enlace_auth.stores
-   :members:

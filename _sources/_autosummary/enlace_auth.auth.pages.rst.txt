@@ -1,0 +1,19 @@
+enlace\_auth.auth.pages
+=======================
+
+.. automodule:: enlace_auth.auth.pages
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      fill_template
+      render_account_page
+      render_forgot_page
+      render_login_page
+      render_notice_page
+      render_reset_page
+      render_shared_login_page
+      safe_next
+   

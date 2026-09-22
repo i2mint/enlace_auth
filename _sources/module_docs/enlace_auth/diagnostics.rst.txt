@@ -1,4 +1,0 @@
-enlace_auth.diagnostics
-=======================
-.. automodule:: enlace_auth.diagnostics
-   :members:

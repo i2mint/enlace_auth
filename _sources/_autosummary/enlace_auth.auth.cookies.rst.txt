@@ -1,0 +1,13 @@
+enlace\_auth.auth.cookies
+=========================
+
+.. automodule:: enlace_auth.auth.cookies
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      sign_cookie
+      verify_cookie
+   

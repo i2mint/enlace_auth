@@ -1,0 +1,13 @@
+enlace\_auth.appmeta
+====================
+
+.. automodule:: enlace_auth.appmeta
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_appmeta_can_edit
+      make_appmeta_router
+   

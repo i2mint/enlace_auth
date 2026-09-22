@@ -1,224 +1,642 @@
 
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="./">
-<head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to enlace_auth’s documentation! &mdash; enlace_auth 0.1.22 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
-      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
 
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<link rel="alternate" type="text/markdown" href="index.html.md">
+<link rel="describedby" href="llms.txt" type="text/markdown">
+<link rel="alternate" type="text/markdown" href="index.html.md">
+<link rel="describedby" href="llms.txt">
+    <title>enlace_auth &#8212; enlace_auth</title>
   
-      <script src="_static/jquery.js?v=5d32c60e"></script>
-      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=842aa08f"></script>
-      <script src="_static/doctools.js?v=fd6eb6e6"></script>
-      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
-      <script src="_static/toggleprompt.js?v=d7ede5d2"></script>
-      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
-      <script src="_static/copybutton.js?v=f281be69"></script>
-    <script src="_static/js/theme.js"></script>
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/epythet.css?v=d146b16c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="_static/documentation_options.js?v=20522496"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=fd10adb8"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'index';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="enlace_auth" href="module_docs/enlace_auth.html" /> 
-</head>
+    <link rel="next" title="API reference" href="api.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.23" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
 
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
 
-          
-          
-          <a href="#" class="icon icon-home">
-            enlace_auth
-          </a>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth.html">enlace_auth</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/__main__.html">enlace_auth.__main__</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/admin.html">enlace_auth.admin</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/admin/routes.html">enlace_auth.admin.routes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/appmeta.html">enlace_auth.appmeta</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth.html">enlace_auth.auth</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/cookies.html">enlace_auth.auth.cookies</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/email.html">enlace_auth.auth.email</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/grants.html">enlace_auth.auth.grants</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/middleware.html">enlace_auth.auth.middleware</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/oauth.html">enlace_auth.auth.oauth</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/oauth_server.html">enlace_auth.auth.oauth_server</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/pages.html">enlace_auth.auth.pages</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/passwords.html">enlace_auth.auth.passwords</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/reset_tokens.html">enlace_auth.auth.reset_tokens</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/routes.html">enlace_auth.auth.routes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/sessions.html">enlace_auth.auth.sessions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/config.html">enlace_auth.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/diagnostics.html">enlace_auth.diagnostics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/plugin.html">enlace_auth.plugin</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores.html">enlace_auth.stores</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores/backends.html">enlace_auth.stores.backends</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores/middleware.html">enlace_auth.stores.middleware</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores/prefixed.html">enlace_auth.stores.prefixed</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores/validation.html">enlace_auth.stores.validation</a></li>
-</ul>
 
-        </div>
-      </div>
-    </nav>
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="#">enlace_auth</a>
-      </nav>
+  
+    
+  
 
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Welcome to enlace_auth’s documentation!</li>
-      <li class="wy-breadcrumbs-aside">
-            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
-      </li>
+<a class="navbar-brand logo" href="#">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">enlace_auth</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api.html">
+    API reference
+  </a>
+</li>
+
   </ul>
-  <hr/>
-</div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
-  <section id="welcome-to-enlace-auth-s-documentation">
-<h1>Welcome to enlace_auth’s documentation!<a class="headerlink" href="#welcome-to-enlace-auth-s-documentation" title="Link to this heading"></a></h1>
-<div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth.html">enlace_auth</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth.html#enlace_auth.AuthConfig"><code class="docutils literal notranslate"><span class="pre">AuthConfig</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth.html#enlace_auth.EnlaceAuthConfigError"><code class="docutils literal notranslate"><span class="pre">EnlaceAuthConfigError</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth.html#enlace_auth.OAuthProviderConfig"><code class="docutils literal notranslate"><span class="pre">OAuthProviderConfig</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth.html#enlace_auth.StoreBackendConfig"><code class="docutils literal notranslate"><span class="pre">StoreBackendConfig</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth.html#enlace_auth.plugin"><code class="docutils literal notranslate"><span class="pre">plugin()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth.html#enlace_auth.wire"><code class="docutils literal notranslate"><span class="pre">wire()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/__main__.html">enlace_auth.__main__</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/admin.html">enlace_auth.admin</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/admin/routes.html">enlace_auth.admin.routes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/appmeta.html">enlace_auth.appmeta</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth.html">enlace_auth.auth</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/cookies.html">enlace_auth.auth.cookies</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/auth/cookies.html#enlace_auth.auth.cookies.sign_cookie"><code class="docutils literal notranslate"><span class="pre">sign_cookie()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/auth/cookies.html#enlace_auth.auth.cookies.verify_cookie"><code class="docutils literal notranslate"><span class="pre">verify_cookie()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/email.html">enlace_auth.auth.email</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/grants.html">enlace_auth.auth.grants</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/auth/grants.html#enlace_auth.auth.grants.GrantError"><code class="docutils literal notranslate"><span class="pre">GrantError</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/auth/grants.html#enlace_auth.auth.grants.GrantStore"><code class="docutils literal notranslate"><span class="pre">GrantStore</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/auth/grants.html#enlace_auth.auth.grants.parse_expires_at"><code class="docutils literal notranslate"><span class="pre">parse_expires_at()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/middleware.html">enlace_auth.auth.middleware</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/auth/middleware.html#enlace_auth.auth.middleware.AccessRule"><code class="docutils literal notranslate"><span class="pre">AccessRule</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/auth/middleware.html#enlace_auth.auth.middleware.CSRFMiddleware"><code class="docutils literal notranslate"><span class="pre">CSRFMiddleware</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/auth/middleware.html#enlace_auth.auth.middleware.PlatformAuthMiddleware"><code class="docutils literal notranslate"><span class="pre">PlatformAuthMiddleware</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/oauth.html">enlace_auth.auth.oauth</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/oauth_server.html">enlace_auth.auth.oauth_server</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/pages.html">enlace_auth.auth.pages</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/passwords.html">enlace_auth.auth.passwords</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/auth/passwords.html#enlace_auth.auth.passwords.hash_password"><code class="docutils literal notranslate"><span class="pre">hash_password()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/auth/passwords.html#enlace_auth.auth.passwords.verify_password"><code class="docutils literal notranslate"><span class="pre">verify_password()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/reset_tokens.html">enlace_auth.auth.reset_tokens</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/routes.html">enlace_auth.auth.routes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/auth/sessions.html">enlace_auth.auth.sessions</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/auth/sessions.html#enlace_auth.auth.sessions.SessionStore"><code class="docutils literal notranslate"><span class="pre">SessionStore</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/config.html">enlace_auth.config</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/config.html#enlace_auth.config.AuthConfig"><code class="docutils literal notranslate"><span class="pre">AuthConfig</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/config.html#enlace_auth.config.OAuthProviderConfig"><code class="docutils literal notranslate"><span class="pre">OAuthProviderConfig</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/config.html#enlace_auth.config.OAuthServerConfig"><code class="docutils literal notranslate"><span class="pre">OAuthServerConfig</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/config.html#enlace_auth.config.StoreBackendConfig"><code class="docutils literal notranslate"><span class="pre">StoreBackendConfig</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/config.html#enlace_auth.config.coerce_auth_config"><code class="docutils literal notranslate"><span class="pre">coerce_auth_config()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/config.html#enlace_auth.config.coerce_stores_map"><code class="docutils literal notranslate"><span class="pre">coerce_stores_map()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/diagnostics.html">enlace_auth.diagnostics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/plugin.html">enlace_auth.plugin</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/plugin.html#enlace_auth.plugin.EnlaceAuthConfigError"><code class="docutils literal notranslate"><span class="pre">EnlaceAuthConfigError</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/plugin.html#enlace_auth.plugin.plugin"><code class="docutils literal notranslate"><span class="pre">plugin()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/plugin.html#enlace_auth.plugin.wire"><code class="docutils literal notranslate"><span class="pre">wire()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores.html">enlace_auth.stores</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores/backends.html">enlace_auth.stores.backends</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/stores/backends.html#enlace_auth.stores.backends.make_file_store_factory"><code class="docutils literal notranslate"><span class="pre">make_file_store_factory()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores/middleware.html">enlace_auth.stores.middleware</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores/prefixed.html">enlace_auth.stores.prefixed</a></li>
-<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_auth/stores/validation.html">enlace_auth.stores.validation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="module_docs/enlace_auth/stores/validation.html#enlace_auth.stores.validation.sanitize_key"><code class="docutils literal notranslate"><span class="pre">sanitize_key()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</div>
-</section>
-<section id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
-<ul class="simple">
-<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
-<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
-<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
-</ul>
-<p>Release: 0.1.22</p>
-<p>Last change: Sep 04, 2026</p>
-</section>
-
-
-           </div>
-          </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="module_docs/enlace_auth.html" class="btn btn-neutral float-right" title="enlace_auth" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+</nav></div>
+      
     </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
 
-  <hr/>
-
-  <div role="contentinfo">
-    <p></p>
-  </div>
-
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
-
-</footer>
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
         </div>
-      </div>
-    </section>
-  </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script> 
+      
+      
+        <div class="navbar-item">
 
-</body>
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_auth" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api.html">
+    API reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_auth" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none"></div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <!-- generated by epythet -->
+<section id="enlace-auth">
+<h1>enlace_auth<a class="headerlink" href="#enlace-auth" title="Link to this heading">#</a></h1>
+<p>Authentication, sessions, an admin dashboard, and per-user stores for the
+<a class="reference external" href="https://github.com/i2mint/enlace">enlace</a> multi-app platform.</p>
+<p><code class="docutils literal notranslate"><span class="pre">enlace</span></code> itself is auth-agnostic — it composes apps and routes traffic. This
+package plugs in at compose time and adds:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/auth/login</span></code>, <code class="docutils literal notranslate"><span class="pre">/auth/logout</span></code>, <code class="docutils literal notranslate"><span class="pre">/auth/register</span></code>, <code class="docutils literal notranslate"><span class="pre">/auth/whoami</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/auth/csrf</span></code>, <code class="docutils literal notranslate"><span class="pre">/auth/me/password</span></code>, <code class="docutils literal notranslate"><span class="pre">/auth/shared-login</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/auth/account</span></code> — the signed-in user changes their own password</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/auth/forgot-password</span></code> — self-service reset by emailed link</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/_admin/api/*</span></code> — list/create/delete users, mint a password-reset link,
+set a password directly, view app policy, and <strong>grant/revoke per-app access
+at runtime</strong> (optional expiry). Gated by an admin allowlist.</p></li>
+<li><p>per-user data injection via <code class="docutils literal notranslate"><span class="pre">request.state.store</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PlatformAuthMiddleware</span></code> + <code class="docutils literal notranslate"><span class="pre">CSRFMiddleware</span></code></p></li>
+<li><p>optional OAuth2 / OIDC via Authlib</p></li>
+</ul>
+<section id="quick-start">
+<h2>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_backend</span><span class="p">,</span> <span class="n">PlatformConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">plugin</span> <span class="k">as</span> <span class="n">auth_plugin</span>
+
+<span class="n">config</span> <span class="o">=</span> <span class="n">PlatformConfig</span><span class="o">.</span><span class="n">from_toml</span><span class="p">(</span><span class="s2">"platform.toml"</span><span class="p">)</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">build_backend</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">plugins</span><span class="o">=</span><span class="p">[</span><span class="n">auth_plugin</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Or, if you serve via <code class="docutils literal notranslate"><span class="pre">uvicorn</span> <span class="pre">--factory</span> <span class="pre">enlace.compose:create_app</span></code>, set:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ENLACE_PLUGINS</span><span class="o">=</span>enlace_auth:plugin
+</pre></div>
+</div>
+</section>
+<section id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">#</a></h2>
+<p>In <code class="docutils literal notranslate"><span class="pre">platform.toml</span></code>:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="k">[auth]</span>
+<span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<span class="n">session_cookie_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"enlace_session"</span>
+<span class="n">session_max_age_seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">86400</span>
+<span class="n">signing_key_env</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"ENLACE_SIGNING_KEY"</span>
+<span class="n">secure_cookies</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+
+<span class="k">[auth.stores]</span>
+<span class="n">backend</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"file"</span>
+<span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"~/.enlace/platform_store"</span>
+
+<span class="k">[stores.user_data]</span>
+<span class="n">backend</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"file"</span>
+<span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"~/.enlace/user_data"</span>
+</pre></div>
+</div>
+<section id="oauth-2-1-authorization-server-mcp-connectors">
+<h3>OAuth 2.1 authorization server (MCP connectors)<a class="headerlink" href="#oauth-2-1-authorization-server-mcp-connectors" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">enlace_auth</span></code> can act as the authorization server that issues the JWTs an MCP
+custom connector validates. <strong>One</strong> server serves <em>every</em> connector on the
+platform, so anything a user reads during the connect flow must be keyed on the
+connector — the <code class="docutils literal notranslate"><span class="pre">resource</span></code> the client asks for:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="k">[auth.oauth_server]</span>
+<span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<span class="n">issuer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"https://apps.example.com"</span>
+
+<span class="c1"># How long a connector works before it must renew (default 3600); how long it</span>
+<span class="c1"># may sit IDLE before its refresh token lapses (default 30 days); and the</span>
+<span class="c1"># absolute ceiling on one authorization regardless of activity (default 90 days).</span>
+<span class="n">access_token_ttl_seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3600</span>
+<span class="n">refresh_token_ttl_seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2592000</span>
+<span class="n">refresh_family_max_lifetime_seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">7776000</span>
+
+<span class="c1"># Who may authorize for each connector. A resource that is not listed is open</span>
+<span class="c1"># to any authenticated user; a listed one denies everyone else.</span>
+<span class="k">[auth.oauth_server.resource_allowlist]</span>
+<span class="s2">"https://apps.example.com/connector-a-mcp"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"alice@example.com"</span><span class="p">]</span>
+
+<span class="c1"># The name the consent screen shows, keyed by the SAME resource URL. A resource</span>
+<span class="c1"># with no entry gets generic copy that names no product — never default to one</span>
+<span class="c1"># connector's name, or every other connector's consent screen inherits it.</span>
+<span class="k">[auth.oauth_server.resource_display_names]</span>
+<span class="s2">"https://apps.example.com/connector-a-mcp"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"Connector A"</span>
+<span class="s2">"https://apps.example.com/connector-b-mcp"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"Connector B"</span>
+</pre></div>
+</div>
+<section id="keeping-a-connector-alive">
+<h4>Keeping a connector alive<a class="headerlink" href="#keeping-a-connector-alive" title="Link to this heading">#</a></h4>
+<p>Access tokens are short-lived by design; <strong>refresh tokens are what keep a
+connector working</strong>. With the refresh grant enabled (the default) a client
+renews its own access token in the background and a person is involved only
+once, at first connect. Set <code class="docutils literal notranslate"><span class="pre">refresh_token_ttl_seconds</span> <span class="pre">=</span> <span class="pre">0</span></code> and you get the
+opposite: every session dies <code class="docutils literal notranslate"><span class="pre">access_token_ttl_seconds</span></code> after it started, the
+connector returns 401 forever, and the <em>only</em> way back is a human re-running the
+browser authorization. Nothing errors when this happens — the connector process
+stays healthy and expiry is logged at INFO on the resource server — so it
+surfaces as a user saying the connector “has been down all day”. <code class="docutils literal notranslate"><span class="pre">enlace_auth</span></code>’s
+doctor checks (<code class="docutils literal notranslate"><span class="pre">oauth_refresh</span></code> and the discovery-metadata HTTP check) fail on
+exactly this, including the case where config enables refresh but the <em>deployed</em>
+build is older than the config and cannot honour it. They run wherever
+<code class="docutils literal notranslate"><span class="pre">enlace</span> <span class="pre">doctor</span></code> runs, via <code class="docutils literal notranslate"><span class="pre">enlace.doctor.discover_plugin_checks</span></code> — which needs
+<code class="docutils literal notranslate"><span class="pre">enlace</span></code> new enough to have it (i2mint/enlace#34); on older <code class="docutils literal notranslate"><span class="pre">enlace</span></code> the checks
+exist but nothing invokes them.</p>
+<p><code class="docutils literal notranslate"><span class="pre">refresh_token_ttl_seconds</span></code> is an <strong>idle</strong> timeout, not a session ceiling: every
+rotation resets it, so a connector refreshing hourly would otherwise never face a
+human again. <code class="docutils literal notranslate"><span class="pre">refresh_family_max_lifetime_seconds</span></code> is the absolute cap, set once
+when the session is authorized and carried unchanged through every rotation.</p>
+<p>Refresh tokens rotate: each use consumes the presented token and returns a
+successor. Tokens are stored hashed, never verbatim.</p>
+<p>Replaying a spent token is theft <em>unless</em> it looks like a retry. The server
+consumes a token before its response is written, so a dropped response (proxy
+502, TLS reset, client timeout) leaves an honest client holding a spent token —
+and revoking there would strand the connector exactly as an absent refresh grant
+does. Within <code class="docutils literal notranslate"><span class="pre">refresh_reuse_grace_seconds</span></code>, from the same client, with the
+successor still unused and the subject still authorized, that is treated as a
+retry and reissued. Anything else revokes the whole family. Spent tokens are
+remembered for <code class="docutils literal notranslate"><span class="pre">refresh_reuse_detection_seconds</span></code> so that a replay is recognised
+rather than merely unknown.</p>
+<p>Because access tokens are self-contained JWTs with no denylist, <strong>the allowlist
+is re-evaluated on every refresh</strong> — that is the only revocation path this server
+has. Removing someone from <code class="docutils literal notranslate"><span class="pre">resource_allowlist</span></code> (and redeploying) stops them
+within one access-token lifetime rather than one refresh-token lifetime. Keep
+<code class="docutils literal notranslate"><span class="pre">access_token_ttl_seconds</span></code> short for that reason: with refresh in place, a short
+access token costs nothing and is what bounds revocation lag.</p>
+<p>Plus environment variables:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ENLACE_SIGNING_KEY</span></code> — signing key (32+ chars). Generate with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-c</span> <span class="pre">&quot;import</span> <span class="pre">secrets;</span> <span class="pre">print(secrets.token_urlsafe(32))&quot;</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ENLACE_ADMIN_EMAILS</span></code> — comma-separated admin emails (gate <code class="docutils literal notranslate"><span class="pre">/_admin</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ENLACE_ALLOW_UNSIGNED=1</span></code> — opt-out from fail-fast (diagnostics only).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ENLACE_SMTP_HOST</span></code> (+ <code class="docutils literal notranslate"><span class="pre">_PORT</span></code>, <code class="docutils literal notranslate"><span class="pre">_USER</span></code>, <code class="docutils literal notranslate"><span class="pre">_PASSWORD</span></code>, <code class="docutils literal notranslate"><span class="pre">_FROM</span></code>, <code class="docutils literal notranslate"><span class="pre">_TLS</span></code>) — mail
+sender for password-reset emails. Unset means <strong>no email is sent</strong>; see below.</p></li>
+</ul>
+</section>
+</section>
+</section>
+<section id="passwords">
+<h2>Passwords<a class="headerlink" href="#passwords" title="Link to this heading">#</a></h2>
+<p>Three ways a password gets set, for three different situations:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Situation</p></th>
+<th class="head"><p>Path</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>User knows their password, wants a new one</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/auth/account</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>User is locked out, <strong>SMTP configured</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/auth/forgot-password</span></code> → emailed link</p></td>
+</tr>
+<tr class="row-even"><td><p>User is locked out, <strong>no SMTP</strong></p></td>
+<td><p>admin mints a link and delivers it by hand</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>That last one is what keeps the platform usable with no mail server:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>enlace-auth<span class="w"> </span>reset-link<span class="w"> </span>someone@example.com<span class="w">          </span><span class="c1"># prints a 72h, single-use link</span>
+enlace-auth<span class="w"> </span>reset-link<span class="w"> </span>someone@example.com<span class="w"> </span>--hours<span class="w"> </span><span class="m">4</span>
+</pre></div>
+</div>
+<p>or the <strong>Reset link</strong> button in <code class="docutils literal notranslate"><span class="pre">/_admin/</span></code>. Prefer it to setting a password for
+someone: the admin never invents, learns, or transmits another person’s
+credential, and the recipient chooses their own.</p>
+<p><code class="docutils literal notranslate"><span class="pre">enlace-auth</span> <span class="pre">set-password</span> <span class="pre">&lt;email&gt;</span></code> still exists for break-glass use.</p>
+<p>Reset links are signed, not stored. Each carries the account’s current
+password-hash fingerprint and its own absolute expiry, so a link dies on first
+use — and any other password change invalidates every link outstanding for that
+account. With no SMTP configured, <code class="docutils literal notranslate"><span class="pre">/auth/forgot-password</span></code> says so and points at
+the admin rather than promising an email that only reaches the log.</p>
+</section>
+<section id="per-app-access-runtime-grants">
+<h2>Per-app access &amp; runtime grants<a class="headerlink" href="#per-app-access-runtime-grants" title="Link to this heading">#</a></h2>
+<p>Each app declares an <code class="docutils literal notranslate"><span class="pre">access</span></code> level in its <code class="docutils literal notranslate"><span class="pre">app.toml</span></code>
+(<code class="docutils literal notranslate"><span class="pre">public</span> <span class="pre">|</span> <span class="pre">protected:shared</span> <span class="pre">|</span> <span class="pre">protected:user</span></code>). A <code class="docutils literal notranslate"><span class="pre">protected:user</span></code> app may also
+declare a static baseline allow-list:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="n">access</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"protected:user"</span>
+<span class="n">allowed_users</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"owner@example.com"</span><span class="p">]</span><span class="w">   </span><span class="c1"># always allowed; edit-in-code baseline</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">&quot;&#64;admins&quot;</span></code> in that list stands for the platform admins (the emails in
+<code class="docutils literal notranslate"><span class="pre">admin_emails_env</span></code>), so an owner-only tool can be declared without committing
+an address: <code class="docutils literal notranslate"><span class="pre">allowed_users</span> <span class="pre">=</span> <span class="pre">[&quot;&#64;admins&quot;]</span></code>. If no admins are configured, such an
+app admits nobody. Because <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code> is only enforced for
+<code class="docutils literal notranslate"><span class="pre">protected:user</span></code>, an app using the alias is treated as <code class="docutils literal notranslate"><span class="pre">protected:user</span></code> even if
+its <code class="docutils literal notranslate"><span class="pre">access</span></code> says otherwise (an error is logged) — it never falls open.</p>
+<p>On top of that baseline you can grant access <strong>at runtime — no redeploy</strong> — from
+the admin dashboard or the CLI. Runtime grants are <em>additive</em> (effective access =
+<code class="docutils literal notranslate"><span class="pre">allowed_users</span> <span class="pre">∪</span> <span class="pre">active</span> <span class="pre">grants</span></code>) and may carry an optional UTC expiry:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>enlace-auth<span class="w"> </span>grant<span class="w"> </span>vault<span class="w"> </span>alice@example.com<span class="w"> </span>--expires<span class="w"> </span><span class="m">2026</span>-12-31<span class="w">   </span><span class="c1"># end of day UTC</span>
+enlace-auth<span class="w"> </span>list-grants<span class="w"> </span>--app<span class="w"> </span>vault
+enlace-auth<span class="w"> </span>revoke-grant<span class="w"> </span>vault<span class="w"> </span>alice@example.com
+</pre></div>
+</div>
+<p>Grants live in a <code class="docutils literal notranslate"><span class="pre">grants/</span></code> store alongside <code class="docutils literal notranslate"><span class="pre">sessions/</span></code> and <code class="docutils literal notranslate"><span class="pre">users/</span></code> under
+<code class="docutils literal notranslate"><span class="pre">[auth.stores]</span> <span class="pre">path</span></code>, so they persist across restarts and redeploys. A grant on
+an app with an <em>empty</em> <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code> (open to any authenticated user) is
+rejected — it would have no additive effect and would unintentionally restrict an
+open app. To remove a user listed in <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code>, edit <code class="docutils literal notranslate"><span class="pre">app.toml</span></code> (that layer
+is intentionally code-managed); the admin panel manages the runtime layer.</p>
+</section>
+<section id="doctor-checks">
+<h2>Doctor checks<a class="headerlink" href="#doctor-checks" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace.doctor</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_doctor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.diagnostics</span><span class="w"> </span><span class="kn">import</span> <span class="n">static_checks</span><span class="p">,</span> <span class="n">http_checks</span>
+
+<span class="n">report</span> <span class="o">=</span> <span class="n">run_doctor</span><span class="p">(</span>
+    <span class="n">config</span><span class="p">,</span>
+    <span class="n">base_url</span><span class="o">=</span><span class="s2">"http://localhost:8000"</span><span class="p">,</span>
+    <span class="n">extra_static_checks</span><span class="o">=</span><span class="n">static_checks</span><span class="p">,</span>
+    <span class="n">extra_http_checks</span><span class="o">=</span><span class="n">http_checks</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="status">
+<h2>Status<a class="headerlink" href="#status" title="Link to this heading">#</a></h2>
+<p>Extracted from <code class="docutils literal notranslate"><span class="pre">enlace</span></code> 0.0.11. The Python API is stable; an admin frontend
+ships separately as a normal enlaced app.</p>
+<p class="epythet-aggregates">This documentation as a single file: <a href="enlace_auth.md">enlace_auth.md</a> (Markdown, for agents).</p>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+</section>
+
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-09-22 15:06 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/2f4e4b14e07ffa78b853e105c7dece43d6976c66">2f4e4b1</a> (main) · enlace_auth 0.1.23 · <a href="about-this-build.html">about this build</a></p>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="right-next"
+       href="api.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">API reference</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick start</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#configuration">Configuration</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#oauth-2-1-authorization-server-mcp-connectors">OAuth 2.1 authorization server (MCP connectors)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#keeping-a-connector-alive">Keeping a connector alive</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#passwords">Passwords</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#per-app-access-runtime-grants">Per-app access &amp; runtime grants</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#doctor-checks">Doctor checks</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#status">Status</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/index.md.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
 </html>

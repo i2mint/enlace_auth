@@ -1,0 +1,19 @@
+enlace\_auth.admin
+==================
+
+.. automodule:: enlace_auth.admin
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_admin_router
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   routes
