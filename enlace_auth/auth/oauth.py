@@ -12,15 +12,19 @@ endpoints; other providers need explicit URLs in the config.
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 from typing import Any, Callable, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 
 from enlace_auth.auth.cookies import sign_cookie
 from enlace_auth.auth.sessions import SessionStore
 from enlace_auth.config import OAuthProviderConfig
+
+_logger = logging.getLogger("enlace_auth.oauth")
 
 _PROVIDER_PRESETS = {
     "google": {
@@ -46,13 +50,30 @@ def _import_authlib():
     return OAuth
 
 
-def _unverified(flag) -> bool:
-    """True when an ``email_verified`` claim explicitly says "not verified".
+#: Presets whose userinfo exposes only verified emails, without a claim saying so.
+_EMAIL_VERIFIED_BY_PRESET = frozenset({"github"})
 
-    >>> _unverified(False), _unverified("false"), _unverified(True), _unverified(None)
+
+def _verified(flag) -> bool:
+    """True only when an ``email_verified`` claim affirms the address.
+
+    >>> _verified(True), _verified("true"), _verified(False), _verified(None)
     (True, True, False, False)
+    >>> _verified(1)
+    False
     """
-    return flag is False or (isinstance(flag, str) and flag.strip().lower() == "false")
+    return flag is True or (isinstance(flag, str) and flag.strip().lower() == "true")
+
+
+def _email_trusted(provider: str, cfg, claims: dict) -> bool:
+    """Whether an email returned by *provider* may identify an account here."""
+    if _verified(claims.get("email_verified")):
+        return True
+    if claims.get("email_verified") is not None:
+        return False  # the provider said "not verified" (in whatever form)
+    return provider in _EMAIL_VERIFIED_BY_PRESET or bool(
+        getattr(cfg, "trust_unverified_email", False)
+    )
 
 
 def _build_oauth_registry(providers: dict[str, OAuthProviderConfig]):
@@ -142,7 +163,9 @@ def make_oauth_router(
         try:
             token = await client.authorize_access_token(request)
         except Exception as e:
-            raise HTTPException(status_code=401, detail=f"OAuth failed: {e}") from e
+            # The error text can echo attacker-supplied callback parameters.
+            _logger.warning("OAuth callback failed for %s: %s", provider, e)
+            raise HTTPException(status_code=401, detail="OAuth sign-in failed") from e
 
         email = None
         claims: dict = {}
@@ -164,10 +187,10 @@ def make_oauth_router(
             raise HTTPException(status_code=401, detail="No email from OAuth provider")
         # Accounts are keyed by email, so an address the provider has not
         # verified would let someone sign in as whoever owns it here --
-        # including an existing password account. Refuse when the provider
-        # says so (OIDC ``email_verified``); providers that omit the claim
-        # (e.g. GitHub's /user, which only exposes verified emails) pass.
-        if _unverified(claims.get("email_verified")):
+        # including an existing password account. Require the provider to
+        # affirm it (OIDC ``email_verified``); providers that never send the
+        # claim pass only if known to verify (github preset) or opted in.
+        if not _email_trusted(provider, providers.get(provider), claims):
             raise HTTPException(
                 status_code=401,
                 detail="The OAuth provider has not verified this email address",
@@ -189,10 +212,7 @@ def make_oauth_router(
                 "oauth_provider": provider,
             }
         session_id = session_store.create(user_id=email, email=email)
-        resp = Response(
-            content=f'{{"ok":true,"email":"{email}"}}',
-            media_type="application/json",
-        )
+        resp = JSONResponse({"ok": True, "email": email})
         _set_session_cookie(resp, session_id)
         return resp
 

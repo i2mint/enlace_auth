@@ -3,6 +3,7 @@
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from starlette.responses import RedirectResponse
@@ -26,7 +27,11 @@ def _make_app(providers, user_store, session_store, *, userinfo=None):
         return_value=RedirectResponse("http://example.com/fake-authorize")
     )
     fake_client.authorize_access_token = AsyncMock(
-        return_value={"userinfo": userinfo or {"email": "alice@example.com"}}
+        return_value={
+            # Google's ID token always carries email_verified.
+            "userinfo": userinfo
+            or {"email": "alice@example.com", "email_verified": True}
+        }
     )
     fake_registry = MagicMock()
     fake_registry.google = fake_client
@@ -119,6 +124,41 @@ def test_unverified_provider_email_is_refused():
     assert r.status_code == 401
     assert "enlace_session=" not in r.headers.get("set-cookie", "")
     assert sessions.list_all() == []
+
+
+@pytest.mark.parametrize(
+    "provider_cfg, claims, ok",
+    [
+        ({}, {"email": "alice@example.com"}, False),  # claim omitted, not trusted
+        ({"trust_unverified_email": True}, {"email": "alice@example.com"}, True),
+        ({}, {"email": "alice@example.com", "email_verified": "true"}, True),
+        ({}, {"email": "alice@example.com", "email_verified": "false"}, False),
+        (
+            {"trust_unverified_email": True},
+            {"email": "a@x.io", "email_verified": False},
+            False,
+        ),
+    ],
+)
+def test_email_must_be_affirmed_unless_trusted(provider_cfg, claims, ok):
+    providers = {
+        "google": OAuthProviderConfig(
+            client_id_env="G_ID", client_secret_env="G_SECRET", **provider_cfg
+        )
+    }
+    app, _ = _make_app(providers, {}, SessionStore({}), userinfo=claims)
+    r = TestClient(app).get("/auth/callback/google")
+    assert (r.status_code == 200) is ok
+
+
+def test_github_preset_is_trusted_without_the_claim():
+    from enlace_auth.auth.oauth import _email_trusted
+
+    assert _email_trusted("github", None, {"email": "a@x.io"})
+    assert not _email_trusted(
+        "github", None, {"email": "a@x.io", "email_verified": False}
+    )
+    assert not _email_trusted("azure", None, {"email": "a@x.io"})
 
 
 def test_verified_provider_email_signs_in():
