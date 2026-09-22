@@ -38,6 +38,12 @@ class OAuthProviderConfig(BaseModel):
     token_url: Optional[str] = None
     userinfo_url: Optional[str] = None
     server_metadata_url: Optional[str] = None
+    # Accounts are matched by email, so by default a provider must affirm the
+    # address (``email_verified`` true). Set this only for a provider that
+    # verifies emails but does not send the claim; the ``github`` preset is
+    # trusted without it (GitHub exposes only verified emails on /user).
+    # Never set it for Microsoft Entra ID: its ``email`` is tenant-editable.
+    trust_unverified_email: bool = False
 
 
 class OAuthServerConfig(BaseModel):
