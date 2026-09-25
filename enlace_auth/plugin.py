@@ -29,6 +29,8 @@ from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Iterable, Optional
 
+from enlace.access import GRANTS_STATE_ATTR
+
 from enlace_auth.config import coerce_auth_config, coerce_stores_map
 
 if TYPE_CHECKING:
@@ -345,6 +347,10 @@ def wire(parent: "FastAPI", config) -> None:
     grants_root = Path(os.path.expanduser(auth_cfg.stores.path)) / "grants"
     grant_store = GrantStore(platform_factory("grants"), root=grants_root)
 
+    def grants_resolver(app_id: str) -> set[str]:
+        """Emails with an active grant for ``app_id``; ``now`` read per call."""
+        return grant_store.active_emails_for_app(app_id, now=time.time())
+
     stores_map = coerce_stores_map(getattr(config, "stores", None))
     user_data_cfg = stores_map.get("user_data")
     user_data_backend: Optional[object] = None
@@ -572,6 +578,9 @@ def wire(parent: "FastAPI", config) -> None:
     # DI slots read by enlace core (compose._overlay_entry / apps_listing).
     parent.state.app_meta_overlay = overlay_store
     parent.state.app_meta_can_edit = can_edit_meta
+    # The grants resolver the gate consults, handed to enlace core too, so the
+    # /_apps launcher shows a granted user the apps they can open (enlace #35).
+    setattr(parent.state, GRANTS_STATE_ATTR, grants_resolver)
 
     parent.include_router(
         make_appmeta_router(
@@ -643,9 +652,7 @@ def wire(parent: "FastAPI", config) -> None:
         login_redirect_path="/auth/login",
         # Consult runtime grants live, per request, on top of each rule's static
         # allowed_users. ``now`` is evaluated at call time so expiry is exact.
-        dynamic_allowed_users=lambda app_id: grant_store.active_emails_for_app(
-            app_id, now=time.time()
-        ),
+        dynamic_allowed_users=grants_resolver,
     )
 
 
