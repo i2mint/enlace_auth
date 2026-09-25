@@ -46,9 +46,17 @@ def _platform(tmp_path, monkeypatch):
         "from fastapi import FastAPI\napp = FastAPI()\n"
         "@app.get('/x')\ndef x():\n    return {'ok': True}\n"
     )
+    # Mixed case on purpose: both sides must compare case-insensitively.
     (apps_dir / "gated" / "app.toml").write_text(
-        f'access = "protected:user"\nallowed_users = ["{STATIC}", "{BOTH}"]\n'
+        f'access = "protected:user"\nallowed_users = ["{STATIC.upper()}", "{BOTH}"]\n'
     )
+    # No allowlist and no grants: open to any signed-in user, on both sides.
+    (apps_dir / "open_app").mkdir()
+    (apps_dir / "open_app" / "server.py").write_text(
+        "from fastapi import FastAPI\napp = FastAPI()\n"
+        "@app.get('/x')\ndef x():\n    return {'ok': True}\n"
+    )
+    (apps_dir / "open_app" / "app.toml").write_text('access = "protected:user"\n')
     monkeypatch.setenv("ENLACE_SIGNING_KEY", _SIGNING_KEY)
     platform_store = tmp_path / "platform"
     config = PlatformConfig(
@@ -75,14 +83,14 @@ def _signed_in(backend, email):
     return client
 
 
-def _opens(client) -> bool:
-    status = client.get("/api/gated/x").status_code
+def _opens(client, app="gated") -> bool:
+    status = client.get(f"/api/{app}/x").status_code
     assert status in (200, 401), status
     return status == 200
 
 
-def _listed(client) -> bool:
-    return "gated" in {a["name"] for a in client.get("/_apps").json()["apps"]}
+def _listed(client, app="gated") -> bool:
+    return app in {a["name"] for a in client.get("/_apps").json()["apps"]}
 
 
 @pytest.mark.parametrize(
@@ -92,16 +100,19 @@ def _listed(client) -> bool:
 def test_opens_iff_listed(tmp_path, monkeypatch, email, expected):
     """For each kind of user, the launcher and the gate return the same verdict."""
     backend, grants = _platform(tmp_path, monkeypatch)
-    grants.grant("gated", GRANTED)
+    grants.grant("gated", GRANTED.upper())
     grants.grant("gated", BOTH)
     client = _signed_in(backend, email)
     assert _opens(client) is _listed(client) is expected
+    # The open app admits, and lists, every signed-in user.
+    assert _opens(client, "open_app") is _listed(client, "open_app") is True
 
 
 def test_anonymous_neither_opens_nor_sees(tmp_path, monkeypatch):
     backend, _ = _platform(tmp_path, monkeypatch)
     client = TestClient(backend)
     assert _opens(client) is _listed(client) is False
+    assert _opens(client, "open_app") is _listed(client, "open_app") is False
 
 
 def test_grant_and_expiry_reach_both_sides_without_restart(tmp_path, monkeypatch):
