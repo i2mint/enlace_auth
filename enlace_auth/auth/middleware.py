@@ -35,6 +35,8 @@ from dataclasses import dataclass
 from typing import Callable, Iterable, Optional
 from urllib.parse import unquote
 
+from enlace.access import granted_users, is_user_allowed
+
 from enlace_auth.auth.cookies import verify_cookie
 from enlace_auth.auth.revocation import shared_cookie_valid
 from enlace_auth.auth.sessions import SessionStore
@@ -325,35 +327,19 @@ class PlatformAuthMiddleware:
             state["user_id"] = session.get("user_id")
             state["user_email"] = session.get("email")
             # Per-app user whitelist = static config ``allowed_users`` ∪ active
-            # runtime grants (the dynamic resolver, when wired). Gate ONLY when
-            # the resulting set is non-empty, so an app with neither stays open
-            # to any authenticated user (preserving the empty-allowed_users
-            # "open" semantic). Both sides are lowercased to avoid case-
-            # sensitivity surprises.
-            config_allowed = (
-                {e.lower() for e in rule.allowed_users} if rule is not None else set()
-            )
-            dynamic_allowed: set[str] = set()
-            if self._dynamic is not None and rule is not None:
-                try:
-                    dynamic_allowed = {
-                        e.lower() for e in (self._dynamic(rule.app_id) or set())
-                    }
-                except Exception:  # noqa: BLE001
-                    # A grants-store hiccup must never break auth. Fail closed
-                    # for grant-based access (config users still work).
-                    _logger.warning(
-                        "dynamic grants lookup failed for app_id=%r; "
-                        "falling back to config allowed_users only",
-                        rule.app_id,
-                        exc_info=True,
-                    )
-                    dynamic_allowed = set()
-            allowed = config_allowed | dynamic_allowed
-            if allowed:
-                who = (state.get("user_email") or state.get("user_id") or "").lower()
-                if who not in allowed:
-                    return await self._deny(scope, send, "forbidden")
+            # runtime grants (the dynamic resolver, when wired), decided by
+            # enlace core's ``is_user_allowed`` — the SAME predicate the /_apps
+            # launcher calls, so a user sees in the launcher exactly the apps
+            # this gate lets them open (enlace issue #35). ``granted_users``
+            # resolves grants live, per request, and fails closed on a
+            # grants-store error (config users still work).
+            if rule is not None and not is_user_allowed(
+                state.get("user_id"),
+                state.get("user_email"),
+                allowed_users=rule.allowed_users,
+                granted=granted_users(self._dynamic, rule.app_id),
+            ):
+                return await self._deny(scope, send, "forbidden")
             await self.app(scope, receive, send)
             return
 
