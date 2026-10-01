@@ -1,0 +1,25 @@
+enlace\_auth.auth.shares
+========================
+
+.. automodule:: enlace_auth.auth.shares
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      ACCESS_LEVELS
+      MAX_LABEL
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ShareStore
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      ShareError
+   

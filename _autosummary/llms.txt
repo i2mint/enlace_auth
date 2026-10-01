@@ -22,6 +22,8 @@
 - [enlace_auth.auth.revocation](enlace_auth.auth.revocation.html.md): Credential revocation: end everything an account holds when its credentials change.
 - [enlace_auth.auth.routes](enlace_auth.auth.routes.html.md): Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.
 - [enlace_auth.auth.sessions](enlace_auth.auth.sessions.html.md): Session storage backed by a MutableMapping.
+- [enlace_auth.auth.share_routes](enlace_auth.auth.share_routes.html.md): &#96;/auth/shares/&#42;&#96; — the signed-in user manages the shares of their own data.
+- [enlace_auth.auth.shares](enlace_auth.auth.shares.html.md): Owner-granted data shares: let named users at one user’s per-user data in one app.
 - [enlace_auth.config](enlace_auth.config.html.md): Auth-side configuration models.
 - [enlace_auth.diagnostics](enlace_auth.diagnostics.html.md): Auth-specific doctor checks that plug into &#96;enlace.doctor.run_doctor&#96;.
 - [enlace_auth.stores](enlace_auth.stores.html.md): Per-user stores for enlace.

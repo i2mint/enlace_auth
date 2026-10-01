@@ -24,6 +24,8 @@
 - [enlace_auth.auth.revocation](_autosummary/enlace_auth.auth.revocation.html.md): Credential revocation: end everything an account holds when its credentials change.
 - [enlace_auth.auth.routes](_autosummary/enlace_auth.auth.routes.html.md): Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.
 - [enlace_auth.auth.sessions](_autosummary/enlace_auth.auth.sessions.html.md): Session storage backed by a MutableMapping.
+- [enlace_auth.auth.share_routes](_autosummary/enlace_auth.auth.share_routes.html.md): &#96;/auth/shares/&#42;&#96; — the signed-in user manages the shares of their own data.
+- [enlace_auth.auth.shares](_autosummary/enlace_auth.auth.shares.html.md): Owner-granted data shares: let named users at one user’s per-user data in one app.
 - [enlace_auth.config](_autosummary/enlace_auth.config.html.md): Auth-side configuration models.
 - [enlace_auth.diagnostics](_autosummary/enlace_auth.diagnostics.html.md): Auth-specific doctor checks that plug into &#96;enlace.doctor.run_doctor&#96;.
 - [enlace_auth.stores](_autosummary/enlace_auth.stores.html.md): Per-user stores for enlace.
@@ -31,7 +33,7 @@
 - [enlace_auth.stores.middleware](_autosummary/enlace_auth.stores.middleware.html.md): Store injection middleware and per-app store router.
 - [enlace_auth.stores.prefixed](_autosummary/enlace_auth.stores.prefixed.html.md): PrefixedStore — MutableMapping wrapper that scopes keys under a prefix.
 - [enlace_auth.stores.validation](_autosummary/enlace_auth.stores.validation.html.md): Key sanitization for user-supplied store keys.
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-09-22 16:39 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-01 16:29 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
 
 ## Optional
 

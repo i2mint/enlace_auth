@@ -11,6 +11,7 @@ Public helpers:
 - `CSRFMiddleware` — signed double-submit CSRF.
 - `SessionStore` — MutableMapping-backed session storage.
 - `GrantStore` — MutableMapping-backed runtime per-app access grants.
+- `ShareStore` — owner-granted data shares (who may act on whose per-user data).
 - `hash_password` / `verify_password` — argon2id helpers.
 - `make_auth_router` — FastAPI router for `/auth/*` endpoints.
 
@@ -32,6 +33,12 @@ Public helpers:
 | [`GrantStore`](#enlace_auth.auth.GrantStore)(backend, \*[, root])                    | Thin adapter over a `MutableMapping` that speaks grant semantics.   |
 | [`PlatformAuthMiddleware`](#enlace_auth.auth.PlatformAuthMiddleware)(app, \*, access_rules, ...) | Pure-ASGI auth middleware.                                          |
 | [`SessionStore`](#enlace_auth.auth.SessionStore)(store, \*[, max_age, ...])            | Thin adapter around a MutableMapping that speaks session semantics. |
+| [`ShareStore`](#enlace_auth.auth.ShareStore)(backend, \*[, root, account_exists])    | Share semantics over a `MutableMapping`.                            |
+
+### Exceptions
+
+| [`ShareError`](#enlace_auth.auth.ShareError)(message, \*[, code])   | An invalid share.   |
+|------------------------------------------------------------------------------------|---------------------|
 
 ### *class* enlace_auth.auth.AccessRule(prefix, level, app_id, shared_password_hash=None, allowed_users=())
 
@@ -39,7 +46,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Auth policy for a single mount prefix.
 
-### *class* enlace_auth.auth.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'))
+### *class* enlace_auth.auth.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -136,6 +143,71 @@ record without a numeric `created_at` is left alone.
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
+### *exception* enlace_auth.auth.ShareError(message, , code='invalid')
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+An invalid share. `code` says which: `"no_account"` or `"invalid"`.
+
+### *class* enlace_auth.auth.ShareStore(backend, , root=None, account_exists=None)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Share semantics over a `MutableMapping`.
+
+* **Parameters:**
+  * **backend** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)) – the per-name store (e.g. `factory("shares")`).
+  * **root** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]) – the filesystem directory backing `backend`, used only to list one
+    app’s shares without scanning every key (as `GrantStore` does).
+    `None` (a dict backend in tests) falls back to filtering all keys.
+  * **account_exists** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]]) – `email -> bool`. When given, [`share()`](#enlace_auth.auth.ShareStore.share) refuses an
+    owner or grantee with no account. `None` skips the check (tests).
+
+#### access(app_id, owner, grantee, , now=None)
+
+`"rw"`, `"ro"` or `None`: what `grantee` may do with the data.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### granted(app_id, owner, , now=None)
+
+Every share `owner` made in `app_id`, each with `"active"`.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### list_all()
+
+Every share in every app. Admin-only, infrequent.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### received(app_id, grantee, , now=None)
+
+The **active** shares made to `grantee` in `app_id`.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### remove_account(email)
+
+Delete every share `email` is part of, either side. Returns how many.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### share(app_id, owner, grantee, , access='rw', label=None, expires_at=None, granted_by=None, now=None)
+
+Create or replace the share `owner` → `grantee` in `app_id`.
+
+`expires_at` is epoch seconds UTC or `None`; turn a date string into it
+with [`enlace_auth.auth.grants.parse_expires_at()`](enlace_auth.auth.grants.md#enlace_auth.auth.grants.parse_expires_at) first.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
 ### enlace_auth.auth.hash_password(password)
 
 Return an argon2id hash string for `password`.
@@ -229,3 +301,5 @@ Return True iff `password` matches the stored `hashed` value.
 | [`revocation`](enlace_auth.auth.revocation.md#module-enlace_auth.auth.revocation)     | Credential revocation: end everything an account holds when its credentials change. |
 | [`routes`](enlace_auth.auth.routes.md#module-enlace_auth.auth.routes)             | Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.            |
 | [`sessions`](enlace_auth.auth.sessions.md#module-enlace_auth.auth.sessions)         | Session storage backed by a MutableMapping.                                         |
+| [`share_routes`](enlace_auth.auth.share_routes.md#module-enlace_auth.auth.share_routes) | `/auth/shares/*` — the signed-in user manages the shares of their own data.         |
+| [`shares`](enlace_auth.auth.shares.md#module-enlace_auth.auth.shares)             | Owner-granted data shares: let named users at one user's per-user data in one app.  |

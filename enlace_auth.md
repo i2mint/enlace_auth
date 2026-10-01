@@ -1,4 +1,4 @@
-> built 2026-09-22 16:39 UTC from aab55a3 (main) · enlace_auth 0.1.26. Details: build_info.json
+> built 2026-10-01 16:29 UTC from 41d9c80 (main) · enlace_auth 0.1.28. Details: build_info.json
 
 # index.html.md
 
@@ -219,6 +219,23 @@ rejected — it would have no additive effect and would unintentionally restrict
 open app. To remove a user listed in `allowed_users`, edit `app.toml` (that layer
 is intentionally code-managed); the admin panel manages the runtime layer.
 
+## Owner-granted data shares
+
+Grants say who may *open* an app. A **share** says who may act on *someone else’s* data in it: in app `A`, the owner’s per-user store is readable (and, by default, writable) by a named grantee, signed in as themselves. Use it for data that belongs to one person and is looked after by others — a child’s practice log kept by her parents.
+
+```bash
+enlace-auth share practice kid@example.com parent@example.com --label Kid   # admin, from the server
+enlace-auth share practice kid@example.com teacher@example.com --access ro
+enlace-auth list-shares
+enlace-auth revoke-share practice kid@example.com parent@example.com
+```
+
+A signed-in owner manages their own shares at `/auth/shares/{app}` (`GET`, `PUT …/{grantee}`, `DELETE …/{grantee}`; a grantee leaves with `DELETE …/received/{owner}`); an admin uses `/_admin/api/shares`. A grantee then reads the owner’s data with `?owner=<email>` on the per-user store: `GET /api/{app}/store?prefix=…&owner=…` lists it, and every route takes `If-Match` so two devices cannot silently overwrite each other. A share names existing accounts only and is removed with either account.
+
+Upgrading: store writes (`PUT`/`DELETE /api/{app}/store/...`) now require the `X-CSRF-Token` header (from `GET /auth/csrf`), and `/api/{app}/store` is reserved for the platform. A share does not bypass an app’s `allowed_users`.
+
+An app gets a per-user store when its `access` is `protected:user`, or when its `app.toml` sets `user_store = true` — which lets a **public** app keep data for the visitors who sign in while staying open to everyone else. The design and its review are in [`misc/docs/decisions/0001-owner-granted-data-shares.md`]().
+
 ## Doctor checks
 
 ```python
@@ -260,7 +277,7 @@ authenticated user” gate for self-service endpoints like `/me/password`.
 | [`make_admin_router`](_autosummary/enlace_auth.admin.html.md#enlace_auth.admin.make_admin_router)(\*, user_store, session_store)   | Build a FastAPI router exposing `/_admin/api/*` endpoints.   |
 |-----------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
 
-### enlace_auth.admin.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None, on_credentials_changed=None)
+### enlace_auth.admin.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), share_store=None, store_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None, on_credentials_changed=None)
 
 Build a FastAPI router exposing `/_admin/api/*` endpoints.
 
@@ -352,7 +369,7 @@ Runtime grants are ADDITIVE on top of each app’s static `app.toml`
 |-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | [`make_admin_ui_router`](_autosummary/enlace_auth.admin.routes.html.md#enlace_auth.admin.routes.make_admin_ui_router)()                             | Build a FastAPI router that serves the bundled HTML dashboard. |
 
-### enlace_auth.admin.routes.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None, on_credentials_changed=None)
+### enlace_auth.admin.routes.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), share_store=None, store_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None, on_credentials_changed=None)
 
 Build a FastAPI router exposing `/_admin/api/*` endpoints.
 
@@ -694,6 +711,7 @@ Public helpers:
 - `CSRFMiddleware` — signed double-submit CSRF.
 - `SessionStore` — MutableMapping-backed session storage.
 - `GrantStore` — MutableMapping-backed runtime per-app access grants.
+- `ShareStore` — owner-granted data shares (who may act on whose per-user data).
 - `hash_password` / `verify_password` — argon2id helpers.
 - `make_auth_router` — FastAPI router for `/auth/*` endpoints.
 
@@ -715,6 +733,12 @@ Public helpers:
 | [`GrantStore`](_autosummary/enlace_auth.auth.html.md#enlace_auth.auth.GrantStore)(backend, \*[, root])                    | Thin adapter over a `MutableMapping` that speaks grant semantics.   |
 | [`PlatformAuthMiddleware`](_autosummary/enlace_auth.auth.html.md#enlace_auth.auth.PlatformAuthMiddleware)(app, \*, access_rules, ...) | Pure-ASGI auth middleware.                                          |
 | [`SessionStore`](_autosummary/enlace_auth.auth.html.md#enlace_auth.auth.SessionStore)(store, \*[, max_age, ...])            | Thin adapter around a MutableMapping that speaks session semantics. |
+| [`ShareStore`](_autosummary/enlace_auth.auth.html.md#enlace_auth.auth.ShareStore)(backend, \*[, root, account_exists])    | Share semantics over a `MutableMapping`.                            |
+
+### Exceptions
+
+| [`ShareError`](_autosummary/enlace_auth.auth.html.md#enlace_auth.auth.ShareError)(message, \*[, code])   | An invalid share.   |
+|------------------------------------------------------------------------------------|---------------------|
 
 ### *class* enlace_auth.auth.AccessRule(prefix, level, app_id, shared_password_hash=None, allowed_users=())
 
@@ -722,7 +746,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Auth policy for a single mount prefix.
 
-### *class* enlace_auth.auth.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'))
+### *class* enlace_auth.auth.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -819,6 +843,71 @@ record without a numeric `created_at` is left alone.
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
+### *exception* enlace_auth.auth.ShareError(message, , code='invalid')
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+An invalid share. `code` says which: `"no_account"` or `"invalid"`.
+
+### *class* enlace_auth.auth.ShareStore(backend, , root=None, account_exists=None)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Share semantics over a `MutableMapping`.
+
+* **Parameters:**
+  * **backend** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)) – the per-name store (e.g. `factory("shares")`).
+  * **root** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]) – the filesystem directory backing `backend`, used only to list one
+    app’s shares without scanning every key (as `GrantStore` does).
+    `None` (a dict backend in tests) falls back to filtering all keys.
+  * **account_exists** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]]) – `email -> bool`. When given, [`share()`](_autosummary/enlace_auth.auth.html.md#enlace_auth.auth.ShareStore.share) refuses an
+    owner or grantee with no account. `None` skips the check (tests).
+
+#### access(app_id, owner, grantee, , now=None)
+
+`"rw"`, `"ro"` or `None`: what `grantee` may do with the data.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### granted(app_id, owner, , now=None)
+
+Every share `owner` made in `app_id`, each with `"active"`.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### list_all()
+
+Every share in every app. Admin-only, infrequent.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### received(app_id, grantee, , now=None)
+
+The **active** shares made to `grantee` in `app_id`.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### remove_account(email)
+
+Delete every share `email` is part of, either side. Returns how many.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### share(app_id, owner, grantee, , access='rw', label=None, expires_at=None, granted_by=None, now=None)
+
+Create or replace the share `owner` → `grantee` in `app_id`.
+
+`expires_at` is epoch seconds UTC or `None`; turn a date string into it
+with [`enlace_auth.auth.grants.parse_expires_at()`](_autosummary/enlace_auth.auth.grants.html.md#enlace_auth.auth.grants.parse_expires_at) first.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
 ### enlace_auth.auth.hash_password(password)
 
 Return an argon2id hash string for `password`.
@@ -912,6 +1001,8 @@ Return True iff `password` matches the stored `hashed` value.
 | [`revocation`](_autosummary/enlace_auth.auth.revocation.html.md#module-enlace_auth.auth.revocation)     | Credential revocation: end everything an account holds when its credentials change. |
 | [`routes`](_autosummary/enlace_auth.auth.routes.html.md#module-enlace_auth.auth.routes)             | Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.            |
 | [`sessions`](_autosummary/enlace_auth.auth.sessions.html.md#module-enlace_auth.auth.sessions)         | Session storage backed by a MutableMapping.                                         |
+| [`share_routes`](_autosummary/enlace_auth.auth.share_routes.html.md#module-enlace_auth.auth.share_routes) | `/auth/shares/*` — the signed-in user manages the shares of their own data.         |
+| [`shares`](_autosummary/enlace_auth.auth.shares.html.md#module-enlace_auth.auth.shares)             | Owner-granted data shares: let named users at one user's per-user data in one app.  |
 
 
 # _autosummary/enlace_auth.auth.middleware.html.md
@@ -961,7 +1052,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Auth policy for a single mount prefix.
 
-### *class* enlace_auth.auth.middleware.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'))
+### *class* enlace_auth.auth.middleware.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -1717,6 +1808,172 @@ record without a numeric `created_at` is left alone.
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
 
+# _autosummary/enlace_auth.auth.share_routes.html.md
+
+# enlace_auth.auth.share_routes
+
+`/auth/shares/*` — the signed-in user manages the shares of their own data.
+
+The owner side of a share is always the signed-in user: there is no route by which
+a grantee can grant onward, or anyone can share someone else’s data (an admin does
+that through `/_admin/api/shares` or the CLI). These routes live under `/auth/`,
+so the platform’s double-submit CSRF check covers every write.
+
+- `GET    /auth/shares/{app_id}` → `{"owner", "granted": [...], "received": [...]}`
+- `PUT    /auth/shares/{app_id}/{grantee}`
+  (body `{"access"?, "label"?, "expires_at"?}`)
+- `DELETE /auth/shares/{app_id}/received/{owner}` — a grantee leaves a share
+- `DELETE /auth/shares/{app_id}/{grantee}` — the owner revokes one
+
+See `misc/docs/decisions/0001-owner-granted-data-shares.md`.
+
+### Functions
+
+| [`make_share_router`](_autosummary/enlace_auth.auth.share_routes.html.md#enlace_auth.auth.share_routes.make_share_router)(\*, share_store, store_apps)   | Build the `/auth/shares` router.   |
+|---------------------------------------------------------------------------------------------------|------------------------------------|
+
+### enlace_auth.auth.share_routes.make_share_router(, share_store, store_apps)
+
+Build the `/auth/shares` router.
+
+`store_apps` names the apps that have a per-user store (`protected:user`
+apps and `user_store = true` apps); a share in any other app is refused,
+since there would be nothing to share. A callable is re-read per request.
+
+* **Return type:**
+  `APIRouter`
+
+
+# _autosummary/enlace_auth.auth.shares.html.md
+
+# enlace_auth.auth.shares
+
+Owner-granted data shares: let named users at one user’s per-user data in one app.
+
+Grants ([`enlace_auth.auth.grants`](_autosummary/enlace_auth.auth.grants.html.md#module-enlace_auth.auth.grants)) answer *may this user open this app?* A
+**share** answers a different question: \*may this user act on that user’s data in
+this app?\* A share is `(app_id, owner, grantee)` plus an access level, and the
+per-user store ([`enlace_auth.stores.middleware`](_autosummary/enlace_auth.stores.middleware.html.md#module-enlace_auth.stores.middleware)) honours it when a request
+names an owner with `?owner=`. The design, and why it is shaped this way, is
+`misc/docs/decisions/0001-owner-granted-data-shares.md`.
+
+Storage mirrors [`GrantStore`](_autosummary/enlace_auth.auth.grants.html.md#enlace_auth.auth.grants.GrantStore): a thin adapter over a
+`MutableMapping` whose keys are `"{app_id}/{owner}/{grantee}"` and whose values
+are JSON records:
+
+```default
+{
+    "app_id": str,
+    "owner": str,              # normalized email
+    "grantee": str,            # normalized email
+    "access": "rw" | "ro",     # "ro" = read-only (GET)
+    "label": str | None,       # how the grantee sees this space
+    "granted_at": float,       # epoch seconds, UTC
+    "granted_by": str | None,  # who created it (the owner, or an admin)
+    "expires_at": float | None,  # epoch seconds, UTC; None = never
+}
+```
+
+Two rules the store enforces, so no caller can forget them:
+
+- **A share names existing accounts only** (when `account_exists` is given). A
+  share to an address nobody holds would be claimed by whoever registers it next.
+- **A share dies with either account**: [`ShareStore.remove_account()`](_autosummary/enlace_auth.auth.shares.html.md#enlace_auth.auth.shares.ShareStore.remove_account) deletes
+  every share an email is part of, and account deletion calls it.
+
+### Module Attributes
+
+| [`ACCESS_LEVELS`](_autosummary/enlace_auth.auth.shares.html.md#enlace_auth.auth.shares.ACCESS_LEVELS)   | read-write, or read-only (GET).                                                  |
+|------------------------------------------------------------------|----------------------------------------------------------------------------------|
+| [`MAX_LABEL`](_autosummary/enlace_auth.auth.shares.html.md#enlace_auth.auth.shares.MAX_LABEL)       | The longest `label` a share may carry (the grantee sees it as the space's name). |
+
+### Classes
+
+| [`ShareStore`](_autosummary/enlace_auth.auth.shares.html.md#enlace_auth.auth.shares.ShareStore)(backend, \*[, root, account_exists])   | Share semantics over a `MutableMapping`.   |
+|----------------------------------------------------------------------------------------------------|--------------------------------------------|
+
+### Exceptions
+
+| [`ShareError`](_autosummary/enlace_auth.auth.shares.html.md#enlace_auth.auth.shares.ShareError)(message, \*[, code])   | An invalid share.   |
+|------------------------------------------------------------------------------------|---------------------|
+
+### enlace_auth.auth.shares.ACCESS_LEVELS *= ('rw', 'ro')*
+
+read-write, or read-only (GET).
+
+* **Type:**
+  The access levels a share may carry
+
+### enlace_auth.auth.shares.MAX_LABEL *= 80*
+
+The longest `label` a share may carry (the grantee sees it as the space’s name).
+
+### *exception* enlace_auth.auth.shares.ShareError(message, , code='invalid')
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+An invalid share. `code` says which: `"no_account"` or `"invalid"`.
+
+### *class* enlace_auth.auth.shares.ShareStore(backend, , root=None, account_exists=None)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Share semantics over a `MutableMapping`.
+
+* **Parameters:**
+  * **backend** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)) – the per-name store (e.g. `factory("shares")`).
+  * **root** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]) – the filesystem directory backing `backend`, used only to list one
+    app’s shares without scanning every key (as `GrantStore` does).
+    `None` (a dict backend in tests) falls back to filtering all keys.
+  * **account_exists** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]]) – `email -> bool`. When given, [`share()`](_autosummary/enlace_auth.auth.shares.html.md#enlace_auth.auth.shares.ShareStore.share) refuses an
+    owner or grantee with no account. `None` skips the check (tests).
+
+#### access(app_id, owner, grantee, , now=None)
+
+`"rw"`, `"ro"` or `None`: what `grantee` may do with the data.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### granted(app_id, owner, , now=None)
+
+Every share `owner` made in `app_id`, each with `"active"`.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### list_all()
+
+Every share in every app. Admin-only, infrequent.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### received(app_id, grantee, , now=None)
+
+The **active** shares made to `grantee` in `app_id`.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### remove_account(email)
+
+Delete every share `email` is part of, either side. Returns how many.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### share(app_id, owner, grantee, , access='rw', label=None, expires_at=None, granted_by=None, now=None)
+
+Create or replace the share `owner` → `grantee` in `app_id`.
+
+`expires_at` is epoch seconds UTC or `None`; turn a date string into it
+with [`enlace_auth.auth.grants.parse_expires_at()`](_autosummary/enlace_auth.auth.grants.html.md#enlace_auth.auth.grants.parse_expires_at) first.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+
 # _autosummary/enlace_auth.config.html.md
 
 # enlace_auth.config
@@ -2043,10 +2300,10 @@ Public helpers:
 
 ### Functions
 
-| [`make_file_store_factory`](_autosummary/enlace_auth.stores.html.md#enlace_auth.stores.make_file_store_factory)(root, \*[, use_dol])   | Return a `StoreFactory` backed by JSON files under `root`.        |
-|-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
-| [`make_store_router`](_autosummary/enlace_auth.stores.html.md#enlace_auth.stores.make_store_router)(\*, base_store_getter, ...)  | Return a router exposing `/api/{app_id}/store/{key}` endpoints.   |
-| [`sanitize_key`](_autosummary/enlace_auth.stores.html.md#enlace_auth.stores.sanitize_key)(key)                              | Return `key` unchanged if safe for use as a store path component. |
+| [`make_file_store_factory`](_autosummary/enlace_auth.stores.html.md#enlace_auth.stores.make_file_store_factory)(root, \*[, use_dol])   | Return a `StoreFactory` backed by JSON files under `root`.            |
+|-------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| [`make_store_router`](_autosummary/enlace_auth.stores.html.md#enlace_auth.stores.make_store_router)(\*, base_store_getter, ...)  | Return a router exposing the per-user store of each app that has one. |
+| [`sanitize_key`](_autosummary/enlace_auth.stores.html.md#enlace_auth.stores.sanitize_key)(key)                              | Return `key` unchanged if safe for use as a store path component.     |
 
 ### Classes
 
@@ -2059,6 +2316,16 @@ Public helpers:
 Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
 Transparently prepend a prefix to every key operation on a base store.
+
+#### keys_under(sub='')
+
+Keys (without this store’s prefix) that start with `sub`.
+
+Uses the base store’s own `keys_under` when it has one (the file backend
+walks only the matching directory), else filters a full iteration.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### *class* enlace_auth.stores.StoreInjectionMiddleware(app, , base_store=None)
 
@@ -2079,13 +2346,33 @@ directories on write. Pass `use_dol=True` to use `dol.Files` instead
 * **Return type:**
   [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)]
 
-### enlace_auth.stores.make_store_router(, base_store_getter, protected_apps)
+### enlace_auth.stores.make_store_router(, base_store_getter, protected_apps, share_access=None, max_items=5000)
 
-Return a router exposing `/api/{app_id}/store/{key}` endpoints.
+Return a router exposing the per-user store of each app that has one.
 
-Only apps whose name is in `protected_apps` (i.e. `protected:user`
-access level) can have their store accessed this way. The router assumes
-`PlatformAuthMiddleware` has already set `request.state.user_id`.
+Routes:
+
+- `GET    /api/{app_id}/store?prefix=<p>`
+  → `{"items": {key: {"value", "etag"}}, "truncated"}`
+- `GET    /api/{app_id}/store/{key}` → `{"value": v}` with an `ETag` header
+- `PUT    /api/{app_id}/store/{key}` — conditional with `If-Match: <etag>`
+  or `If-None-Match: *`
+- `DELETE /api/{app_id}/store/{key}` — `If-Match` likewise
+
+A failed precondition is **412** with the current `{"value", "etag"}` (`value`
+null when the key is absent), so the client can resolve and retry.
+
+`protected_apps` names the apps with a per-user store: `protected:user`
+apps and those whose `app.toml` sets `user_store = true` (a callable is
+re-read per request). `?owner=<email>` on any route acts on that user’s
+data instead of the caller’s, when `share_access(app_id, owner, caller)`
+says so (`"rw"`, or `"ro"` for GET only); otherwise 404, as if the owner
+had nothing. Without `share_access` every `?owner=` naming someone else
+is 404. See `misc/docs/decisions/0001-owner-granted-data-shares.md`.
+
+The router assumes `PlatformAuthMiddleware` has set `request.state.user_id`
+(public apps get it too, when the visitor is signed in). CSRF on writes is the
+`CSRFMiddleware`’s, through its `enforce_prefixes`.
 
 * **Return type:**
   `APIRouter`
@@ -2125,15 +2412,33 @@ If either id is missing, `store` is `None` — apps are expected to handle
 that case gracefully (they do so naturally by providing a dict fallback in
 standalone mode).
 
+### Module Attributes
+
+| [`NO_ACCESS`](_autosummary/enlace_auth.stores.middleware.html.md#enlace_auth.stores.middleware.NO_ACCESS)         | no (more) share for `?owner=`, or no such key.                            |
+|--------------------------------------------------------------------|---------------------------------------------------------------------------|
+| [`DEFAULT_MAX_ITEMS`](_autosummary/enlace_auth.stores.middleware.html.md#enlace_auth.stores.middleware.DEFAULT_MAX_ITEMS) | How many items the list route returns before it says `"truncated": true`. |
+
 ### Functions
 
-| [`make_store_router`](_autosummary/enlace_auth.stores.middleware.html.md#enlace_auth.stores.middleware.make_store_router)(\*, base_store_getter, ...)   | Return a router exposing `/api/{app_id}/store/{key}` endpoints.   |
-|--------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| [`etag_of`](_autosummary/enlace_auth.stores.middleware.html.md#enlace_auth.stores.middleware.etag_of)(value)                                | A strong ETag for a stored JSON value: a hash of its canonical serialisation.   |
+|------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| [`make_store_router`](_autosummary/enlace_auth.stores.middleware.html.md#enlace_auth.stores.middleware.make_store_router)(\*, base_store_getter, ...) | Return a router exposing the per-user store of each app that has one.           |
 
 ### Classes
 
 | [`StoreInjectionMiddleware`](_autosummary/enlace_auth.stores.middleware.html.md#enlace_auth.stores.middleware.StoreInjectionMiddleware)(app, \*[, base_store])   | Pure-ASGI middleware that injects `request.state.store`.   |
 |----------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+
+### enlace_auth.stores.middleware.DEFAULT_MAX_ITEMS *= 5000*
+
+How many items the list route returns before it says `"truncated": true`.
+
+### enlace_auth.stores.middleware.NO_ACCESS *= 'no_access'*
+
+no (more) share for `?owner=`, or no such key.
+
+* **Type:**
+  The 404 details of the store routes
 
 ### *class* enlace_auth.stores.middleware.StoreInjectionMiddleware(app, , base_store=None)
 
@@ -2141,13 +2446,40 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Pure-ASGI middleware that injects `request.state.store`.
 
-### enlace_auth.stores.middleware.make_store_router(, base_store_getter, protected_apps)
+### enlace_auth.stores.middleware.etag_of(value)
 
-Return a router exposing `/api/{app_id}/store/{key}` endpoints.
+A strong ETag for a stored JSON value: a hash of its canonical serialisation.
 
-Only apps whose name is in `protected_apps` (i.e. `protected:user`
-access level) can have their store accessed this way. The router assumes
-`PlatformAuthMiddleware` has already set `request.state.user_id`.
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.stores.middleware.make_store_router(, base_store_getter, protected_apps, share_access=None, max_items=5000)
+
+Return a router exposing the per-user store of each app that has one.
+
+Routes:
+
+- `GET    /api/{app_id}/store?prefix=<p>`
+  → `{"items": {key: {"value", "etag"}}, "truncated"}`
+- `GET    /api/{app_id}/store/{key}` → `{"value": v}` with an `ETag` header
+- `PUT    /api/{app_id}/store/{key}` — conditional with `If-Match: <etag>`
+  or `If-None-Match: *`
+- `DELETE /api/{app_id}/store/{key}` — `If-Match` likewise
+
+A failed precondition is **412** with the current `{"value", "etag"}` (`value`
+null when the key is absent), so the client can resolve and retry.
+
+`protected_apps` names the apps with a per-user store: `protected:user`
+apps and those whose `app.toml` sets `user_store = true` (a callable is
+re-read per request). `?owner=<email>` on any route acts on that user’s
+data instead of the caller’s, when `share_access(app_id, owner, caller)`
+says so (`"rw"`, or `"ro"` for GET only); otherwise 404, as if the owner
+had nothing. Without `share_access` every `?owner=` naming someone else
+is 404. See `misc/docs/decisions/0001-owner-granted-data-shares.md`.
+
+The router assumes `PlatformAuthMiddleware` has set `request.state.user_id`
+(public apps get it too, when the visitor is signed in). CSRF on writes is the
+`CSRFMiddleware`’s, through its `enforce_prefixes`.
 
 * **Return type:**
   `APIRouter`
@@ -2176,6 +2508,16 @@ sanitized at construction (each slash-separated segment).
 Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
 Transparently prepend a prefix to every key operation on a base store.
+
+#### keys_under(sub='')
+
+Keys (without this store’s prefix) that start with `sub`.
+
+Uses the base store’s own `keys_under` when it has one (the file backend
+walks only the matching directory), else filters a full iteration.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 
 # _autosummary/enlace_auth.stores.validation.html.md
@@ -2212,20 +2554,20 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-09-22 16:39 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/aab55a3b13902b24fb37db127fbcfee2b16747c0"><code>aab55a3</code></a> on branch <code>main</code>, for **enlace_auth 0.1.26** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-01 16:29 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/41d9c807fa5f8b75658fd69d3fc297a3d27a0c40"><code>41d9c80</code></a> on branch <code>main</code>, for **enlace_auth 0.1.28** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.26) is behind the latest release on PyPI (0.1.27): `pip install enlace_auth` gives newer code than these docs describe.
+- The documented version (0.1.28) is ahead of the latest release on PyPI (0.1.27): these docs describe unreleased code.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/aab55a3b13902b24fb37db127fbcfee2b16747c0"><code>aab55a3b13902b24fb37db127fbcfee2b16747c0</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/41d9c807fa5f8b75658fd69d3fc297a3d27a0c40"><code>41d9c807fa5f8b75658fd69d3fc297a3d27a0c40</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
-| Tags at this commit | none                                                                                                                                                      |
+| Tags at this commit | <code>0.1.28</code>                                                                                                                                       |
 | Working tree        | clean                                                                                                                                                     |
 | Remote              | <code>https://github.com/i2mint/enlace_auth</code>                                                                                                        |
 
@@ -2234,9 +2576,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/35755310190">35755310190</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/36891936563">36891936563</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>aab55a3b13902b24fb37db127fbcfee2b16747c0</code> (in the history of the built commit) |
+| Event commit | <code>05d1688481816028e58da78c03bbf34b53c33454</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2261,13 +2603,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.27/">0.1.27</a>, newer than the documented version (0.1.26).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.27/">0.1.27</a>, older than the documented version (0.1.28).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout aab55a3b13902b24fb37db127fbcfee2b16747c0
+git checkout 41d9c807fa5f8b75658fd69d3fc297a3d27a0c40
 pip install "epythet==0.2.12"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

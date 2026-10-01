@@ -19,3 +19,13 @@ sanitized at construction (each slash-separated segment).
 Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
 Transparently prepend a prefix to every key operation on a base store.
+
+#### keys_under(sub='')
+
+Keys (without this store’s prefix) that start with `sub`.
+
+Uses the base store’s own `keys_under` when it has one (the file backend
+walks only the matching directory), else filters a full iteration.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]

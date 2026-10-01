@@ -43,7 +43,7 @@ Runtime grants are ADDITIVE on top of each app’s static `app.toml`
 |-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | [`make_admin_ui_router`](#enlace_auth.admin.routes.make_admin_ui_router)()                             | Build a FastAPI router that serves the bundled HTML dashboard. |
 
-### enlace_auth.admin.routes.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None, on_credentials_changed=None)
+### enlace_auth.admin.routes.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), share_store=None, store_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None, on_credentials_changed=None)
 
 Build a FastAPI router exposing `/_admin/api/*` endpoints.
 

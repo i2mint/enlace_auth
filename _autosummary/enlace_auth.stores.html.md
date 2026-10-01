@@ -16,10 +16,10 @@ Public helpers:
 
 ### Functions
 
-| [`make_file_store_factory`](#enlace_auth.stores.make_file_store_factory)(root, \*[, use_dol])   | Return a `StoreFactory` backed by JSON files under `root`.        |
-|-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
-| [`make_store_router`](#enlace_auth.stores.make_store_router)(\*, base_store_getter, ...)  | Return a router exposing `/api/{app_id}/store/{key}` endpoints.   |
-| [`sanitize_key`](#enlace_auth.stores.sanitize_key)(key)                              | Return `key` unchanged if safe for use as a store path component. |
+| [`make_file_store_factory`](#enlace_auth.stores.make_file_store_factory)(root, \*[, use_dol])   | Return a `StoreFactory` backed by JSON files under `root`.            |
+|-------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| [`make_store_router`](#enlace_auth.stores.make_store_router)(\*, base_store_getter, ...)  | Return a router exposing the per-user store of each app that has one. |
+| [`sanitize_key`](#enlace_auth.stores.sanitize_key)(key)                              | Return `key` unchanged if safe for use as a store path component.     |
 
 ### Classes
 
@@ -32,6 +32,16 @@ Public helpers:
 Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
 Transparently prepend a prefix to every key operation on a base store.
+
+#### keys_under(sub='')
+
+Keys (without this store’s prefix) that start with `sub`.
+
+Uses the base store’s own `keys_under` when it has one (the file backend
+walks only the matching directory), else filters a full iteration.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### *class* enlace_auth.stores.StoreInjectionMiddleware(app, , base_store=None)
 
@@ -52,13 +62,33 @@ directories on write. Pass `use_dol=True` to use `dol.Files` instead
 * **Return type:**
   [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)]
 
-### enlace_auth.stores.make_store_router(, base_store_getter, protected_apps)
+### enlace_auth.stores.make_store_router(, base_store_getter, protected_apps, share_access=None, max_items=5000)
 
-Return a router exposing `/api/{app_id}/store/{key}` endpoints.
+Return a router exposing the per-user store of each app that has one.
 
-Only apps whose name is in `protected_apps` (i.e. `protected:user`
-access level) can have their store accessed this way. The router assumes
-`PlatformAuthMiddleware` has already set `request.state.user_id`.
+Routes:
+
+- `GET    /api/{app_id}/store?prefix=<p>`
+  → `{"items": {key: {"value", "etag"}}, "truncated"}`
+- `GET    /api/{app_id}/store/{key}` → `{"value": v}` with an `ETag` header
+- `PUT    /api/{app_id}/store/{key}` — conditional with `If-Match: <etag>`
+  or `If-None-Match: *`
+- `DELETE /api/{app_id}/store/{key}` — `If-Match` likewise
+
+A failed precondition is **412** with the current `{"value", "etag"}` (`value`
+null when the key is absent), so the client can resolve and retry.
+
+`protected_apps` names the apps with a per-user store: `protected:user`
+apps and those whose `app.toml` sets `user_store = true` (a callable is
+re-read per request). `?owner=<email>` on any route acts on that user’s
+data instead of the caller’s, when `share_access(app_id, owner, caller)`
+says so (`"rw"`, or `"ro"` for GET only); otherwise 404, as if the owner
+had nothing. Without `share_access` every `?owner=` naming someone else
+is 404. See `misc/docs/decisions/0001-owner-granted-data-shares.md`.
+
+The router assumes `PlatformAuthMiddleware` has set `request.state.user_id`
+(public apps get it too, when the visitor is signed in). CSRF on writes is the
+`CSRFMiddleware`’s, through its `enforce_prefixes`.
 
 * **Return type:**
   `APIRouter`

@@ -15,7 +15,7 @@ authenticated user” gate for self-service endpoints like `/me/password`.
 | [`make_admin_router`](#enlace_auth.admin.make_admin_router)(\*, user_store, session_store)   | Build a FastAPI router exposing `/_admin/api/*` endpoints.   |
 |-----------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
 
-### enlace_auth.admin.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None, on_credentials_changed=None)
+### enlace_auth.admin.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), share_store=None, store_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None, on_credentials_changed=None)
 
 Build a FastAPI router exposing `/_admin/api/*` endpoints.
 

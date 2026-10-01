@@ -1,0 +1,12 @@
+enlace\_auth.auth.share\_routes
+===============================
+
+.. automodule:: enlace_auth.auth.share_routes
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_share_router
+   

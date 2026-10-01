@@ -24,6 +24,13 @@ enlace\_auth.auth
       GrantStore
       PlatformAuthMiddleware
       SessionStore
+      ShareStore
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      ShareError
    
 .. rubric:: Modules
 
@@ -43,3 +50,5 @@ enlace\_auth.auth
    revocation
    routes
    sessions
+   share_routes
+   shares
