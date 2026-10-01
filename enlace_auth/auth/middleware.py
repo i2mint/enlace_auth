@@ -394,10 +394,15 @@ class CSRFMiddleware:
             "/auth/login/",
             "/api/",
         ),
+        enforce_prefixes: Iterable[str] = (),
     ):
+        """``enforce_prefixes`` are checked even under an exempt prefix: the per-user
+        store routes (``/api/{app}/store``) sit under ``/api/`` but carry data a
+        share can expose to someone else's cookie, so they never skip the check."""
         self.app = app
         self._signing_key = signing_key
         self._cookie = cookie_name
+        self._enforce = tuple(p.rstrip("/") for p in enforce_prefixes)
         self._header = header_name.lower().encode("latin-1")
         self._exempt = tuple(exempt_prefixes)
 
@@ -410,7 +415,9 @@ class CSRFMiddleware:
         path = scope.get("path", "/")
 
         # Exempt paths skip the check entirely.
-        is_exempt = any(path.startswith(p) for p in self._exempt)
+        is_exempt = any(path.startswith(p) for p in self._exempt) and not any(
+            path == p or path.startswith(p + "/") for p in self._enforce
+        )
 
         cookies = _get_cookies(scope)
         existing = cookies.get(self._cookie)

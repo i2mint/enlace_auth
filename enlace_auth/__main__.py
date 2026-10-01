@@ -396,6 +396,105 @@ def revoke_grant(app_id: str, email: str, *, toml: str = "platform.toml"):
         sys.exit(1)
 
 
+def _load_share_store(toml_path: Path = Path("platform.toml")):
+    """Open the platform's data shares, checking accounts against the user store."""
+    import os
+
+    from enlace_auth.auth.shares import ShareStore
+    from enlace_auth.stores import make_file_store_factory
+
+    config = PlatformConfig.from_toml(toml_path)
+    auth = coerce_auth_config(config.auth)
+    factory = make_file_store_factory(auth.stores.path)
+    users = factory("users")
+    root = Path(os.path.expanduser(auth.stores.path)) / "shares"
+    return ShareStore(factory("shares"), root=root, account_exists=users.__contains__)
+
+
+def share(
+    app_id: str,
+    owner: str,
+    grantee: str,
+    *,
+    access: str = "rw",
+    label: str = None,
+    expires: str = None,
+    toml: str = "platform.toml",
+):
+    """Let GRANTEE act on OWNER's per-user data in an app (a share, made by an admin).
+
+    Both accounts must exist. Re-sharing the same pair replaces the share.
+
+    Args:
+        app_id: The app name.
+        owner: Email of the account whose data is shared.
+        grantee: Email of the account given access.
+        access: "rw" (read-write, default) or "ro" (read-only).
+        label: How the grantee sees this space (e.g. a first name).
+        expires: Optional expiry — a date (YYYY-MM-DD, end of day UTC) or full
+            ISO-8601 timestamp. Omit for a non-expiring share.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    from enlace_auth.auth.grants import GrantError, parse_expires_at
+    from enlace_auth.auth.shares import ShareError
+
+    store = _load_share_store(Path(toml))
+    try:
+        record = store.share(
+            app_id,
+            owner,
+            grantee,
+            access=access,
+            label=label,
+            expires_at=parse_expires_at(expires),
+            granted_by="cli",
+        )
+    except (GrantError, ShareError) as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(1)
+    print(
+        f"Shared {record['owner']}'s {record['app_id']} data with {record['grantee']} "
+        f"({record['access']})."
+    )
+
+
+def revoke_share(app_id: str, owner: str, grantee: str, *, toml: str = "platform.toml"):
+    """Revoke the share OWNER → GRANTEE in an app.
+
+    Args:
+        app_id: The app name.
+        owner: Email of the account whose data was shared.
+        grantee: Email of the account that had access.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    if _load_share_store(Path(toml)).revoke(app_id, owner, grantee):
+        print(f"Revoked {grantee.lower()} from {owner.lower()}'s {app_id} data.")
+    else:
+        print(
+            f"No share {owner.lower()} -> {grantee.lower()} on {app_id}.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
+def list_shares(*, json: bool = False, toml: str = "platform.toml"):
+    """List every owner-granted data share.
+
+    Args:
+        json: Output as JSON.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    shares = _load_share_store(Path(toml)).list_all()
+    if json:
+        print(json_module.dumps(shares, indent=2))
+        return
+    if not shares:
+        print("No shares.")
+        return
+    for r in sorted(shares, key=lambda r: (r["app_id"], r["owner"], r["grantee"])):
+        print(f"{r['app_id']:<20} {r['owner']} -> {r['grantee']} ({r.get('access')})")
+
+
 def list_grants(*, app: str = None, json: bool = False, toml: str = "platform.toml"):
     """List runtime grants, optionally filtered to a single app.
 
@@ -527,6 +626,9 @@ COMMANDS = [
     grant,
     revoke_grant,
     list_grants,
+    share,
+    revoke_share,
+    list_shares,
     list_connector_sessions,
     revoke_connector_session,
 ]

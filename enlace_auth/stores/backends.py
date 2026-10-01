@@ -102,6 +102,28 @@ class _FileDict(MutableMapping):
     def __len__(self) -> int:
         return sum(1 for _ in iter(self))
 
+    def keys_under(self, prefix: str) -> Iterator[str]:
+        """The keys starting with ``prefix``, walking only the directory it names.
+
+        ``iter(self)`` walks the whole root; a per-user store holds every user's
+        every key, so listing one user's collection that way costs the platform.
+        """
+        if not prefix:
+            yield from iter(self)
+            return
+        try:
+            here = self._path(prefix.rstrip("/"))
+        except KeyError:
+            return
+        start = here if prefix.endswith("/") else here.parent
+        if not start.is_dir():
+            return
+        for p in start.rglob("*"):
+            if p.is_file() and not p.name.endswith(".tmp"):
+                key = str(p.relative_to(self._root))
+                if key.startswith(prefix):
+                    yield key
+
     def __contains__(self, key: object) -> bool:
         if not isinstance(key, str):
             return False
