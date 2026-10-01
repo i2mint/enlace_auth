@@ -258,3 +258,39 @@ def test_deleting_an_account_removes_its_shares(platform):
     assert dad.delete(f"/_admin/api/users/{MUM}").status_code == 200
     assert dad.get("/_admin/api/shares").json()["shares"] == []
     _ = kid, mum
+
+
+# --- review fixes -------------------------------------------------------------------
+
+
+def test_unsafe_values_never_break_a_collection():
+    base, shares = {}, _store()
+    me = _router_client(base, shares, user=KID)
+    me.put("/api/practice/store/a", json={"value": {"t": "fine"}})
+    # A lone surrogate (a browser can send one) is refused, so the collection stays readable.
+    lone = me.put("/api/practice/store/z", content=b'{"value": {"t": "\\ud800"}}', headers={"Content-Type": "application/json"})
+    assert lone.status_code == 400, lone.text
+    assert me.get("/api/practice/store").status_code == 200
+    assert me.get("/api/practice/store/").json()["items"].keys() == {"a"}, "the trailing slash lists too"
+    # Non-finite numbers are refused before anything is written.
+    nan = me.put("/api/practice/store/b", content=b'{"value": NaN}', headers={"Content-Type": "application/json"})
+    assert nan.status_code == 400 and "b" not in {k.split("/")[-1] for k in base}
+
+
+def test_404_details_tell_no_access_from_no_key():
+    base, shares = {}, _store()
+    shares.share("practice", KID, MUM)
+    mum = _router_client(base, shares, user=MUM)
+    assert mum.get(f"/api/practice/store/nope?owner={KID}").json()["detail"] == "no_key"
+    assert mum.get(f"/api/practice/store/nope?owner={DAD}").json()["detail"] == "no_access"
+
+
+def test_label_is_capped_and_trimmed():
+    shares = _store()
+    assert shares.share("practice", KID, MUM, label="  Kid ")["label"] == "Kid"
+    assert shares.share("practice", KID, DAD, label="   ")["label"] is None
+    with pytest.raises(ShareError, match="label"):
+        shares.share("practice", KID, MUM, label="x" * 81)
+    with pytest.raises(ShareError) as missing:
+        shares.share("practice", KID, STRANGER)
+    assert missing.value.code == "no_account"

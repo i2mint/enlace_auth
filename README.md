@@ -227,6 +227,8 @@ enlace-auth revoke-share practice kid@example.com parent@example.com
 
 A signed-in owner manages their own shares at `/auth/shares/{app}` (`GET`, `PUT …/{grantee}`, `DELETE …/{grantee}`; a grantee leaves with `DELETE …/received/{owner}`); an admin uses `/_admin/api/shares`. A grantee then reads the owner's data with `?owner=<email>` on the per-user store: `GET /api/{app}/store?prefix=…&owner=…` lists it, and every route takes `If-Match` so two devices cannot silently overwrite each other. A share names existing accounts only and is removed with either account.
 
+Upgrading: store writes (`PUT`/`DELETE /api/{app}/store/...`) now require the `X-CSRF-Token` header (from `GET /auth/csrf`), and `/api/{app}/store` is reserved for the platform. A share does not bypass an app's `allowed_users`.
+
 An app gets a per-user store when its `access` is `protected:user`, or when its `app.toml` sets `user_store = true` — which lets a **public** app keep data for the visitors who sign in while staying open to everyone else. The design and its review are in [`misc/docs/decisions/0001-owner-granted-data-shares.md`](misc/docs/decisions/0001-owner-granted-data-shares.md).
 
 ## Doctor checks

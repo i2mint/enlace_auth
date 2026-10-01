@@ -43,10 +43,11 @@ Password registration does not prove ownership of an address, and a deleted acco
 
 ### 4. How the per-user store honours it
 
-- **`?owner=<email>`** on `/api/{app_id}/store/...` selects whose prefix to use. Absent, or equal (after normalisation) to the signed-in user: their own, as today. Different: allowed only with an active share `(app_id, owner, user)`, and only for GET when the share is `"ro"`; otherwise **404** — a stranger probing for owners learns nothing. A client must read 404 under `?owner=` as "no access (any more)", not as "empty".
-- **A list route**, `GET /api/{app_id}/store?prefix=<p>` → `{"items": {key: {"value": v, "etag": e}}}`. It lists by walking only the owner's directory under `p` (a `keys_under` fast path on the file backend), never the whole platform store; capped at `max_items` (default 5000) with `"truncated": true` past it.
+- **`?owner=<email>`** on `/api/{app_id}/store/...` selects whose prefix to use. Absent, or equal (after normalisation) to the signed-in user: their own, as today. Different: allowed only with an active share `(app_id, owner, user)`, and only for GET when the share is `"ro"`; otherwise **404** with detail `"no_access"` — a stranger probing for owners learns nothing more. A missing key is 404 with `"no_key"`, so a grantee's client can tell a revoked share from an absent record.
+- **Values must round-trip.** `PUT` refuses JSON's `NaN`/`Infinity` and text with lone surrogates (400): either would be stored and then make every read of the collection fail.
+- **A list route**, `GET /api/{app_id}/store?prefix=<p>` (sorted by key) → `{"items": {key: {"value": v, "etag": e}}}`. It lists by walking only the owner's directory under `p` (a `keys_under` fast path on the file backend), never the whole platform store; capped at `max_items` (default 5000) with `"truncated": true` past it.
 - **Conditional writes.** Every GET returns an `ETag` (a hash of the stored value; also in the list route's items). `PUT` and `DELETE` accept `If-Match: <etag>` (or `If-None-Match: *` for create-only) and answer **412** with the current value and etag when it no longer matches. Two devices, or two people, writing the same key can then resolve instead of overwriting: the store stays generic, and the app decides what "resolve" means (the first consumer: the newer record by its own revision stamp wins).
-- **CSRF on writes.** The store routes are under `/api/`, which the platform's CSRF middleware exempts. For an app with a per-user store, the store router itself requires the double-submit header (`X-CSRF-Token` matching the `enlace_csrf` cookie, the same check `/auth/*` uses) on every `PUT` and `DELETE`. Shares raise the stakes — a grantee's cookie now reaches someone else's data — so cookie SameSite alone is not enough on an origin that hosts many apps.
+- **CSRF on writes.** The store routes are under `/api/`, which the platform's CSRF middleware exempts. The plugin therefore passes the store paths of every store-bearing app as `CSRFMiddleware(enforce_prefixes=...)`, so the double-submit header (`X-CSRF-Token` matching the `enlace_csrf` cookie, the same check `/auth/*` uses) is required on every `PUT` and `DELETE` there. A host that mounts `make_store_router` without the plugin must do the same. Shares raise the stakes — a grantee's cookie now reaches someone else's data — so cookie SameSite alone is not enough on an origin that hosts many apps.
 - **Which apps get a store**: `access = "protected:user"` apps, as today, plus any app whose `app.toml` sets `user_store = true` (`AppConfig` is `extra="allow"`). That lets a **public** app offer a store to visitors who happen to be signed in; anonymous requests get 401 and the app does what it did before. A `user_store` app is **not** added to the `protected:user` set the grants admin uses.
 
 ### 5. Where it sits
@@ -57,7 +58,7 @@ Password registration does not prove ownership of an address, and a deleted acco
 
 | # | Seam | v1 default | Replacement you can point at |
 |---|---|---|---|
-| 1 | where shares live | `platform_factory("shares")` (JSON files, as grants) | any `MutableMapping` — the factory's existing dol variant (`stores/backends.py`) |
+| 1 | where shares live | `platform_factory("shares")` (JSON files, as grants) | any `MutableMapping` that takes nested `a/b/c` keys. The factory's dol variant (`stores/backends.py`) does **not** today (it resolves nested keys against the working directory); fixing it is a precondition of using it here |
 | 2 | how the store router decides | `share_access` built from `ShareStore` | an app-specific policy (e.g. a guardian relation) — same signature |
 
 NOT seams: groups of grantees, re-sharing, per-key scopes, a `can_manage` delegate flag (the admin path covers the child-owner case), aliases (a short name for the email), a web UI for shares beyond the admin API. Each is "no" on purpose; none has a consumer.
@@ -65,6 +66,10 @@ NOT seams: groups of grantees, re-sharing, per-key scopes, a `can_manage` delega
 Surfaces: HTTP (owner routes, admin API, store), CLI (admin). MCP or a frontend would call `ShareStore`'s methods; neither needs the core to change.
 
 ## Consequences
+
+- **Anyone signed in can offer a share to anyone else** — there is no acceptance step, and the `409` for an unknown grantee tells a signed-in user whether an email has an account. On a platform with closed, allow-listed registration both are among people the operator invited; on an open one they are a nuisance channel. So a client shows a received space with its owner's email beside the label (labels are capped at 80 characters), and an `accepted` flag set by the grantee is the additive fix when an open platform needs it.
+- **A share does not bypass `allowed_users`.** On a `protected:user` app with an allow-list, a grantee not on it is refused at the gate before the store sees the share; add them to the allow-list (or grant the app) as well.
+- **`/api/{app}/store` is reserved** for every app (the router is mounted before the apps), and store writes now need the CSRF header. No app on the first deployment used either.
 
 - Per-user data stops being strictly private to its owner. A request with `?owner=` costs one share lookup (one small file read); without it the hot path is unchanged.
 - A public app that enables `user_store` must treat 401 as "no account mode" and 404 under `?owner=` as "access gone".

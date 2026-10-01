@@ -52,13 +52,24 @@ class StoreInjectionMiddleware:
         await self.app(scope, receive, send)
 
 
+#: The 404 details of the store routes: no share for ``?owner=`` (or it was revoked), or no such key.
+NO_ACCESS = "no_access"
+NO_KEY = "no_key"
+
+
+def _refuse_constant(name: str):
+    """JSON's ``NaN``/``Infinity`` are not JSON a browser can read back; refuse them on the way in."""
+    raise ValueError(f"non-finite number {name}")
+
+
 #: How many items the list route returns before it says ``"truncated": true``.
 DEFAULT_MAX_ITEMS = 5000
 
 
 def etag_of(value: Any) -> str:
     """A strong ETag for a stored JSON value: a hash of its canonical serialisation."""
-    canonical = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    # ensure_ascii: a lone surrogate (which a browser can send) must hash, not raise.
+    canonical = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return '"' + hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:32] + '"'
 
 
@@ -114,8 +125,10 @@ def make_store_router(
         if owner and owner != me:
             granted = share_access(app_id, owner, me) if share_access else None
             if granted not in ("rw", "ro") or (write and granted != "rw"):
-                # 404, not 403: a caller probing for owners learns nothing.
-                raise HTTPException(status_code=404, detail="Not found")
+                # 404, not 403: a caller probing for owners learns nothing. The detail is
+                # "no_access", so a grantee's client can tell a revoked share from a
+                # missing key (which says "no_key"); a stranger never gets past here.
+                raise HTTPException(status_code=404, detail=NO_ACCESS)
             whose = owner
         else:
             whose = me
@@ -157,13 +170,14 @@ def make_store_router(
             raise HTTPException(status_code=412, detail={"value": value, "etag": etag})
 
     @router.get("/api/{app_id}/store")
+    @router.get("/api/{app_id}/store/", include_in_schema=False)
     async def list_values(app_id: str, request: Request, prefix: str = ""):
         store = _scoped_store(request, app_id, write=False)
         if prefix:
             _check_key(prefix)
         items: dict[str, Any] = {}
         truncated = False
-        for key in store.keys_under(prefix):
+        for key in sorted(store.keys_under(prefix)):
             if len(items) >= max_items:
                 truncated = True
                 break
@@ -178,7 +192,7 @@ def make_store_router(
         _check_key(key)
         value, etag = _current(store, key)
         if etag is None:
-            raise HTTPException(status_code=404, detail=f"Key '{key}' not found")
+            raise HTTPException(status_code=404, detail=NO_KEY)
         return JSONResponse({"value": value}, headers={"ETag": etag})
 
     @router.put("/api/{app_id}/store/{key:path}")
@@ -186,15 +200,21 @@ def make_store_router(
         store = _scoped_store(request, app_id, write=True)
         _check_key(key)
         try:
-            body = await request.json()
-        except Exception as e:
-            raise HTTPException(status_code=400, detail="Body must be JSON") from e
+            body = json.loads(await request.body(), parse_constant=_refuse_constant)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail="Body must be JSON (no NaN or Infinity)") from e
         value = (
             body.get("value") if isinstance(body, dict) and "value" in body else body
         )
+        try:
+            # A lone surrogate parses, but no response could ever send it back: refuse it
+            # here, or one bad value makes every read of the collection fail.
+            json.dumps(value, ensure_ascii=False).encode("utf-8")
+        except UnicodeEncodeError as e:
+            raise HTTPException(status_code=400, detail="Body holds text that is not valid Unicode") from e
+        etag = etag_of(value)
         _precondition(request, store, key)
         store[key] = value
-        etag = etag_of(value)
         return JSONResponse({"ok": True, "etag": etag}, headers={"ETag": etag})
 
     @router.delete("/api/{app_id}/store/{key:path}")
@@ -205,7 +225,7 @@ def make_store_router(
         try:
             del store[key]
         except KeyError:
-            raise HTTPException(status_code=404, detail=f"Key '{key}' not found")
+            raise HTTPException(status_code=404, detail=NO_KEY)
         return {"ok": True}
 
     return router

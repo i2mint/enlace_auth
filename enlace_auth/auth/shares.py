@@ -48,8 +48,16 @@ from enlace_auth.auth.grants import (
 ACCESS_LEVELS = ("rw", "ro")
 
 
+#: The longest ``label`` a share may carry (it is shown to the grantee as a space's name).
+MAX_LABEL = 80
+
+
 class ShareError(ValueError):
-    """Raised for an invalid share (bad email/app id, unknown account, self-share)."""
+    """Raised for an invalid share. ``code`` says which: ``"no_account"`` or ``"invalid"``."""
+
+    def __init__(self, message: str, *, code: str = "invalid"):
+        super().__init__(message)
+        self.code = code
 
 
 def _email(value: str) -> str:
@@ -118,13 +126,19 @@ class ShareStore:
         if self._account_exists is not None:
             missing = [e for e in (owner, grantee) if not self._account_exists(e)]
             if missing:
-                raise ShareError(f"No account for {', '.join(missing)}; a share names existing accounts only.")
+                raise ShareError(
+                    f"No account for {', '.join(missing)}; a share names existing accounts only.",
+                    code="no_account",
+                )
+        label = (label or "").strip() or None
+        if label is not None and len(label) > MAX_LABEL:
+            raise ShareError(f"label is longer than {MAX_LABEL} characters")
         record = {
             "app_id": app_id,
             "owner": owner,
             "grantee": grantee,
             "access": access,
-            "label": label or None,
+            "label": label,
             "granted_at": time.time() if now is None else now,
             "granted_by": granted_by or None,
             "expires_at": expires_at,

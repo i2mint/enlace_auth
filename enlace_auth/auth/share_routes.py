@@ -76,7 +76,7 @@ def make_share_router(
                 expires_at=parse_expires_at(body.expires_at), granted_by=me,
             )
         except ShareError as e:
-            status = 409 if "No account" in str(e) else 422
+            status = 409 if e.code == "no_account" else 422
             raise HTTPException(status_code=status, detail=str(e))
         except GrantError as e:
             raise HTTPException(status_code=422, detail=str(e))

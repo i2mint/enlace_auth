@@ -410,7 +410,7 @@ def make_admin_router(
                 expires_at=parse_expires_at(body.expires_at), granted_by=actor,
             )
         except ShareError as e:
-            raise HTTPException(status_code=409 if "No account" in str(e) else 422, detail=str(e))
+            raise HTTPException(status_code=409 if e.code == "no_account" else 422, detail=str(e))
         except GrantError as e:
             raise HTTPException(status_code=422, detail=str(e))
         return {"ok": True, "share": record}
