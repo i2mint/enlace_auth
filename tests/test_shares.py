@@ -20,7 +20,12 @@ from enlace_auth.stores.backends import make_file_store_factory
 from enlace_auth.stores.prefixed import PrefixedStore
 
 KEY = "shares-key-32bytes-minimumlength!"
-KID, MUM, DAD, STRANGER = "kid@example.com", "mum@example.com", "dad@example.com", "x@example.com"
+KID, MUM, DAD, STRANGER = (
+    "kid@example.com",
+    "mum@example.com",
+    "dad@example.com",
+    "x@example.com",
+)
 
 
 # --- ShareStore -------------------------------------------------------------------
@@ -54,7 +59,9 @@ def test_access_levels_expiry_and_normalisation():
     shares.share("practice", KID, MUM, expires_at=now + 10)
     assert shares.access("practice", KID, MUM, now=now + 20) is None
     assert [r["grantee"] for r in shares.received("practice", MUM, now=now + 20)] == []
-    granted = {r["grantee"]: r["active"] for r in shares.granted("practice", KID, now=now + 20)}
+    granted = {
+        r["grantee"]: r["active"] for r in shares.granted("practice", KID, now=now + 20)
+    }
     assert granted == {MUM: False, DAD: True}
     assert shares.received("practice", DAD)[0]["label"] == "Kid"
 
@@ -105,25 +112,48 @@ def test_owner_param_needs_an_active_share():
     shares.share("practice", KID, DAD, access="ro")
 
     mum = _router_client(base, shares, user=MUM)
-    assert mum.get(f"/api/practice/store/attempts/a1?owner={KID}").json()["value"] == {"id": "a1"}
-    assert mum.put(f"/api/practice/store/attempts/a2?owner={KID}", json={"value": {"id": "a2"}}).status_code == 200
-    assert base[f"{KID}/practice/attempts/a2"] == {"id": "a2"}, "written into the owner's data"
+    assert mum.get(f"/api/practice/store/attempts/a1?owner={KID}").json()["value"] == {
+        "id": "a1"
+    }
+    assert (
+        mum.put(
+            f"/api/practice/store/attempts/a2?owner={KID}", json={"value": {"id": "a2"}}
+        ).status_code
+        == 200
+    )
+    assert base[f"{KID}/practice/attempts/a2"] == {"id": "a2"}, (
+        "written into the owner's data"
+    )
 
     dad = _router_client(base, shares, user=DAD)
     assert dad.get(f"/api/practice/store/attempts/a1?owner={KID}").status_code == 200
-    assert dad.put(f"/api/practice/store/attempts/a3?owner={KID}", json={"value": 1}).status_code == 404, "ro: no writes"
+    assert (
+        dad.put(
+            f"/api/practice/store/attempts/a3?owner={KID}", json={"value": 1}
+        ).status_code
+        == 404
+    ), "ro: no writes"
     assert dad.delete(f"/api/practice/store/attempts/a1?owner={KID}").status_code == 404
 
     stranger = _router_client(base, shares, user=STRANGER)
-    assert stranger.get(f"/api/practice/store/attempts/a1?owner={KID}").status_code == 404
+    assert (
+        stranger.get(f"/api/practice/store/attempts/a1?owner={KID}").status_code == 404
+    )
     assert stranger.get(f"/api/practice/store?owner={KID}").status_code == 404
     # Own data is still the default, and ?owner= naming oneself is the same thing.
     assert mum.get("/api/practice/store/attempts/a1").status_code == 404
-    assert mum.put(f"/api/practice/store/x?owner={MUM.upper()}", json={"value": 1}).status_code == 200
+    assert (
+        mum.put(
+            f"/api/practice/store/x?owner={MUM.upper()}", json={"value": 1}
+        ).status_code
+        == 200
+    )
     assert base[f"{MUM}/practice/x"] == 1
 
     shares.revoke("practice", KID, MUM)
-    assert mum.get(f"/api/practice/store/attempts/a1?owner={KID}").status_code == 404, "revocation is immediate"
+    assert mum.get(f"/api/practice/store/attempts/a1?owner={KID}").status_code == 404, (
+        "revocation is immediate"
+    )
 
 
 def test_list_route_and_conditional_writes():
@@ -135,21 +165,54 @@ def test_list_route_and_conditional_writes():
     me.put("/api/practice/store/marks/removed", json={"value": []})
 
     listed = me.get("/api/practice/store?prefix=attempts/").json()
-    assert set(listed["items"]) == {"attempts/a1", "attempts/a2"} and not listed["truncated"]
+    assert (
+        set(listed["items"]) == {"attempts/a1", "attempts/a2"}
+        and not listed["truncated"]
+    )
     assert listed["items"]["attempts/a1"] == {"value": {"rev": 1}, "etag": etag}
     assert me.get("/api/practice/store/attempts/a1").headers["etag"] == etag
 
     # A writer holding the current etag wins; a stale one gets 412 with what is there now.
-    second = me.put("/api/practice/store/attempts/a1", json={"value": {"rev": 2}}, headers={"If-Match": etag})
+    second = me.put(
+        "/api/practice/store/attempts/a1",
+        json={"value": {"rev": 2}},
+        headers={"If-Match": etag},
+    )
     assert second.status_code == 200
-    stale = me.put("/api/practice/store/attempts/a1", json={"value": {"rev": 3}}, headers={"If-Match": etag})
+    stale = me.put(
+        "/api/practice/store/attempts/a1",
+        json={"value": {"rev": 3}},
+        headers={"If-Match": etag},
+    )
     assert stale.status_code == 412
-    assert stale.json()["detail"] == {"value": {"rev": 2}, "etag": second.headers["etag"]}
+    assert stale.json()["detail"] == {
+        "value": {"rev": 2},
+        "etag": second.headers["etag"],
+    }
     assert base[f"{KID}/practice/attempts/a1"] == {"rev": 2}
     # Create-only.
-    assert me.put("/api/practice/store/attempts/a1", json={"value": 0}, headers={"If-None-Match": "*"}).status_code == 412
-    assert me.put("/api/practice/store/attempts/a9", json={"value": 0}, headers={"If-None-Match": "*"}).status_code == 200
-    assert me.delete("/api/practice/store/attempts/a9", headers={"If-Match": etag}).status_code == 412
+    assert (
+        me.put(
+            "/api/practice/store/attempts/a1",
+            json={"value": 0},
+            headers={"If-None-Match": "*"},
+        ).status_code
+        == 412
+    )
+    assert (
+        me.put(
+            "/api/practice/store/attempts/a9",
+            json={"value": 0},
+            headers={"If-None-Match": "*"},
+        ).status_code
+        == 200
+    )
+    assert (
+        me.delete(
+            "/api/practice/store/attempts/a9", headers={"If-Match": etag}
+        ).status_code
+        == 412
+    )
     assert me.delete("/api/practice/store/attempts/a9").status_code == 200
 
 
@@ -162,7 +225,11 @@ def test_list_is_capped():
         request.state.user_id = KID
         return await call_next(request)
 
-    app.include_router(make_store_router(base_store_getter=lambda: base, protected_apps={"practice"}, max_items=3))
+    app.include_router(
+        make_store_router(
+            base_store_getter=lambda: base, protected_apps={"practice"}, max_items=3
+        )
+    )
     body = TestClient(app).get("/api/practice/store").json()
     assert len(body["items"]) == 3 and body["truncated"]
 
@@ -173,7 +240,9 @@ def test_prefixed_keys_under_walks_only_the_owner(tmp_path):
     base[f"{MUM}/practice/attempts/b1"] = 2
     store = PrefixedStore(base, f"{KID}/practice/")
     assert list(store.keys_under("attempts/")) == ["attempts/a1"]
-    assert list(base.keys_under(f"{KID}/practice/att")) == [f"{KID}/practice/attempts/a1"]
+    assert list(base.keys_under(f"{KID}/practice/att")) == [
+        f"{KID}/practice/attempts/a1"
+    ]
 
 
 # --- end to end: a PUBLIC app with user_store = true ---------------------------------
@@ -194,7 +263,9 @@ def platform(tmp_path, monkeypatch):
             """
         ).strip()
     )
-    (apps_dir / "practice" / "app.toml").write_text('access = "public"\nuser_store = true\n')
+    (apps_dir / "practice" / "app.toml").write_text(
+        'access = "public"\nuser_store = true\n'
+    )
     monkeypatch.setenv("ENLACE_SIGNING_KEY", KEY)
     monkeypatch.setenv("ENLACE_ADMIN_EMAILS", DAD)
     config = PlatformConfig(
@@ -222,18 +293,31 @@ def _signed_in(app, email):
 
 def test_public_app_store_shares_and_csrf(platform):
     anonymous = TestClient(platform)
-    assert anonymous.get("/api/practice/ping").status_code == 200, "the app stays public"
+    assert anonymous.get("/api/practice/ping").status_code == 200, (
+        "the app stays public"
+    )
     assert anonymous.get("/api/practice/store?prefix=attempts/").status_code == 401
 
     kid, mum = _signed_in(platform, KID), _signed_in(platform, MUM)
-    assert kid.put("/api/practice/store/attempts/a1", json={"value": {"id": "a1"}}).status_code == 200
+    assert (
+        kid.put(
+            "/api/practice/store/attempts/a1", json={"value": {"id": "a1"}}
+        ).status_code
+        == 200
+    )
 
     # CSRF is enforced on store writes even though /api/ is otherwise exempt.
-    bare = kid.put("/api/practice/store/attempts/a2", json={"value": 1}, headers={"X-CSRF-Token": ""})
+    bare = kid.put(
+        "/api/practice/store/attempts/a2",
+        json={"value": 1},
+        headers={"X-CSRF-Token": ""},
+    )
     assert bare.status_code == 403
 
     # No share yet: Mum sees nothing of the kid's, and cannot share to a stranger.
-    assert mum.get(f"/api/practice/store?prefix=attempts/&owner={KID}").status_code == 404
+    assert (
+        mum.get(f"/api/practice/store?prefix=attempts/&owner={KID}").status_code == 404
+    )
     assert kid.put(f"/auth/shares/practice/{STRANGER}", json={}).status_code == 409
     assert kid.put(f"/auth/shares/nostore/{MUM}", json={}).status_code == 404
 
@@ -250,9 +334,15 @@ def test_public_app_store_shares_and_csrf(platform):
 
 
 def test_deleting_an_account_removes_its_shares(platform):
-    kid, mum, dad = _signed_in(platform, KID), _signed_in(platform, MUM), _signed_in(platform, DAD)
+    kid, mum, dad = (
+        _signed_in(platform, KID),
+        _signed_in(platform, MUM),
+        _signed_in(platform, DAD),
+    )
     # Dad is the admin: he seeds the kid's share without her password.
-    r = dad.post("/_admin/api/shares", json={"app_id": "practice", "owner": KID, "grantee": MUM})
+    r = dad.post(
+        "/_admin/api/shares", json={"app_id": "practice", "owner": KID, "grantee": MUM}
+    )
     assert r.status_code == 200, r.text
     assert len(dad.get("/_admin/api/shares").json()["shares"]) == 1
     assert dad.delete(f"/_admin/api/users/{MUM}").status_code == 200
@@ -268,12 +358,22 @@ def test_unsafe_values_never_break_a_collection():
     me = _router_client(base, shares, user=KID)
     me.put("/api/practice/store/a", json={"value": {"t": "fine"}})
     # A lone surrogate (a browser can send one) is refused, so the collection stays readable.
-    lone = me.put("/api/practice/store/z", content=b'{"value": {"t": "\\ud800"}}', headers={"Content-Type": "application/json"})
+    lone = me.put(
+        "/api/practice/store/z",
+        content=b'{"value": {"t": "\\ud800"}}',
+        headers={"Content-Type": "application/json"},
+    )
     assert lone.status_code == 400, lone.text
     assert me.get("/api/practice/store").status_code == 200
-    assert me.get("/api/practice/store/").json()["items"].keys() == {"a"}, "the trailing slash lists too"
+    assert me.get("/api/practice/store/").json()["items"].keys() == {"a"}, (
+        "the trailing slash lists too"
+    )
     # Non-finite numbers are refused before anything is written.
-    nan = me.put("/api/practice/store/b", content=b'{"value": NaN}', headers={"Content-Type": "application/json"})
+    nan = me.put(
+        "/api/practice/store/b",
+        content=b'{"value": NaN}',
+        headers={"Content-Type": "application/json"},
+    )
     assert nan.status_code == 400 and "b" not in {k.split("/")[-1] for k in base}
 
 
@@ -282,7 +382,9 @@ def test_404_details_tell_no_access_from_no_key():
     shares.share("practice", KID, MUM)
     mum = _router_client(base, shares, user=MUM)
     assert mum.get(f"/api/practice/store/nope?owner={KID}").json()["detail"] == "no_key"
-    assert mum.get(f"/api/practice/store/nope?owner={DAD}").json()["detail"] == "no_access"
+    assert (
+        mum.get(f"/api/practice/store/nope?owner={DAD}").json()["detail"] == "no_access"
+    )
 
 
 def test_label_is_capped_and_trimmed():

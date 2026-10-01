@@ -330,10 +330,10 @@ def wire(parent: "FastAPI", config) -> None:
         make_auth_router,
     )
     from enlace_auth.auth.middleware import AccessRule
-    from enlace_auth.stores import StoreInjectionMiddleware, make_file_store_factory
-    from enlace_auth.stores.middleware import make_store_router
     from enlace_auth.auth.share_routes import make_share_router
     from enlace_auth.auth.shares import ShareStore
+    from enlace_auth.stores import StoreInjectionMiddleware, make_file_store_factory
+    from enlace_auth.stores.middleware import make_store_router
 
     platform_factory = make_file_store_factory(auth_cfg.stores.path)
     session_backend = platform_factory("sessions")
@@ -573,10 +573,14 @@ def wire(parent: "FastAPI", config) -> None:
     store_router = make_store_router(
         base_store_getter=lambda: user_data_backend,
         protected_apps=store_apps,
-        share_access=lambda app_id, owner, grantee: share_store.access(app_id, owner, grantee),
+        share_access=lambda app_id, owner, grantee: share_store.access(
+            app_id, owner, grantee
+        ),
     )
     parent.include_router(store_router)
-    parent.include_router(make_share_router(share_store=share_store, store_apps=store_apps))
+    parent.include_router(
+        make_share_router(share_store=share_store, store_apps=store_apps)
+    )
 
     # App-metadata overlay: the editable launcher-metadata layer (owner-added
     # keywords + icon/title overrides). Core reads the overlay + can-edit closure

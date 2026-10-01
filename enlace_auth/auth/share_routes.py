@@ -6,7 +6,8 @@ that through ``/_admin/api/shares`` or the CLI). These routes live under ``/auth
 so the platform's double-submit CSRF check covers every write.
 
 - ``GET    /auth/shares/{app_id}`` → ``{"owner", "granted": [...], "received": [...]}``
-- ``PUT    /auth/shares/{app_id}/{grantee}`` (body ``{"access"?, "label"?, "expires_at"?}``)
+- ``PUT    /auth/shares/{app_id}/{grantee}``
+  (body ``{"access"?, "label"?, "expires_at"?}``)
 - ``DELETE /auth/shares/{app_id}/received/{owner}`` — a grantee leaves a share
 - ``DELETE /auth/shares/{app_id}/{grantee}`` — the owner revokes one
 
@@ -55,7 +56,9 @@ def make_share_router(
 
     def _app(app_id: str) -> str:
         if app_id not in _apps():
-            raise HTTPException(status_code=404, detail=f"No per-user store for app {app_id!r}")
+            raise HTTPException(
+                status_code=404, detail=f"No per-user store for app {app_id!r}"
+            )
         return app_id
 
     @router.get("/{app_id}")
@@ -68,12 +71,19 @@ def make_share_router(
         }
 
     @router.put("/{app_id}/{grantee}")
-    async def put_share(app_id: str, grantee: str, body: _ShareBody, request: Request) -> dict[str, Any]:
+    async def put_share(
+        app_id: str, grantee: str, body: _ShareBody, request: Request
+    ) -> dict[str, Any]:
         me, app_id = _me(request), _app(app_id)
         try:
             record = share_store.share(
-                app_id, me, grantee, access=body.access, label=body.label,
-                expires_at=parse_expires_at(body.expires_at), granted_by=me,
+                app_id,
+                me,
+                grantee,
+                access=body.access,
+                label=body.label,
+                expires_at=parse_expires_at(body.expires_at),
+                granted_by=me,
             )
         except ShareError as e:
             status = 409 if e.code == "no_account" else 422
@@ -91,7 +101,9 @@ def make_share_router(
         return {"ok": True}
 
     @router.delete("/{app_id}/{grantee}")
-    async def revoke_share(app_id: str, grantee: str, request: Request) -> dict[str, Any]:
+    async def revoke_share(
+        app_id: str, grantee: str, request: Request
+    ) -> dict[str, Any]:
         me, app_id = _me(request), _app(app_id)
         if not share_store.revoke(app_id, me, grantee):
             raise HTTPException(status_code=404, detail="Share not found")

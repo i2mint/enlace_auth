@@ -72,7 +72,11 @@ class PrefixedStore(MutableMapping):
         full = self._prefix + sub
         plen = len(self._prefix)
         fast = getattr(self._base, "keys_under", None)
-        keys = fast(full) if callable(fast) else (k for k in self._base if isinstance(k, str))
+        keys = (
+            fast(full)
+            if callable(fast)
+            else (k for k in self._base if isinstance(k, str))
+        )
         for k in keys:
             if k.startswith(full):
                 yield k[plen:]

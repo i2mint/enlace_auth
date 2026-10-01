@@ -48,13 +48,13 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, EmailStr
 
 from enlace_auth.auth.grants import GrantError, parse_expires_at
-from enlace_auth.auth.shares import ShareError
 from enlace_auth.auth.passwords import hash_password
 from enlace_auth.auth.reset_tokens import (
     DEFAULT_HANDOFF_TTL,
     mint_reset_token,
     reset_url,
 )
+from enlace_auth.auth.shares import ShareError
 
 
 class _CreateUserBody(BaseModel):
@@ -403,20 +403,31 @@ def make_admin_router(
             raise HTTPException(status_code=503, detail="Shares store unavailable")
         app_id = body.app_id.strip()
         if app_id not in store_set:
-            raise HTTPException(status_code=404, detail=f"No per-user store for app {app_id!r}")
+            raise HTTPException(
+                status_code=404, detail=f"No per-user store for app {app_id!r}"
+            )
         try:
             record = share_store.share(
-                app_id, body.owner, body.grantee, access=body.access, label=body.label,
-                expires_at=parse_expires_at(body.expires_at), granted_by=actor,
+                app_id,
+                body.owner,
+                body.grantee,
+                access=body.access,
+                label=body.label,
+                expires_at=parse_expires_at(body.expires_at),
+                granted_by=actor,
             )
         except ShareError as e:
-            raise HTTPException(status_code=409 if e.code == "no_account" else 422, detail=str(e))
+            raise HTTPException(
+                status_code=409 if e.code == "no_account" else 422, detail=str(e)
+            )
         except GrantError as e:
             raise HTTPException(status_code=422, detail=str(e))
         return {"ok": True, "share": record}
 
     @router.delete("/shares/{app_id}/{owner}/{grantee}")
-    async def revoke_share(app_id: str, owner: str, grantee: str, request: Request) -> dict[str, Any]:
+    async def revoke_share(
+        app_id: str, owner: str, grantee: str, request: Request
+    ) -> dict[str, Any]:
         _require_admin(request)
         if share_store is None:
             raise HTTPException(status_code=503, detail="Shares store unavailable")

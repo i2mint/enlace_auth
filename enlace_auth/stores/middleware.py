@@ -52,13 +52,13 @@ class StoreInjectionMiddleware:
         await self.app(scope, receive, send)
 
 
-#: The 404 details of the store routes: no share for ``?owner=`` (or it was revoked), or no such key.
+#: The 404 details of the store routes: no (more) share for ``?owner=``, or no such key.
 NO_ACCESS = "no_access"
 NO_KEY = "no_key"
 
 
 def _refuse_constant(name: str):
-    """JSON's ``NaN``/``Infinity`` are not JSON a browser can read back; refuse them on the way in."""
+    """Refuse ``NaN``/``Infinity``: not JSON a browser can read back."""
     raise ValueError(f"non-finite number {name}")
 
 
@@ -69,7 +69,9 @@ DEFAULT_MAX_ITEMS = 5000
 def etag_of(value: Any) -> str:
     """A strong ETag for a stored JSON value: a hash of its canonical serialisation."""
     # ensure_ascii: a lone surrogate (which a browser can send) must hash, not raise.
-    canonical = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    canonical = json.dumps(
+        value, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+    )
     return '"' + hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:32] + '"'
 
 
@@ -84,9 +86,11 @@ def make_store_router(
 
     Routes:
 
-    - ``GET    /api/{app_id}/store?prefix=<p>`` → ``{"items": {key: {"value", "etag"}}, "truncated"}``
+    - ``GET    /api/{app_id}/store?prefix=<p>``
+      → ``{"items": {key: {"value", "etag"}}, "truncated"}``
     - ``GET    /api/{app_id}/store/{key}`` → ``{"value": v}`` with an ``ETag`` header
-    - ``PUT    /api/{app_id}/store/{key}`` — ``If-Match: <etag>`` / ``If-None-Match: *`` make it conditional
+    - ``PUT    /api/{app_id}/store/{key}`` — conditional with ``If-Match: <etag>``
+      or ``If-None-Match: *``
     - ``DELETE /api/{app_id}/store/{key}`` — ``If-Match`` likewise
 
     A failed precondition is **412** with the current ``{"value", "etag"}`` (``value``
@@ -125,7 +129,7 @@ def make_store_router(
         if owner and owner != me:
             granted = share_access(app_id, owner, me) if share_access else None
             if granted not in ("rw", "ro") or (write and granted != "rw"):
-                # 404, not 403: a caller probing for owners learns nothing. The detail is
+                # 404, not 403: a caller probing for owners learns nothing. Detail is
                 # "no_access", so a grantee's client can tell a revoked share from a
                 # missing key (which says "no_key"); a stranger never gets past here.
                 raise HTTPException(status_code=404, detail=NO_ACCESS)
@@ -158,7 +162,11 @@ def make_store_router(
         if if_match is None and if_none_match is None:
             return
         value, etag = _current(store, key)
-        failed = if_none_match is not None and if_none_match.strip() == "*" and etag is not None
+        failed = (
+            if_none_match is not None
+            and if_none_match.strip() == "*"
+            and etag is not None
+        )
         if if_match is not None:
             wanted = if_match.strip()
             failed = failed or etag is None or (wanted != "*" and wanted != etag)
@@ -202,16 +210,20 @@ def make_store_router(
         try:
             body = json.loads(await request.body(), parse_constant=_refuse_constant)
         except ValueError as e:
-            raise HTTPException(status_code=400, detail="Body must be JSON (no NaN or Infinity)") from e
+            raise HTTPException(
+                status_code=400, detail="Body must be JSON (no NaN or Infinity)"
+            ) from e
         value = (
             body.get("value") if isinstance(body, dict) and "value" in body else body
         )
         try:
-            # A lone surrogate parses, but no response could ever send it back: refuse it
+            # A lone surrogate parses, but no response could send it back: refuse it
             # here, or one bad value makes every read of the collection fail.
             json.dumps(value, ensure_ascii=False).encode("utf-8")
         except UnicodeEncodeError as e:
-            raise HTTPException(status_code=400, detail="Body holds text that is not valid Unicode") from e
+            raise HTTPException(
+                status_code=400, detail="Body holds text that is not valid Unicode"
+            ) from e
         etag = etag_of(value)
         _precondition(request, store, key)
         store[key] = value

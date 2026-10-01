@@ -397,7 +397,7 @@ def revoke_grant(app_id: str, email: str, *, toml: str = "platform.toml"):
 
 
 def _load_share_store(toml_path: Path = Path("platform.toml")):
-    """Open the platform's owner-granted data shares, checking accounts against the user store."""
+    """Open the platform's data shares, checking accounts against the user store."""
     import os
 
     from enlace_auth.auth.shares import ShareStore
@@ -421,7 +421,7 @@ def share(
     expires: str = None,
     toml: str = "platform.toml",
 ):
-    """Let GRANTEE act on OWNER's per-user data in an app (an owner-granted share, made by an admin).
+    """Let GRANTEE act on OWNER's per-user data in an app (a share, made by an admin).
 
     Both accounts must exist. Re-sharing the same pair replaces the share.
 
@@ -441,8 +441,13 @@ def share(
     store = _load_share_store(Path(toml))
     try:
         record = store.share(
-            app_id, owner, grantee, access=access, label=label,
-            expires_at=parse_expires_at(expires), granted_by="cli",
+            app_id,
+            owner,
+            grantee,
+            access=access,
+            label=label,
+            expires_at=parse_expires_at(expires),
+            granted_by="cli",
         )
     except (GrantError, ShareError) as e:
         print(str(e), file=sys.stderr)
@@ -465,7 +470,10 @@ def revoke_share(app_id: str, owner: str, grantee: str, *, toml: str = "platform
     if _load_share_store(Path(toml)).revoke(app_id, owner, grantee):
         print(f"Revoked {grantee.lower()} from {owner.lower()}'s {app_id} data.")
     else:
-        print(f"No share {owner.lower()} -> {grantee.lower()} on {app_id}.", file=sys.stderr)
+        print(
+            f"No share {owner.lower()} -> {grantee.lower()} on {app_id}.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
 

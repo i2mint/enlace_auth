@@ -48,12 +48,12 @@ from enlace_auth.auth.grants import (
 ACCESS_LEVELS = ("rw", "ro")
 
 
-#: The longest ``label`` a share may carry (it is shown to the grantee as a space's name).
+#: The longest ``label`` a share may carry (the grantee sees it as the space's name).
 MAX_LABEL = 80
 
 
 class ShareError(ValueError):
-    """Raised for an invalid share. ``code`` says which: ``"no_account"`` or ``"invalid"``."""
+    """An invalid share. ``code`` says which: ``"no_account"`` or ``"invalid"``."""
 
     def __init__(self, message: str, *, code: str = "invalid"):
         super().__init__(message)
@@ -127,7 +127,8 @@ class ShareStore:
             missing = [e for e in (owner, grantee) if not self._account_exists(e)]
             if missing:
                 raise ShareError(
-                    f"No account for {', '.join(missing)}; a share names existing accounts only.",
+                    f"No account for {', '.join(missing)}; "
+                    "a share names existing accounts only.",
                     code="no_account",
                 )
         label = (label or "").strip() or None
@@ -163,14 +164,16 @@ class ShareStore:
     def access(
         self, app_id: str, owner: str, grantee: str, *, now: Optional[float] = None
     ) -> Optional[str]:
-        """``"rw"``, ``"ro"`` or ``None``: what ``grantee`` may do with ``owner``'s data."""
+        """``"rw"``, ``"ro"`` or ``None``: what ``grantee`` may do with the data."""
         record = self.get(app_id, owner, grantee)
         now = time.time() if now is None else now
         if record is None or not _is_active(record, now):
             return None
         return record.get("access") if record.get("access") in ACCESS_LEVELS else None
 
-    def granted(self, app_id: str, owner: str, *, now: Optional[float] = None) -> list[dict]:
+    def granted(
+        self, app_id: str, owner: str, *, now: Optional[float] = None
+    ) -> list[dict]:
         """Every share ``owner`` made in ``app_id``, each with ``"active"``."""
         app_id, owner = _app(app_id), _email(owner)
         now = time.time() if now is None else now
@@ -180,7 +183,9 @@ class ShareStore:
             if rec.get("owner") == owner
         ]
 
-    def received(self, app_id: str, grantee: str, *, now: Optional[float] = None) -> list[dict]:
+    def received(
+        self, app_id: str, grantee: str, *, now: Optional[float] = None
+    ) -> list[dict]:
         """The **active** shares made to ``grantee`` in ``app_id``."""
         app_id, grantee = _app(app_id), _email(grantee)
         now = time.time() if now is None else now
@@ -203,7 +208,7 @@ class ShareStore:
         return out
 
     def remove_account(self, email: str) -> int:
-        """Delete every share ``email`` is part of, as owner or grantee. Returns how many."""
+        """Delete every share ``email`` is part of, either side. Returns how many."""
         try:
             email = _email(email)
         except ShareError:
@@ -224,7 +229,7 @@ class ShareStore:
                 yield rec
 
     def _keys_for_app(self, app_id: str) -> Iterator[str]:
-        """``{app_id}/{owner}/{grantee}`` keys of one app — a directory scan when possible."""
+        """The ``{app_id}/{owner}/{grantee}`` keys of one app (a directory scan)."""
         if self._root is not None:
             app_dir = self._root / app_id
             if not app_dir.is_dir():
