@@ -332,6 +332,8 @@ def wire(parent: "FastAPI", config) -> None:
     from enlace_auth.auth.middleware import AccessRule
     from enlace_auth.stores import StoreInjectionMiddleware, make_file_store_factory
     from enlace_auth.stores.middleware import make_store_router
+    from enlace_auth.auth.share_routes import make_share_router
+    from enlace_auth.auth.shares import ShareStore
 
     platform_factory = make_file_store_factory(auth_cfg.stores.path)
     session_backend = platform_factory("sessions")
@@ -346,6 +348,14 @@ def wire(parent: "FastAPI", config) -> None:
     # store can list a single app's grants efficiently on the hot path.
     grants_root = Path(os.path.expanduser(auth_cfg.stores.path)) / "grants"
     grant_store = GrantStore(platform_factory("grants"), root=grants_root)
+
+    # Owner-granted data shares (ADR 0001): who may act on whose per-user data.
+    # Beside grants, under the same root; a share may only name existing accounts.
+    share_store = ShareStore(
+        platform_factory("shares"),
+        root=Path(os.path.expanduser(auth_cfg.stores.path)) / "shares",
+        account_exists=lambda email: email in user_backend,
+    )
 
     def grants_resolver(app_id: str) -> set[str]:
         """Emails with an active grant for ``app_id``; ``now`` read per call."""
@@ -369,6 +379,7 @@ def wire(parent: "FastAPI", config) -> None:
     shared_hashes: dict[str, str] = {}
     access_rules: list[AccessRule] = []
     protected_user_apps: set[str] = set()
+    store_apps: set[str] = set()
     for app in getattr(config, "apps", []):
         _require_user_gate_for_admins_alias(app)
         h: Optional[str] = None
@@ -379,6 +390,11 @@ def wire(parent: "FastAPI", config) -> None:
                 shared_hashes[app.name] = h
         if app.access == "protected:user":
             protected_user_apps.add(app.name)
+        if app.access == "protected:user" or getattr(app, "user_store", False) is True:
+            # Apps with a per-user store: protected:user ones, and any app (public
+            # included) that opts in with ``user_store = true``. Kept apart from
+            # protected_user_apps, which the grants admin uses.
+            store_apps.add(app.name)
         allowed = tuple(
             _expand_allowed_users(
                 getattr(app, "allowed_users", ()), admin_emails, app_name=app.name
@@ -556,9 +572,11 @@ def wire(parent: "FastAPI", config) -> None:
     # Per-user store API.
     store_router = make_store_router(
         base_store_getter=lambda: user_data_backend,
-        protected_apps=protected_user_apps,
+        protected_apps=store_apps,
+        share_access=lambda app_id, owner, grantee: share_store.access(app_id, owner, grantee),
     )
     parent.include_router(store_router)
+    parent.include_router(make_share_router(share_store=share_store, store_apps=store_apps))
 
     # App-metadata overlay: the editable launcher-metadata layer (owner-added
     # keywords + icon/title overrides). Core reads the overlay + can-edit closure
@@ -600,6 +618,8 @@ def wire(parent: "FastAPI", config) -> None:
         apps=list(getattr(config, "apps", [])),
         grant_store=grant_store,
         protected_user_apps=protected_user_apps,
+        share_store=share_store,
+        store_apps=store_apps,
         signing_key=signing_key,
         resource_allowlist=auth_cfg.oauth_server.resource_allowlist,
         public_base_url=_public_base_url(config, auth_cfg),
@@ -635,7 +655,10 @@ def wire(parent: "FastAPI", config) -> None:
     # reverse insertion order, so the last `add_middleware` call is the
     # outermost wrapper. We want: auth (outermost) -> store -> csrf -> app.
     parent.add_middleware(
-        CSRFMiddleware, signing_key=signing_key, exempt_prefixes=csrf_exempt
+        CSRFMiddleware,
+        signing_key=signing_key,
+        exempt_prefixes=csrf_exempt,
+        enforce_prefixes=[f"/api/{name}/store" for name in sorted(store_apps)],
     )
     parent.add_middleware(StoreInjectionMiddleware, base_store=user_data_backend)
     parent.add_middleware(

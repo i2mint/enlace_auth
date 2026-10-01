@@ -214,6 +214,21 @@ rejected — it would have no additive effect and would unintentionally restrict
 open app. To remove a user listed in `allowed_users`, edit `app.toml` (that layer
 is intentionally code-managed); the admin panel manages the runtime layer.
 
+## Owner-granted data shares
+
+Grants say who may *open* an app. A **share** says who may act on *someone else's* data in it: in app `A`, the owner's per-user store is readable (and, by default, writable) by a named grantee, signed in as themselves. Use it for data that belongs to one person and is looked after by others — a child's practice log kept by her parents.
+
+```bash
+enlace-auth share practice kid@example.com parent@example.com --label Kid   # admin, from the server
+enlace-auth share practice kid@example.com teacher@example.com --access ro
+enlace-auth list-shares
+enlace-auth revoke-share practice kid@example.com parent@example.com
+```
+
+A signed-in owner manages their own shares at `/auth/shares/{app}` (`GET`, `PUT …/{grantee}`, `DELETE …/{grantee}`; a grantee leaves with `DELETE …/received/{owner}`); an admin uses `/_admin/api/shares`. A grantee then reads the owner's data with `?owner=<email>` on the per-user store: `GET /api/{app}/store?prefix=…&owner=…` lists it, and every route takes `If-Match` so two devices cannot silently overwrite each other. A share names existing accounts only and is removed with either account.
+
+An app gets a per-user store when its `access` is `protected:user`, or when its `app.toml` sets `user_store = true` — which lets a **public** app keep data for the visitors who sign in while staying open to everyone else. The design and its review are in [`misc/docs/decisions/0001-owner-granted-data-shares.md`](misc/docs/decisions/0001-owner-granted-data-shares.md).
+
 ## Doctor checks
 
 ```python

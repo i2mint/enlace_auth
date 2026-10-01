@@ -61,6 +61,22 @@ class PrefixedStore(MutableMapping):
     def __len__(self) -> int:
         return sum(1 for _ in iter(self))
 
+    def keys_under(self, sub: str = "") -> Iterator[str]:
+        """Keys (without this store's prefix) that start with ``sub``.
+
+        Uses the base store's own ``keys_under`` when it has one (the file backend
+        walks only the matching directory), else filters a full iteration.
+        """
+        if sub:
+            sanitize_key(sub)
+        full = self._prefix + sub
+        plen = len(self._prefix)
+        fast = getattr(self._base, "keys_under", None)
+        keys = fast(full) if callable(fast) else (k for k in self._base if isinstance(k, str))
+        for k in keys:
+            if k.startswith(full):
+                yield k[plen:]
+
     def __contains__(self, key: object) -> bool:
         if not isinstance(key, str):
             return False

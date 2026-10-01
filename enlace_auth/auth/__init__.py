@@ -9,6 +9,7 @@ Public helpers:
 - ``CSRFMiddleware`` — signed double-submit CSRF.
 - ``SessionStore`` — MutableMapping-backed session storage.
 - ``GrantStore`` — MutableMapping-backed runtime per-app access grants.
+- ``ShareStore`` — owner-granted data shares (who may act on whose per-user data).
 - ``hash_password`` / ``verify_password`` — argon2id helpers.
 - ``make_auth_router`` — FastAPI router for ``/auth/*`` endpoints.
 """
@@ -23,6 +24,7 @@ from enlace_auth.auth.middleware import (
 from enlace_auth.auth.passwords import hash_password, verify_password
 from enlace_auth.auth.routes import make_auth_router
 from enlace_auth.auth.sessions import SessionStore
+from enlace_auth.auth.shares import ShareError, ShareStore
 
 __all__ = [
     "AccessRule",
@@ -30,6 +32,8 @@ __all__ = [
     "GrantStore",
     "PlatformAuthMiddleware",
     "SessionStore",
+    "ShareError",
+    "ShareStore",
     "hash_password",
     "make_auth_router",
     "parse_expires_at",

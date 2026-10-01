@@ -48,6 +48,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, EmailStr
 
 from enlace_auth.auth.grants import GrantError, parse_expires_at
+from enlace_auth.auth.shares import ShareError
 from enlace_auth.auth.passwords import hash_password
 from enlace_auth.auth.reset_tokens import (
     DEFAULT_HANDOFF_TTL,
@@ -63,6 +64,15 @@ class _CreateUserBody(BaseModel):
 
 class _ResetPasswordBody(BaseModel):
     password: str
+
+
+class _CreateShareBody(BaseModel):
+    app_id: str
+    owner: EmailStr
+    grantee: EmailStr
+    access: str = "rw"
+    label: Optional[str] = None
+    expires_at: Optional[str] = None
 
 
 class _CreateGrantBody(BaseModel):
@@ -82,6 +92,8 @@ def make_admin_router(
     apps: list = (),
     grant_store=None,  # GrantStore — optional; grant endpoints inert without it
     protected_user_apps: Iterable[str] = (),
+    share_store=None,  # ShareStore — optional; share endpoints inert without it
+    store_apps: Iterable[str] = (),
     signing_key: Optional[str] = None,
     reset_link_ttl: int = DEFAULT_HANDOFF_TTL,
     resource_allowlist: Optional[Mapping[str, list[str]]] = None,
@@ -131,6 +143,7 @@ def make_admin_router(
     apps_snapshot = list(apps)
     app_by_name = {a.name: a for a in apps_snapshot}
     protected_set = frozenset(protected_user_apps)
+    store_set = frozenset(store_apps)
 
     def _oauth_gates() -> dict[str, list[dict]]:
         """Index the OAuth resource allow-list by the app route it belongs to.
@@ -221,6 +234,10 @@ def make_admin_router(
             del user_store[target]
         except KeyError:
             raise HTTPException(status_code=404, detail="User not found")
+        # A share never outlives an account it names (ADR 0001 §2): the email is
+        # free to be registered again by someone else.
+        if share_store is not None:
+            share_store.remove_account(target)
         # Sessions are not checked against the user store on each request, so
         # a deleted account keeps working until its cookie expires unless its
         # sessions go too. (An actor deleting themselves is logged out.)
@@ -371,6 +388,41 @@ def make_admin_router(
         except GrantError as e:
             raise HTTPException(status_code=422, detail=str(e))
         return {"ok": True, "grant": record}
+
+    @router.get("/shares")
+    async def list_shares(request: Request) -> dict[str, Any]:
+        _require_admin(request)
+        if share_store is None:
+            raise HTTPException(status_code=503, detail="Shares store unavailable")
+        return {"shares": share_store.list_all(), "apps": sorted(store_set)}
+
+    @router.post("/shares")
+    async def create_share(body: _CreateShareBody, request: Request) -> dict[str, Any]:
+        actor = _require_admin(request)
+        if share_store is None:
+            raise HTTPException(status_code=503, detail="Shares store unavailable")
+        app_id = body.app_id.strip()
+        if app_id not in store_set:
+            raise HTTPException(status_code=404, detail=f"No per-user store for app {app_id!r}")
+        try:
+            record = share_store.share(
+                app_id, body.owner, body.grantee, access=body.access, label=body.label,
+                expires_at=parse_expires_at(body.expires_at), granted_by=actor,
+            )
+        except ShareError as e:
+            raise HTTPException(status_code=409 if "No account" in str(e) else 422, detail=str(e))
+        except GrantError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        return {"ok": True, "share": record}
+
+    @router.delete("/shares/{app_id}/{owner}/{grantee}")
+    async def revoke_share(app_id: str, owner: str, grantee: str, request: Request) -> dict[str, Any]:
+        _require_admin(request)
+        if share_store is None:
+            raise HTTPException(status_code=503, detail="Shares store unavailable")
+        if not share_store.revoke(app_id, owner, grantee):
+            raise HTTPException(status_code=404, detail="Share not found")
+        return {"ok": True}
 
     @router.delete("/grants/{app_id}/{email}")
     async def revoke_grant(app_id: str, email: str, request: Request) -> dict[str, Any]:
