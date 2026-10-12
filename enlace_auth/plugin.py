@@ -183,8 +183,9 @@ def _require_signing_key(env_var: str) -> Optional[str]:
     )
 
 
-def _read_admin_emails(env_var: str) -> tuple[str, ...]:
-    raw = os.environ.get(env_var, "")
+def read_email_list(env_var: str) -> tuple[str, ...]:
+    """Read a comma-separated, case-folded email list from env var *env_var*."""
+    raw = os.environ.get(env_var or "", "")
     return tuple(e.strip().lower() for e in raw.split(",") if e.strip())
 
 
@@ -269,16 +270,19 @@ def _build_can_register(
 ) -> Callable[[str], bool]:
     """Build the predicate deciding whether an email may self-register.
 
-    Open registration → always True. Otherwise only admin emails and emails
-    listed in ``registration_allowlist_env`` may sign up (via ``/auth/register``
-    or an OAuth first-login); everyone else is refused with 403.
+    Open registration → always True. Otherwise only emails listed in
+    ``registration_allowlist_env`` may sign up (via ``/auth/register`` or an
+    OAuth first-login); everyone else is refused with 403.
+
+    Admin emails are deliberately *not* added: self-registration proves nothing
+    about who owns the address, so an admin address with no account yet would
+    go to whoever registers it first (i2mint/enlace_auth#35). Admin accounts are
+    made with ``enlace-auth add-user``; ``doctor`` flags any admin address that
+    has none. ``admin_emails`` stays in the signature so callers need not change.
     """
     if getattr(auth_cfg, "registration_open", False):
         return lambda _email: True
-    allow = {e.lower() for e in admin_emails}
-    allowlist_env = getattr(auth_cfg, "registration_allowlist_env", "") or ""
-    raw = os.environ.get(allowlist_env, "")
-    allow |= {e.strip().lower() for e in raw.split(",") if e.strip()}
+    allow = set(read_email_list(getattr(auth_cfg, "registration_allowlist_env", "")))
     return lambda email: email.lower() in allow
 
 
@@ -368,7 +372,7 @@ def wire(parent: "FastAPI", config) -> None:
         user_data_factory = make_file_store_factory(user_data_cfg.path)
         user_data_backend = user_data_factory("user_data")
 
-    admin_emails = _read_admin_emails(auth_cfg.admin_emails_env)
+    admin_emails = read_email_list(auth_cfg.admin_emails_env)
     can_register = _build_can_register(auth_cfg, admin_emails)
     email_sender = _build_email_sender()
 
