@@ -24,7 +24,7 @@ from typing import Iterable
 
 from enlace import doctor as _doctor
 from enlace.base import PlatformConfig
-from enlace.doctor import FAIL, PASS, SKIP, Check
+from enlace.doctor import FAIL, PASS, SKIP, WARN, Check
 
 from enlace_auth.config import coerce_auth_config
 
@@ -113,6 +113,48 @@ def check_oauth_importable(config: PlatformConfig) -> Iterable[Check]:
             )
         ]
     return [Check("oauth_import", PASS, f"authlib importable; providers: {providers}")]
+
+
+def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
+    """Every configured admin address should already have an account.
+
+    Self-registration cannot prove who owns an address, so an admin address
+    with no account is one anyone could claim the moment registration admits it
+    (open registration, or an allowlist that lists it), and that account would
+    pass every ``@admins`` gate (i2mint/enlace_auth#35).
+    """
+    from enlace_auth.plugin import read_email_list
+    from enlace_auth.stores import make_file_store_factory
+
+    name = "admin_accounts"
+    auth = coerce_auth_config(getattr(config, "auth", None))
+    if not auth.enabled:
+        return [Check(name, SKIP, "auth.enabled=false")]
+    admins = read_email_list(auth.admin_emails_env)
+    if not admins:
+        return [Check(name, SKIP, f"{auth.admin_emails_env} lists no admins")]
+    users = make_file_store_factory(auth.stores.path)("users")
+    missing = [email for email in admins if email not in users]
+    if not missing:
+        return [Check(name, PASS, f"all {len(admins)} admin(s) have accounts")]
+    claimable = set(read_email_list(auth.registration_allowlist_env))
+    if auth.registration_open:
+        risk = "registration_open=true lets anyone register them and become admin"
+    elif claimable.intersection(missing):
+        risk = (
+            f"{auth.registration_allowlist_env} lists some of them, so anyone "
+            "can register them and become admin"
+        )
+    else:
+        risk = "not self-registrable, so the admin cannot sign in yet"
+    return [
+        Check(
+            name,
+            WARN,
+            f"admin address(es) with no account: {', '.join(missing)}; {risk}. "
+            "Create each with `enlace-auth add-user <email>`.",
+        )
+    ]
 
 
 def check_csrf(
@@ -261,5 +303,6 @@ static_checks = (
     check_shared_passwords,
     check_oauth_importable,
     check_connector_session_longevity,
+    check_admin_accounts,
 )
 http_checks = (check_csrf, check_oauth_server_advertises_refresh)

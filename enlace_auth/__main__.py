@@ -11,6 +11,7 @@ Usage::
     enlace-auth list-sessions [--json]
     enlace-auth revoke-session <session_id>
     enlace-auth list-users [--json]
+    enlace-auth add-user <email>
     enlace-auth set-password <email>
     enlace-auth reset-link <email> [--base-url URL] [--hours N]
     enlace-auth grant <app_id> <email> [--expires YYYY-MM-DD] [--note ...]
@@ -222,6 +223,48 @@ def list_users(*, json: bool = False, toml: str = "platform.toml"):
         print(f"{r['email']}  created_at={created:.0f}  {flag}")
 
 
+def _prompt_new_password() -> str:
+    """Prompt twice for a password; exit 1 on mismatch or empty input."""
+    pw = getpass("New password: ")
+    confirm = getpass("Confirm:      ")
+    if pw != confirm:
+        print("Passwords did not match.", file=sys.stderr)
+        sys.exit(1)
+    if not pw:
+        print("Empty password rejected.", file=sys.stderr)
+        sys.exit(1)
+    return pw
+
+
+def add_user(email: str, *, toml: str = "platform.toml"):
+    """Create an account with a password. Prompts twice for the password.
+
+    This is how admin accounts are made: admin addresses are not
+    self-registrable, since ``/auth/register`` cannot prove who owns an address.
+
+    Args:
+        email: Email of the new user. Must not already exist in the store.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    import time
+
+    from enlace_auth.auth.passwords import hash_password as _hash
+
+    store = _load_user_store(Path(toml))
+    key = email.strip().lower()
+    if key in store:
+        print(
+            f"User {key!r} already exists; use `enlace-auth set-password`.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    store[key] = {
+        "password_hash": _hash(_prompt_new_password()),
+        "created_at": time.time(),
+    }
+    print(f"Created {key}.")
+
+
 def set_password(email: str, *, toml: str = "platform.toml"):
     """Set (or reset) a user's password. Prompts twice for the new value.
 
@@ -242,17 +285,8 @@ def set_password(email: str, *, toml: str = "platform.toml"):
         print(f"Corrupt user record for {key!r}.", file=sys.stderr)
         sys.exit(1)
 
-    pw = getpass("New password: ")
-    confirm = getpass("Confirm:      ")
-    if pw != confirm:
-        print("Passwords did not match.", file=sys.stderr)
-        sys.exit(1)
-    if not pw:
-        print("Empty password rejected.", file=sys.stderr)
-        sys.exit(1)
-
     updated = dict(record)
-    updated["password_hash"] = _hash(pw)
+    updated["password_hash"] = _hash(_prompt_new_password())
     # Account recovery: unlink external sign-ins too (see the HTTP reset paths).
     updated.pop("oauth_links", None)
     store[key] = updated
@@ -621,6 +655,7 @@ COMMANDS = [
     list_sessions,
     revoke_session,
     list_users,
+    add_user,
     set_password,
     reset_link,
     grant,

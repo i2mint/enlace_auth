@@ -22,6 +22,7 @@ import pytest
 from enlace_auth.__main__ import (
     _load_grant_store,
     _load_user_store,
+    add_user,
     grant,
     list_grants,
     list_users,
@@ -258,3 +259,28 @@ def test_list_connector_sessions_json(tmp_path, capsys):
     rows = json.loads(capsys.readouterr().out)
     assert rows[0]["email"] == "alice@example.com"
     assert rows[0]["resource"] == RESOURCE
+
+
+def test_add_user_creates_an_account(tmp_path, monkeypatch, capsys):
+    """The way admin accounts are made, since they are not self-registrable."""
+    toml = _make_platform_toml(tmp_path)
+    inputs = iter(["boss-secret", "boss-secret"])
+    monkeypatch.setattr("enlace_auth.__main__.getpass", lambda _: next(inputs))
+
+    add_user("Boss@Example.com", toml=str(toml))
+    assert "Created boss@example.com" in capsys.readouterr().out
+    record = _load_user_store(toml)["boss@example.com"]
+    assert verify_password(record["password_hash"], "boss-secret")
+
+
+def test_add_user_refuses_an_existing_account(tmp_path, monkeypatch):
+    toml = _make_platform_toml(tmp_path)
+    _load_user_store(toml)["boss@example.com"] = {
+        "password_hash": hash_password("theirs"),
+        "created_at": 0,
+    }
+    monkeypatch.setattr("enlace_auth.__main__.getpass", lambda _: "mine")
+    with pytest.raises(SystemExit):
+        add_user("boss@example.com", toml=str(toml))
+    record = _load_user_store(toml)["boss@example.com"]
+    assert verify_password(record["password_hash"], "theirs")

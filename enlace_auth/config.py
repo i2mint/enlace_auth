@@ -161,9 +161,10 @@ class AuthConfig(BaseModel):
         description=(
             "Whether anyone can self-register via /auth/register or OAuth. "
             "When False (default), only emails listed in "
-            "registration_allowlist_env (or admin_emails_env) can complete "
-            "signup; everyone else gets 403. Existing users can always log "
-            "in regardless of this setting."
+            "registration_allowlist_env can complete signup; everyone else "
+            "gets 403. Admin emails are not self-registrable: create admin "
+            "accounts with `enlace-auth add-user`. Existing users can always "
+            "log in regardless of this setting."
         ),
     )
     registration_allowlist_env: str = Field(
@@ -171,7 +172,9 @@ class AuthConfig(BaseModel):
         description=(
             "Env var holding a comma-separated list of emails permitted to "
             "self-register (via /auth/register or OAuth callback) when "
-            "registration_open is False. Admin emails are always allowed."
+            "registration_open is False. Admin emails are not implied: "
+            "self-registration does not prove address ownership, so an admin "
+            "address with no account would go to whoever claims it first."
         ),
     )
 
