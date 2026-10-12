@@ -21,13 +21,26 @@ moved here when auth was extracted from enlace.
 
 ### Functions
 
-| [`check_connector_session_longevity`](#enlace_auth.diagnostics.check_connector_session_longevity)(config)   | Can a connector survive its own access-token expiry unattended?     |
-|----------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| [`check_csrf`](#enlace_auth.diagnostics.check_csrf)(config, base_url, timeout)       | GET /auth/csrf must return JSON with a 'csrf' key.                  |
-| `check_oauth_importable`(config)                                                             |                                                                     |
-| [`check_oauth_server_advertises_refresh`](#enlace_auth.diagnostics.check_oauth_server_advertises_refresh)(...)  | The live server must offer refresh_token in its discovery metadata. |
-| `check_shared_passwords`(config)                                                             |                                                                     |
-| `check_signing_key`(config)                                                                  |                                                                     |
+| [`check_admin_accounts`](#enlace_auth.diagnostics.check_admin_accounts)(config)               | Every configured admin address should already have an account.      |
+|---------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| [`check_connector_session_longevity`](#enlace_auth.diagnostics.check_connector_session_longevity)(config)  | Can a connector survive its own access-token expiry unattended?     |
+| [`check_csrf`](#enlace_auth.diagnostics.check_csrf)(config, base_url, timeout)      | GET /auth/csrf must return JSON with a 'csrf' key.                  |
+| `check_oauth_importable`(config)                                                            |                                                                     |
+| [`check_oauth_server_advertises_refresh`](#enlace_auth.diagnostics.check_oauth_server_advertises_refresh)(...) | The live server must offer refresh_token in its discovery metadata. |
+| `check_shared_passwords`(config)                                                            |                                                                     |
+| `check_signing_key`(config)                                                                 |                                                                     |
+
+### enlace_auth.diagnostics.check_admin_accounts(config)
+
+Every configured admin address should already have an account.
+
+Self-registration cannot prove who owns an address, so an admin address
+with no account is one anyone could claim the moment registration admits it
+(open registration, or an allowlist that lists it), and that account would
+pass every `@admins` gate (i2mint/enlace_auth#35).
+
+* **Return type:**
+  [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
 
 ### enlace_auth.diagnostics.check_connector_session_longevity(config)
 

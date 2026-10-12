@@ -146,7 +146,8 @@ shared-password apps once.
 Plus environment variables:
 
 - `ENLACE_SIGNING_KEY` — signing key (32+ chars). Generate with `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
-- `ENLACE_ADMIN_EMAILS` — comma-separated admin emails (gate `/_admin`).
+- `ENLACE_ADMIN_EMAILS` — comma-separated admin emails (gate `/_admin`). Being an admin does not let an address self-register, because `/auth/register` cannot prove who owns it (only `registration_open` or an explicit allowlist entry does): create each admin’s account with `enlace-auth add-user <email>`. `enlace doctor` warns about any admin address that has no account yet.
+- `ENLACE_REGISTRATION_ALLOWLIST` — comma-separated emails allowed to self-register while `registration_open` is false (the default).
 - `ENLACE_ALLOW_UNSIGNED=1` — opt-out from fail-fast (diagnostics only).
 - `ENLACE_SMTP_HOST` (+ `_PORT`, `_USER`, `_PASSWORD`, `_FROM`, `_TLS`) — mail
   sender for password-reset emails. Unset means **no email is sent**; see below.

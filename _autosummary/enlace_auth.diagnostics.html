@@ -30,18 +30,18 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
-<link href="../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+  <link href="../_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=d146b16c" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
-<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
     <script src="../_static/documentation_options.js?v=34399df3"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
@@ -55,6 +55,7 @@
     <link rel="next" title="enlace_auth.stores" href="enlace_auth.stores.html" />
     <link rel="prev" title="enlace_auth.config" href="enlace_auth.config.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="0.1.28" />
   
@@ -420,27 +421,45 @@ moved here when auth was extracted from enlace.</p>
 <p class="rubric">Functions</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_connector_session_longevity" title="enlace_auth.diagnostics.check_connector_session_longevity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_connector_session_longevity</span></code></a>(config)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_admin_accounts" title="enlace_auth.diagnostics.check_admin_accounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_admin_accounts</span></code></a>(config)</p></td>
+<td><p>Every configured admin address should already have an account.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_connector_session_longevity" title="enlace_auth.diagnostics.check_connector_session_longevity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_connector_session_longevity</span></code></a>(config)</p></td>
 <td><p>Can a connector survive its own access-token expiry unattended?</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_csrf" title="enlace_auth.diagnostics.check_csrf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_csrf</span></code></a>(config, base_url, timeout)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_csrf" title="enlace_auth.diagnostics.check_csrf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_csrf</span></code></a>(config, base_url, timeout)</p></td>
 <td><p>GET /auth/csrf must return JSON with a 'csrf' key.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_oauth_importable</span></code>(config)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_oauth_importable</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_oauth_server_advertises_refresh" title="enlace_auth.diagnostics.check_oauth_server_advertises_refresh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_oauth_server_advertises_refresh</span></code></a>(...)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_oauth_server_advertises_refresh" title="enlace_auth.diagnostics.check_oauth_server_advertises_refresh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_oauth_server_advertises_refresh</span></code></a>(...)</p></td>
 <td><p>The live server must offer refresh_token in its discovery metadata.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_shared_passwords</span></code>(config)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_shared_passwords</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_signing_key</span></code>(config)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_signing_key</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
 </table>
 </div>
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.diagnostics.check_admin_accounts">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.diagnostics.</span></span><span class="sig-name descname"><span class="pre">check_admin_accounts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/diagnostics.html#check_admin_accounts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.diagnostics.check_admin_accounts" title="Link to this definition">#</a></dt>
+<dd><p>Every configured admin address should already have an account.</p>
+<p>Self-registration cannot prove who owns an address, so an admin address
+with no account is one anyone could claim the moment registration admits it
+(open registration, or an allowlist that lists it), and that account would
+pass every <code class="docutils literal notranslate"><span class="pre">&#64;admins</span></code> gate (i2mint/enlace_auth#35).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_auth.diagnostics.check_connector_session_longevity">
 <span class="sig-prename descclassname"><span class="pre">enlace_auth.diagnostics.</span></span><span class="sig-name descname"><span class="pre">check_connector_session_longevity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/diagnostics.html#check_connector_session_longevity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.diagnostics.check_connector_session_longevity" title="Link to this definition">#</a></dt>
@@ -454,7 +473,7 @@ read as “the connector has been down all day” and took a user complaint to
 surface, because expiry is logged at INFO on the connector, not here.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -468,7 +487,7 @@ is silently disabled, the SPA catch-all returns <code class="docutils literal no
 instead of JSON.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -483,7 +502,7 @@ has no refresh support at all — exactly the drift that caused the outage
 requests). This asks the running server what it actually advertises.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -537,6 +556,7 @@ requests). This asks the running server what it actually advertises.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_admin_accounts"><code class="docutils literal notranslate"><span class="pre">check_admin_accounts()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_connector_session_longevity"><code class="docutils literal notranslate"><span class="pre">check_connector_session_longevity()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_csrf"><code class="docutils literal notranslate"><span class="pre">check_csrf()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_oauth_server_advertises_refresh"><code class="docutils literal notranslate"><span class="pre">check_oauth_server_advertises_refresh()</span></code></a></li>
@@ -565,8 +585,8 @@ requests). This asks the running server what it actually advertises.</p>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
-<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -578,7 +598,7 @@ requests). This asks the running server what it actually advertises.</p>
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
 </p></div>
       
     </div>

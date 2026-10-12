@@ -1,4 +1,4 @@
-> built 2026-10-01 16:29 UTC from 41d9c80 (main) · enlace_auth 0.1.28. Details: build_info.json
+> built 2026-10-12 02:18 UTC from 76111dd (main) · enlace_auth 0.1.28. Details: build_info.json
 
 # index.html.md
 
@@ -150,7 +150,8 @@ shared-password apps once.
 Plus environment variables:
 
 - `ENLACE_SIGNING_KEY` — signing key (32+ chars). Generate with `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
-- `ENLACE_ADMIN_EMAILS` — comma-separated admin emails (gate `/_admin`).
+- `ENLACE_ADMIN_EMAILS` — comma-separated admin emails (gate `/_admin`). Being an admin does not let an address self-register, because `/auth/register` cannot prove who owns it (only `registration_open` or an explicit allowlist entry does): create each admin’s account with `enlace-auth add-user <email>`. `enlace doctor` warns about any admin address that has no account yet.
+- `ENLACE_REGISTRATION_ALLOWLIST` — comma-separated emails allowed to self-register while `registration_open` is false (the default).
 - `ENLACE_ALLOW_UNSIGNED=1` — opt-out from fail-fast (diagnostics only).
 - `ENLACE_SMTP_HOST` (+ `_PORT`, `_USER`, `_PASSWORD`, `_FROM`, `_TLS`) — mail
   sender for password-reset emails. Unset means **no email is sent**; see below.
@@ -2091,13 +2092,26 @@ moved here when auth was extracted from enlace.
 
 ### Functions
 
-| [`check_connector_session_longevity`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_connector_session_longevity)(config)   | Can a connector survive its own access-token expiry unattended?     |
-|----------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| [`check_csrf`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_csrf)(config, base_url, timeout)       | GET /auth/csrf must return JSON with a 'csrf' key.                  |
-| `check_oauth_importable`(config)                                                             |                                                                     |
-| [`check_oauth_server_advertises_refresh`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_oauth_server_advertises_refresh)(...)  | The live server must offer refresh_token in its discovery metadata. |
-| `check_shared_passwords`(config)                                                             |                                                                     |
-| `check_signing_key`(config)                                                                  |                                                                     |
+| [`check_admin_accounts`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_admin_accounts)(config)               | Every configured admin address should already have an account.      |
+|---------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| [`check_connector_session_longevity`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_connector_session_longevity)(config)  | Can a connector survive its own access-token expiry unattended?     |
+| [`check_csrf`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_csrf)(config, base_url, timeout)      | GET /auth/csrf must return JSON with a 'csrf' key.                  |
+| `check_oauth_importable`(config)                                                            |                                                                     |
+| [`check_oauth_server_advertises_refresh`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_oauth_server_advertises_refresh)(...) | The live server must offer refresh_token in its discovery metadata. |
+| `check_shared_passwords`(config)                                                            |                                                                     |
+| `check_signing_key`(config)                                                                 |                                                                     |
+
+### enlace_auth.diagnostics.check_admin_accounts(config)
+
+Every configured admin address should already have an account.
+
+Self-registration cannot prove who owns an address, so an admin address
+with no account is one anyone could claim the moment registration admits it
+(open registration, or an allowlist that lists it), and that account would
+pass every `@admins` gate (i2mint/enlace_auth#35).
+
+* **Return type:**
+  [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
 
 ### enlace_auth.diagnostics.check_connector_session_longevity(config)
 
@@ -2554,20 +2568,20 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-01 16:29 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/41d9c807fa5f8b75658fd69d3fc297a3d27a0c40"><code>41d9c80</code></a> on branch <code>main</code>, for **enlace_auth 0.1.28** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-12 02:18 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/76111ddcfda01bc4373f8ee49e72b8bd04afcdb9"><code>76111dd</code></a> on branch <code>main</code>, for **enlace_auth 0.1.28** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.28) is ahead of the latest release on PyPI (0.1.27): these docs describe unreleased code.
+- The documented version (0.1.28) is behind the latest release on PyPI (0.1.29): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/41d9c807fa5f8b75658fd69d3fc297a3d27a0c40"><code>41d9c807fa5f8b75658fd69d3fc297a3d27a0c40</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/76111ddcfda01bc4373f8ee49e72b8bd04afcdb9"><code>76111ddcfda01bc4373f8ee49e72b8bd04afcdb9</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
-| Tags at this commit | <code>0.1.28</code>                                                                                                                                       |
+| Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
 | Remote              | <code>https://github.com/i2mint/enlace_auth</code>                                                                                                        |
 
@@ -2576,9 +2590,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/36891936563">36891936563</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38195086639">38195086639</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>05d1688481816028e58da78c03bbf34b53c33454</code> (in the history of the built commit) |
+| Event commit | <code>76111ddcfda01bc4373f8ee49e72b8bd04afcdb9</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2587,7 +2601,7 @@ The documentation and the package may be misaligned:
 | epythet  | 0.2.12  |
 | Sphinx   | 9.1.0   |
 | docutils | 0.22.4  |
-| Python   | 3.12.14 |
+| Python   | 3.12.15 |
 
 ## Configuration as resolved
 
@@ -2603,13 +2617,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.27/">0.1.27</a>, older than the documented version (0.1.28).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.29/">0.1.29</a>, newer than the documented version (0.1.28).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 41d9c807fa5f8b75658fd69d3fc297a3d27a0c40
+git checkout 76111ddcfda01bc4373f8ee49e72b8bd04afcdb9
 pip install "epythet==0.2.12"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
