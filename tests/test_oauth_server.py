@@ -378,7 +378,9 @@ def test_resource_allowlist_wildcard_opens_a_resource_to_every_account(tmp_path)
 
 def test_a_slash_key_does_not_open_the_empty_resource(tmp_path):
     """``"/"`` normalizes to ``""``; it must not become a way to mint iss-audience tokens."""
-    client, cookie = _build(tmp_path, resource_allowlist={"/": ["*"], RESOURCE: [EMAIL]})
+    client, cookie = _build(
+        tmp_path, resource_allowlist={"/": ["*"], RESOURCE: [EMAIL]}
+    )
     cid = _register(client)
     _, challenge = _pkce()
     r = client.get(
