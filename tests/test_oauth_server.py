@@ -376,6 +376,19 @@ def test_resource_allowlist_wildcard_opens_a_resource_to_every_account(tmp_path)
     assert "access_token" in _flow(client, cookie, cid=cid, resource=OTHER_RESOURCE)
 
 
+def test_a_slash_key_does_not_open_the_empty_resource(tmp_path):
+    """``"/"`` normalizes to ``""``; it must not become a way to mint iss-audience tokens."""
+    client, cookie = _build(tmp_path, resource_allowlist={"/": ["*"], RESOURCE: [EMAIL]})
+    cid = _register(client)
+    _, challenge = _pkce()
+    r = client.get(
+        "/auth/oauth/authorize",
+        params=_authorize_params(cid, challenge, resource=""),
+        cookies={COOKIE: cookie},
+    )
+    assert r.status_code == 403
+
+
 def test_resource_allowlist_wildcard_is_the_exported_constant():
     from enlace_auth.auth.oauth_server import ANY_ACCOUNT
 
@@ -413,6 +426,61 @@ def test_refresh_is_refused_once_the_resource_is_no_longer_listed(tmp_path):
     r = _refresh(after, body["refresh_token"], cid)
     assert r.status_code == 400
     assert _live(refresh_store) == []
+
+
+def test_a_refresh_retry_is_refused_once_the_resource_is_no_longer_listed(tmp_path):
+    """The grace-window reissue (a replayed spent token) is a third way to mint."""
+    refresh_store, client_store = {}, {}
+    before, cookie = _build(
+        tmp_path,
+        refresh_store=refresh_store,
+        client_store=client_store,
+        resource_allowlist={RESOURCE: [EMAIL], OTHER_RESOURCE: [EMAIL]},
+    )
+    cid = _register(before)
+    body = _flow(before, cookie, cid=cid, resource=OTHER_RESOURCE)
+    assert _refresh(before, body["refresh_token"], cid).status_code == 200
+
+    after, _ = _build(
+        tmp_path,
+        refresh_store=refresh_store,
+        client_store=client_store,
+        resource_allowlist={RESOURCE: [EMAIL]},
+    )
+    r = _refresh(after, body["refresh_token"], cid)  # replay within the grace window
+    assert r.status_code == 400
+    assert _live(refresh_store) == []
+
+
+@pytest.mark.parametrize(
+    "variant",
+    [
+        RESOURCE.upper(),
+        RESOURCE + "?x=1",
+        RESOURCE + "#f",
+        RESOURCE + "%2F",
+        RESOURCE.replace("/connector", "/./connector"),
+        " " + RESOURCE,
+        RESOURCE + " ",
+        RESOURCE + "x",
+        RESOURCE[:-1],
+        RESOURCE.replace(".com", ".com:443"),
+        "http://testserver",  # the issuer
+        "/",
+    ],
+)
+def test_no_spelling_of_a_restricted_resource_gets_through(tmp_path, variant):
+    client, cookie = _build(
+        tmp_path, resource_allowlist={RESOURCE: ["boss@x.com"], OTHER_RESOURCE: ["*"]}
+    )
+    cid = _register(client)
+    _, challenge = _pkce()
+    r = client.get(
+        "/auth/oauth/authorize",
+        params=_authorize_params(cid, challenge, resource=variant),
+        cookies={COOKIE: cookie},
+    )
+    assert r.status_code == 403, variant
 
 
 def test_code_exchange_rechecks_the_allowlist(tmp_path):

@@ -336,7 +336,10 @@ def make_oauth_server_router(
         """Whether *email* may hold a token for *resource* (see the docstring)."""
         if not _allowlist:
             return True
-        allowed = _allowlist.get(_norm_resource(resource))
+        key = _norm_resource(resource)
+        if not key:  # no resource names no connector; a "/" key must not open it
+            return False
+        allowed = _allowlist.get(key)
         if allowed is None:
             return False
         return ANY_ACCOUNT in allowed or email.lower() in allowed
