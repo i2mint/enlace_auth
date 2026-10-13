@@ -204,6 +204,23 @@ def test_admin_creates_and_deletes_user(admin_client):
     assert r.status_code == 200, r.text
 
 
+def test_admin_create_user_refuses_duplicates_and_short_passwords(admin_client):
+    csrf = _csrf(admin_client)
+    _register(admin_client, "boss@example.com", "bosspw1!", csrf)
+    short = admin_client.post(
+        "/_admin/api/users",
+        json={"email": "dan@example.com", "password": "short"},
+        headers=csrf,
+    )
+    assert short.status_code == 400, short.text
+    dup = admin_client.post(
+        "/_admin/api/users",
+        json={"email": "boss@example.com", "password": "another-pw"},
+        headers=csrf,
+    )
+    assert dup.status_code == 409, dup.text
+
+
 def test_admin_resets_password(admin_client):
     csrf = _csrf(admin_client)
     _register(admin_client, "boss@example.com", "bosspw1!", csrf)
