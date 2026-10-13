@@ -25,7 +25,12 @@ from __future__ import annotations
 import logging
 import os
 import time
-from contextlib import suppress
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - Windows
+    fcntl = None
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Iterable, Optional
 
@@ -85,19 +90,53 @@ def _make_file_claim(claim_dir, *, keep_seconds: int = 600):
     claim_dir = _Path(claim_dir)
     claim_dir.mkdir(parents=True, exist_ok=True)
 
+    @contextmanager
+    def _unlinking():
+        """Hold the directory's exclusive lock while a claim file may be unlinked.
+
+        Creation needs no lock: ``O_EXCL`` only succeeds on an absent path. Every
+        *unlink* does, because "stat says stale, so unlink" is two steps: between
+        them another process can take the stale claim over and write a fresh one,
+        and the unlink then deletes that live claim, letting a third process
+        create it again -- two winners (#60). Renaming the stale file aside first
+        does not help: the rename can just as well move the fresh claim. With
+        every unlink serialized here and creation impossible while the file
+        exists, nothing can replace a file between the stat and the unlink.
+
+        ``flock`` on the directory itself, so there is no lock file to sweep.
+        Where ``fcntl`` is missing (Windows) this degrades to no lock.
+        """
+        if fcntl is None:
+            yield
+            return
+        fd = os.open(str(claim_dir), os.O_RDONLY)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            yield
+        finally:
+            os.close(fd)  # closing the last descriptor releases the flock
+
+    def _unlink_if_stale(path, now: float) -> bool:
+        """Unlink *path* if it is older than the window. Call under the lock."""
+        try:
+            if now - path.stat().st_mtime <= keep_seconds:
+                return False
+            path.unlink()
+        except (OSError, ValueError):
+            return False
+        return True
+
     def _sweep(now: float, limit: int = 200) -> None:
         from itertools import islice
 
-        for entry in islice(claim_dir.iterdir(), limit):
-            try:
-                if now - entry.stat().st_mtime > keep_seconds:
-                    entry.unlink()
-            except OSError:
-                pass
+        # Housekeeping only: it must never turn a granted claim into an error.
+        with suppress(OSError), _unlinking():
+            for entry in islice(claim_dir.iterdir(), limit):
+                _unlink_if_stale(entry, now)
 
     def release(key: str) -> None:
         """Hand a claim back after a failed rotation."""
-        with suppress(OSError):
+        with suppress(OSError), _unlinking():
             (claim_dir / key).unlink()
 
     def claim(key: str) -> bool:
@@ -111,14 +150,20 @@ def _make_file_claim(claim_dir, *, keep_seconds: int = 600):
             # unredeemable forever while its record still reads unconsumed -- and
             # the client's own retries can never heal it, because they never
             # reach the sweep below. Take it over exactly once.
+            # The unlink and the re-create both happen under the lock, so of all
+            # the processes that saw the same stale file, only the first through
+            # the lock finds it still stale; the rest find the fresh claim.
             try:
-                if time.time() - path.stat().st_mtime <= keep_seconds:
-                    return False
-                path.unlink()
-                fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+                with _unlinking():
+                    if not _unlink_if_stale(path, time.time()):
+                        return False
+                    fd = os.open(
+                        str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600
+                    )
             except (OSError, ValueError):
-                # Someone else won the takeover, or the file vanished. Either way
-                # we do not hold the claim.
+                # Someone else created it between our unlink and our create (a
+                # plain O_EXCL claimant needs no lock), or the dir is unusable.
+                # Either way we do not hold the claim.
                 return False
         except OSError:
             # Fail CLOSED: if we cannot prove we are the only claimant, do not
