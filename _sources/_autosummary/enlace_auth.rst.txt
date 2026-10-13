@@ -36,4 +36,5 @@
    auth
    config
    diagnostics
+   resource_policy
    stores

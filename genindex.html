@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=73657eb8"></script>
+    <script src="_static/documentation_options.js?v=d71dfaa1"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.30" />
+  <meta name="docsearch:version" content="0.1.31" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -717,7 +717,7 @@ window.runMermaid = runMermaid;</script>
         <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.GrantStore.active_emails_for_app">(enlace_auth.auth.GrantStore method)</a>
 </li>
       </ul></li>
-      <li><a href="_autosummary/enlace_auth.auth.oauth_server.html#enlace_auth.auth.oauth_server.ANY_ACCOUNT">ANY_ACCOUNT (in module enlace_auth.auth.oauth_server)</a>
+      <li><a href="_autosummary/enlace_auth.resource_policy.html#enlace_auth.resource_policy.ANY_ACCOUNT">ANY_ACCOUNT (in module enlace_auth.resource_policy)</a>
 </li>
       <li><a href="_autosummary/enlace_auth.html#enlace_auth.AuthConfig">AuthConfig (class in enlace_auth)</a>
 
@@ -732,6 +732,8 @@ window.runMermaid = runMermaid;</script>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/enlace_auth.diagnostics.html#enlace_auth.diagnostics.check_admin_accounts">check_admin_accounts() (in module enlace_auth.diagnostics)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.diagnostics.html#enlace_auth.diagnostics.check_auth_config">check_auth_config() (in module enlace_auth.diagnostics)</a>
 </li>
       <li><a href="_autosummary/enlace_auth.diagnostics.html#enlace_auth.diagnostics.check_connector_session_longevity">check_connector_session_longevity() (in module enlace_auth.diagnostics)</a>
 </li>
@@ -866,8 +868,6 @@ window.runMermaid = runMermaid;</script>
         <li><a href="_autosummary/enlace_auth.auth.passwords.html#module-enlace_auth.auth.passwords">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     enlace_auth.auth.reset_tokens
 
@@ -875,6 +875,8 @@ window.runMermaid = runMermaid;</script>
         <li><a href="_autosummary/enlace_auth.auth.reset_tokens.html#module-enlace_auth.auth.reset_tokens">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     enlace_auth.auth.revocation
 
@@ -922,6 +924,13 @@ window.runMermaid = runMermaid;</script>
 
       <ul>
         <li><a href="_autosummary/enlace_auth.diagnostics.html#module-enlace_auth.diagnostics">module</a>
+</li>
+      </ul></li>
+      <li>
+    enlace_auth.resource_policy
+
+      <ul>
+        <li><a href="_autosummary/enlace_auth.resource_policy.html#module-enlace_auth.resource_policy">module</a>
 </li>
       </ul></li>
       <li>
@@ -1159,6 +1168,8 @@ window.runMermaid = runMermaid;</script>
 </li>
         <li><a href="_autosummary/enlace_auth.diagnostics.html#module-enlace_auth.diagnostics">enlace_auth.diagnostics</a>
 </li>
+        <li><a href="_autosummary/enlace_auth.resource_policy.html#module-enlace_auth.resource_policy">enlace_auth.resource_policy</a>
+</li>
         <li><a href="_autosummary/enlace_auth.stores.html#module-enlace_auth.stores">enlace_auth.stores</a>
 </li>
         <li><a href="_autosummary/enlace_auth.stores.backends.html#module-enlace_auth.stores.backends">enlace_auth.stores.backends</a>
@@ -1177,6 +1188,10 @@ window.runMermaid = runMermaid;</script>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/enlace_auth.stores.middleware.html#enlace_auth.stores.middleware.NO_ACCESS">NO_ACCESS (in module enlace_auth.stores.middleware)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/enlace_auth.resource_policy.html#enlace_auth.resource_policy.normalize_resource">normalize_resource() (in module enlace_auth.resource_policy)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1208,16 +1223,20 @@ window.runMermaid = runMermaid;</script>
         <li><a href="_autosummary/enlace_auth.auth.grants.html#enlace_auth.auth.grants.parse_expires_at">(in module enlace_auth.auth.grants)</a>
 </li>
       </ul></li>
+      <li><a href="_autosummary/enlace_auth.resource_policy.html#enlace_auth.resource_policy.parse_resource_allowlist">parse_resource_allowlist() (in module enlace_auth.resource_policy)</a>
+</li>
+      <li><a href="_autosummary/enlace_auth.resource_policy.html#enlace_auth.resource_policy.parse_resource_display_names">parse_resource_display_names() (in module enlace_auth.resource_policy)</a>
+</li>
       <li><a href="_autosummary/enlace_auth.auth.reset_tokens.html#enlace_auth.auth.reset_tokens.password_fingerprint">password_fingerprint() (in module enlace_auth.auth.reset_tokens)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/enlace_auth.auth.html#enlace_auth.auth.PlatformAuthMiddleware">PlatformAuthMiddleware (class in enlace_auth.auth)</a>
 
       <ul>
         <li><a href="_autosummary/enlace_auth.auth.middleware.html#enlace_auth.auth.middleware.PlatformAuthMiddleware">(class in enlace_auth.auth.middleware)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/enlace_auth.html#enlace_auth.plugin">plugin() (in module enlace_auth)</a>
 </li>
       <li><a href="_autosummary/enlace_auth.stores.html#enlace_auth.stores.PrefixedStore">PrefixedStore (class in enlace_auth.stores)</a>

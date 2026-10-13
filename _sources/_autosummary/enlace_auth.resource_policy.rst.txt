@@ -1,0 +1,20 @@
+enlace\_auth.resource\_policy
+=============================
+
+.. automodule:: enlace_auth.resource_policy
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      ANY_ACCOUNT
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      normalize_resource
+      parse_resource_allowlist
+      parse_resource_display_names
+   

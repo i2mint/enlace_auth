@@ -43,11 +43,11 @@ changes platform behavior unless the operator opts in.
 
 ### *class* enlace_auth.AuthConfig(\*\*data)
 
-Bases: `BaseModel`
+Bases: `_StrictModel`
 
 Platform-wide authentication configuration.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
@@ -59,21 +59,21 @@ Raised when auth configuration is unusable at startup.
 
 ### *class* enlace_auth.OAuthProviderConfig(\*\*data)
 
-Bases: `BaseModel`
+Bases: `_StrictModel`
 
 Configuration for a single OAuth2/OIDC provider.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
 ### *class* enlace_auth.StoreBackendConfig(\*\*data)
 
-Bases: `BaseModel`
+Bases: `_StrictModel`
 
 Backend configuration for a MutableMapping-backed store.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
@@ -97,10 +97,11 @@ Plugin entry point. Safe to call when auth is disabled — does nothing.
 
 ### Modules
 
-| [`admin`](enlace_auth.admin.md#module-enlace_auth.admin)             | Admin subsystem for enlace_auth.                                       |
-|---------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| [`appmeta`](enlace_auth.appmeta.md#module-enlace_auth.appmeta)         | Editable app-metadata overlay: the write surface for the launcher.     |
-| [`auth`](enlace_auth.auth.md#module-enlace_auth.auth)               | Authentication subsystem for enlace.                                   |
-| [`config`](enlace_auth.config.md#module-enlace_auth.config)           | Auth-side configuration models.                                        |
-| [`diagnostics`](enlace_auth.diagnostics.md#module-enlace_auth.diagnostics) | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`. |
-| [`stores`](enlace_auth.stores.md#module-enlace_auth.stores)           | Per-user stores for enlace.                                            |
+| [`admin`](enlace_auth.admin.md#module-enlace_auth.admin)                     | Admin subsystem for enlace_auth.                                            |
+|-----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| [`appmeta`](enlace_auth.appmeta.md#module-enlace_auth.appmeta)                 | Editable app-metadata overlay: the write surface for the launcher.          |
+| [`auth`](enlace_auth.auth.md#module-enlace_auth.auth)                       | Authentication subsystem for enlace.                                        |
+| [`config`](enlace_auth.config.md#module-enlace_auth.config)                   | Auth-side configuration models.                                             |
+| [`diagnostics`](enlace_auth.diagnostics.md#module-enlace_auth.diagnostics)         | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`.      |
+| [`resource_policy`](enlace_auth.resource_policy.md#module-enlace_auth.resource_policy) | The OAuth per-connector allowlist: its shape, its parsing and its one rule. |
+| [`stores`](enlace_auth.stores.md#module-enlace_auth.stores)                   | Per-user stores for enlace.                                                 |

@@ -41,11 +41,6 @@ POST /auth/oauth/token                            code + PKCE → JWT
                                                   refresh_token → JWT
 ```
 
-### Module Attributes
-
-| [`ANY_ACCOUNT`](#enlace_auth.auth.oauth_server.ANY_ACCOUNT)   | A `resource_allowlist` entry that opens a resource to every authenticated account.   |
-|----------------------------------------------------------------|--------------------------------------------------------------------------------------|
-
 ### Functions
 
 | [`make_oauth_server_router`](#enlace_auth.auth.oauth_server.make_oauth_server_router)(\*, session_store, ...)   | Build the OAuth 2.1 authorization-server router (see the module docstring).   |
@@ -55,11 +50,6 @@ POST /auth/oauth/token                            code + PKCE → JWT
 
 | [`OAuthKeys`](#enlace_auth.auth.oauth_server.OAuthKeys)(key_dir)   | The server's RSA signing key — persisted, exposed as a JWKS.   |
 |-----------------------------------------------------------------------|----------------------------------------------------------------|
-
-### enlace_auth.auth.oauth_server.ANY_ACCOUNT *= '\*'*
-
-A `resource_allowlist` entry that opens a resource to every authenticated
-account. Must be written out: an unlisted resource is refused (fail-closed).
 
 ### *class* enlace_auth.auth.oauth_server.OAuthKeys(key_dir)
 
@@ -72,7 +62,7 @@ mode 0600) and reuses it thereafter, so tokens stay verifiable across restarts.
 Signs JWTs (RS256) and publishes the public half as a one-key JWKS for the
 connector’s verifier to fetch.
 
-### enlace_auth.auth.oauth_server.make_oauth_server_router(, session_store, signing_key, cookie_name, session_max_age, client_store, code_store, keys, issuer=None, refresh_store=None, claim_once=None, release_claim=None, is_active=None, access_token_ttl=3600, refresh_token_ttl=2592000, refresh_reuse_grace=60, refresh_reuse_detection=86400, refresh_family_max_lifetime=7776000, client_ttl=15552000, code_ttl=120, scopes_supported=('mcp:read',), require_consent=True, resource_allowlist=None, resource_display_names=None)
+### enlace_auth.auth.oauth_server.make_oauth_server_router(, session_store, signing_key, cookie_name, session_max_age, client_store, code_store, keys, issuer=None, refresh_store=None, claim_once=None, release_claim=None, is_active=None, access_token_ttl=3600, refresh_token_ttl=2592000, refresh_reuse_grace=60, refresh_reuse_detection=86400, refresh_family_max_lifetime=7776000, client_ttl=15552000, code_ttl=120, scopes_supported=('mcp:read',), require_consent=True, resource_allowlist=None, allow_unlisted_resources=False, resource_display_names=None)
 
 Build the OAuth 2.1 authorization-server router (see the module docstring).
 
@@ -119,11 +109,14 @@ resource that is not in the map is refused to everyone, at authorization, code
 exchange and every refresh, so a connector that is newly added, renamed or
 mounted at a second path stays shut until someone lists it. Opening a resource
 to every authenticated account is an explicit act: list it with
-`[ANY_ACCOUNT]` (`["*"]`). Only an empty or absent map leaves every
-resource open, which is the pre-allowlist behaviour and is logged as a
-warning. Secure to key on the resource: the connector only accepts tokens
-whose `aud` is that exact resource, so a denied user can’t get a usable token
-another way.
+`[ANY_ACCOUNT]` (`["*"]`). An empty or absent map would leave every resource
+open, so it raises `ValueError` unless *allow_unlisted_resources* asks for
+exactly that (and is then logged as a warning); a malformed map raises too.
+See [`enlace_auth.resource_policy`](enlace_auth.resource_policy.md#module-enlace_auth.resource_policy). Secure to key on the resource: the
+connector only accepts tokens whose `aud` is that exact resource, so a denied
+user can’t get a usable token another way. The `aud` is minted from the same
+normalized resource the allowlist was checked against, so the two never
+disagree about a trailing slash.
 
 *resource_display_names* maps the **same** resource URL to the human name the
 consent screen shows. One authorization server serves every connector on the

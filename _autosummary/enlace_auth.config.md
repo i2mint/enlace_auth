@@ -28,27 +28,27 @@ we just deserialize them into typed objects here when the plugin runs.
 
 ### *class* enlace_auth.config.AuthConfig(\*\*data)
 
-Bases: `BaseModel`
+Bases: `_StrictModel`
 
 Platform-wide authentication configuration.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
 ### *class* enlace_auth.config.OAuthProviderConfig(\*\*data)
 
-Bases: `BaseModel`
+Bases: `_StrictModel`
 
 Configuration for a single OAuth2/OIDC provider.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
 ### *class* enlace_auth.config.OAuthServerConfig(\*\*data)
 
-Bases: `BaseModel`
+Bases: `_StrictModel`
 
 OAuth 2.1 authorization-server settings (for MCP connectors).
 
@@ -56,17 +56,17 @@ When `enabled`, `enlace_auth` issues signed JWT access tokens that a
 Claude.ai custom connector validates — reusing the platform user store and
 session login. See [`enlace_auth.auth.oauth_server`](enlace_auth.auth.oauth_server.md#module-enlace_auth.auth.oauth_server).
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
 ### *class* enlace_auth.config.StoreBackendConfig(\*\*data)
 
-Bases: `BaseModel`
+Bases: `_StrictModel`
 
 Backend configuration for a MutableMapping-backed store.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 

@@ -1,4 +1,4 @@
-> built 2026-10-13 03:46 UTC from 80153e2 (main) · enlace_auth 0.1.30. Details: build_info.json
+> built 2026-10-13 04:33 UTC from e42a8a8 (main) · enlace_auth 0.1.31. Details: build_info.json
 
 # index.html.md
 
@@ -79,10 +79,15 @@ access_token_ttl_seconds = 3600
 refresh_token_ttl_seconds = 2592000
 refresh_family_max_lifetime_seconds = 7776000
 
-# Who may authorize for each connector. Fails closed: once this table lists
-# anything, a resource it does not list is refused to everyone, so a new or
-# renamed connector stays shut until it is added here. "*" opens a resource to
-# every authenticated account, and has to be written out.
+# Who may authorize for each connector. Fails closed: a resource this table does
+# not list is refused to everyone, so a new or renamed connector stays shut until
+# it is added here. "*" opens a resource to every authenticated account, and has
+# to be written out. It fails loudly too: an unknown key anywhere under [auth]
+# (a misspelled or misnested table), a key that is not an http(s) URL, a value
+# that is not a list of emails, or a pattern such as "*@example.com" stops the
+# platform at startup, and `enlace doctor` names it. An enabled server with no
+# allowlist refuses to start unless `allow_unlisted_resources = true` says an
+# open server is intended.
 [auth.oauth_server.resource_allowlist]
 "https://apps.example.com/connector-a-mcp" = ["alice@example.com"]
 "https://apps.example.com/connector-b-mcp" = ["*"]
@@ -281,7 +286,7 @@ authenticated user” gate for self-service endpoints like `/me/password`.
 | [`make_admin_router`](_autosummary/enlace_auth.admin.html.md#enlace_auth.admin.make_admin_router)(\*, user_store, session_store)   | Build a FastAPI router exposing `/_admin/api/*` endpoints.   |
 |-----------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
 
-### enlace_auth.admin.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), share_store=None, store_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None, on_credentials_changed=None)
+### enlace_auth.admin.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), share_store=None, store_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, oauth_server_enabled=False, public_base_url=None, on_credentials_changed=None)
 
 Build a FastAPI router exposing `/_admin/api/*` endpoints.
 
@@ -310,7 +315,9 @@ tell the truth about connectors: an OAuth resource server is declared
 “public” badge invites the reader to conclude private data is world-open
 (it isn’t) or, worse, to make some *other* app public by analogy (which
 would be). Passing the allow-list lets the dashboard show who can actually
-reach each one.
+reach each one. `oauth_server_enabled` lets it also say what happens to a
+resource that is NOT listed: refused to everyone while an allowlist is set,
+open to every account when the server runs without one.
 
 `on_credentials_changed` (`hook(email, *, keep=None)`) runs after a
 user is deleted or has their password set. The default revokes the
@@ -373,7 +380,7 @@ Runtime grants are ADDITIVE on top of each app’s static `app.toml`
 |-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | [`make_admin_ui_router`](_autosummary/enlace_auth.admin.routes.html.md#enlace_auth.admin.routes.make_admin_ui_router)()                             | Build a FastAPI router that serves the bundled HTML dashboard. |
 
-### enlace_auth.admin.routes.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), share_store=None, store_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, public_base_url=None, on_credentials_changed=None)
+### enlace_auth.admin.routes.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), share_store=None, store_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, oauth_server_enabled=False, public_base_url=None, on_credentials_changed=None)
 
 Build a FastAPI router exposing `/_admin/api/*` endpoints.
 
@@ -402,7 +409,9 @@ tell the truth about connectors: an OAuth resource server is declared
 “public” badge invites the reader to conclude private data is world-open
 (it isn’t) or, worse, to make some *other* app public by analogy (which
 would be). Passing the allow-list lets the dashboard show who can actually
-reach each one.
+reach each one. `oauth_server_enabled` lets it also say what happens to a
+resource that is NOT listed: refused to everyone while an allowlist is set,
+open to every account when the server runs without one.
 
 `on_credentials_changed` (`hook(email, *, keep=None)`) runs after a
 user is deleted or has their password set. The default revokes the
@@ -1187,11 +1196,6 @@ POST /auth/oauth/token                            code + PKCE → JWT
                                                   refresh_token → JWT
 ```
 
-### Module Attributes
-
-| [`ANY_ACCOUNT`](_autosummary/enlace_auth.auth.oauth_server.html.md#enlace_auth.auth.oauth_server.ANY_ACCOUNT)   | A `resource_allowlist` entry that opens a resource to every authenticated account.   |
-|----------------------------------------------------------------|--------------------------------------------------------------------------------------|
-
 ### Functions
 
 | [`make_oauth_server_router`](_autosummary/enlace_auth.auth.oauth_server.html.md#enlace_auth.auth.oauth_server.make_oauth_server_router)(\*, session_store, ...)   | Build the OAuth 2.1 authorization-server router (see the module docstring).   |
@@ -1201,11 +1205,6 @@ POST /auth/oauth/token                            code + PKCE → JWT
 
 | [`OAuthKeys`](_autosummary/enlace_auth.auth.oauth_server.html.md#enlace_auth.auth.oauth_server.OAuthKeys)(key_dir)   | The server's RSA signing key — persisted, exposed as a JWKS.   |
 |-----------------------------------------------------------------------|----------------------------------------------------------------|
-
-### enlace_auth.auth.oauth_server.ANY_ACCOUNT *= '\*'*
-
-A `resource_allowlist` entry that opens a resource to every authenticated
-account. Must be written out: an unlisted resource is refused (fail-closed).
 
 ### *class* enlace_auth.auth.oauth_server.OAuthKeys(key_dir)
 
@@ -1218,7 +1217,7 @@ mode 0600) and reuses it thereafter, so tokens stay verifiable across restarts.
 Signs JWTs (RS256) and publishes the public half as a one-key JWKS for the
 connector’s verifier to fetch.
 
-### enlace_auth.auth.oauth_server.make_oauth_server_router(, session_store, signing_key, cookie_name, session_max_age, client_store, code_store, keys, issuer=None, refresh_store=None, claim_once=None, release_claim=None, is_active=None, access_token_ttl=3600, refresh_token_ttl=2592000, refresh_reuse_grace=60, refresh_reuse_detection=86400, refresh_family_max_lifetime=7776000, client_ttl=15552000, code_ttl=120, scopes_supported=('mcp:read',), require_consent=True, resource_allowlist=None, resource_display_names=None)
+### enlace_auth.auth.oauth_server.make_oauth_server_router(, session_store, signing_key, cookie_name, session_max_age, client_store, code_store, keys, issuer=None, refresh_store=None, claim_once=None, release_claim=None, is_active=None, access_token_ttl=3600, refresh_token_ttl=2592000, refresh_reuse_grace=60, refresh_reuse_detection=86400, refresh_family_max_lifetime=7776000, client_ttl=15552000, code_ttl=120, scopes_supported=('mcp:read',), require_consent=True, resource_allowlist=None, allow_unlisted_resources=False, resource_display_names=None)
 
 Build the OAuth 2.1 authorization-server router (see the module docstring).
 
@@ -1265,11 +1264,14 @@ resource that is not in the map is refused to everyone, at authorization, code
 exchange and every refresh, so a connector that is newly added, renamed or
 mounted at a second path stays shut until someone lists it. Opening a resource
 to every authenticated account is an explicit act: list it with
-`[ANY_ACCOUNT]` (`["*"]`). Only an empty or absent map leaves every
-resource open, which is the pre-allowlist behaviour and is logged as a
-warning. Secure to key on the resource: the connector only accepts tokens
-whose `aud` is that exact resource, so a denied user can’t get a usable token
-another way.
+`[ANY_ACCOUNT]` (`["*"]`). An empty or absent map would leave every resource
+open, so it raises `ValueError` unless *allow_unlisted_resources* asks for
+exactly that (and is then logged as a warning); a malformed map raises too.
+See [`enlace_auth.resource_policy`](_autosummary/enlace_auth.resource_policy.html.md#module-enlace_auth.resource_policy). Secure to key on the resource: the
+connector only accepts tokens whose `aud` is that exact resource, so a denied
+user can’t get a usable token another way. The `aud` is minted from the same
+normalized resource the allowlist was checked against, so the two never
+disagree about a trailing slash.
 
 *resource_display_names* maps the **same** resource URL to the human name the
 consent screen shows. One authorization server serves every connector on the
@@ -2044,27 +2046,27 @@ we just deserialize them into typed objects here when the plugin runs.
 
 ### *class* enlace_auth.config.AuthConfig(\*\*data)
 
-Bases: `BaseModel`
+Bases: `_StrictModel`
 
 Platform-wide authentication configuration.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
 ### *class* enlace_auth.config.OAuthProviderConfig(\*\*data)
 
-Bases: `BaseModel`
+Bases: `_StrictModel`
 
 Configuration for a single OAuth2/OIDC provider.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
 ### *class* enlace_auth.config.OAuthServerConfig(\*\*data)
 
-Bases: `BaseModel`
+Bases: `_StrictModel`
 
 OAuth 2.1 authorization-server settings (for MCP connectors).
 
@@ -2072,17 +2074,17 @@ When `enabled`, `enlace_auth` issues signed JWT access tokens that a
 Claude.ai custom connector validates — reusing the platform user store and
 session login. See [`enlace_auth.auth.oauth_server`](_autosummary/enlace_auth.auth.oauth_server.html.md#module-enlace_auth.auth.oauth_server).
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
 ### *class* enlace_auth.config.StoreBackendConfig(\*\*data)
 
-Bases: `BaseModel`
+Bases: `_StrictModel`
 
 Backend configuration for a MutableMapping-backed store.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
@@ -2131,6 +2133,7 @@ moved here when auth was extracted from enlace.
 
 | [`check_admin_accounts`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_admin_accounts)(config)               | Every configured admin address should already have an account.      |
 |---------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| [`check_auth_config`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_auth_config)(config)                  | Report an `[auth]` table the plugin would refuse at startup.        |
 | [`check_connector_session_longevity`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_connector_session_longevity)(config)  | Can a connector survive its own access-token expiry unattended?     |
 | [`check_csrf`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_csrf)(config, base_url, timeout)      | GET /auth/csrf must return JSON with a 'csrf' key.                  |
 | `check_oauth_importable`(config)                                                            |                                                                     |
@@ -2146,6 +2149,17 @@ Self-registration cannot prove who owns an address, so an admin address
 with no account is one anyone could claim the moment registration admits it
 (open registration, or an allowlist that lists it), and that account would
 pass every `@admins` gate (i2mint/enlace_auth#35).
+
+* **Return type:**
+  [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
+
+### enlace_auth.diagnostics.check_auth_config(config)
+
+Report an `[auth]` table the plugin would refuse at startup.
+
+Unknown keys and a malformed or missing OAuth resource allowlist are errors
+(see [`enlace_auth.resource_policy`](_autosummary/enlace_auth.resource_policy.html.md#module-enlace_auth.resource_policy)), so this is the one check that says
+why; every other check skips a config that does not load.
 
 * **Return type:**
   [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
@@ -2236,11 +2250,11 @@ changes platform behavior unless the operator opts in.
 
 ### *class* enlace_auth.AuthConfig(\*\*data)
 
-Bases: `BaseModel`
+Bases: `_StrictModel`
 
 Platform-wide authentication configuration.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
@@ -2252,21 +2266,21 @@ Raised when auth configuration is unusable at startup.
 
 ### *class* enlace_auth.OAuthProviderConfig(\*\*data)
 
-Bases: `BaseModel`
+Bases: `_StrictModel`
 
 Configuration for a single OAuth2/OIDC provider.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
 ### *class* enlace_auth.StoreBackendConfig(\*\*data)
 
-Bases: `BaseModel`
+Bases: `_StrictModel`
 
 Backend configuration for a MutableMapping-backed store.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
@@ -2290,13 +2304,107 @@ Plugin entry point. Safe to call when auth is disabled — does nothing.
 
 ### Modules
 
-| [`admin`](_autosummary/enlace_auth.admin.html.md#module-enlace_auth.admin)             | Admin subsystem for enlace_auth.                                       |
-|---------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| [`appmeta`](_autosummary/enlace_auth.appmeta.html.md#module-enlace_auth.appmeta)         | Editable app-metadata overlay: the write surface for the launcher.     |
-| [`auth`](_autosummary/enlace_auth.auth.html.md#module-enlace_auth.auth)               | Authentication subsystem for enlace.                                   |
-| [`config`](_autosummary/enlace_auth.config.html.md#module-enlace_auth.config)           | Auth-side configuration models.                                        |
-| [`diagnostics`](_autosummary/enlace_auth.diagnostics.html.md#module-enlace_auth.diagnostics) | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`. |
-| [`stores`](_autosummary/enlace_auth.stores.html.md#module-enlace_auth.stores)           | Per-user stores for enlace.                                            |
+| [`admin`](_autosummary/enlace_auth.admin.html.md#module-enlace_auth.admin)                     | Admin subsystem for enlace_auth.                                            |
+|-----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| [`appmeta`](_autosummary/enlace_auth.appmeta.html.md#module-enlace_auth.appmeta)                 | Editable app-metadata overlay: the write surface for the launcher.          |
+| [`auth`](_autosummary/enlace_auth.auth.html.md#module-enlace_auth.auth)                       | Authentication subsystem for enlace.                                        |
+| [`config`](_autosummary/enlace_auth.config.html.md#module-enlace_auth.config)                   | Auth-side configuration models.                                             |
+| [`diagnostics`](_autosummary/enlace_auth.diagnostics.html.md#module-enlace_auth.diagnostics)         | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`.      |
+| [`resource_policy`](_autosummary/enlace_auth.resource_policy.html.md#module-enlace_auth.resource_policy) | The OAuth per-connector allowlist: its shape, its parsing and its one rule. |
+| [`stores`](_autosummary/enlace_auth.stores.html.md#module-enlace_auth.stores)                   | Per-user stores for enlace.                                                 |
+
+
+# _autosummary/enlace_auth.resource_policy.html.md
+
+# enlace_auth.resource_policy
+
+The OAuth per-connector allowlist: its shape, its parsing and its one rule.
+
+`[auth.oauth_server.resource_allowlist]` maps a connector’s resource URL to the
+emails allowed to authorize for it. The authorization server enforces it
+([`enlace_auth.auth.oauth_server`](_autosummary/enlace_auth.auth.oauth_server.html.md#module-enlace_auth.auth.oauth_server)), the config model validates it
+([`enlace_auth.config`](_autosummary/enlace_auth.config.html.md#module-enlace_auth.config)), and the admin dashboard describes it
+([`enlace_auth.admin.routes`](_autosummary/enlace_auth.admin.routes.html.md#module-enlace_auth.admin.routes)). All three go through [`parse_resource_allowlist()`](_autosummary/enlace_auth.resource_policy.html.md#enlace_auth.resource_policy.parse_resource_allowlist)
+here, so they cannot disagree about what a key means or what a value may hold.
+
+The rule is **fail closed, and fail loudly on anything malformed**:
+
+- A listed resource admits exactly its listed emails; `["*"]`
+  ([`ANY_ACCOUNT`](_autosummary/enlace_auth.resource_policy.html.md#enlace_auth.resource_policy.ANY_ACCOUNT)), on its own, admits every authenticated account.
+- A key must be the resource URL exactly as a connector spells its audience
+  (lowercase scheme and host, no default port, no `//`, `.` or `..`), since
+  a key in any other spelling can never match one.
+- An unlisted resource is refused to everyone.
+- A server with no allowlist at all would admit everyone to every resource. That
+  is never the result of a typo: it has to be asked for with
+  `allow_unlisted_resources = true`, and an allowlist that is present but
+  malformed (a key that is not a URL, a value that is not a list of emails, a
+  wildcard pattern, two keys that differ only by a trailing slash) is an error,
+  not a guess.
+
+Pure functions, no web or crypto imports, so the config model can use them.
+
+### Module Attributes
+
+| [`ANY_ACCOUNT`](_autosummary/enlace_auth.resource_policy.html.md#enlace_auth.resource_policy.ANY_ACCOUNT)   | A `resource_allowlist` entry that opens a resource to every authenticated account.   |
+|----------------------------------------------------------------|--------------------------------------------------------------------------------------|
+
+### Functions
+
+| [`normalize_resource`](_autosummary/enlace_auth.resource_policy.html.md#enlace_auth.resource_policy.normalize_resource)(resource)             | Canonical form of a resource URL: the key both maps use, and the token `aud`.   |
+|-------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| [`parse_resource_allowlist`](_autosummary/enlace_auth.resource_policy.html.md#enlace_auth.resource_policy.parse_resource_allowlist)(raw, \*[, ...]) | Validate *raw* and return `{normalized resource: lowercased emails}`.           |
+| [`parse_resource_display_names`](_autosummary/enlace_auth.resource_policy.html.md#enlace_auth.resource_policy.parse_resource_display_names)(raw)        | Validate *raw* and return `{normalized resource: display name}`.                |
+
+### enlace_auth.resource_policy.ANY_ACCOUNT *= '\*'*
+
+A `resource_allowlist` entry that opens a resource to every authenticated
+account. Must be written out: an unlisted resource is refused (fail-closed).
+
+### enlace_auth.resource_policy.normalize_resource(resource)
+
+Canonical form of a resource URL: the key both maps use, and the token `aud`.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+```pycon
+>>> normalize_resource("https://apps.example.com/api/x_mcp/mcp/")
+'https://apps.example.com/api/x_mcp/mcp'
+```
+
+### enlace_auth.resource_policy.parse_resource_allowlist(raw, , allow_unlisted_resources=False)
+
+Validate *raw* and return `{normalized resource: lowercased emails}`.
+
+Raises `ValueError` naming the offending entry for anything that is not
+exactly the documented shape, and for an empty allowlist unless
+*allow_unlisted_resources* says an open server is intended. Setting that flag
+alongside a non-empty allowlist is also an error: the allowlist always refuses
+unlisted resources, so the flag would promise something that does not happen.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
+
+```pycon
+>>> allowlist = parse_resource_allowlist(
+...     {"https://a.example/api/x/mcp/": ["Ann@Example.com", "bob@example.com"]}
+... )
+>>> {k: sorted(v) for k, v in allowlist.items()}
+{'https://a.example/api/x/mcp': ['ann@example.com', 'bob@example.com']}
+>>> parse_resource_allowlist({}, allow_unlisted_resources=True)
+{}
+```
+
+### enlace_auth.resource_policy.parse_resource_display_names(raw)
+
+Validate *raw* and return `{normalized resource: display name}`.
+
+Keys follow the same rule as the allowlist’s, so a key that would never match
+a resource is reported rather than silently showing generic consent copy.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 
 # _autosummary/enlace_auth.stores.backends.html.md
@@ -2605,16 +2713,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-13 03:46 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/80153e2a393ef924b8f1715a3d86a8f9dc4377e7"><code>80153e2</code></a> on branch <code>main</code>, for **enlace_auth 0.1.30** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 04:33 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/e42a8a88c06a855baf7bc9ee648727278ca46a10"><code>e42a8a8</code></a> on branch <code>main</code>, for **enlace_auth 0.1.31** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.31) is behind the latest release on PyPI (0.1.32): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/80153e2a393ef924b8f1715a3d86a8f9dc4377e7"><code>80153e2a393ef924b8f1715a3d86a8f9dc4377e7</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/e42a8a88c06a855baf7bc9ee648727278ca46a10"><code>e42a8a88c06a855baf7bc9ee648727278ca46a10</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -2625,9 +2735,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38343130329">38343130329</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38346846134">38346846134</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>80153e2a393ef924b8f1715a3d86a8f9dc4377e7</code> (in the history of the built commit) |
+| Event commit | <code>e42a8a88c06a855baf7bc9ee648727278ca46a10</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2652,13 +2762,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.30/">0.1.30</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.32/">0.1.32</a>, newer than the documented version (0.1.31).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 80153e2a393ef924b8f1715a3d86a8f9dc4377e7
+git checkout e42a8a88c06a855baf7bc9ee648727278ca46a10
 pip install "epythet==0.2.13"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

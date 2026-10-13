@@ -9,6 +9,7 @@ enlace\_auth.diagnostics
    .. autosummary::
    
       check_admin_accounts
+      check_auth_config
       check_connector_session_longevity
       check_csrf
       check_oauth_importable

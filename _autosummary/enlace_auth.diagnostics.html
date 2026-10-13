@@ -43,7 +43,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=73657eb8"></script>
+    <script src="../_static/documentation_options.js?v=d71dfaa1"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -52,12 +52,12 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="enlace_auth.stores" href="enlace_auth.stores.html" />
+    <link rel="next" title="enlace_auth.resource_policy" href="enlace_auth.resource_policy.html" />
     <link rel="prev" title="enlace_auth.config" href="enlace_auth.config.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.30" />
+  <meta name="docsearch:version" content="0.1.31" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -329,6 +329,7 @@
 </details></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.config.html">enlace_auth.config</a></li>
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">enlace_auth.diagnostics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_auth.resource_policy.html">enlace_auth.resource_policy</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.stores.html">enlace_auth.stores</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.stores.backends.html">enlace_auth.stores.backends</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.stores.middleware.html">enlace_auth.stores.middleware</a></li>
@@ -424,22 +425,25 @@ moved here when auth was extracted from enlace.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_admin_accounts" title="enlace_auth.diagnostics.check_admin_accounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_admin_accounts</span></code></a>(config)</p></td>
 <td><p>Every configured admin address should already have an account.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_connector_session_longevity" title="enlace_auth.diagnostics.check_connector_session_longevity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_connector_session_longevity</span></code></a>(config)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_auth_config" title="enlace_auth.diagnostics.check_auth_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_auth_config</span></code></a>(config)</p></td>
+<td><p>Report an <code class="docutils literal notranslate"><span class="pre">[auth]</span></code> table the plugin would refuse at startup.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_connector_session_longevity" title="enlace_auth.diagnostics.check_connector_session_longevity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_connector_session_longevity</span></code></a>(config)</p></td>
 <td><p>Can a connector survive its own access-token expiry unattended?</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_csrf" title="enlace_auth.diagnostics.check_csrf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_csrf</span></code></a>(config, base_url, timeout)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_csrf" title="enlace_auth.diagnostics.check_csrf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_csrf</span></code></a>(config, base_url, timeout)</p></td>
 <td><p>GET /auth/csrf must return JSON with a 'csrf' key.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_oauth_importable</span></code>(config)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_oauth_importable</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_oauth_server_advertises_refresh" title="enlace_auth.diagnostics.check_oauth_server_advertises_refresh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_oauth_server_advertises_refresh</span></code></a>(...)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_oauth_server_advertises_refresh" title="enlace_auth.diagnostics.check_oauth_server_advertises_refresh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_oauth_server_advertises_refresh</span></code></a>(...)</p></td>
 <td><p>The live server must offer refresh_token in its discovery metadata.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_shared_passwords</span></code>(config)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_shared_passwords</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_signing_key</span></code>(config)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_signing_key</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -453,6 +457,20 @@ moved here when auth was extracted from enlace.</p>
 with no account is one anyone could claim the moment registration admits it
 (open registration, or an allowlist that lists it), and that account would
 pass every <code class="docutils literal notranslate"><span class="pre">&#64;admins</span></code> gate (i2mint/enlace_auth#35).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.diagnostics.check_auth_config">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.diagnostics.</span></span><span class="sig-name descname"><span class="pre">check_auth_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/diagnostics.html#check_auth_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.diagnostics.check_auth_config" title="Link to this definition">#</a></dt>
+<dd><p>Report an <code class="docutils literal notranslate"><span class="pre">[auth]</span></code> table the plugin would refuse at startup.</p>
+<p>Unknown keys and a malformed or missing OAuth resource allowlist are errors
+(see <a class="reference internal" href="enlace_auth.resource_policy.html#module-enlace_auth.resource_policy" title="enlace_auth.resource_policy"><code class="xref py py-mod docutils literal notranslate"><span class="pre">enlace_auth.resource_policy</span></code></a>), so this is the one check that says
+why; every other check skips a config that does not load.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code>]</span></p>
@@ -529,11 +547,11 @@ requests). This asks the running server what it actually advertises.</p>
       </div>
     </a>
     <a class="right-next"
-       href="enlace_auth.stores.html"
+       href="enlace_auth.resource_policy.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">enlace_auth.stores</p>
+        <p class="prev-next-title">enlace_auth.resource_policy</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -557,6 +575,7 @@ requests). This asks the running server what it actually advertises.</p>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_admin_accounts"><code class="docutils literal notranslate"><span class="pre">check_admin_accounts()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_auth_config"><code class="docutils literal notranslate"><span class="pre">check_auth_config()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_connector_session_longevity"><code class="docutils literal notranslate"><span class="pre">check_connector_session_longevity()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_csrf"><code class="docutils literal notranslate"><span class="pre">check_csrf()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_oauth_server_advertises_refresh"><code class="docutils literal notranslate"><span class="pre">check_oauth_server_advertises_refresh()</span></code></a></li>
