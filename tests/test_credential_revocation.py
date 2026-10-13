@@ -162,7 +162,9 @@ def platform(tmp_path, monkeypatch):
     )
     app = build_backend(discover_apps(config), plugins=[auth_plugin])
     factory = make_file_store_factory(str(store_root))
-    return TestClient(app), factory("oauth_refresh_tokens"), factory("oauth_codes")
+    client = TestClient(app)
+    client.user_store_root = store_root  # read by _register
+    return client, factory("oauth_refresh_tokens"), factory("oauth_codes")
 
 
 def _seed(refresh, codes):

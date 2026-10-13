@@ -7,6 +7,7 @@ then exercises the admin endpoints end-to-end via TestClient.
 from __future__ import annotations
 
 import textwrap
+import time
 
 import pytest
 from enlace.base import PlatformConfig
@@ -15,6 +16,9 @@ from enlace.discover import discover_apps
 from starlette.testclient import TestClient
 
 from enlace_auth import plugin as auth_plugin
+from enlace_auth.auth.passwords import hash_password
+from enlace_auth.plugin import read_email_list
+from enlace_auth.stores import make_file_store_factory
 
 _SIGNING_KEY = "admin-test-key-thirtytwobyteslong!!"
 
@@ -94,7 +98,9 @@ def admin_client(tmp_path, monkeypatch):
     )
     config = discover_apps(config)
     app = build_backend(config, plugins=[auth_plugin])
-    return TestClient(app)
+    client = TestClient(app)
+    client.user_store_root = tmp_path / "platform"  # read by _register
+    return client
 
 
 def _csrf(client: TestClient) -> dict:
@@ -117,7 +123,29 @@ def _login(client: TestClient, email: str, password: str, csrf):
     )
 
 
+def _seed_account(store_root, email: str, password: str) -> None:
+    """Create an account as ``enlace-auth add-user`` does."""
+    users = make_file_store_factory(str(store_root))("users")
+    users[email.lower()] = {
+        "password_hash": hash_password(password),
+        "created_at": time.time(),
+        "created_via": "add-user",
+    }
+
+
 def _register(client: TestClient, email: str, password: str, csrf):
+    """Self-register *email* and sign in.
+
+    Registration refuses admin addresses (i2mint/enlace_auth#38), so for one of
+    those this creates the account the way an operator does (``add-user``) and
+    signs in, when the client says where its user store is
+    (``client.user_store_root``). A second call still gets registration's 409.
+    """
+    root = getattr(client, "user_store_root", None)
+    if root is not None and email.lower() in read_email_list("ENLACE_ADMIN_EMAILS"):
+        if email.lower() not in make_file_store_factory(str(root))("users"):
+            _seed_account(root, email, password)
+            return _login(client, email, password, csrf)
     return client.post(
         "/auth/register",
         json={"email": email, "password": password},
@@ -573,7 +601,9 @@ def _connector_client(tmp_path, monkeypatch):
         stores={"user_data": {"backend": "file", "path": str(tmp_path / "data")}},
     )
     config = discover_apps(config)
-    return TestClient(build_backend(config, plugins=[auth_plugin]))
+    client = TestClient(build_backend(config, plugins=[auth_plugin]))
+    client.user_store_root = tmp_path / "platform"  # read by _register
+    return client
 
 
 def _apps_by_name(client):

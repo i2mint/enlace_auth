@@ -38,7 +38,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Iterable, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
@@ -97,6 +97,18 @@ def _email_trusted(provider: str, cfg, claims: dict) -> bool:
     return provider in _EMAIL_VERIFIED_BY_PRESET or bool(
         getattr(cfg, "trust_unverified_email", False)
     )
+
+
+def _email_verified_by_provider(provider: str, claims: dict) -> bool:
+    """Whether the PROVIDER vouches for the address: a claim, or a known preset.
+
+    Stricter than :func:`_email_trusted`: the operator's
+    ``trust_unverified_email`` opt-in does not count, since it is a statement
+    about the operator's risk appetite, not about who owns the address.
+    """
+    if claims.get("email_verified") is not None:
+        return _verified(claims.get("email_verified"))
+    return provider in _EMAIL_VERIFIED_BY_PRESET
 
 
 def _is_entra_issuer(iss: str) -> bool:
@@ -221,6 +233,7 @@ def make_oauth_router(
     session_max_age: int = 86400,
     secure_cookies: bool = True,
     can_register: Callable[[str], bool] = lambda _: False,
+    admin_emails: Iterable[str] = (),
     state_cookie_name: str = "enlace_oauth_state",
     state_max_age: int = 600,
 ) -> Optional[APIRouter]:
@@ -230,9 +243,16 @@ def make_oauth_router(
     carries Authlib's per-login state between ``/auth/login/{provider}`` and the
     callback (see the module docstring). It is only used when no Starlette
     ``SessionMiddleware`` already provides ``request.session``.
+
+    *admin_emails* may create their account by a first sign-in, whatever
+    *can_register* says, but only when the provider itself verified the address
+    (:func:`_email_verified_by_provider`). That is the one self-service way to
+    set up an admin who never uses a password: ``/auth/register`` cannot prove
+    ownership and refuses admin addresses (i2mint/enlace_auth#38).
     """
     if not providers:
         return None
+    admins = frozenset(e.strip().lower() for e in admin_emails)
 
     oauth = _build_oauth_registry(providers)
     router = APIRouter(prefix="/auth")
@@ -386,7 +406,16 @@ def make_oauth_router(
         except KeyError:
             record = None
         if record is None:
-            if not can_register(email):
+            if email in admins:
+                # A subject binds the account to THIS identity at the provider;
+                # without one, any later identity presenting the address would
+                # be let in (_login_refusal has no link to compare against).
+                permitted = bool(subject) and _email_verified_by_provider(
+                    provider, claims
+                )
+            else:
+                permitted = can_register(email)
+            if not permitted:
                 raise HTTPException(
                     status_code=403,
                     detail=(
@@ -397,6 +426,7 @@ def make_oauth_router(
             user_store[email] = {
                 "password_hash": None,
                 "created_at": time.time(),
+                "created_via": f"oauth:{provider}",
                 "oauth_provider": provider,
                 "oauth_links": {provider: subject} if subject else {},
             }

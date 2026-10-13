@@ -29,7 +29,9 @@ from tests.test_admin import (  # noqa: F401 - fixture re-export
 
 def _second_client(admin_client: TestClient) -> TestClient:
     """A separate browser against the same app (its own cookie jar)."""
-    return TestClient(admin_client.app)
+    client = TestClient(admin_client.app)
+    client.user_store_root = admin_client.user_store_root
+    return client
 
 
 def _setup_admin_and_user(admin_client, email="vic@example.com", pw="victim-pw1"):

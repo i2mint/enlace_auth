@@ -230,10 +230,30 @@ def _prompt_new_password() -> str:
     if pw != confirm:
         print("Passwords did not match.", file=sys.stderr)
         sys.exit(1)
-    if not pw:
-        print("Empty password rejected.", file=sys.stderr)
+    from enlace_auth.auth.passwords import MIN_PASSWORD_LEN
+
+    if len(pw) < MIN_PASSWORD_LEN:
+        print(
+            f"Password must be at least {MIN_PASSWORD_LEN} characters.",
+            file=sys.stderr,
+        )
         sys.exit(1)
     return pw
+
+
+def _normalized_email(email: str) -> str:
+    """The key ``/auth/login`` will look the address up under; exit 1 if invalid.
+
+    Validated exactly as the HTTP routes validate it (pydantic ``EmailStr``), so
+    an account made here is one its owner can actually sign in to.
+    """
+    from pydantic import EmailStr, TypeAdapter, ValidationError
+
+    try:
+        return TypeAdapter(EmailStr).validate_python(email.strip()).lower()
+    except ValidationError:
+        print(f"Not a valid email address: {email!r}", file=sys.stderr)
+        sys.exit(1)
 
 
 def add_user(email: str, *, toml: str = "platform.toml"):
@@ -250,8 +270,8 @@ def add_user(email: str, *, toml: str = "platform.toml"):
 
     from enlace_auth.auth.passwords import hash_password as _hash
 
+    key = _normalized_email(email)
     store = _load_user_store(Path(toml))
-    key = email.strip().lower()
     if key in store:
         print(
             f"User {key!r} already exists; use `enlace-auth set-password`.",
@@ -261,6 +281,7 @@ def add_user(email: str, *, toml: str = "platform.toml"):
     store[key] = {
         "password_hash": _hash(_prompt_new_password()),
         "created_at": time.time(),
+        "created_via": "add-user",
     }
     print(f"Created {key}.")
 

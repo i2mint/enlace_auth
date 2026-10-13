@@ -278,6 +278,10 @@ def platform(tmp_path, monkeypatch):
         },
         stores={"user_data": {"backend": "file", "path": str(tmp_path / "user_data")}},
     )
+    # Registration refuses admin addresses (#38): make Dad's the operator's way.
+    from tests.test_admin import _seed_account
+
+    _seed_account(tmp_path / "platform_store", DAD, "secretpw123")
     return build_backend(discover_apps(config), plugins=[auth_plugin])
 
 
@@ -286,7 +290,8 @@ def _signed_in(app, email):
     client.get("/api/practice/ping")
     raw = verify_cookie(client.cookies.get("enlace_csrf"), KEY, salt="csrf")
     client.headers["X-CSRF-Token"] = raw
-    r = client.post("/auth/register", json={"email": email, "password": "secretpw123"})
+    verb = "login" if email == DAD else "register"
+    r = client.post(f"/auth/{verb}", json={"email": email, "password": "secretpw123"})
     assert r.status_code == 200, r.text
     return client
 

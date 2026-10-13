@@ -7,6 +7,10 @@ from parameter tuning.
 
 from __future__ import annotations
 
+#: Minimum password length, for every way a password is set: registration, the
+#: admin API, reset, change, and the ``add-user`` / ``set-password`` CLI.
+MIN_PASSWORD_LEN = 8
+
 
 def _hasher():
     try:

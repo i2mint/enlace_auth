@@ -188,7 +188,7 @@ def test_login_wrong_password_rejected(e2e_client):
     headers = {"X-CSRF-Token": raw}
     r = e2e_client.post(
         "/auth/register",
-        json={"email": "bob@example.com", "password": "correct"},
+        json={"email": "bob@example.com", "password": "correct-pw"},
         headers=headers,
     )
     assert r.status_code == 200

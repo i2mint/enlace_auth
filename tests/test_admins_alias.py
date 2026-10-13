@@ -51,7 +51,9 @@ def _client(
         },
         stores={"user_data": {"backend": "file", "path": str(tmp_path / "data")}},
     )
-    return TestClient(build_backend(discover_apps(config), plugins=[auth_plugin]))
+    client = TestClient(build_backend(discover_apps(config), plugins=[auth_plugin]))
+    client.user_store_root = tmp_path / "platform"  # read by _register
+    return client
 
 
 def _signed_in(client, email):

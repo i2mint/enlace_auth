@@ -92,12 +92,12 @@ def test_doctor_warns_about_admin_address_with_no_account(
     assert "add-user" in check.detail
 
 
-def test_doctor_names_the_exposure_when_registration_is_open(
-    env, tmp_path, single_app_dir
-):
+def test_doctor_warns_even_with_registration_open(env, tmp_path, single_app_dir):
+    """Open registration no longer admits admin addresses (#38), so the risk is
+    an admin who cannot sign in, not an address anyone can claim."""
     [check] = _admin_check(tmp_path, single_app_dir, registration_open=True)
     assert check.status == doctor_mod.WARN
-    assert "registration_open" in check.detail
+    assert "registration refuses admin" in check.detail
 
 
 def test_doctor_passes_once_every_admin_has_an_account(env, tmp_path, single_app_dir):
