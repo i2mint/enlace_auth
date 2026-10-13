@@ -62,7 +62,7 @@ mode 0600) and reuses it thereafter, so tokens stay verifiable across restarts.
 Signs JWTs (RS256) and publishes the public half as a one-key JWKS for the
 connector’s verifier to fetch.
 
-### enlace_auth.auth.oauth_server.make_oauth_server_router(, session_store, signing_key, cookie_name, session_max_age, client_store, code_store, keys, issuer=None, refresh_store=None, claim_once=None, release_claim=None, is_active=None, access_token_ttl=3600, refresh_token_ttl=2592000, refresh_reuse_grace=60, refresh_reuse_detection=86400, refresh_family_max_lifetime=7776000, client_ttl=15552000, code_ttl=120, scopes_supported=('mcp:read',), require_consent=True, resource_allowlist=None, allow_unlisted_resources=False, resource_display_names=None)
+### enlace_auth.auth.oauth_server.make_oauth_server_router(, session_store, signing_key, cookie_name, session_max_age, client_store, code_store, keys, issuer=None, refresh_store=None, claim_once=None, release_claim=None, is_active=None, access_token_ttl=3600, refresh_token_ttl=2592000, refresh_reuse_grace=60, refresh_reuse_detection=86400, refresh_family_max_lifetime=7776000, client_ttl=15552000, code_ttl=120, consent_ttl=600, scopes_supported=('mcp:read',), require_consent=True, resource_allowlist=None, allow_unlisted_resources=False, resource_display_names=None)
 
 Build the OAuth 2.1 authorization-server router (see the module docstring).
 
@@ -122,6 +122,11 @@ disagree about a trailing slash.
 Registration is open to anyone, so a server that skipped the consent screen
 would hand any website a code for a signed-in visitor on a cross-site GET
 (see `enlace_auth.resource_policy.check_require_consent()`).
+
+*consent_ttl* is how long, in seconds, a rendered consent form can be
+submitted. Its CSRF token approves exactly one request — this session, this
+client, redirect URI, PKCE challenge, state, scope and resource — and nothing
+after it expires (see `_consent_binding()`). It must be positive.
 
 *resource_display_names* maps the **same** resource URL to the human name the
 consent screen shows. One authorization server serves every connector on the

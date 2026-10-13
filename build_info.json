@@ -1,32 +1,32 @@
 {
   "schema_version": 1,
-  "built_at": "2026-10-13T09:09:47Z",
+  "built_at": "2026-10-13T10:40:33Z",
   "package": {
     "name": "enlace_auth",
-    "version": "0.1.35",
+    "version": "0.1.36",
     "display_name": "enlace_auth",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "53e5aeaad56bbcda91a08bd9defcc2ca01910f8d",
-    "short_commit": "53e5aea",
+    "commit": "0dcde0dcc682ebcc4e8917cb5869e33ae1112b9c",
+    "short_commit": "0dcde0d",
     "branch": "main",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/i2mint/enlace_auth",
-    "commit_url": "https://github.com/i2mint/enlace_auth/commit/53e5aeaad56bbcda91a08bd9defcc2ca01910f8d",
+    "commit_url": "https://github.com/i2mint/enlace_auth/commit/0dcde0dcc682ebcc4e8917cb5869e33ae1112b9c",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "i2mint/enlace_auth",
-    "sha": "53e5aeaad56bbcda91a08bd9defcc2ca01910f8d",
+    "sha": "0dcde0dcc682ebcc4e8917cb5869e33ae1112b9c",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "38374029258",
-    "run_url": "https://github.com/i2mint/enlace_auth/actions/runs/38374029258",
+    "run_id": "38384682665",
+    "run_url": "https://github.com/i2mint/enlace_auth/actions/runs/38384682665",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -60,16 +60,16 @@
   },
   "pypi": {
     "checked": true,
-    "latest": "0.1.36",
+    "latest": "0.1.37",
     "relation": "behind",
     "error": null
   },
-  "reproduce": "git clone https://github.com/i2mint/enlace_auth && cd enlace_auth\ngit checkout 53e5aeaad56bbcda91a08bd9defcc2ca01910f8d\npip install \"epythet==0.2.15\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/i2mint/enlace_auth && cd enlace_auth\ngit checkout 0dcde0dcc682ebcc4e8917cb5869e33ae1112b9c\npip install \"epythet==0.2.15\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": false,
     "notes": [
-      "The documented version (0.1.35) is behind the latest release on PyPI (0.1.36): `pip install enlace_auth` gives newer code than these docs describe."
+      "The documented version (0.1.36) is behind the latest release on PyPI (0.1.37): `pip install enlace_auth` gives newer code than these docs describe."
     ]
   }
 }
