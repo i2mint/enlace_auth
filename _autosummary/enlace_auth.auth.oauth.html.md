@@ -38,7 +38,7 @@ endpoints; other providers need explicit URLs in the config.
 | [`make_oauth_router`](#enlace_auth.auth.oauth.make_oauth_router)(\*, providers, ...[, ...])   | Build an OAuth router or return None if no providers are configured.   |
 |-------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
 
-### enlace_auth.auth.oauth.make_oauth_router(\*, providers, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, can_register=<function <lambda>>, state_cookie_name='enlace_oauth_state', state_max_age=600)
+### enlace_auth.auth.oauth.make_oauth_router(\*, providers, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, can_register=<function <lambda>>, admin_emails=(), state_cookie_name='enlace_oauth_state', state_max_age=600)
 
 Build an OAuth router or return None if no providers are configured.
 
@@ -46,6 +46,12 @@ Build an OAuth router or return None if no providers are configured.
 carries Authlib’s per-login state between `/auth/login/{provider}` and the
 callback (see the module docstring). It is only used when no Starlette
 `SessionMiddleware` already provides `request.session`.
+
+*admin_emails* may create their account by a first sign-in, whatever
+*can_register* says, but only when the provider itself verified the address
+(`_email_verified_by_provider()`). That is the one self-service way to
+set up an admin who never uses a password: `/auth/register` cannot prove
+ownership and refuses admin addresses (i2mint/enlace_auth#38).
 
 * **Return type:**
   [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`APIRouter`]

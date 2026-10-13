@@ -1,4 +1,4 @@
-> built 2026-10-13 03:27 UTC from 664e059 (main) · enlace_auth 0.1.29. Details: build_info.json
+> built 2026-10-13 03:46 UTC from 80153e2 (main) · enlace_auth 0.1.30. Details: build_info.json
 
 # index.html.md
 
@@ -153,7 +153,7 @@ shared-password apps once.
 Plus environment variables:
 
 - `ENLACE_SIGNING_KEY` — signing key (32+ chars). Generate with `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
-- `ENLACE_ADMIN_EMAILS` — comma-separated admin emails (gate `/_admin`). Being an admin does not let an address self-register, because `/auth/register` cannot prove who owns it (only `registration_open` or an explicit allowlist entry does): create each admin’s account with `enlace-auth add-user <email>`. `enlace doctor` warns about any admin address that has no account yet.
+- `ENLACE_ADMIN_EMAILS` — comma-separated admin emails (gate `/_admin`). An admin address can never self-register, not even with `registration_open` or an allowlist entry, because `/auth/register` cannot prove who owns it. An admin account comes from `enlace-auth add-user <email>` (a password account), or from the admin’s first sign-in through a configured OAuth provider that itself verifies the address (an `email_verified` claim, or the `github` preset; `trust_unverified_email` does not count). Every account records how it was made (`created_via`). `enlace doctor` warns about an admin address with no account, and about an admin account that was self-registered.
 - `ENLACE_REGISTRATION_ALLOWLIST` — comma-separated emails allowed to self-register while `registration_open` is false (the default).
 - `ENLACE_ALLOW_UNSIGNED=1` — opt-out from fail-fast (diagnostics only).
 - `ENLACE_SMTP_HOST` (+ `_PORT`, `_USER`, `_PASSWORD`, `_FROM`, `_TLS`) — mail
@@ -1123,7 +1123,7 @@ endpoints; other providers need explicit URLs in the config.
 | [`make_oauth_router`](_autosummary/enlace_auth.auth.oauth.html.md#enlace_auth.auth.oauth.make_oauth_router)(\*, providers, ...[, ...])   | Build an OAuth router or return None if no providers are configured.   |
 |-------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
 
-### enlace_auth.auth.oauth.make_oauth_router(\*, providers, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, can_register=<function <lambda>>, state_cookie_name='enlace_oauth_state', state_max_age=600)
+### enlace_auth.auth.oauth.make_oauth_router(\*, providers, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, can_register=<function <lambda>>, admin_emails=(), state_cookie_name='enlace_oauth_state', state_max_age=600)
 
 Build an OAuth router or return None if no providers are configured.
 
@@ -1131,6 +1131,12 @@ Build an OAuth router or return None if no providers are configured.
 carries Authlib’s per-login state between `/auth/login/{provider}` and the
 callback (see the module docstring). It is only used when no Starlette
 `SessionMiddleware` already provides `request.session`.
+
+*admin_emails* may create their account by a first sign-in, whatever
+*can_register* says, but only when the provider itself verified the address
+(`_email_verified_by_provider()`). That is the one self-service way to
+set up an admin who never uses a password: `/auth/register` cannot prove
+ownership and refuses admin addresses (i2mint/enlace_auth#38).
 
 * **Return type:**
   [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`APIRouter`]
@@ -1442,11 +1448,24 @@ argon2-cffi ships `PasswordHasher` which handles salting, tuning, and
 constant-time verification. We surface only two helpers to keep callers away
 from parameter tuning.
 
+### Module Attributes
+
+| [`MIN_PASSWORD_LEN`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.MIN_PASSWORD_LEN)   | registration, the admin API, reset, change, and the `add-user` / `set-password` CLI.   |
+|---------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+
 ### Functions
 
 | [`hash_password`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.hash_password)(password)           | Return an argon2id hash string for `password`.                |
 |------------------------------------------------------------------------------------|---------------------------------------------------------------|
 | [`verify_password`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.verify_password)(hashed, password) | Return True iff `password` matches the stored `hashed` value. |
+
+### enlace_auth.auth.passwords.MIN_PASSWORD_LEN *= 8*
+
+registration, the
+admin API, reset, change, and the `add-user` / `set-password` CLI.
+
+* **Type:**
+  Minimum password length, for every way a password is set
 
 ### enlace_auth.auth.passwords.hash_password(password)
 
@@ -2586,18 +2605,16 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-13 03:27 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/664e0594d06f0bc54120132f45873457c18d7c37"><code>664e059</code></a> on branch <code>main</code>, for **enlace_auth 0.1.29** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 03:46 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/80153e2a393ef924b8f1715a3d86a8f9dc4377e7"><code>80153e2</code></a> on branch <code>main</code>, for **enlace_auth 0.1.30** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.1.29) is behind the latest release on PyPI (0.1.30): `pip install enlace_auth` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/664e0594d06f0bc54120132f45873457c18d7c37"><code>664e0594d06f0bc54120132f45873457c18d7c37</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/80153e2a393ef924b8f1715a3d86a8f9dc4377e7"><code>80153e2a393ef924b8f1715a3d86a8f9dc4377e7</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -2608,9 +2625,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38341604799">38341604799</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38343130329">38343130329</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>664e0594d06f0bc54120132f45873457c18d7c37</code> (in the history of the built commit) |
+| Event commit | <code>80153e2a393ef924b8f1715a3d86a8f9dc4377e7</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2635,13 +2652,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.30/">0.1.30</a>, newer than the documented version (0.1.29).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.30/">0.1.30</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 664e0594d06f0bc54120132f45873457c18d7c37
+git checkout 80153e2a393ef924b8f1715a3d86a8f9dc4377e7
 pip install "epythet==0.2.13"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
