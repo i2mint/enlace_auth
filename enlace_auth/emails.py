@@ -141,10 +141,7 @@ def local_part_problem(email: str) -> str | None:
         None,
     )
     named = f" (U+{ord(culprit):04X})" if culprit else ""
-    return (
-        f"the part before @ is not in composed (NFC) form{named}; "
-        "retype the address"
-    )
+    return f"the part before @ is not in composed (NFC) form{named}; retype the address"
 
 
 #: RFC 5321's limit on a forward path; nothing longer is a deliverable address.
