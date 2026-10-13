@@ -165,8 +165,9 @@ def make_auth_router(
     @router.post("/register")
     async def register(body: _RegisterBody, response: Response) -> dict[str, Any]:
         email = body.email.lower()
-        if email in user_store:
-            raise HTTPException(status_code=409, detail="Email already registered")
+        # Permission before existence: answering 409 first would tell anyone
+        # whether an address registration refuses (an admin's, say) has an
+        # account.
         if not can_register(email):
             raise HTTPException(
                 status_code=403,
@@ -176,6 +177,8 @@ def make_auth_router(
                     "allowlist."
                 ),
             )
+        if email in user_store:
+            raise HTTPException(status_code=409, detail="Email already registered")
         if len(body.password) < _MIN_PASSWORD_LEN:
             raise HTTPException(
                 status_code=400,

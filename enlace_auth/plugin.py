@@ -184,9 +184,26 @@ def _require_signing_key(env_var: str) -> Optional[str]:
 
 
 def read_email_list(env_var: str) -> tuple[str, ...]:
-    """Read a comma-separated, case-folded email list from env var *env_var*."""
-    raw = os.environ.get(env_var or "", "")
-    return tuple(e.strip().lower() for e in raw.split(",") if e.strip())
+    """Read a comma-separated email list from env var *env_var*, normalized.
+
+    Each entry is put in the form accounts are keyed by
+    (:func:`enlace_auth.emails.normalize_email`), so an admin listed with a
+    punycode domain still matches the account ``add-user`` made for it. An entry
+    that is not an address is kept case-folded, as before, and logged: it can
+    never match an account, so dropping it silently would hide the typo.
+    """
+    from enlace_auth.emails import normalize_email
+
+    out = []
+    for entry in os.environ.get(env_var or "", "").split(","):
+        if not entry.strip():
+            continue
+        try:
+            out.append(normalize_email(entry))
+        except ValueError:
+            _logger.warning("%s: %r is not an email address", env_var, entry.strip())
+            out.append(entry.strip().lower())
+    return tuple(out)
 
 
 # ``allowed_users = ["@admins"]`` in an app.toml means "the platform admins"
