@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
 from enlace_auth.resource_policy import (
     parse_resource_allowlist,
@@ -145,7 +145,7 @@ class OAuthServerConfig(_StrictModel):
             "is enabled, unless allow_unlisted_resources is set."
         ),
     )
-    allow_unlisted_resources: bool = Field(
+    allow_unlisted_resources: StrictBool = Field(
         default=False,
         description=(
             "Run the OAuth server with NO resource_allowlist, so every resource "

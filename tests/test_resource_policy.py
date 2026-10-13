@@ -132,6 +132,14 @@ def test_the_open_flag_beside_an_allowlist_is_a_contradiction():
         ({"https://apps.example.com/": ["*"]}, "names an origin"),
         ({RES + "?x=1": ["*"]}, "query"),
         ({RES: ["*"], RES + "/": ["a@example.com"]}, "same resource"),
+        ({RES: ["a@example.com", "*"]}, "stand alone"),
+        # Non-canonical spellings: none can equal a connector's audience.
+        ({"https://apps.example.com:443/api/x_mcp/mcp": ["*"]}, "default port"),
+        ({"HTTPS://apps.example.com/api/x_mcp/mcp": ["*"]}, "scheme"),
+        ({"https://Apps.Example.com/api/x_mcp/mcp": ["*"]}, "host"),
+        ({"https://apps.example.com./api/x_mcp/mcp": ["*"]}, "trailing dot"),
+        ({"https://apps.example.com//api/x_mcp/mcp": ["*"]}, "path segment"),
+        ({"https://apps.example.com/api/../x_mcp/mcp": ["*"]}, "path segment"),
     ],
 )
 def test_a_malformed_allowlist_names_its_problem(allowlist, named):
@@ -169,11 +177,11 @@ def test_a_well_formed_allowlist_loads_normalized(tmp_path):
         [auth.oauth_server]
         enabled = true
         [auth.oauth_server.resource_allowlist]
-        "{RES}/" = ["A@Example.com", "*"]
+        "{RES}/" = ["A@Example.com", "b@example.com"]
         """,
     )
     assert parse_resource_allowlist(auth.oauth_server.resource_allowlist) == {
-        RES: frozenset({"a@example.com", "*"})
+        RES: frozenset({"a@example.com", "b@example.com"})
     }
 
 
@@ -198,3 +206,9 @@ def test_the_plugin_refuses_to_start_on_a_malformed_allowlist(tmp_path, monkeypa
     )
     with pytest.raises(ValueError, match="resource_allowlists"):
         build_backend(config, plugins=[auth_plugin])
+
+
+def test_the_open_flag_must_be_a_real_boolean():
+    """``allow_unlisted_resources = "true"`` is a typo for a boolean, not an opt-in."""
+    with pytest.raises(ValueError, match="boolean"):
+        OAuthServerConfig(enabled=True, allow_unlisted_resources="true")

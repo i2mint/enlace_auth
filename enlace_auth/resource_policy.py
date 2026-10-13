@@ -10,7 +10,10 @@ here, so they cannot disagree about what a key means or what a value may hold.
 The rule is **fail closed, and fail loudly on anything malformed**:
 
 - A listed resource admits exactly its listed emails; ``["*"]``
-  (:data:`ANY_ACCOUNT`) admits every authenticated account.
+  (:data:`ANY_ACCOUNT`), on its own, admits every authenticated account.
+- A key must be the resource URL exactly as a connector spells its audience
+  (lowercase scheme and host, no default port, no ``//``, ``.`` or ``..``), since
+  a key in any other spelling can never match one.
 - An unlisted resource is refused to everyone.
 - A server with no allowlist at all would admit everyone to every resource. That
   is never the result of a typo: it has to be asked for with
@@ -59,6 +62,35 @@ def _resource_key_problem(key: object) -> str | None:
         return f"key {key!r} has a query, fragment or userinfo; a resource URL has none"
     if not normalize_resource(parts.path):
         return f"key {key!r} names an origin, not a connector (no path)"
+    if why := _non_canonical(key, parts):
+        return (
+            f"key {key!r} is not in canonical form ({why}). A connector compares "
+            "its token audience as an exact string, so this key could never match "
+            "one, and the connector it was meant for would stay unlisted"
+        )
+    return None
+
+
+def _non_canonical(key: str, parts) -> str | None:
+    """How *key* differs from the one spelling a connector's audience takes."""
+    if any(c.isspace() for c in key):
+        return "whitespace"
+    if not key.startswith(parts.scheme + "://"):
+        return "scheme must be lowercase"
+    if parts.netloc != parts.netloc.lower():
+        return "host must be lowercase"
+    host = parts.hostname or ""
+    if host.endswith("."):
+        return "host has a trailing dot"
+    try:
+        port = parts.port
+    except ValueError:
+        return "port is not a number"
+    if (parts.scheme, port) in (("https", 443), ("http", 80)):
+        return "default port written out"
+    segments = normalize_resource(parts.path).split("/")[1:]
+    if any(seg in ("", ".", "..") for seg in segments):
+        return "empty, '.' or '..' path segment"
     return None
 
 
@@ -116,10 +148,10 @@ def parse_resource_allowlist(
     unlisted resources, so the flag would promise something that does not happen.
 
     >>> allowlist = parse_resource_allowlist(
-    ...     {"https://a.example/api/x/mcp/": ["Ann@Example.com", "*"]}
+    ...     {"https://a.example/api/x/mcp/": ["Ann@Example.com", "bob@example.com"]}
     ... )
     >>> {k: sorted(v) for k, v in allowlist.items()}
-    {'https://a.example/api/x/mcp': ['*', 'ann@example.com']}
+    {'https://a.example/api/x/mcp': ['ann@example.com', 'bob@example.com']}
     >>> parse_resource_allowlist({}, allow_unlisted_resources=True)
     {}
     """
@@ -151,6 +183,13 @@ def parse_resource_allowlist(
         for entry in emails:
             if problem := _email_entry_problem(entry):
                 raise ValueError(f"{field}[{resource!r}]: {problem}")
+        if ANY_ACCOUNT in emails and len(emails) > 1:
+            # ["ann@example.com", "*"] means everyone, which reads like a list
+            # that was meant to be narrower.
+            raise ValueError(
+                f"{field}[{resource!r}]: {ANY_ACCOUNT!r} admits every account, "
+                "so it must stand alone; drop it or drop the emails"
+            )
         out[resource] = frozenset(e.lower() for e in emails)
     return out
 

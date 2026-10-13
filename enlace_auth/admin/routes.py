@@ -158,8 +158,18 @@ def make_admin_router(
         from urllib.parse import urlparse
 
         by_prefix: dict[str, list[dict]] = {}
+        # Longest prefix first, as enlace routes (/api/foo wins over /api):
+        # first-match would hang a nested connector's entry on its parent's row.
+        by_length = sorted(
+            apps_snapshot,
+            key=lambda a: len(getattr(a, "route_prefix", "") or ""),
+            reverse=True,
+        )
+        base = urlparse(public_base_url or "")
+        own_origin = (base.scheme, base.netloc) if base.netloc else None
         for resource, emails in _allowlist.items():
-            path = urlparse(resource).path or resource
+            parsed = urlparse(resource)
+            path = parsed.path or resource
             gate = {
                 "resource": resource,
                 # Parsed here, where a malformed value degrades to the raw
@@ -169,7 +179,10 @@ def make_admin_router(
                 "any_account": ANY_ACCOUNT in emails,
                 "allowed_users": sorted(emails - {ANY_ACCOUNT}),
             }
-            for app in apps_snapshot:
+            if own_origin and (parsed.scheme, parsed.netloc) != own_origin:
+                unmatched.append(gate)  # another host: no app here serves it
+                continue
+            for app in by_length:
                 prefix = (getattr(app, "route_prefix", "") or "").rstrip("/")
                 # Segment-aware: /api/x_mcp must not claim /api/x_mcp_beta.
                 if prefix and (path == prefix or path.startswith(prefix + "/")):

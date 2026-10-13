@@ -296,11 +296,11 @@ function allowedCell(a, baseline) {
 function oauthPolicyLine(p) {
   if (!p || !p.enabled) return "";
   let line = p.unlisted === "refused"
-    ? "OAuth connectors: a connector not listed in the resource allowlist is refused to everyone, whatever its access badge says."
+    ? "OAuth connectors: a connector (an app that accepts only this server's bearer tokens) not listed in the resource allowlist is refused to everyone, whatever its access badge says."
     : "OAuth connectors: no resource allowlist — every connector is open to every authenticated account.";
   const stray = p.unmatched_resources || [];
   if (stray.length) {
-    line += " Listed resources served by no app here (stale or misspelled?): "
+    line += " Listed resources served by no app on this platform's origin (stale, misspelled, or another host?): "
       + stray.map(r => `<code>${escapeHtml(r.resource)}</code>`).join(", ") + ".";
   }
   return line;

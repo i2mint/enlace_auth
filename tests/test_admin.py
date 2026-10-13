@@ -673,3 +673,67 @@ def test_dashboard_policy_is_quiet_when_the_oauth_server_is_off(tmp_path, monkey
     policy = client.get("/_admin/api/apps").json()["oauth_policy"]
     assert policy["enabled"] is False
     assert policy["unlisted"] == "n/a"
+
+
+def _apps_listing(apps, **router_kwargs):
+    """``GET /_admin/api/apps`` from a bare admin router, as an admin."""
+    from types import SimpleNamespace
+
+    from fastapi import FastAPI
+
+    from enlace_auth.admin.routes import make_admin_router
+    from enlace_auth.auth.sessions import SessionStore
+
+    app = FastAPI()
+
+    @app.middleware("http")
+    async def _as_admin(request, call_next):
+        request.state.user_email = "boss@example.com"
+        return await call_next(request)
+
+    app.include_router(
+        make_admin_router(
+            user_store={},
+            session_store=SessionStore({}),
+            admin_emails=("boss@example.com",),
+            apps=[
+                SimpleNamespace(access="public", allowed_users=[], **a) for a in apps
+            ],
+            **router_kwargs,
+        )
+    )
+    return TestClient(app).get("/_admin/api/apps").json()
+
+
+def test_a_nested_connector_gets_its_own_gate_not_its_parents():
+    """Review of #39: first-match hung /api/x_mcp's entry on the /api row, so an
+    open connector looked unlisted (and so, by the policy line, closed)."""
+    body = _apps_listing(
+        [
+            {"name": "api", "route_prefix": "/api"},
+            {"name": "x_mcp", "route_prefix": "/api/x_mcp"},
+        ],
+        resource_allowlist={"https://apps.example.com/api/x_mcp/mcp": ["*"]},
+        oauth_server_enabled=True,
+        public_base_url="https://apps.example.com",
+    )
+    rows = {a["name"]: a for a in body["apps"]}
+    assert "oauth_resources" not in rows["api"]
+    (gate,) = rows["x_mcp"]["oauth_resources"]
+    assert gate["any_account"] is True
+
+
+def test_a_resource_on_another_origin_is_listed_as_stray():
+    """Matching on the path alone would put another host's grant on a local row."""
+    body = _apps_listing(
+        [{"name": "x_mcp", "route_prefix": "/api/x_mcp"}],
+        resource_allowlist={
+            "https://elsewhere.example/api/x_mcp/mcp": ["a@example.com"]
+        },
+        oauth_server_enabled=True,
+        public_base_url="https://apps.example.com",
+    )
+    assert "oauth_resources" not in body["apps"][0]
+    assert [r["resource"] for r in body["oauth_policy"]["unmatched_resources"]] == [
+        "https://elsewhere.example/api/x_mcp/mcp"
+    ]
