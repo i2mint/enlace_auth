@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=f48ec9ae"></script>
+    <script src="../../_static/documentation_options.js?v=967b4925"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.39" />
+  <meta name="docsearch:version" content="0.1.40" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -724,7 +724,12 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">suppress</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">fcntl</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover - Windows</span>
+    <span class="n">fcntl</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span><span class="p">,</span> <span class="n">suppress</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Optional</span>
 
@@ -784,19 +789,72 @@ window.runMermaid = runMermaid;</script>
     <span class="n">claim_dir</span> <span class="o">=</span> <span class="n">_Path</span><span class="p">(</span><span class="n">claim_dir</span><span class="p">)</span>
     <span class="n">claim_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_unlinking</span><span class="p">():</span>
+<span class="w">        </span><span class="sd">"""Hold the directory's exclusive lock while a claim file may be unlinked.</span>
+
+<span class="sd">        Creation needs no lock: ``O_EXCL`` only succeeds on an absent path. Every</span>
+<span class="sd">        *unlink* does, because "stat says stale, so unlink" is two steps: between</span>
+<span class="sd">        them another process can take the stale claim over and write a fresh one,</span>
+<span class="sd">        and the unlink then deletes that live claim, letting a third process</span>
+<span class="sd">        create it again -- two winners (#60). Renaming the stale file aside first</span>
+<span class="sd">        does not help: the rename can just as well move the fresh claim. With</span>
+<span class="sd">        every unlink serialized here and creation impossible while the file</span>
+<span class="sd">        exists, nothing can replace a file between the stat and the unlink.</span>
+
+<span class="sd">        ``flock`` on the directory itself, so there is no lock file to sweep.</span>
+<span class="sd">        Where ``fcntl`` is missing (Windows) this degrades to no lock.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">fcntl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">yield</span>
+            <span class="k">return</span>
+        <span class="n">fd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">claim_dir</span><span class="p">),</span> <span class="n">os</span><span class="o">.</span><span class="n">O_RDONLY</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">fcntl</span><span class="o">.</span><span class="n">flock</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">fcntl</span><span class="o">.</span><span class="n">LOCK_EX</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                <span class="c1"># E.g. ENOLCK on a network filesystem without a lock daemon.</span>
+                <span class="c1"># Every takeover and sweep then refuses, so stale claims stay</span>
+                <span class="c1"># stuck: the outage this exists to prevent. Say so loudly.</span>
+                <span class="n">_logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">"cannot lock claim dir </span><span class="si">%s</span><span class="s2">; stale claims will not be taken "</span>
+                    <span class="s2">"over or swept"</span><span class="p">,</span>
+                    <span class="n">claim_dir</span><span class="p">,</span>
+                    <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">raise</span>
+            <span class="k">yield</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>  <span class="c1"># closing the last descriptor releases the flock</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_unlink_if_stale</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Unlink *path* if it is older than the window; True if it is now gone.</span>
+
+<span class="sd">        Call under the lock. A file that is already gone counts as gone: a sweep</span>
+<span class="sd">        may have removed the stale claim while we queued for the lock, and the</span>
+<span class="sd">        key is then free, not taken (review of #61).</span>
+<span class="sd">        """</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">now</span> <span class="o">-</span> <span class="n">path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_mtime</span> <span class="o">&lt;=</span> <span class="n">keep_seconds</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_sweep</span><span class="p">(</span><span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">islice</span>
 
-        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">islice</span><span class="p">(</span><span class="n">claim_dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">(),</span> <span class="n">limit</span><span class="p">):</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">now</span> <span class="o">-</span> <span class="n">entry</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_mtime</span> <span class="o">&gt;</span> <span class="n">keep_seconds</span><span class="p">:</span>
-                    <span class="n">entry</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
-            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
-                <span class="k">pass</span>
+        <span class="c1"># Housekeeping only: it must never turn a granted claim into an error.</span>
+        <span class="k">with</span> <span class="n">suppress</span><span class="p">(</span><span class="ne">OSError</span><span class="p">),</span> <span class="n">_unlinking</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">islice</span><span class="p">(</span><span class="n">claim_dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">(),</span> <span class="n">limit</span><span class="p">):</span>
+                <span class="n">_unlink_if_stale</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">now</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">release</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Hand a claim back after a failed rotation."""</span>
-        <span class="k">with</span> <span class="n">suppress</span><span class="p">(</span><span class="ne">OSError</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">suppress</span><span class="p">(</span><span class="ne">OSError</span><span class="p">),</span> <span class="n">_unlinking</span><span class="p">():</span>
             <span class="p">(</span><span class="n">claim_dir</span> <span class="o">/</span> <span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">claim</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -810,14 +868,20 @@ window.runMermaid = runMermaid;</script>
             <span class="c1"># unredeemable forever while its record still reads unconsumed -- and</span>
             <span class="c1"># the client's own retries can never heal it, because they never</span>
             <span class="c1"># reach the sweep below. Take it over exactly once.</span>
+            <span class="c1"># The unlink and the re-create both happen under the lock, so of all</span>
+            <span class="c1"># the processes that saw the same stale file, only the first through</span>
+            <span class="c1"># the lock finds it still stale; the rest find the fresh claim.</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_mtime</span> <span class="o">&lt;=</span> <span class="n">keep_seconds</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="kc">False</span>
-                <span class="n">path</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
-                <span class="n">fd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">os</span><span class="o">.</span><span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">O_EXCL</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">O_WRONLY</span><span class="p">,</span> <span class="mo">0o600</span><span class="p">)</span>
+                <span class="k">with</span> <span class="n">_unlinking</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">_unlink_if_stale</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()):</span>
+                        <span class="k">return</span> <span class="kc">False</span>
+                    <span class="n">fd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
+                        <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">os</span><span class="o">.</span><span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">O_EXCL</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">O_WRONLY</span><span class="p">,</span> <span class="mo">0o600</span>
+                    <span class="p">)</span>
             <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
-                <span class="c1"># Someone else won the takeover, or the file vanished. Either way</span>
-                <span class="c1"># we do not hold the claim.</span>
+                <span class="c1"># Someone else created it between our unlink and our create (a</span>
+                <span class="c1"># plain O_EXCL claimant needs no lock), or the dir is unusable.</span>
+                <span class="c1"># Either way we do not hold the claim.</span>
                 <span class="k">return</span> <span class="kc">False</span>
         <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
             <span class="c1"># Fail CLOSED: if we cannot prove we are the only claimant, do not</span>
