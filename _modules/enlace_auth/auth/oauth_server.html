@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=50f64db7"></script>
+    <script src="../../../_static/documentation_options.js?v=f48ec9ae"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.38" />
+  <meta name="docsearch:version" content="0.1.39" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -944,6 +944,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">refresh_store</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">claim_once</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">release_claim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">consent_claim_once</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">is_active</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">access_token_ttl</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3600</span><span class="p">,</span>
     <span class="n">refresh_token_ttl</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2592000</span><span class="p">,</span>
@@ -1021,7 +1022,14 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    *consent_ttl* is how long, in seconds, a rendered consent form can be</span>
 <span class="sd">    submitted. Its CSRF token approves exactly one request — this session, this</span>
 <span class="sd">    client, redirect URI, PKCE challenge, state, scope and resource — and nothing</span>
-<span class="sd">    after it expires (see :func:`_consent_binding`). It must be positive.</span>
+<span class="sd">    after it expires (see :func:`_consent_binding`). It must be positive. It is</span>
+<span class="sd">    also **one-shot**: its first submit (approve or deny) spends it, through</span>
+<span class="sd">    *consent_claim_once*, so a double-click or a replayed POST gets the stale-form</span>
+<span class="sd">    page instead of a second code (#55). Like *claim_once* it must be atomic across</span>
+<span class="sd">    processes. The key is the request's binding, and a page reload re-mints a token</span>
+<span class="sd">    for the same binding, so it must remember a claim for as long as the session</span>
+<span class="sd">    can live (the platform uses ``max(consent_ttl, session_max_age)``); when it is</span>
+<span class="sd">    ``None`` an in-process set is used, which is one-shot only within one worker.</span>
 
 <span class="sd">    *resource_display_names* maps the **same** resource URL to the human name the</span>
 <span class="sd">    consent screen shows. One authorization server serves every connector on the</span>
@@ -1207,6 +1215,19 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="n">claim_once</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">claim_once</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">_local_claim_lock</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">_local_claims</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="n">_local_claims</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_claim_consent</span><span class="p">(</span><span class="n">binding</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Spend the consent approval for *binding*, exactly once (#55)."""</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="sa">f</span><span class="s2">"consent:</span><span class="si">{</span><span class="n">binding</span><span class="si">}</span><span class="s2">"</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">consent_claim_once</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">consent_claim_once</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="c1"># Not *claim_once*: that one is the refresh grant's, with a window sized</span>
+        <span class="c1"># for one request, and its caller may count or release what it holds.</span>
         <span class="k">with</span> <span class="n">_local_claim_lock</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">_local_claims</span><span class="p">:</span>
                 <span class="k">return</span> <span class="kc">False</span>
@@ -1493,6 +1514,11 @@ window.runMermaid = runMermaid;</script>
             <span class="n">_narrow_scope</span><span class="p">(</span><span class="n">scope</span><span class="p">),</span>
             <span class="n">resource</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="n">stale</span> <span class="o">=</span> <span class="n">HTMLResponse</span><span class="p">(</span>
+            <span class="n">pages</span><span class="o">.</span><span class="n">_page</span><span class="p">(</span><span class="s2">"Authorization expired"</span><span class="p">,</span> <span class="n">_CONSENT_STALE_BODY</span><span class="p">),</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="n">_NO_FRAMING</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="c1"># CSRF: the token approves exactly the request its page showed, for this</span>
         <span class="c1"># session, for consent_ttl seconds (#49). A token read once from any page</span>
         <span class="c1"># is worth nothing for another client, another session, or later.</span>
@@ -1505,11 +1531,12 @@ window.runMermaid = runMermaid;</script>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">hmac</span><span class="o">.</span><span class="n">compare_digest</span><span class="p">(</span>
             <span class="n">token</span><span class="o">.</span><span class="n">encode</span><span class="p">(),</span> <span class="n">expected</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
         <span class="p">):</span>
-            <span class="k">return</span> <span class="n">HTMLResponse</span><span class="p">(</span>
-                <span class="n">pages</span><span class="o">.</span><span class="n">_page</span><span class="p">(</span><span class="s2">"Authorization expired"</span><span class="p">,</span> <span class="n">_CONSENT_STALE_BODY</span><span class="p">),</span>
-                <span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span>
-                <span class="n">headers</span><span class="o">=</span><span class="n">_NO_FRAMING</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">stale</span>
+        <span class="c1"># One click, one code (#55): the first submit for this binding spends it,</span>
+        <span class="c1"># whatever the decision, so a double-click or a replay within consent_ttl</span>
+        <span class="c1"># is stale rather than a second code for the same PKCE challenge.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_claim_consent</span><span class="p">(</span><span class="n">expected</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">stale</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">_validate_authorize</span><span class="p">(</span>
             <span class="p">{</span><span class="s2">"client_id"</span><span class="p">:</span> <span class="n">client_id</span><span class="p">,</span> <span class="s2">"redirect_uri"</span><span class="p">:</span> <span class="n">redirect_uri</span><span class="p">}</span>
         <span class="p">)</span>
@@ -1993,8 +2020,9 @@ window.runMermaid = runMermaid;</script>
 <span class="p">)</span>
 
 <span class="n">_CONSENT_STALE_BODY</span> <span class="o">=</span> <span class="s2">"""&lt;h1&gt;Authorization expired&lt;/h1&gt;</span>
-<span class="s2">&lt;p&gt;This approval form has expired, or it was opened in another sign-in.</span>
-<span class="s2">Nothing was approved. Go back to the application and connect again.&lt;/p&gt;"""</span>
+<span class="s2">&lt;p&gt;This approval form has expired, was already submitted, or was opened in</span>
+<span class="s2">another sign-in. Nothing was approved by this submission. Go back to the</span>
+<span class="s2">application and connect again.&lt;/p&gt;"""</span>
 
 <span class="n">_CONSENT_FORM</span> <span class="o">=</span> <span class="s2">"""&lt;form method="post" action="/auth/oauth/authorize"&gt;</span>
 <span class="s2">  &lt;input type="hidden" name="client_id" value="</span><span class="si">{client_id}</span><span class="s2">"&gt;</span>
@@ -2107,6 +2135,11 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    Hashed rather than signed in the clear: the token sits in the page, and a</span>
 <span class="sd">    raw session id there would hand a page-reading script the session itself.</span>
+
+<span class="sd">    Known edge (#55): browsers normalise a bare ``\\n`` or ``\\r`` in a hidden</span>
+<span class="sd">    input's value to CRLF on submit, so a client whose ``state`` or ``resource``</span>
+<span class="sd">    holds a raw newline gets the stale-form page (403). Before #49 it got its value</span>
+<span class="sd">    silently altered instead. Refusing is the better failure; no fix is planned.</span>
 <span class="sd">    """</span>
     <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">email</span><span class="p">,</span>

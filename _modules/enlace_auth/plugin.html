@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=50f64db7"></script>
+    <script src="../../_static/documentation_options.js?v=f48ec9ae"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.38" />
+  <meta name="docsearch:version" content="0.1.39" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -823,6 +823,11 @@ window.runMermaid = runMermaid;</script>
             <span class="c1"># Fail CLOSED: if we cannot prove we are the only claimant, do not</span>
             <span class="c1"># pretend we are. The caller treats this as "already consumed",</span>
             <span class="c1"># which costs one re-authorization rather than risking a double mint.</span>
+            <span class="c1"># Logged: an unwritable claim dir would otherwise refuse every grant</span>
+            <span class="c1"># or consent with nothing in the journal (review of #59).</span>
+            <span class="n">_logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">"claim dir </span><span class="si">%s</span><span class="s2"> is not writable; refusing"</span><span class="p">,</span> <span class="n">claim_dir</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
             <span class="k">return</span> <span class="kc">False</span>
         <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
         <span class="n">_sweep</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
@@ -1291,6 +1296,18 @@ window.runMermaid = runMermaid;</script>
                 <span class="c1"># mint a live successor and reuse detection never fires.</span>
                 <span class="n">claim_once</span><span class="o">=</span><span class="n">_oauth_claim</span><span class="p">,</span>
                 <span class="n">release_claim</span><span class="o">=</span><span class="n">_oauth_claim</span><span class="o">.</span><span class="n">release</span><span class="p">,</span>
+                <span class="c1"># A consent approval is one-shot (#55). The claim is keyed on the</span>
+                <span class="c1"># request's binding, and a reload re-mints a token for the same</span>
+                <span class="c1"># binding at any time in the session, so the claim must last as</span>
+                <span class="c1"># long as the session can: aged out after only consent_ttl, a token</span>
+                <span class="c1"># re-minted just before then would approve the request again.</span>
+                <span class="n">consent_claim_once</span><span class="o">=</span><span class="n">_make_file_claim</span><span class="p">(</span>
+                    <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">stores</span><span class="o">.</span><span class="n">path</span><span class="p">))</span>
+                    <span class="o">/</span> <span class="s2">"oauth_consent_claims"</span><span class="p">,</span>
+                    <span class="n">keep_seconds</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span>
+                        <span class="n">osc</span><span class="o">.</span><span class="n">consent_ttl_seconds</span><span class="p">,</span> <span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_max_age_seconds</span>
+                    <span class="p">),</span>
+                <span class="p">),</span>
                 <span class="c1"># Re-checked on every refresh: a deleted account must not keep</span>
                 <span class="c1"># renewing its own connector session.</span>
                 <span class="n">is_active</span><span class="o">=</span><span class="n">_make_is_active</span><span class="p">(</span><span class="n">user_backend</span><span class="p">),</span>

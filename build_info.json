@@ -1,36 +1,36 @@
 {
   "schema_version": 1,
-  "built_at": "2026-10-13T10:59:37Z",
+  "built_at": "2026-10-13T23:02:08Z",
   "package": {
     "name": "enlace_auth",
-    "version": "0.1.38",
+    "version": "0.1.39",
     "display_name": "enlace_auth",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "1c2b260155af88c191bc84fce4c97969edc53f24",
-    "short_commit": "1c2b260",
+    "commit": "5802a01de89af93edd2a201a4bde7ea613a7bed3",
+    "short_commit": "5802a01",
     "branch": "main",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/i2mint/enlace_auth",
-    "commit_url": "https://github.com/i2mint/enlace_auth/commit/1c2b260155af88c191bc84fce4c97969edc53f24",
+    "commit_url": "https://github.com/i2mint/enlace_auth/commit/5802a01de89af93edd2a201a4bde7ea613a7bed3",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "i2mint/enlace_auth",
-    "sha": "1c2b260155af88c191bc84fce4c97969edc53f24",
+    "sha": "5802a01de89af93edd2a201a4bde7ea613a7bed3",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "38386864371",
-    "run_url": "https://github.com/i2mint/enlace_auth/actions/runs/38386864371",
+    "run_id": "38481410884",
+    "run_url": "https://github.com/i2mint/enlace_auth/actions/runs/38481410884",
     "server_url": "https://github.com"
   },
   "tools": {
-    "epythet": "0.2.15",
+    "epythet": "0.2.17",
     "sphinx": "9.1.0",
     "docutils": "0.22.4",
     "python": "3.12.15"
@@ -61,15 +61,13 @@
   "pypi": {
     "checked": true,
     "latest": "0.1.39",
-    "relation": "behind",
+    "relation": "same",
     "error": null
   },
-  "reproduce": "git clone https://github.com/i2mint/enlace_auth && cd enlace_auth\ngit checkout 1c2b260155af88c191bc84fce4c97969edc53f24\npip install \"epythet==0.2.15\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/i2mint/enlace_auth && cd enlace_auth\ngit checkout 5802a01de89af93edd2a201a4bde7ea613a7bed3\npip install \"epythet==0.2.17\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
-    "aligned": false,
-    "notes": [
-      "The documented version (0.1.38) is behind the latest release on PyPI (0.1.39): `pip install enlace_auth` gives newer code than these docs describe."
-    ]
+    "aligned": true,
+    "notes": []
   }
 }

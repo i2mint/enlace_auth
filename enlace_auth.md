@@ -1,4 +1,4 @@
-> built 2026-10-13 10:59 UTC from 1c2b260 (main) · enlace_auth 0.1.38. Details: build_info.json
+> built 2026-10-13 23:02 UTC from 5802a01 (main) · enlace_auth 0.1.39. Details: build_info.json
 
 # index.html.md
 
@@ -1266,7 +1266,7 @@ mode 0600) and reuses it thereafter, so tokens stay verifiable across restarts.
 Signs JWTs (RS256) and publishes the public half as a one-key JWKS for the
 connector’s verifier to fetch.
 
-### enlace_auth.auth.oauth_server.make_oauth_server_router(, session_store, signing_key, cookie_name, session_max_age, client_store, code_store, keys, issuer=None, refresh_store=None, claim_once=None, release_claim=None, is_active=None, access_token_ttl=3600, refresh_token_ttl=2592000, refresh_reuse_grace=60, refresh_reuse_detection=86400, refresh_family_max_lifetime=7776000, client_ttl=15552000, code_ttl=120, consent_ttl=600, scopes_supported=('mcp:read',), require_consent=True, resource_allowlist=None, allow_unlisted_resources=False, resource_display_names=None)
+### enlace_auth.auth.oauth_server.make_oauth_server_router(, session_store, signing_key, cookie_name, session_max_age, client_store, code_store, keys, issuer=None, refresh_store=None, claim_once=None, release_claim=None, consent_claim_once=None, is_active=None, access_token_ttl=3600, refresh_token_ttl=2592000, refresh_reuse_grace=60, refresh_reuse_detection=86400, refresh_family_max_lifetime=7776000, client_ttl=15552000, code_ttl=120, consent_ttl=600, scopes_supported=('mcp:read',), require_consent=True, resource_allowlist=None, allow_unlisted_resources=False, resource_display_names=None)
 
 Build the OAuth 2.1 authorization-server router (see the module docstring).
 
@@ -1330,7 +1330,14 @@ would hand any website a code for a signed-in visitor on a cross-site GET
 *consent_ttl* is how long, in seconds, a rendered consent form can be
 submitted. Its CSRF token approves exactly one request — this session, this
 client, redirect URI, PKCE challenge, state, scope and resource — and nothing
-after it expires (see `_consent_binding()`). It must be positive.
+after it expires (see `_consent_binding()`). It must be positive. It is
+also **one-shot**: its first submit (approve or deny) spends it, through
+*consent_claim_once*, so a double-click or a replayed POST gets the stale-form
+page instead of a second code (#55). Like *claim_once* it must be atomic across
+processes. The key is the request’s binding, and a page reload re-mints a token
+for the same binding, so it must remember a claim for as long as the session
+can live (the platform uses `max(consent_ttl, session_max_age)`); when it is
+`None` an in-process set is used, which is one-shot only within one worker.
 
 *resource_display_names* maps the **same** resource URL to the human name the
 consent screen shows. One authorization server serves every connector on the
@@ -2999,18 +3006,16 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-13 10:59 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/1c2b260155af88c191bc84fce4c97969edc53f24"><code>1c2b260</code></a> on branch <code>main</code>, for **enlace_auth 0.1.38** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 23:02 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/5802a01de89af93edd2a201a4bde7ea613a7bed3"><code>5802a01</code></a> on branch <code>main</code>, for **enlace_auth 0.1.39** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.1.38) is behind the latest release on PyPI (0.1.39): `pip install enlace_auth` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/1c2b260155af88c191bc84fce4c97969edc53f24"><code>1c2b260155af88c191bc84fce4c97969edc53f24</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/5802a01de89af93edd2a201a4bde7ea613a7bed3"><code>5802a01de89af93edd2a201a4bde7ea613a7bed3</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -3021,15 +3026,15 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38386864371">38386864371</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38481410884">38481410884</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>1c2b260155af88c191bc84fce4c97969edc53f24</code> (in the history of the built commit) |
+| Event commit | <code>5802a01de89af93edd2a201a4bde7ea613a7bed3</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.15  |
+| epythet  | 0.2.17  |
 | Sphinx   | 9.1.0   |
 | docutils | 0.22.4  |
 | Python   | 3.12.15 |
@@ -3048,14 +3053,14 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.39/">0.1.39</a>, newer than the documented version (0.1.38).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.39/">0.1.39</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 1c2b260155af88c191bc84fce4c97969edc53f24
-pip install "epythet==0.2.15"
+git checkout 5802a01de89af93edd2a201a4bde7ea613a7bed3
+pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 
