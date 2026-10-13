@@ -172,13 +172,21 @@ def test_csrf_probe_accepts_valid_json(clean_env, single_app_dir, monkeypatch):
                     b"{}",
                     None,
                 ),
+                # enlace >= 0.1.51 (#78) FAILs a doctor run that cannot read the
+                # live /_meta, so a healthy gateway has to serve one here.
+                "http://x/_meta": (
+                    200,
+                    {"content-type": "application/json"},
+                    b'{"degraded_apps": {}}',
+                    None,
+                ),
             }
         ),
     )
     report = _doctor(cfg, base_url="http://x")
     csrf = [c for c in report.checks if c.name == "http:/auth/csrf"][0]
     assert csrf.status == doctor_mod.PASS
-    assert report.ok
+    assert report.ok, [c for c in report.checks if c.status == doctor_mod.FAIL]
 
 
 def test_api_probe_fails_on_5xx(clean_env, single_app_dir, monkeypatch):
