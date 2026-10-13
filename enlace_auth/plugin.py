@@ -176,9 +176,7 @@ def _make_file_claim(claim_dir, *, keep_seconds: int = 600):
                 with _unlinking():
                     if not _unlink_if_stale(path, time.time()):
                         return False
-                    fd = os.open(
-                        str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600
-                    )
+                    fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
             except (OSError, ValueError):
                 # Someone else created it between our unlink and our create (a
                 # plain O_EXCL claimant needs no lock), or the dir is unusable.
