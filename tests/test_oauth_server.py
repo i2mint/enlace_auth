@@ -332,6 +332,136 @@ def test_resource_allowlist_allows_listed_user(tmp_path):
     assert r.status_code == 200 and "Approve" in r.text
 
 
+# Fail-closed allowlist (i2mint/enlace_auth#34): once the allowlist lists
+# anything, a resource it does not list is refused to everyone.
+
+
+@pytest.mark.parametrize("resource", [UNMAPPED_RESOURCE, "", RESOURCE + "/other"])
+def test_resource_allowlist_refuses_an_unlisted_resource(tmp_path, resource):
+    client, cookie = _build(tmp_path, resource_allowlist={RESOURCE: [EMAIL]})
+    cid = _register(client)
+    _, challenge = _pkce()
+    r = client.get(
+        "/auth/oauth/authorize",
+        params=_authorize_params(cid, challenge, resource=resource),
+        cookies={COOKIE: cookie},
+    )
+    assert r.status_code == 403
+    # The consent POST is a second door; it must not mint a code either.
+    r = client.post(
+        "/auth/oauth/authorize",
+        data={
+            "client_id": cid,
+            "redirect_uri": REDIRECT,
+            "code_challenge": challenge,
+            "state": "s",
+            "scope": "mcp:read",
+            "resource": resource,
+            "csrf": sign_cookie(EMAIL, SIGNING_KEY, salt="oauth-consent"),
+            "decision": "approve",
+        },
+        cookies={COOKIE: cookie},
+        follow_redirects=False,
+    )
+    assert r.status_code == 302
+    assert "error=access_denied" in r.headers["location"]
+    assert "code=" not in r.headers["location"]
+
+
+def test_resource_allowlist_wildcard_opens_a_resource_to_every_account(tmp_path):
+    client, cookie = _build(
+        tmp_path, resource_allowlist={RESOURCE: ["other@x.com"], OTHER_RESOURCE: ["*"]}
+    )
+    cid = _register(client)
+    assert "access_token" in _flow(client, cookie, cid=cid, resource=OTHER_RESOURCE)
+
+
+def test_resource_allowlist_wildcard_is_the_exported_constant():
+    from enlace_auth.auth.oauth_server import ANY_ACCOUNT
+
+    assert ANY_ACCOUNT == "*"
+
+
+def test_no_allowlist_leaves_every_resource_open(tmp_path, caplog):
+    """Back-compat: a deployment that never configured an allowlist keeps working,
+    and is told about it."""
+    with caplog.at_level("WARNING", logger="enlace_auth"):
+        client, cookie = _build(tmp_path, resource_allowlist={})
+    assert "no resource_allowlist configured" in caplog.text
+    cid = _register(client)
+    assert "access_token" in _flow(client, cookie, cid=cid, resource=UNMAPPED_RESOURCE)
+
+
+def test_refresh_is_refused_once_the_resource_is_no_longer_listed(tmp_path):
+    """Dropping a connector from the allowlist ends its sessions at next refresh."""
+    refresh_store, client_store = {}, {}
+    before, cookie = _build(
+        tmp_path,
+        refresh_store=refresh_store,
+        client_store=client_store,
+        resource_allowlist={RESOURCE: [EMAIL], OTHER_RESOURCE: [EMAIL]},
+    )
+    cid = _register(before)
+    body = _flow(before, cookie, cid=cid, resource=OTHER_RESOURCE)
+
+    after, _ = _build(
+        tmp_path,
+        refresh_store=refresh_store,
+        client_store=client_store,
+        resource_allowlist={RESOURCE: [EMAIL]},  # OTHER_RESOURCE no longer listed
+    )
+    r = _refresh(after, body["refresh_token"], cid)
+    assert r.status_code == 400
+    assert _live(refresh_store) == []
+
+
+def test_code_exchange_rechecks_the_allowlist(tmp_path):
+    """A code minted under one configuration is not a token under a stricter one."""
+    code_store, client_store = {}, {}
+    before, cookie = _build(
+        tmp_path,
+        code_store=code_store,
+        client_store=client_store,
+        resource_allowlist={RESOURCE: [EMAIL], OTHER_RESOURCE: [EMAIL]},
+    )
+    cid = _register(before)
+    verifier, challenge = _pkce()
+    r = before.post(
+        "/auth/oauth/authorize",
+        data={
+            "client_id": cid,
+            "redirect_uri": REDIRECT,
+            "code_challenge": challenge,
+            "state": "s",
+            "scope": "mcp:read",
+            "resource": OTHER_RESOURCE,
+            "csrf": sign_cookie(EMAIL, SIGNING_KEY, salt="oauth-consent"),
+            "decision": "approve",
+        },
+        cookies={COOKIE: cookie},
+        follow_redirects=False,
+    )
+    code = r.headers["location"].split("code=")[1].split("&")[0]
+
+    after, _ = _build(
+        tmp_path,
+        code_store=code_store,
+        client_store=client_store,
+        resource_allowlist={RESOURCE: [EMAIL]},
+    )
+    tok = after.post(
+        "/auth/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": REDIRECT,
+            "client_id": cid,
+            "code_verifier": verifier,
+        },
+    )
+    assert tok.status_code == 400 and tok.json()["error"] == "invalid_grant"
+
+
 # --------------------------------------------------------------------------
 # Consent-screen display name (one AS renders consent for every connector)
 # --------------------------------------------------------------------------
