@@ -141,7 +141,7 @@ def _allowlist_entry(entry: object, *, where: str) -> frozenset[str]:
         )
     if problem := bare_address_problem(entry):
         raise ValueError(f"{where}: {entry!r} is {problem}")
-    return account_spellings(entry)
+    return frozenset(account_spellings(entry))
 
 
 def parse_resource_allowlist(

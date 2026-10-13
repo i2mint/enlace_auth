@@ -40,6 +40,8 @@ from typing import Callable, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from enlace_auth.emails import account_spellings
+
 # Bounds so an editor can't wedge the store with absurd input.
 _MAX_KEYWORDS = 40
 _MAX_KEYWORD_LEN = 60
@@ -60,13 +62,24 @@ class _MetaPatchBody(BaseModel):
     model_config = {"extra": "forbid"}
 
 
-def make_appmeta_can_edit(editors: tuple[str, ...]) -> Callable[[Optional[str]], bool]:
+def make_appmeta_can_edit(
+    editors: tuple[str, ...], *, widen: bool = True
+) -> Callable[[Optional[str]], bool]:
     """Build the ``app_meta_can_edit`` closure over a normalized editor set.
 
-    Case-insensitive; an empty editor set means *nobody* can edit (safe default,
-    so a misconfigured deploy fails closed rather than open).
+    Case-insensitive, and with *widen* each editor admits both canonical
+    spellings of its address (:func:`~enlace_auth.emails.account_spellings`).
+    Pass ``widen=False`` for the admin list, which is compared as written
+    everywhere else. An empty editor set
+    means *nobody* can edit (safe default, so a misconfigured deploy fails closed
+    rather than open).
     """
-    editor_set = frozenset(e.strip().lower() for e in editors if e and e.strip())
+    editor_set = frozenset(
+        spelling
+        for e in editors
+        if e and e.strip()
+        for spelling in (account_spellings(e) if widen else (e.strip().lower(),))
+    )
 
     def can_edit(email: Optional[str]) -> bool:
         if not editor_set or not email:

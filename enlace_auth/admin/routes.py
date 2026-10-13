@@ -55,6 +55,7 @@ from enlace_auth.auth.reset_tokens import (
     reset_url,
 )
 from enlace_auth.auth.shares import ShareError
+from enlace_auth.emails import resolve_account
 from enlace_auth.resource_policy import ANY_ACCOUNT, parse_resource_allowlist
 
 
@@ -262,10 +263,19 @@ def make_admin_router(
         }
         return {"ok": True, "email": email}
 
+    def _account_key(email: str) -> str:
+        """The key of the account a path's *email* names, in either spelling.
+
+        A punycode domain and its Unicode form are one mailbox; the admin may
+        type either, while the account is keyed in the one that made it. An
+        exact match wins. Falls back to the lowercased path (then a 404).
+        """
+        return resolve_account(email, user_store.__contains__) or email.lower()
+
     @router.delete("/users/{email}")
     async def delete_user(email: str, request: Request) -> dict[str, Any]:
         actor = _require_admin(request)
-        target = email.lower()
+        target = _account_key(email)
         # Last-admin protection: can't delete the only admin user that
         # actually exists in the user store.
         if target in admin_set:
@@ -296,7 +306,7 @@ def make_admin_router(
         email: str, body: _ResetPasswordBody, request: Request
     ) -> dict[str, Any]:
         _require_admin(request)
-        target = email.lower()
+        target = _account_key(email)
         try:
             record = user_store[target]
         except KeyError:
@@ -330,7 +340,7 @@ def make_admin_router(
                 status_code=503,
                 detail="Reset links unavailable: no signing key configured.",
             )
-        target = email.lower()
+        target = _account_key(email)
         try:
             record = user_store[target]
         except KeyError:

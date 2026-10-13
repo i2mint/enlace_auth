@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING, Callable, Iterable, Optional
 from enlace.access import GRANTS_STATE_ATTR
 
 from enlace_auth.config import coerce_auth_config, coerce_stores_map
+from enlace_auth.emails import account_spellings
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -204,7 +205,15 @@ ADMINS_ALIAS = "@admins"
 def _expand_allowed_users(
     allowed: Iterable[str], admin_emails: tuple[str, ...], *, app_name: str = ""
 ) -> list[str]:
-    """Replace :data:`ADMINS_ALIAS` in *allowed* by the admin emails.
+    """Replace :data:`ADMINS_ALIAS` in *allowed* by the admin emails, and widen
+    every other entry to both canonical spellings of its address
+    (:func:`~enlace_auth.emails.account_spellings`), so an entry with a punycode
+    domain admits the account ``add-user`` keyed in Unicode, and vice versa.
+
+    The admin emails are NOT widened: ``@admins`` means exactly the accounts the
+    admin check admits (that check compares as written), so it cannot hand an
+    owner-only app to an account in another spelling that is not an admin.
+    ``enlace doctor`` reports an admin entry spelled unlike its account.
 
     Fails CLOSED: with no admins configured the alias is kept verbatim. It can
     never equal a real (validated) email, so the list stays non-empty and the
@@ -213,7 +222,7 @@ def _expand_allowed_users(
     """
     allowed = list(allowed)
     if ADMINS_ALIAS not in allowed:
-        return allowed
+        return _with_all_spellings(allowed)
     if not admin_emails:
         _logger.warning(
             "enlace_auth: app %r allows %r but no admin emails are configured; "
@@ -224,9 +233,23 @@ def _expand_allowed_users(
         return allowed
     out: list[str] = []
     for entry in allowed:
-        for email in admin_emails if entry == ADMINS_ALIAS else (entry,):
-            if email not in out:
-                out.append(email)
+        widened = (
+            admin_emails if entry == ADMINS_ALIAS else _with_all_spellings([entry])
+        )
+        out.extend(email for email in widened if email not in out)
+    return out
+
+
+def _with_all_spellings(entries: Iterable[str]) -> list[str]:
+    """*entries*, each followed by its other canonical spelling, deduplicated.
+
+    Only non-string entries are passed through untouched; the gate compares the
+    account key exactly, so widening a written entry never folds a look-alike.
+    """
+    out: list[str] = []
+    for entry in entries:
+        forms = account_spellings(entry) if isinstance(entry, str) else (entry,)
+        out.extend(f for f in forms if f not in out)
     return out
 
 
@@ -286,8 +309,15 @@ def _build_can_register(
     accounts are made with ``enlace-auth add-user``, or by a first sign-in
     through an OAuth provider that verifies the address (``make_oauth_router``'s
     *admin_emails*). ``doctor`` flags any admin address that has no account.
+
+    An admin address is refused in both canonical spellings
+    (:func:`~enlace_auth.emails.account_spellings`): refusing only the spelling
+    written would let registration claim the other one (#45 review). The
+    registration allowlist is NOT widened: registration proves nothing about who
+    owns an address, so an entry admits exactly the spelling written, and the
+    other spelling can only arrive through a provider that verified it.
     """
-    admins = frozenset(e.strip().lower() for e in admin_emails)
+    admins = frozenset(s for e in admin_emails for s in account_spellings(e))
     if getattr(auth_cfg, "registration_open", False):
         return lambda email: email.strip().lower() not in admins
     allow = set(read_email_list(getattr(auth_cfg, "registration_allowlist_env", "")))
@@ -603,13 +633,17 @@ def wire(parent: "FastAPI", config) -> None:
     from enlace_auth.appmeta import make_appmeta_can_edit, make_appmeta_router
 
     app_meta_cfg = getattr(config, "app_meta", None)
-    editors = tuple(getattr(app_meta_cfg, "editors", ()) or ()) or admin_emails
+    explicit_editors = tuple(getattr(app_meta_cfg, "editors", ()) or ())
     if getattr(app_meta_cfg, "store_path", None):
         overlay_factory = make_file_store_factory(str(app_meta_cfg.store_path))
     else:
         overlay_factory = platform_factory  # beside sessions/users/grants
     overlay_store = overlay_factory("app_meta")
-    can_edit_meta = make_appmeta_can_edit(editors)
+    # Only an explicit editor list is widened to both spellings: the admin
+    # default stays exactly what the admin check admits (#45 review).
+    can_edit_meta = make_appmeta_can_edit(
+        explicit_editors or admin_emails, widen=bool(explicit_editors)
+    )
 
     # DI slots read by enlace core (compose._overlay_entry / apps_listing).
     parent.state.app_meta_overlay = overlay_store

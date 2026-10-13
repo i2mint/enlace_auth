@@ -34,6 +34,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from enlace_auth.emails import account_spellings
+
 # Conservative email shape check. We only need to reject path-hostile input
 # (slashes, traversal, whitespace, control chars) before it becomes a store key;
 # the admin API uses pydantic ``EmailStr`` for real RFC validation upstream.
@@ -164,23 +166,43 @@ class GrantStore:
         self._store[self._key(app_id, email)] = record
         return record
 
+    def _keys(self, app_id: str, email: str) -> list[str]:
+        """The keys a grant to *email* may be stored under, as written first.
+
+        A grant is stored as the operator spelled it, so a punycode domain and its
+        Unicode form (one mailbox) are tried both ways
+        (:func:`~enlace_auth.emails.account_spellings`).
+        """
+        app_id, email = _validate_app_id(app_id), _normalize_email(email)
+        return [self._key(app_id, e) for e in account_spellings(email)]
+
     def get(self, app_id: str, email: str) -> Optional[dict]:
         try:
-            value = self._store[
-                self._key(_validate_app_id(app_id), _normalize_email(email))
-            ]
-        except (KeyError, GrantError):
+            keys = self._keys(app_id, email)
+        except GrantError:
             return None
-        return value if isinstance(value, dict) else None
+        for key in keys:
+            try:
+                value = self._store[key]
+            except KeyError:
+                continue
+            return value if isinstance(value, dict) else None
+        return None
 
     def revoke(self, app_id: str, email: str) -> bool:
+        """Remove the grant to *email*, in whichever spelling it was made."""
         try:
-            del self._store[
-                self._key(_validate_app_id(app_id), _normalize_email(email))
-            ]
-            return True
-        except (KeyError, GrantError):
+            keys = self._keys(app_id, email)
+        except GrantError:
             return False
+        removed = False
+        for key in keys:
+            try:
+                del self._store[key]
+                removed = True
+            except KeyError:
+                pass
+        return removed
 
     def list_for_app(self, app_id: str) -> list[dict]:
         app_id = _validate_app_id(app_id)
@@ -209,12 +231,17 @@ class GrantStore:
     def active_emails_for_app(
         self, app_id: str, *, now: Optional[float] = None
     ) -> set[str]:
-        """The set of currently-active granted emails for ``app_id`` (hot path)."""
+        """The currently-active granted emails for ``app_id`` (hot path).
+
+        Each in both canonical spellings, so a grant written with a punycode
+        domain admits the account keyed in Unicode, and vice versa.
+        """
         now = time.time() if now is None else now
         return {
-            rec["email"]
+            spelling
             for rec in self.list_for_app(app_id)
-            if _is_active(rec, now) and rec.get("email")
+            if _is_active(rec, now) and isinstance(rec.get("email"), str)
+            for spelling in account_spellings(rec["email"])
         }
 
     def _emails_on_disk(self, app_id: str) -> Iterator[str]:

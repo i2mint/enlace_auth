@@ -49,6 +49,7 @@ from enlace_auth.auth.revocation import (
     shared_password_fingerprint,
 )
 from enlace_auth.auth.sessions import SessionStore
+from enlace_auth.emails import resolve_account
 
 
 class _LoginBody(BaseModel):
@@ -177,7 +178,11 @@ def make_auth_router(
                     "allowlist."
                 ),
             )
-        if email in user_store:
+        # One mailbox, one self-registered account: a punycode domain and its
+        # Unicode form are the same address, and lists name it in either
+        # spelling (#45). Registration proves nothing about who owns the
+        # address, so it must not claim the spelling an existing account lacks.
+        if resolve_account(email, user_store.__contains__) is not None:
             raise HTTPException(status_code=409, detail="Email already registered")
         if problem := password_problem(body.password):
             raise HTTPException(status_code=400, detail=problem)
