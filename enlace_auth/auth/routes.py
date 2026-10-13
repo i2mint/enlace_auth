@@ -31,7 +31,7 @@ from pydantic import BaseModel, EmailStr
 from enlace_auth.auth import pages
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.email import EmailSender, make_console_sender
-from enlace_auth.auth.passwords import hash_password, verify_password
+from enlace_auth.auth.passwords import MIN_PASSWORD_LEN, hash_password, verify_password
 from enlace_auth.auth.reset_tokens import (
     DEFAULT_EMAIL_TTL,
     mint_reset_token,
@@ -77,7 +77,7 @@ class _ResetConfirmBody(BaseModel):
 
 
 # Minimum new-password length enforced server-side (the forms also check it).
-_MIN_PASSWORD_LEN = 8
+_MIN_PASSWORD_LEN = MIN_PASSWORD_LEN
 
 
 def make_auth_router(
@@ -176,9 +176,15 @@ def make_auth_router(
                     "allowlist."
                 ),
             )
+        if len(body.password) < _MIN_PASSWORD_LEN:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Password must be at least {_MIN_PASSWORD_LEN} characters.",
+            )
         user_store[email] = {
             "password_hash": hash_password(body.password),
             "created_at": time.time(),
+            "created_via": "register",
         }
         session_id = session_store.create(user_id=email, email=email)
         _set_session_cookie(

@@ -135,26 +135,49 @@ def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
         return [Check(name, SKIP, f"{auth.admin_emails_env} lists no admins")]
     users = make_file_store_factory(auth.stores.path)("users")
     missing = [email for email in admins if email not in users]
-    if not missing:
-        return [Check(name, PASS, f"all {len(admins)} admin(s) have accounts")]
-    claimable = set(read_email_list(auth.registration_allowlist_env))
-    if auth.registration_open:
-        risk = "registration_open=true lets anyone register them and become admin"
-    elif claimable.intersection(missing):
-        risk = (
-            f"{auth.registration_allowlist_env} lists some of them, so anyone "
-            "can register them and become admin"
+    # Registration refuses admin addresses (#38), so an admin account recorded
+    # as self-registered predates that fix and may belong to whoever got there
+    # first. Accounts with no ``created_via`` predate provenance and are
+    # reported as unknown rather than either.
+    def _via(email):
+        record = users[email]
+        return record.get("created_via") if isinstance(record, dict) else None
+
+    present = [e for e in admins if e not in missing]
+    registered = [e for e in present if _via(e) == "register"]
+    unknown = [e for e in present if _via(e) is None]
+    checks = []
+    if registered:
+        checks.append(
+            Check(
+                name,
+                WARN,
+                f"admin account(s) created by self-registration: "
+                f"{', '.join(registered)}. Confirm each is really the admin's, "
+                "or delete it and recreate with `enlace-auth add-user`.",
+            )
         )
-    else:
-        risk = "not self-registrable, so the admin cannot sign in yet"
-    return [
-        Check(
-            name,
-            WARN,
-            f"admin address(es) with no account: {', '.join(missing)}; {risk}. "
-            "Create each with `enlace-auth add-user <email>`.",
+    if missing:
+        checks.append(
+            Check(
+                name,
+                WARN,
+                f"admin address(es) with no account: {', '.join(missing)}; the "
+                "admin cannot sign in yet (registration refuses admin "
+                "addresses). Create each with `enlace-auth add-user <email>`, "
+                "or sign in once through an OAuth provider that verifies it.",
+            )
         )
-    ]
+    if not checks:
+        detail = f"all {len(admins)} admin(s) have accounts"
+        if unknown:
+            detail += (
+                f"; {len(unknown)} predate created_via, so how they were made "
+                "is not recorded (compare created_at with when each address "
+                "became an admin)"
+            )
+        checks.append(Check(name, PASS, detail))
+    return checks
 
 
 def check_csrf(

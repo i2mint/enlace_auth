@@ -270,20 +270,22 @@ def _build_can_register(
 ) -> Callable[[str], bool]:
     """Build the predicate deciding whether an email may self-register.
 
-    Open registration → always True. Otherwise only emails listed in
+    Open registration admits every address; otherwise only emails listed in
     ``registration_allowlist_env`` may sign up (via ``/auth/register`` or an
-    OAuth first-login); everyone else is refused with 403.
+    OAuth first-login), and everyone else is refused with 403.
 
-    Admin emails are deliberately *not* added: self-registration proves nothing
-    about who owns the address, so an admin address with no account yet would
-    go to whoever registers it first (i2mint/enlace_auth#35). Admin accounts are
-    made with ``enlace-auth add-user``; ``doctor`` flags any admin address that
-    has none. ``admin_emails`` stays in the signature so callers need not change.
+    An admin address is refused in **both** cases: self-registration proves
+    nothing about who owns the address, so an admin address with no account yet
+    would go to whoever registers it first (i2mint/enlace_auth#35, #38). Admin
+    accounts are made with ``enlace-auth add-user``, or by a first sign-in
+    through an OAuth provider that verifies the address (``make_oauth_router``'s
+    *admin_emails*). ``doctor`` flags any admin address that has no account.
     """
+    admins = frozenset(e.strip().lower() for e in admin_emails)
     if getattr(auth_cfg, "registration_open", False):
-        return lambda _email: True
+        return lambda email: email.strip().lower() not in admins
     allow = set(read_email_list(getattr(auth_cfg, "registration_allowlist_env", "")))
-    return lambda email: email.lower() in allow
+    return lambda email: (e := email.strip().lower()) in allow and e not in admins
 
 
 def _build_email_sender():
@@ -506,6 +508,7 @@ def wire(parent: "FastAPI", config) -> None:
                 session_max_age=auth_cfg.session_max_age_seconds,
                 secure_cookies=auth_cfg.secure_cookies,
                 can_register=can_register,
+                admin_emails=admin_emails,
             )
             if oauth_router is not None:
                 parent.include_router(oauth_router)

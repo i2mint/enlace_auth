@@ -48,7 +48,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, EmailStr
 
 from enlace_auth.auth.grants import GrantError, parse_expires_at
-from enlace_auth.auth.passwords import hash_password
+from enlace_auth.auth.passwords import MIN_PASSWORD_LEN, hash_password
 from enlace_auth.auth.reset_tokens import (
     DEFAULT_HANDOFF_TTL,
     mint_reset_token,
@@ -210,9 +210,15 @@ def make_admin_router(
         email = body.email.lower()
         if email in user_store:
             raise HTTPException(status_code=409, detail="Email already registered")
+        if len(body.password) < MIN_PASSWORD_LEN:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Password must be at least {MIN_PASSWORD_LEN} characters.",
+            )
         user_store[email] = {
             "password_hash": hash_password(body.password),
             "created_at": time.time(),
+            "created_via": "admin",
         }
         return {"ok": True, "email": email}
 

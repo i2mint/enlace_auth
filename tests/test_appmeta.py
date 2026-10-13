@@ -98,7 +98,9 @@ def gw(tmp_path, monkeypatch):
     )
     config = discover_apps(config)
     app = build_backend(config, plugins=[auth_plugin])
-    return TestClient(app)
+    client = TestClient(app)
+    client.user_store_root = tmp_path / "platform"  # read by _register
+    return client
 
 
 def _csrf(client):
@@ -110,9 +112,9 @@ def _csrf(client):
 
 
 def _register(client, email, password, csrf):
-    return client.post(
-        "/auth/register", json={"email": email, "password": password}, headers=csrf
-    )
+    from tests.test_admin import _register as register  # admins: see its docstring
+
+    return register(client, email, password, csrf)
 
 
 def test_anonymous_cannot_edit(gw):
