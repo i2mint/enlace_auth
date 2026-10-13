@@ -264,20 +264,33 @@ def test_an_oauth_account_records_whether_the_provider_verified_it():
     assert users[_ADMIN]["email_verified_by_provider"] is True
 
 
-def test_an_oauth_email_is_keyed_like_every_other_account():
-    """A punycode domain from the provider lands on the Unicode-keyed account."""
+@pytest.mark.parametrize(
+    "spelling",
+    ["boss@ｅｘａｍｐｌｅ.com", "boss@example。com", "boss@\u24d4xample.com"],
+)
+def test_a_look_alike_spelling_from_the_provider_is_not_the_admin(spelling):
+    """Review of #41: normalizing the address a provider sent folded look-alike
+    spellings onto the admin's, so a self-hosted IdP could set up the admin."""
     users: dict = {}
-    client = _oauth_app(
-        users,
-        {"email": "Boss@XN--BCHER-KVA.example", "email_verified": True, "sub": "g"},
-    )
-    client.get("/auth/callback/google")
-    # Not an admin here (the admin list names another address), so registration
-    # (closed) refuses it; what matters is the key it was looked up under.
+    client = _oauth_app(users, {"email": spelling, "email_verified": True, "sub": "x"})
+    assert client.get("/auth/callback/google").status_code == 403
     assert users == {}
-    from enlace_auth.emails import normalize_email
 
-    assert normalize_email("Boss@XN--BCHER-KVA.example") == "boss@bücher.example"
+
+@pytest.mark.parametrize("key", ["someone@corp.local", "someone@xn--bcher-kva.example"])
+def test_an_existing_oauth_account_keeps_its_key(key):
+    """Review of #41: accounts made by OAuth sign-in are keyed as the provider
+    spelled them; a stricter or normalizing lookup orphaned or locked them out."""
+    users = {
+        key: {
+            "password_hash": None,
+            "oauth_provider": "google",
+            "oauth_links": {"google": "g-1"},
+        }
+    }
+    client = _oauth_app(users, {"email": key, "email_verified": True, "sub": "g-1"})
+    assert client.get("/auth/callback/google").status_code == 200
+    assert list(users) == [key]
 
 
 @pytest.mark.parametrize(
@@ -338,15 +351,30 @@ def test_register_does_not_reveal_whether_an_admin_account_exists(env, tmp_path)
     assert before == after == 403
 
 
-def test_a_punycode_admin_entry_matches_the_account_add_user_made(monkeypatch):
-    """#41 item 5: the admin list is normalized the way account keys are."""
-    from enlace_auth.plugin import read_email_list
+def test_doctor_says_how_to_spell_an_admin_entry_add_user_keyed_otherwise(
+    env, tmp_path, single_app_dir
+):
+    """#41 item 5: a punycode admin entry never matches the Unicode-keyed account
+    add-user made; rather than silently remapping it, the doctor says so."""
+    env.setenv("ENLACE_ADMIN_EMAILS", "boss@xn--bcher-kva.example")
+    users = make_file_store_factory(str(tmp_path / "platform"))("users")
+    users["boss@bücher.example"] = {"password_hash": "x", "created_via": "add-user"}
+    [check] = _admin_check(tmp_path, single_app_dir)
+    assert check.status == doctor_mod.WARN
+    assert "write the admin entry as 'boss@bücher.example'" in check.detail
 
-    monkeypatch.setenv("ENLACE_TEST_ADMINS", " Boss@XN--BCHER-KVA.example ,a@b.example")
-    assert read_email_list("ENLACE_TEST_ADMINS") == (
-        "boss@bücher.example",
-        "a@b.example",
-    )
+
+def test_a_connector_allowlist_entry_admits_both_spellings_of_its_account():
+    """#41 item 5 for the allowlist: a punycode entry matches the Unicode-keyed
+    account, and a domain EmailStr refuses (.local) still loads (review of #41)."""
+    from enlace_auth.resource_policy import parse_resource_allowlist
+
+    res = "https://apps.example.com/api/x_mcp/mcp"
+    allowed = parse_resource_allowlist(
+        {res: ["Ann@XN--BCHER-KVA.example", "bob@corp.local"]}
+    )[res]
+    assert {"ann@bücher.example", "ann@xn--bcher-kva.example"} <= allowed
+    assert "bob@corp.local" in allowed
 
 
 @pytest.mark.parametrize(

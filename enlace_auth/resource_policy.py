@@ -30,7 +30,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from urllib.parse import urlsplit
 
-from enlace_auth.emails import normalize_email
+from enlace_auth.emails import account_spellings, bare_address_problem
 
 __all__ = [
     "ANY_ACCOUNT",
@@ -117,28 +117,27 @@ def _normalized_keys(raw: Mapping, *, field: str) -> dict[str, object]:
     return out
 
 
-def _allowlist_entry(entry: object, *, where: str) -> str:
-    """*entry* in the form a session email takes, or ``ValueError`` naming it.
+def _allowlist_entry(entry: object, *, where: str) -> frozenset[str]:
+    """The session emails *entry* admits, or ``ValueError`` naming it.
 
-    Emails are normalized the way account keys are
-    (:func:`~enlace_auth.emails.normalize_email`), so a punycode or mixed-case
-    entry matches the account it names.
+    An email admits every key its account may be stored under
+    (:func:`~enlace_auth.emails.account_spellings`), so a punycode entry matches
+    the Unicode-keyed account ``add-user`` made. The display-name form
+    (``ann <mallory@evil.com>``) is refused: it would grant an address other
+    than the one it appears to name.
     """
     if not isinstance(entry, str):
         raise ValueError(f"{where}: {entry!r} is not a string")
     if entry == ANY_ACCOUNT:
-        return entry
+        return frozenset({entry})
     if "*" in entry:
         raise ValueError(
             f"{where}: {entry!r} is a pattern; only a bare {ANY_ACCOUNT!r} (every "
             "authenticated account) is supported, so list each email"
         )
-    if entry != entry.strip():
-        raise ValueError(f"{where}: {entry!r} is not an email address (whitespace)")
-    try:
-        return normalize_email(entry)
-    except ValueError as e:
-        raise ValueError(f"{where}: {e}") from None
+    if problem := bare_address_problem(entry):
+        raise ValueError(f"{where}: {entry!r} is {problem}")
+    return account_spellings(entry)
 
 
 def parse_resource_allowlist(
@@ -189,14 +188,14 @@ def parse_resource_allowlist(
             )
         where = f"{field}[{resource!r}]"
         members = [_allowlist_entry(e, where=where) for e in emails]
-        if ANY_ACCOUNT in members and len(members) > 1:
+        if {ANY_ACCOUNT} in members and len(members) > 1:
             # ["ann@example.com", "*"] means everyone, which reads like a list
             # that was meant to be narrower.
             raise ValueError(
                 f"{where}: {ANY_ACCOUNT!r} admits every account, "
                 "so it must stand alone; drop it or drop the emails"
             )
-        out[resource] = frozenset(members)
+        out[resource] = frozenset().union(*members)
     return out
 
 

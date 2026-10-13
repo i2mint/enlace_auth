@@ -46,7 +46,6 @@ from fastapi.responses import JSONResponse
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.sessions import SessionStore
 from enlace_auth.config import OAuthProviderConfig
-from enlace_auth.emails import normalize_email
 
 _logger = logging.getLogger("enlace_auth.oauth")
 
@@ -427,14 +426,11 @@ def make_oauth_router(
                 detail="The OAuth provider has not verified this email address",
             )
 
-        # The same key /auth/login and add-user use, so the admin list (normalized
-        # the same way) matches whichever spelling of the domain arrives.
-        try:
-            email = normalize_email(str(email))
-        except ValueError:
-            raise HTTPException(
-                status_code=401, detail="The OAuth provider sent an invalid email"
-            ) from None
+        # Keyed exactly as the provider spelled it (lowercased), never
+        # normalized: IDNA folds look-alike spellings (fullwidth letters, the
+        # Kelvin sign) onto plain ASCII, so normalizing an address an untrusted
+        # provider sent could land it on someone else's account (#41 review).
+        email = str(email).strip().lower()
         subject = _stable_subject(provider, claims)
         verified_by_provider = _email_verified_by_provider(
             provider, providers.get(provider), claims

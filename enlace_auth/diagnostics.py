@@ -157,6 +157,7 @@ def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
     (open registration, or an allowlist that lists it), and that account would
     pass every ``@admins`` gate (i2mint/enlace_auth#35).
     """
+    from enlace_auth.emails import normalize_email
     from enlace_auth.plugin import read_email_list
     from enlace_auth.stores import make_file_store_factory
 
@@ -197,6 +198,22 @@ def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
             return f"{via}, provider verification not recorded", False
         return str(via), True  # add-user: the operator made it
 
+    def _spelling_hint(entry) -> str:
+        """Why an admin entry may never match: written in a form no key takes."""
+        try:
+            key = normalize_email(entry)
+        except ValueError:
+            return (
+                f" {entry!r} is not an address add-user or registration accepts, "
+                "so only an OAuth sign-in could make its account."
+            )
+        if key != entry and key in users:
+            return (
+                f" {entry!r} has an account keyed {key!r} (add-user stores the "
+                f"normalized form): write the admin entry as {key!r}."
+            )
+        return ""
+
     present = [e for e in admins if e not in missing]
     provenance = {e: _provenance(e) for e in present}
     doubtful = [e for e, (_, proven) in provenance.items() if proven is False]
@@ -222,7 +239,8 @@ def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
                 f"admin address(es) with no account: {', '.join(missing)}; the "
                 "admin cannot sign in yet (registration refuses admin "
                 "addresses). Create each with `enlace-auth add-user <email>`, "
-                "or sign in once through an OAuth provider that verifies it.",
+                "or sign in once through an OAuth provider that verifies it."
+                + "".join(_spelling_hint(e) for e in missing),
             )
         )
     if not checks:

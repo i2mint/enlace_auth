@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-__all__ = ["normalize_email"]
+__all__ = ["account_spellings", "bare_address_problem", "normalize_email"]
 
 
 #: Characters that only appear in the display-name or quoted forms, or in a list.
@@ -47,9 +47,49 @@ def normalize_email(email: str) -> str:
     from pydantic import ValidationError
 
     bare = email.strip()
-    if any(c in _NOT_IN_A_BARE_ADDRESS or c.isspace() for c in bare):
+    if bare_address_problem(bare):
         raise ValueError(f"not a bare email address: {email!r}")
     try:
         return _email_adapter().validate_python(bare).lower()
     except ValidationError as e:
         raise ValueError(f"not a valid email address: {email!r}") from e
+
+
+def bare_address_problem(email: str) -> str | None:
+    """Why *email* is not a bare ``local@domain`` address, or ``None``.
+
+    Deliberately lenient about the domain (``.local``, ``localhost``): it only
+    refuses what is not one plain address, such as the display-name form.
+
+    >>> bare_address_problem("ann@corp.local") is None
+    True
+    >>> bare_address_problem("ann <mallory@evil.com>")
+    'not a bare email address'
+    """
+    if any(c in _NOT_IN_A_BARE_ADDRESS or c.isspace() for c in email):
+        return "not a bare email address"
+    local, at, domain = email.partition("@")
+    if not (at and local and domain) or "@" in domain:
+        return "not an email address"
+    return None
+
+
+def account_spellings(email: str) -> frozenset[str]:
+    """The keys an account for an operator-written *email* may be stored under.
+
+    As written, lowercased (how an OAuth sign-in keys it), and normalized (how
+    ``add-user`` and ``/auth/register`` key it), when those differ. For lists an
+    operator wrote, never for an address an untrusted party sent: normalizing
+    that could fold a look-alike spelling onto someone else's account.
+
+    >>> sorted(account_spellings("Ann@XN--BCHER-KVA.example"))
+    ['ann@bücher.example', 'ann@xn--bcher-kva.example']
+    >>> sorted(account_spellings("ann@corp.local"))
+    ['ann@corp.local']
+    """
+    forms = {email.strip().lower()}
+    try:
+        forms.add(normalize_email(email))
+    except ValueError:
+        pass  # a domain EmailStr refuses (.local): only the written form
+    return frozenset(forms)
