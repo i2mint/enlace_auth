@@ -97,9 +97,12 @@ def make_share_router(
     async def leave_share(app_id: str, owner: str, request: Request) -> dict[str, Any]:
         me, app_id = _me(request), _app(app_id)
         # The owner was typed; "me" is this session's own key, compared exactly.
-        if not share_store.revoke(app_id, owner, me, widen_owner=True):
+        removed = share_store.revoke(
+            app_id, owner, me, widen_owner=True, first_only=True
+        )
+        if not removed:
             raise HTTPException(status_code=404, detail="Share not found")
-        return {"ok": True}
+        return {"ok": True, "owner": removed[0][0]}
 
     @router.delete("/{app_id}/{grantee}")
     async def revoke_share(
@@ -107,8 +110,11 @@ def make_share_router(
     ) -> dict[str, Any]:
         me, app_id = _me(request), _app(app_id)
         # The grantee was typed; "me" is this session's own key, compared exactly.
-        if not share_store.revoke(app_id, me, grantee, widen_grantee=True):
+        removed = share_store.revoke(
+            app_id, me, grantee, widen_grantee=True, first_only=True
+        )
+        if not removed:
             raise HTTPException(status_code=404, detail="Share not found")
-        return {"ok": True}
+        return {"ok": True, "grantee": removed[0][1]}
 
     return router

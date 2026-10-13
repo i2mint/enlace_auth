@@ -170,6 +170,7 @@ class ShareStore:
         *,
         widen_owner: bool = False,
         widen_grantee: bool = False,
+        first_only: bool = False,
     ) -> list[tuple[str, str]]:
         """Delete the share ``owner`` -> ``grantee``; return the ``(owner, grantee)``
         pairs removed (empty, so falsy, when there was none).
@@ -178,6 +179,10 @@ class ShareStore:
         to both canonical spellings of its address, as :meth:`share` resolved it
         when the share was made. Never widen a side that is the caller's own
         session key: its other spelling may be someone else's account.
+
+        With *first_only*, stop at the first share found, trying the spellings
+        as written first: a user naming one owner or grantee means one account,
+        though the two spellings may be two accounts. An admin revokes both.
         """
         try:
             app_id, owner, grantee = _app(app_id), _email(owner), _email(grantee)
@@ -193,6 +198,8 @@ class ShareStore:
                 except KeyError:
                     continue
                 removed.append((o, g))
+                if first_only:
+                    return removed
         return removed
 
     def access(

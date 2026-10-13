@@ -182,7 +182,10 @@ def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
 
         ``None`` means not recorded either way.
         """
-        record = users[email]
+        try:
+            record = users[email]
+        except KeyError:  # a corrupt record reads as missing
+            record = None
         record = record if isinstance(record, dict) else {}
         via = record.get("created_via")
         if via is None:
@@ -262,9 +265,10 @@ def check_widened_spellings(config: PlatformConfig) -> Iterable[Check]:
     of an entry (#45), but ``/auth/register`` proves nothing about who owns an
     address. Two cases follow (#52):
 
-    - an entry whose written spelling has no account, while the other spelling
-      has one that was self-registered: possibly a squatter, registered before
-      registration refused the other spelling of an existing account;
+    - an entry whose other spelling has an account that was self-registered (or
+      whose origin is not recorded), whether or not the written spelling has one
+      too: possibly a squatter, registered before registration refused the other
+      spelling of an existing account;
     - with ``registration_open``, an entry written in punycode with no account in
       either spelling: anyone can register its Unicode spelling (which is how
       registration keys it) and be admitted.
@@ -284,9 +288,12 @@ def check_widened_spellings(config: PlatformConfig) -> Iterable[Check]:
     auth = coerce_auth_config(getattr(config, "auth", None))
     if not auth.enabled:
         return [Check(name, SKIP, "auth.enabled=false")]
+    store_root = Path(os.path.expanduser(auth.stores.path))
+    if not store_root.is_dir():  # opening a store would create it
+        return [Check(name, SKIP, f"no account store at {auth.stores.path} yet")]
     factory = make_file_store_factory(auth.stores.path)
     users = factory("users")
-    grants_root = Path(os.path.expanduser(auth.stores.path)) / "grants"
+    grants_root = store_root / "grants"
 
     written_in: dict[str, list[str]] = {}
 
@@ -307,23 +314,31 @@ def check_widened_spellings(config: PlatformConfig) -> Iterable[Check]:
         for entry in entries or ():
             note(entry, f"connector {resource}")
 
-    def created_via(key: str):
-        record = users[key]
-        return record.get("created_via") if isinstance(record, dict) else None
+    def doubtful_origin(key: str) -> Optional[str]:
+        """Why *key*'s owner is unproven ("self-registered", "unknown"), or None."""
+        try:
+            record = users[key]
+        except KeyError:  # a corrupt record reads as missing
+            return "unreadable"
+        via = record.get("created_via") if isinstance(record, dict) else None
+        if via == "register":
+            return "self-registered"
+        return "of unknown origin" if via is None else None
 
     squatted, claimable = [], []
     for entry, where in written_in.items():
         written, *others = account_spellings(entry)
-        if not others or written in users:
+        if not others:
             continue
         place = ", ".join(dict.fromkeys(where))
+        # Checked even when the written spelling has an account: the entry
+        # admits the other spelling's account all the same.
         held = [o for o in others if o in users]
-        squatted += [
-            f"{entry!r} ({place}) admits {o!r}, which was self-registered"
-            for o in held
-            if created_via(o) == "register"
-        ]
-        if not held and auth.registration_open and normalize_email(written) != written:
+        for other in held:
+            if why := doubtful_origin(other):
+                squatted.append(f"{entry!r} ({place}) admits {other!r}, {why}")
+        unclaimed = not held and written not in users
+        if unclaimed and auth.registration_open and normalize_email(written) != written:
             claimable.append(f"{entry!r} ({place})")
 
     checks = []
@@ -332,8 +347,8 @@ def check_widened_spellings(config: PlatformConfig) -> Iterable[Check]:
             Check(
                 name,
                 WARN,
-                "account(s) admitted only through the other spelling of a list "
-                f"entry, made by self-registration: {'; '.join(squatted)}. "
+                "account(s) a list entry admits through its other spelling, "
+                f"whose owner is not established: {'; '.join(squatted)}. "
                 "Registration does not prove who owns an address: confirm each "
                 "account is the intended person's, or delete it.",
             )
