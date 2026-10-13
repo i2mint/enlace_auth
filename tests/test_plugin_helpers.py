@@ -137,8 +137,7 @@ def test_a_stale_claim_is_taken_over_by_exactly_one_process(tmp_path):
         assert sum(granted) == 1, f"round {round_}: {sum(granted)} winners"
 
 
-def test_the_sweep_never_deletes_a_claim_another_process_just_took(tmp_path):
-    """The sweep's own stat-then-unlink must not race a takeover either."""
+def test_a_claim_sweeps_stale_entries_but_keeps_its_own(tmp_path):
     import os
     import time
 
@@ -148,5 +147,59 @@ def test_the_sweep_never_deletes_a_claim_another_process_just_took(tmp_path):
         stale.touch()
         os.utime(stale, (time.time() - 600, time.time() - 600))
     assert claim("1" * 64) is True  # triggers the sweep
-    assert not any(p.name.startswith("0" * 63) for p in tmp_path.iterdir())
-    assert claim("1" * 64) is False, "the sweep removed a live claim"
+    assert [p.name for p in tmp_path.iterdir()] == ["1" * 64]
+    assert claim("1" * 64) is False
+
+
+def test_a_stale_claim_swept_while_waiting_is_still_granted(tmp_path, monkeypatch):
+    """Found by the review of #61: the takeover's stat raced a sweep.
+
+    The key was free (the sweep had removed the stale file), yet the takeover
+    reported it taken, and the caller turned that into ``invalid_grant``.
+    """
+    import os
+    import time
+
+    claim = _make_file_claim(str(tmp_path), keep_seconds=60)
+    key = "9" * 64
+    stale = tmp_path / key
+    stale.touch()
+    os.utime(stale, (time.time() - 600, time.time() - 600))
+
+    real_open = os.open
+    swept = []
+
+    def open_then_sweep(path, flags, *args):
+        # The first O_EXCL attempt fails on the stale file; a sweep in another
+        # process then removes it before our takeover gets the lock.
+        if str(path) == str(stale) and flags & os.O_EXCL and not swept:
+            swept.append(True)
+            try:
+                return real_open(path, flags, *args)
+            finally:
+                stale.unlink()
+        return real_open(path, flags, *args)
+
+    monkeypatch.setattr(os, "open", open_then_sweep)
+    assert claim(key) is True
+
+
+def test_a_claim_dir_that_cannot_be_locked_is_logged(tmp_path, monkeypatch, caplog):
+    import os
+    import time
+
+    import sys
+
+    plugin = sys.modules["enlace_auth.plugin"]
+
+    def no_locks(fd, op):
+        raise OSError(37, "No locks available")
+
+    monkeypatch.setattr(plugin.fcntl, "flock", no_locks)
+    claim = _make_file_claim(str(tmp_path), keep_seconds=60)
+    key = "8" * 64
+    stale = tmp_path / key
+    stale.touch()
+    os.utime(stale, (time.time() - 600, time.time() - 600))
+    assert claim(key) is False  # fail closed
+    assert "cannot lock claim dir" in caplog.text

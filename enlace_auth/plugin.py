@@ -111,17 +111,36 @@ def _make_file_claim(claim_dir, *, keep_seconds: int = 600):
             return
         fd = os.open(str(claim_dir), os.O_RDONLY)
         try:
-            fcntl.flock(fd, fcntl.LOCK_EX)
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX)
+            except OSError:
+                # E.g. ENOLCK on a network filesystem without a lock daemon.
+                # Every takeover and sweep then refuses, so stale claims stay
+                # stuck: the outage this exists to prevent. Say so loudly.
+                _logger.error(
+                    "cannot lock claim dir %s; stale claims will not be taken "
+                    "over or swept",
+                    claim_dir,
+                    exc_info=True,
+                )
+                raise
             yield
         finally:
             os.close(fd)  # closing the last descriptor releases the flock
 
     def _unlink_if_stale(path, now: float) -> bool:
-        """Unlink *path* if it is older than the window. Call under the lock."""
+        """Unlink *path* if it is older than the window; True if it is now gone.
+
+        Call under the lock. A file that is already gone counts as gone: a sweep
+        may have removed the stale claim while we queued for the lock, and the
+        key is then free, not taken (review of #61).
+        """
         try:
             if now - path.stat().st_mtime <= keep_seconds:
                 return False
             path.unlink()
+        except FileNotFoundError:
+            return True
         except (OSError, ValueError):
             return False
         return True
