@@ -6,13 +6,23 @@ then lowercased): ``EmailStr`` decodes a punycode domain to Unicode, so
 an address is compared against (the admin list, the registration allowlist, a
 connector's resource allowlist) must be put in the same form, or an entry
 spelled the other way silently never matches.
+
+Two rules keep that safe. A written list entry is widened to both canonical
+spellings of its address (:func:`account_spellings`); the address an account is
+keyed under, which may come from an untrusted party (an OAuth provider), is
+compared exactly as stored and never normalized.
 """
 
 from __future__ import annotations
 
 from functools import lru_cache
 
-__all__ = ["account_spellings", "bare_address_problem", "normalize_email"]
+__all__ = [
+    "account_spellings",
+    "bare_address_problem",
+    "normalize_email",
+    "resolve_account",
+]
 
 
 #: Characters that only appear in the display-name or quoted forms, or in a list.
@@ -74,22 +84,66 @@ def bare_address_problem(email: str) -> str | None:
     return None
 
 
-def account_spellings(email: str) -> frozenset[str]:
-    """The keys an account for an operator-written *email* may be stored under.
+@lru_cache(maxsize=4096)
+def account_spellings(email: str) -> tuple[str, ...]:
+    """The keys an account for a written *email* may be stored under, as written first.
 
-    As written, lowercased (how an OAuth sign-in keys it), and normalized (how
-    ``add-user`` and ``/auth/register`` key it), when those differ. For lists an
-    operator wrote, never for an address an untrusted party sent: normalizing
-    that could fold a look-alike spelling onto someone else's account.
+    A punycode domain and its Unicode form are one DNS name, so they name one
+    mailbox, but an account is keyed in whichever spelling made it: ``add-user``
+    and ``/auth/register`` store the Unicode form, an OAuth sign-in stores the
+    provider's spelling, lowercased. A list entry written in either canonical
+    spelling therefore admits both.
 
-    >>> sorted(account_spellings("Ann@XN--BCHER-KVA.example"))
-    ['ann@bücher.example', 'ann@xn--bcher-kva.example']
-    >>> sorted(account_spellings("ann@corp.local"))
-    ['ann@corp.local']
+    >>> account_spellings("Ann@XN--BCHER-KVA.example")
+    ('ann@xn--bcher-kva.example', 'ann@bücher.example')
+    >>> account_spellings("ann@bücher.example")
+    ('ann@bücher.example', 'ann@xn--bcher-kva.example')
+    >>> account_spellings("ann@corp.local")  # a domain EmailStr refuses
+    ('ann@corp.local',)
+
+    Only an entry already in one of the two canonical spellings gets the other.
+    Normalizing also folds look-alikes (fullwidth letters, the Kelvin sign) onto
+    plain ASCII, so an entry that only becomes canonical by normalizing stays as
+    written: it must not name someone else's account. That makes this safe to
+    apply to any written list, an untrusted user's included. It is never applied
+    to the address an account is keyed under.
+
+    >>> account_spellings("ann@\uff42\u00fccher.example")  # fullwidth b
+    ('ann@ｂücher.example',)
     """
-    forms = {email.strip().lower()}
+    written = email.strip().lower()
     try:
-        forms.add(normalize_email(email))
+        unicode_form = normalize_email(email)
+        local, _, domain = unicode_form.rpartition("@")
+        ascii_form = f"{local}@{_ascii_domain(domain)}"
     except ValueError:
-        pass  # a domain EmailStr refuses (.local): only the written form
-    return frozenset(forms)
+        return (written,)
+    if written not in (unicode_form, ascii_form):
+        return (written,)
+    return tuple(dict.fromkeys((written, unicode_form, ascii_form)))
+
+
+def _ascii_domain(domain: str) -> str:
+    """*domain*, as ``EmailStr`` returns it, in IDNA ASCII form; else ``ValueError``."""
+    from email_validator import EmailNotValidError, validate_email
+
+    try:
+        parts = validate_email(f"x@{domain}", check_deliverability=False)
+    except EmailNotValidError as e:
+        raise ValueError(str(e)) from e
+    return parts.ascii_domain.lower()
+
+
+def resolve_account(email: str, exists) -> str | None:
+    """The existing account key a written *email* names, or ``None``.
+
+    Tries :func:`account_spellings` in order, so an exact match wins over the
+    other spelling. *exists* is ``key -> bool`` (e.g. ``users.__contains__``).
+
+    >>> users = {"ann@bücher.example"}
+    >>> resolve_account("Ann@XN--BCHER-KVA.example", users.__contains__)
+    'ann@bücher.example'
+    >>> resolve_account("bob@example.com", set().__contains__) is None
+    True
+    """
+    return next((key for key in account_spellings(email) if exists(key)), None)

@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING, Callable, Iterable, Optional
 from enlace.access import GRANTS_STATE_ATTR
 
 from enlace_auth.config import coerce_auth_config, coerce_stores_map
+from enlace_auth.emails import account_spellings
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -204,7 +205,15 @@ ADMINS_ALIAS = "@admins"
 def _expand_allowed_users(
     allowed: Iterable[str], admin_emails: tuple[str, ...], *, app_name: str = ""
 ) -> list[str]:
-    """Replace :data:`ADMINS_ALIAS` in *allowed* by the admin emails.
+    """Replace :data:`ADMINS_ALIAS` in *allowed* by the admin emails, and widen
+    every other entry to both canonical spellings of its address
+    (:func:`~enlace_auth.emails.account_spellings`), so an entry with a punycode
+    domain admits the account ``add-user`` keyed in Unicode, and vice versa.
+
+    The admin emails are NOT widened: ``@admins`` means exactly the accounts the
+    admin check admits (that check compares as written), so it cannot hand an
+    owner-only app to an account in another spelling that is not an admin.
+    ``enlace doctor`` reports an admin entry spelled unlike its account.
 
     Fails CLOSED: with no admins configured the alias is kept verbatim. It can
     never equal a real (validated) email, so the list stays non-empty and the
@@ -213,7 +222,7 @@ def _expand_allowed_users(
     """
     allowed = list(allowed)
     if ADMINS_ALIAS not in allowed:
-        return allowed
+        return _with_all_spellings(allowed)
     if not admin_emails:
         _logger.warning(
             "enlace_auth: app %r allows %r but no admin emails are configured; "
@@ -224,9 +233,23 @@ def _expand_allowed_users(
         return allowed
     out: list[str] = []
     for entry in allowed:
-        for email in admin_emails if entry == ADMINS_ALIAS else (entry,):
-            if email not in out:
-                out.append(email)
+        widened = (
+            admin_emails if entry == ADMINS_ALIAS else _with_all_spellings([entry])
+        )
+        out.extend(email for email in widened if email not in out)
+    return out
+
+
+def _with_all_spellings(entries: Iterable[str]) -> list[str]:
+    """*entries*, each followed by its other canonical spelling, deduplicated.
+
+    Only non-string entries are passed through untouched; the gate compares the
+    account key exactly, so widening a written entry never folds a look-alike.
+    """
+    out: list[str] = []
+    for entry in entries:
+        forms = account_spellings(entry) if isinstance(entry, str) else (entry,)
+        out.extend(f for f in forms if f not in out)
     return out
 
 

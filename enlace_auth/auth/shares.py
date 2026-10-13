@@ -43,6 +43,7 @@ from enlace_auth.auth.grants import (
     _normalize_email,
     _validate_app_id,
 )
+from enlace_auth.emails import resolve_account
 
 #: The access levels a share may carry: read-write, or read-only (GET).
 ACCESS_LEVELS = ("rw", "ro")
@@ -119,6 +120,13 @@ class ShareStore:
         with :func:`enlace_auth.auth.grants.parse_expires_at` first.
         """
         app_id, owner, grantee = _app(app_id), _email(owner), _email(grantee)
+        if self._account_exists is not None:
+            # Store the share under the keys the accounts actually have: an address
+            # written with a punycode domain names the account keyed in Unicode
+            # (or the reverse). Never applied when reading a share: the grantee
+            # there is a session's own key, compared exactly.
+            owner = resolve_account(owner, self._account_exists) or owner
+            grantee = resolve_account(grantee, self._account_exists) or grantee
         if owner == grantee:
             raise ShareError("An owner cannot share with themselves.")
         if access not in ACCESS_LEVELS:
