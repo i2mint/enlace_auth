@@ -115,10 +115,11 @@ def parse_resource_allowlist(
     alongside a non-empty allowlist is also an error: the allowlist always refuses
     unlisted resources, so the flag would promise something that does not happen.
 
-    >>> parse_resource_allowlist(
+    >>> allowlist = parse_resource_allowlist(
     ...     {"https://a.example/api/x/mcp/": ["Ann@Example.com", "*"]}
     ... )
-    {'https://a.example/api/x/mcp': frozenset({'*', 'ann@example.com'})}
+    >>> {k: sorted(v) for k, v in allowlist.items()}
+    {'https://a.example/api/x/mcp': ['*', 'ann@example.com']}
     >>> parse_resource_allowlist({}, allow_unlisted_resources=True)
     {}
     """
