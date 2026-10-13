@@ -219,6 +219,13 @@ def test_admin_create_user_refuses_duplicates_and_short_passwords(admin_client):
         headers=csrf,
     )
     assert dup.status_code == 409, dup.text
+    # An admin reset follows the same rule as every other way to set one.
+    reset = admin_client.post(
+        "/_admin/api/users/boss@example.com/password",
+        json={"password": "short"},
+        headers=csrf,
+    )
+    assert reset.status_code == 400, reset.text
 
 
 def test_admin_resets_password(admin_client):

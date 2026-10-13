@@ -230,13 +230,10 @@ def _prompt_new_password() -> str:
     if pw != confirm:
         print("Passwords did not match.", file=sys.stderr)
         sys.exit(1)
-    from enlace_auth.auth.passwords import MIN_PASSWORD_LEN
+    from enlace_auth.auth.passwords import password_problem
 
-    if len(pw) < MIN_PASSWORD_LEN:
-        print(
-            f"Password must be at least {MIN_PASSWORD_LEN} characters.",
-            file=sys.stderr,
-        )
+    if problem := password_problem(pw):
+        print(problem, file=sys.stderr)
         sys.exit(1)
     return pw
 
