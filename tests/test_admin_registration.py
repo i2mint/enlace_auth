@@ -111,3 +111,25 @@ def test_doctor_skips_when_no_admins_are_configured(env, tmp_path, single_app_di
     env.delenv("ENLACE_ADMIN_EMAILS")
     [check] = _admin_check(tmp_path, single_app_dir)
     assert check.status == doctor_mod.SKIP
+
+
+def test_register_checks_permission_then_existence_then_password(env, tmp_path):
+    """An allowed address that already has an account gets 409; a short
+    password gets 400 and creates nothing."""
+    client = _client(tmp_path)
+    csrf = _csrf(client)
+    assert _register(client, _INVITED, "short", csrf).status_code == 400
+    assert _register(client, _INVITED, "guest-pw-123", csrf).status_code == 200
+    client.post("/auth/logout", headers=csrf)
+    csrf = _csrf(client)
+    assert _register(client, _INVITED, "guest-pw-456", csrf).status_code == 409
+
+
+def test_doctor_says_an_unacceptable_admin_entry_needs_oauth(
+    env, tmp_path, single_app_dir
+):
+    """An admin entry add-user would refuse can only get an account by OAuth."""
+    env.setenv("ENLACE_ADMIN_EMAILS", "boss@corp.local")
+    [check] = _admin_check(tmp_path, single_app_dir)
+    assert check.status == doctor_mod.WARN
+    assert "only an OAuth sign-in" in check.detail

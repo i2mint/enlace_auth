@@ -204,6 +204,43 @@ def test_admin_creates_and_deletes_user(admin_client):
     assert r.status_code == 200, r.text
 
 
+def test_admin_create_user_refuses_duplicates_and_short_passwords(admin_client):
+    csrf = _csrf(admin_client)
+    _register(admin_client, "boss@example.com", "bosspw1!", csrf)
+    short = admin_client.post(
+        "/_admin/api/users",
+        json={"email": "dan@example.com", "password": "short"},
+        headers=csrf,
+    )
+    assert short.status_code == 400, short.text
+    dup = admin_client.post(
+        "/_admin/api/users",
+        json={"email": "boss@example.com", "password": "another-pw"},
+        headers=csrf,
+    )
+    assert dup.status_code == 409, dup.text
+    # An admin reset follows the same rule as every other way to set one.
+    reset = admin_client.post(
+        "/_admin/api/users/boss@example.com/password",
+        json={"password": "short"},
+        headers=csrf,
+    )
+    assert reset.status_code == 400, reset.text
+    # ...and changes nothing: the old password still signs in.
+    admin_client.post("/auth/logout", headers=csrf)
+    csrf2 = _csrf(admin_client)
+    assert (
+        _login(admin_client, "boss@example.com", "bosspw1!", csrf2).status_code == 200
+    )
+    # A taken address is 409 whatever the password: existence is checked first.
+    dup_short = admin_client.post(
+        "/_admin/api/users",
+        json={"email": "boss@example.com", "password": "short"},
+        headers=csrf2,
+    )
+    assert dup_short.status_code == 409, dup_short.text
+
+
 def test_admin_resets_password(admin_client):
     csrf = _csrf(admin_client)
     _register(admin_client, "boss@example.com", "bosspw1!", csrf)

@@ -48,7 +48,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, EmailStr
 
 from enlace_auth.auth.grants import GrantError, parse_expires_at
-from enlace_auth.auth.passwords import MIN_PASSWORD_LEN, hash_password
+from enlace_auth.auth.passwords import hash_password, password_problem
 from enlace_auth.auth.reset_tokens import (
     DEFAULT_HANDOFF_TTL,
     mint_reset_token,
@@ -149,15 +149,21 @@ def make_admin_router(
     protected_set = frozenset(protected_user_apps)
     store_set = frozenset(store_apps)
 
-    def _oauth_gates() -> dict[str, list[dict]]:
+    def _oauth_gates(
+        allowlist: Mapping[str, frozenset[str]],
+    ) -> tuple[dict[str, list[dict]], list[dict]]:
         """Index the OAuth resource allow-list by the app route it belongs to.
 
         A resource URL (``https://host/api/snout_mcp/mcp``) is matched to an app
         by its path prefix, so one connector app can own several resources.
+        Returns ``(by_prefix, unmatched)``: the entries no app here serves (a
+        stale or misspelled key, or a connector on another host) are returned
+        separately, so an operator sees them rather than losing them.
         """
         from urllib.parse import urlparse
 
         by_prefix: dict[str, list[dict]] = {}
+        unmatched: list[dict] = []
         # Longest prefix first, as enlace routes (/api/foo wins over /api):
         # first-match would hang a nested connector's entry on its parent's row.
         by_length = sorted(
@@ -167,7 +173,7 @@ def make_admin_router(
         )
         base = urlparse(public_base_url or "")
         own_origin = (base.scheme, base.netloc) if base.netloc else None
-        for resource, emails in _allowlist.items():
+        for resource, emails in allowlist.items():
             parsed = urlparse(resource)
             path = parsed.path or resource
             gate = {
@@ -189,18 +195,15 @@ def make_admin_router(
                     by_prefix.setdefault(app.route_prefix, []).append(gate)
                     break
             else:
-                # No app serves it: a stale or misspelled key, or a connector on
-                # another host. Either way an operator should see it.
-                unmatched.append(gate)
-        return by_prefix
+                unmatched.append(gate)  # no app serves it
+        return by_prefix, unmatched
 
     # Already validated when the config loaded; parsed again so a direct caller
     # gets the same shape (and the same refusal of a malformed one).
     _allowlist = parse_resource_allowlist(
         resource_allowlist, allow_unlisted_resources=not resource_allowlist
     )
-    unmatched: list[dict] = []
-    oauth_gates = _oauth_gates()
+    oauth_gates, unmatched = _oauth_gates(_allowlist)
     oauth_policy = {
         "enabled": bool(oauth_server_enabled),
         # What a resource that is not in the allowlist gets.
@@ -250,11 +253,8 @@ def make_admin_router(
         email = body.email.lower()
         if email in user_store:
             raise HTTPException(status_code=409, detail="Email already registered")
-        if len(body.password) < MIN_PASSWORD_LEN:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Password must be at least {MIN_PASSWORD_LEN} characters.",
-            )
+        if problem := password_problem(body.password):
+            raise HTTPException(status_code=400, detail=problem)
         user_store[email] = {
             "password_hash": hash_password(body.password),
             "created_at": time.time(),
@@ -303,6 +303,8 @@ def make_admin_router(
             raise HTTPException(status_code=404, detail="User not found")
         if not isinstance(record, dict):
             raise HTTPException(status_code=500, detail="Corrupt user record")
+        if problem := password_problem(body.password):
+            raise HTTPException(status_code=400, detail=problem)
         record = dict(record)
         record["password_hash"] = hash_password(body.password)
         # A reset is account recovery: external sign-ins linked to the account

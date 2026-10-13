@@ -12,6 +12,21 @@ from __future__ import annotations
 MIN_PASSWORD_LEN = 8
 
 
+def password_problem(password: str) -> str | None:
+    """Why *password* may not be set, or ``None`` if it may.
+
+    The one rule every way of setting a password applies (see
+    :data:`MIN_PASSWORD_LEN`), so they cannot drift apart.
+
+    >>> password_problem("long-enough")
+    >>> password_problem("short")
+    'Password must be at least 8 characters.'
+    """
+    if len(password) < MIN_PASSWORD_LEN:
+        return f"Password must be at least {MIN_PASSWORD_LEN} characters."
+    return None
+
+
 def _hasher():
     try:
         from argon2 import PasswordHasher  # type: ignore

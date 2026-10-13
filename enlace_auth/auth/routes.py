@@ -31,7 +31,11 @@ from pydantic import BaseModel, EmailStr
 from enlace_auth.auth import pages
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.email import EmailSender, make_console_sender
-from enlace_auth.auth.passwords import MIN_PASSWORD_LEN, hash_password, verify_password
+from enlace_auth.auth.passwords import (
+    hash_password,
+    password_problem,
+    verify_password,
+)
 from enlace_auth.auth.reset_tokens import (
     DEFAULT_EMAIL_TTL,
     mint_reset_token,
@@ -74,10 +78,6 @@ class _ResetRequestBody(BaseModel):
 class _ResetConfirmBody(BaseModel):
     token: str
     new_password: str
-
-
-# Minimum new-password length enforced server-side (the forms also check it).
-_MIN_PASSWORD_LEN = MIN_PASSWORD_LEN
 
 
 def make_auth_router(
@@ -179,11 +179,8 @@ def make_auth_router(
             )
         if email in user_store:
             raise HTTPException(status_code=409, detail="Email already registered")
-        if len(body.password) < _MIN_PASSWORD_LEN:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Password must be at least {_MIN_PASSWORD_LEN} characters.",
-            )
+        if problem := password_problem(body.password):
+            raise HTTPException(status_code=400, detail=problem)
         user_store[email] = {
             "password_hash": hash_password(body.password),
             "created_at": time.time(),
@@ -309,11 +306,8 @@ def make_auth_router(
             raise HTTPException(status_code=401, detail="Not authenticated")
         # Same floor as the reset flow — otherwise the two ways to set a
         # password disagree on what counts as one.
-        if len(body.new_password) < _MIN_PASSWORD_LEN:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Password must be at least {_MIN_PASSWORD_LEN} characters.",
-            )
+        if problem := password_problem(body.new_password):
+            raise HTTPException(status_code=400, detail=problem)
         try:
             record = user_store[email]
         except KeyError:
@@ -445,11 +439,8 @@ def make_auth_router(
         body: _ResetConfirmBody, response: Response
     ) -> dict[str, Any]:
         """Set a new password from a valid reset token and sign the user in."""
-        if len(body.new_password) < _MIN_PASSWORD_LEN:
-            raise HTTPException(
-                status_code=400,
-                detail=(f"Password must be at least {_MIN_PASSWORD_LEN} characters."),
-            )
+        if problem := password_problem(body.new_password):
+            raise HTTPException(status_code=400, detail=problem)
         email, record = _verify_reset_token(body.token)
         if email is None or record is None:
             raise HTTPException(

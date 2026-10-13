@@ -12,7 +12,10 @@ import pytest
 from enlace.base import PlatformConfig
 
 from enlace_auth.config import AuthConfig, OAuthServerConfig, coerce_auth_config
-from enlace_auth.resource_policy import parse_resource_allowlist
+from enlace_auth.resource_policy import (
+    parse_resource_allowlist,
+    parse_resource_display_names,
+)
 
 RES = "https://apps.example.com/api/x_mcp/mcp"
 
@@ -140,6 +143,8 @@ def test_the_open_flag_beside_an_allowlist_is_a_contradiction():
         ({"https://apps.example.com./api/x_mcp/mcp": ["*"]}, "trailing dot"),
         ({"https://apps.example.com//api/x_mcp/mcp": ["*"]}, "path segment"),
         ({"https://apps.example.com/api/../x_mcp/mcp": ["*"]}, "path segment"),
+        ({"https://apps.example.com/api/x mcp/mcp": ["*"]}, "whitespace"),
+        ({"https://apps.example.com:abc/api/x_mcp/mcp": ["*"]}, "port"),
     ],
 )
 def test_a_malformed_allowlist_names_its_problem(allowlist, named):
@@ -212,3 +217,25 @@ def test_the_open_flag_must_be_a_real_boolean():
     """``allow_unlisted_resources = "true"`` is a typo for a boolean, not an opt-in."""
     with pytest.raises(ValueError, match="boolean"):
         OAuthServerConfig(enabled=True, allow_unlisted_resources="true")
+
+
+# --- direct callers (make_oauth_server_router) skip pydantic's type checks -----
+
+
+@pytest.mark.parametrize(
+    "allowlist, named",
+    [
+        ([RES], "must be a table"),
+        ({7: ["*"]}, "not a string"),
+        ({RES: [7]}, "not a string"),
+    ],
+)
+def test_a_direct_caller_gets_the_same_refusals(allowlist, named):
+    with pytest.raises(ValueError, match=named):
+        parse_resource_allowlist(allowlist)
+
+
+@pytest.mark.parametrize("name", ["", "   ", 7])
+def test_a_display_name_must_be_a_non_empty_string(name):
+    with pytest.raises(ValueError, match="non-empty string"):
+        parse_resource_display_names({RES: name})
