@@ -55,12 +55,14 @@ from enlace_auth.auth.reset_tokens import (
     reset_url,
 )
 from enlace_auth.auth.shares import ShareError
-from enlace_auth.emails import resolve_account
+from enlace_auth.emails import normalize_email, resolve_account
 from enlace_auth.resource_policy import ANY_ACCOUNT, parse_resource_allowlist
 
 
 class _CreateUserBody(BaseModel):
-    email: EmailStr
+    # Keyed with normalize_email in the handler, which refuses a decomposed
+    # local part rather than composing it onto another mailbox's key (#51).
+    email: str
     password: str
 
 
@@ -251,7 +253,10 @@ def make_admin_router(
     @router.post("/users")
     async def create_user(body: _CreateUserBody, request: Request) -> dict[str, Any]:
         _require_admin(request)
-        email = body.email.lower()
+        try:
+            email = normalize_email(body.email)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from None
         if email in user_store:
             raise HTTPException(status_code=409, detail="Email already registered")
         if problem := password_problem(body.password):

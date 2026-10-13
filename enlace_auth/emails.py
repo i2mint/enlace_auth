@@ -7,6 +7,11 @@ an address is compared against (the admin list, the registration allowlist, a
 connector's resource allowlist) must be put in the same form, or an entry
 spelled the other way silently never matches.
 
+One fold is refused rather than applied: ``EmailStr`` NFC-composes the local
+part, but a mail system may deliver a composed and a decomposed local part to two
+mailboxes, which one key would merge (#51). :func:`normalize_email` refuses a
+local part that composing would change.
+
 Two rules keep that safe. A written list entry is widened to both canonical
 spellings of its address (:func:`account_spellings`); the address an account is
 keyed under, which may come from an untrusted party (an OAuth provider), is
@@ -15,11 +20,13 @@ compared exactly as stored and never normalized.
 
 from __future__ import annotations
 
+import unicodedata
 from functools import lru_cache
 
 __all__ = [
     "account_spellings",
     "bare_address_problem",
+    "local_part_problem",
     "normalize_email",
     "resolve_account",
 ]
@@ -53,12 +60,22 @@ def normalize_email(email: str) -> str:
     Traceback (most recent call last):
     ...
     ValueError: not a bare email address: 'ann <mallory@evil.com>'
+
+    Nor is a local part that composing would change (see
+    :func:`local_part_problem`): the key would name another mailbox's spelling.
+
+    >>> normalize_email("jose\u0301@example.com")  # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    ValueError: the part before @ is not in composed Unicode (NFC) form...
     """
     from pydantic import ValidationError
 
     bare = email.strip()
     if bare_address_problem(bare):
         raise ValueError(f"not a bare email address: {email!r}")
+    if problem := local_part_problem(bare):
+        raise ValueError(f"{problem}: {email!r}")
     try:
         return _email_adapter().validate_python(bare).lower()
     except ValidationError as e:
@@ -82,6 +99,26 @@ def bare_address_problem(email: str) -> str | None:
     if not (at and local and domain) or "@" in domain:
         return "not an email address"
     return None
+
+
+def local_part_problem(email: str) -> str | None:
+    """Why keying *email* would change its local part's characters, or ``None``.
+
+    ``EmailStr`` NFC-composes the local part. Mail systems that compare local
+    parts as bytes (a Postfix/Dovecot host with ``SMTPUTF8``, for one) deliver
+    ``josé`` composed and ``josé`` decomposed to two mailboxes, so composing
+    would map both onto one account (#51). A decomposed local part is refused,
+    not folded, as an OAuth callback's address is never folded.
+
+    >>> local_part_problem("jos\u00e9@example.com") is None
+    True
+    >>> local_part_problem("jose\u0301@example.com")
+    'the part before @ is not in composed Unicode (NFC) form; retype the address'
+    """
+    local = email.rpartition("@")[0]
+    if unicodedata.is_normalized("NFC", local):
+        return None
+    return "the part before @ is not in composed Unicode (NFC) form; retype the address"
 
 
 #: RFC 5321's limit on a forward path; nothing longer is a deliverable address.

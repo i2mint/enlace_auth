@@ -49,7 +49,7 @@ from enlace_auth.auth.revocation import (
     shared_password_fingerprint,
 )
 from enlace_auth.auth.sessions import SessionStore
-from enlace_auth.emails import resolve_account
+from enlace_auth.emails import normalize_email, resolve_account
 
 
 class _LoginBody(BaseModel):
@@ -58,7 +58,9 @@ class _LoginBody(BaseModel):
 
 
 class _RegisterBody(BaseModel):
-    email: EmailStr
+    # A plain str: the handler keys it with normalize_email, which refuses what
+    # EmailStr would silently fold (a decomposed local part, #51).
+    email: str
     password: str
 
 
@@ -165,7 +167,10 @@ def make_auth_router(
 
     @router.post("/register")
     async def register(body: _RegisterBody, response: Response) -> dict[str, Any]:
-        email = body.email.lower()
+        try:
+            email = normalize_email(body.email)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from None
         # Permission before existence: answering 409 first would tell anyone
         # whether an address registration refuses (an admin's, say) has an
         # account.

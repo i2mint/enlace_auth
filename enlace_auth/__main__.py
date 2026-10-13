@@ -248,8 +248,8 @@ def _normalized_email(email: str) -> str:
 
     try:
         return normalize_email(email)
-    except ValueError:
-        print(f"Not a valid email address: {email!r}", file=sys.stderr)
+    except ValueError as e:
+        print(f"Not a valid email address: {e}", file=sys.stderr)
         sys.exit(1)
 
 
