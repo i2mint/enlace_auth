@@ -41,11 +41,11 @@ from __future__ import annotations
 import time
 from collections.abc import Iterable, Mapping, MutableMapping
 from importlib.resources import files
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, BeforeValidator, EmailStr
 
 from enlace_auth.auth.grants import GrantError, parse_expires_at
 from enlace_auth.auth.passwords import hash_password, password_problem
@@ -55,8 +55,19 @@ from enlace_auth.auth.reset_tokens import (
     reset_url,
 )
 from enlace_auth.auth.shares import ShareError
-from enlace_auth.emails import normalize_email, resolve_account
+from enlace_auth.emails import local_part_problem, normalize_email, resolve_account
 from enlace_auth.resource_policy import ANY_ACCOUNT, parse_resource_allowlist
+
+
+def _refuse_decomposed(value):
+    """Refuse a local part ``EmailStr`` would NFC-compose onto another key (#51)."""
+    if isinstance(value, str) and (problem := local_part_problem(value.strip())):
+        raise ValueError(problem)
+    return value
+
+
+#: An address an admin names for a grant or share: ``EmailStr``, minus its fold.
+_NamedAddress = Annotated[EmailStr, BeforeValidator(_refuse_decomposed)]
 
 
 class _CreateUserBody(BaseModel):
@@ -72,8 +83,8 @@ class _ResetPasswordBody(BaseModel):
 
 class _CreateShareBody(BaseModel):
     app_id: str
-    owner: EmailStr
-    grantee: EmailStr
+    owner: _NamedAddress
+    grantee: _NamedAddress
     access: str = "rw"
     label: Optional[str] = None
     expires_at: Optional[str] = None
@@ -81,7 +92,7 @@ class _CreateShareBody(BaseModel):
 
 class _CreateGrantBody(BaseModel):
     app_id: str
-    email: EmailStr
+    email: _NamedAddress
     # A date ("YYYY-MM-DD", end of day UTC) or full ISO-8601 timestamp; null /
     # omitted means the grant never expires.
     expires_at: Optional[str] = None

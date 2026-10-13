@@ -82,3 +82,33 @@ def test_admin_create_user_refuses_a_decomposed_local_part(admin_client):  # noq
         headers=csrf,
     )
     assert ok.status_code == 200, ok.text
+
+
+def test_the_message_names_the_culprit_and_stays_short():
+    assert "U+0301" in local_part_problem(DECOMPOSED)
+    with pytest.raises(ValueError) as e:
+        normalize_email("x" * 3000 + "@example.com")
+    assert len(str(e.value)) < 200
+
+
+@pytest.mark.parametrize(
+    "path, body",
+    [
+        ("/_admin/api/grants", {"app_id": "vault", "email": DECOMPOSED}),
+        (
+            "/_admin/api/shares",
+            {"app_id": "vault", "owner": "boss@example.com", "grantee": DECOMPOSED},
+        ),
+    ],
+)
+def test_admin_grants_and_shares_refuse_a_decomposed_address(
+    admin_client,  # noqa: F811
+    path,
+    body,
+):
+    """A grant or share must not land on the composed account either."""
+    csrf = _csrf(admin_client)
+    _register(admin_client, "boss@example.com", "bosspw1!", csrf)
+    r = admin_client.post(path, json=body, headers=csrf)
+    assert r.status_code == 422, r.text
+    assert "NFC" in r.text

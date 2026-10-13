@@ -67,19 +67,30 @@ def normalize_email(email: str) -> str:
     >>> normalize_email("jose\u0301@example.com")  # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    ValueError: the part before @ is not in composed Unicode (NFC) form...
+    ValueError: the part before @ is not in composed (NFC) form...
     """
     from pydantic import ValidationError
 
     bare = email.strip()
     if bare_address_problem(bare):
-        raise ValueError(f"not a bare email address: {email!r}")
+        raise ValueError(f"not a bare email address: {_shown(email)}")
     if problem := local_part_problem(bare):
-        raise ValueError(f"{problem}: {email!r}")
+        raise ValueError(f"{problem}: {_shown(email)}")
     try:
         return _email_adapter().validate_python(bare).lower()
     except ValidationError as e:
-        raise ValueError(f"not a valid email address: {email!r}") from e
+        raise ValueError(f"not a valid email address: {_shown(email)}") from e
+
+
+#: How much of a refused address an error message repeats back.
+_SHOWN_LENGTH = 80
+
+
+def _shown(email: str) -> str:
+    """*email* for an error message: quoted, and cut short if it is long."""
+    if len(email) > _SHOWN_LENGTH:
+        email = email[: _SHOWN_LENGTH - 3] + "..."
+    return repr(email)
 
 
 def bare_address_problem(email: str) -> str | None:
@@ -113,12 +124,27 @@ def local_part_problem(email: str) -> str | None:
     >>> local_part_problem("jos\u00e9@example.com") is None
     True
     >>> local_part_problem("jose\u0301@example.com")
-    'the part before @ is not in composed Unicode (NFC) form; retype the address'
+    'the part before @ is not in composed (NFC) form (U+0301); retype the address'
+
+    The two spellings look identical, so the message names the first character
+    to blame.
     """
     local = email.rpartition("@")[0]
     if unicodedata.is_normalized("NFC", local):
         return None
-    return "the part before @ is not in composed Unicode (NFC) form; retype the address"
+    culprit = next(
+        (
+            c
+            for c in local
+            if unicodedata.combining(c) or not unicodedata.is_normalized("NFC", c)
+        ),
+        None,
+    )
+    named = f" (U+{ord(culprit):04X})" if culprit else ""
+    return (
+        f"the part before @ is not in composed (NFC) form{named}; "
+        "retype the address"
+    )
 
 
 #: RFC 5321's limit on a forward path; nothing longer is a deliverable address.
