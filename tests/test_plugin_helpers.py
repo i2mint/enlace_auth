@@ -84,3 +84,122 @@ def test_takeover_does_not_apply_to_a_live_claim(tmp_path):
     assert claim(key) is True
     assert claim(key) is False
     assert claim(key) is False
+
+
+def _contend_for_stale_claim(directory, key, barrier, results):
+    import pathlib
+    import time
+
+    # Widen the stat-to-unlink window so a race shows up in a few rounds, not
+    # one in thirty: this child process is the only one that sees the patch.
+    unlink = pathlib.Path.unlink
+
+    def slow_unlink(self, *args, **kwargs):
+        time.sleep(0.005)
+        return unlink(self, *args, **kwargs)
+
+    pathlib.Path.unlink = slow_unlink
+    claim = _make_file_claim(directory, keep_seconds=60)
+    barrier.wait()
+    results.put(claim(key))
+
+
+def test_a_stale_claim_is_taken_over_by_exactly_one_process(tmp_path):
+    """Stat-then-unlink-then-create let two processes both take one stale claim.
+
+    P2 could unlink the claim P1 had just re-created, then create its own (#60).
+    """
+    import os
+    import time
+
+    contenders, rounds = 8, 20
+    ctx = mp.get_context("fork")
+    key = "f" * 64
+    for round_ in range(rounds):
+        directory = tmp_path / str(round_)
+        directory.mkdir()
+        stale = directory / key
+        stale.touch()
+        os.utime(stale, (time.time() - 600, time.time() - 600))
+        barrier, results = ctx.Barrier(contenders), ctx.Queue()
+        procs = [
+            ctx.Process(
+                target=_contend_for_stale_claim,
+                args=(str(directory), key, barrier, results),
+            )
+            for _ in range(contenders)
+        ]
+        for p in procs:
+            p.start()
+        granted = [results.get(timeout=30) for _ in procs]
+        for p in procs:
+            p.join(timeout=30)
+        assert sum(granted) == 1, f"round {round_}: {sum(granted)} winners"
+
+
+def test_a_claim_sweeps_stale_entries_but_keeps_its_own(tmp_path):
+    import os
+    import time
+
+    claim = _make_file_claim(str(tmp_path), keep_seconds=60)
+    for i in range(5):
+        stale = tmp_path / f"{i:064x}"
+        stale.touch()
+        os.utime(stale, (time.time() - 600, time.time() - 600))
+    assert claim("1" * 64) is True  # triggers the sweep
+    assert [p.name for p in tmp_path.iterdir()] == ["1" * 64]
+    assert claim("1" * 64) is False
+
+
+def test_a_stale_claim_swept_while_waiting_is_still_granted(tmp_path, monkeypatch):
+    """Found by the review of #61: the takeover's stat raced a sweep.
+
+    The key was free (the sweep had removed the stale file), yet the takeover
+    reported it taken, and the caller turned that into ``invalid_grant``.
+    """
+    import os
+    import time
+
+    claim = _make_file_claim(str(tmp_path), keep_seconds=60)
+    key = "9" * 64
+    stale = tmp_path / key
+    stale.touch()
+    os.utime(stale, (time.time() - 600, time.time() - 600))
+
+    real_open = os.open
+    swept = []
+
+    def open_then_sweep(path, flags, *args):
+        # The first O_EXCL attempt fails on the stale file; a sweep in another
+        # process then removes it before our takeover gets the lock.
+        if str(path) == str(stale) and flags & os.O_EXCL and not swept:
+            swept.append(True)
+            try:
+                return real_open(path, flags, *args)
+            finally:
+                stale.unlink()
+        return real_open(path, flags, *args)
+
+    monkeypatch.setattr(os, "open", open_then_sweep)
+    assert claim(key) is True
+
+
+def test_a_claim_dir_that_cannot_be_locked_is_logged(tmp_path, monkeypatch, caplog):
+    import os
+    import time
+
+    import sys
+
+    plugin = sys.modules["enlace_auth.plugin"]
+
+    def no_locks(fd, op):
+        raise OSError(37, "No locks available")
+
+    monkeypatch.setattr(plugin.fcntl, "flock", no_locks)
+    claim = _make_file_claim(str(tmp_path), keep_seconds=60)
+    key = "8" * 64
+    stale = tmp_path / key
+    stale.touch()
+    os.utime(stale, (time.time() - 600, time.time() - 600))
+    assert claim(key) is False  # fail closed
+    assert "cannot lock claim dir" in caplog.text
