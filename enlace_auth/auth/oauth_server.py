@@ -80,6 +80,12 @@ __all__ = ["ANY_ACCOUNT", "OAuthKeys", "make_oauth_server_router"]
 _REFRESH_SALT = "oauth-refresh"  # domain separation for refresh-token hashing
 
 _CONSENT_SALT = "oauth-consent"  # CSRF token salt for the consent form
+#: Sent with the consent page: a page that may not be framed cannot be clickjacked
+#: into a one-click approval by a page that overlays it (#46).
+_NO_FRAMING = {
+    "Content-Security-Policy": "frame-ancestors 'none'",
+    "X-Frame-Options": "DENY",
+}
 _SESSION_SALT = "session"  # must match make_auth_router's session-cookie salt
 
 
@@ -729,14 +735,17 @@ def make_oauth_server_router(
             )
 
         if not _resource_allowed(auth.resource, email):
-            return HTMLResponse(_denied_page(email), status_code=403)
+            return HTMLResponse(
+                _denied_page(email), status_code=403, headers=_NO_FRAMING
+            )
 
         # Always a consent page, never a code: this GET is reachable by a
         # cross-site navigation from any self-registered client (#46).
         return HTMLResponse(
             _consent_page(
                 auth, email, signing_key, display_name=_display_name(auth.resource)
-            )
+            ),
+            headers=_NO_FRAMING,
         )
 
     @router.post("/auth/oauth/authorize", include_in_schema=False)
@@ -755,7 +764,8 @@ def make_oauth_server_router(
         email = _current_email(request)
         if not email:
             return JSONResponse({"error": "login_required"}, status_code=401)
-        # CSRF: the token is signed and bound to this user's session.
+        # CSRF: the token is signed and bound to this user's email (not yet to the
+        # session, client or a lifetime: i2mint/enlace_auth#49).
         if verify_cookie(csrf, signing_key, salt=_CONSENT_SALT) != email:
             return JSONResponse({"error": "invalid_csrf"}, status_code=403)
         auth, err = _validate_authorize(
