@@ -2,16 +2,18 @@
 
 # About this build
 
-This documentation was built on **2026-10-13 06:41 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/4e6261dc830a320690a469a3aac1940eccaea9d6"><code>4e6261d</code></a> on branch <code>main</code>, for **enlace_auth 0.1.33** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 08:47 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/d00604e6dd4a9980cef8a657ed1f05f4cc66b3ff"><code>d00604e</code></a> on branch <code>main</code>, for **enlace_auth 0.1.34** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.34) is behind the latest release on PyPI (0.1.35): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/4e6261dc830a320690a469a3aac1940eccaea9d6"><code>4e6261dc830a320690a469a3aac1940eccaea9d6</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/d00604e6dd4a9980cef8a657ed1f05f4cc66b3ff"><code>d00604e6dd4a9980cef8a657ed1f05f4cc66b3ff</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -22,15 +24,15 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38357926446">38357926446</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38371356480">38371356480</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>4e6261dc830a320690a469a3aac1940eccaea9d6</code> (in the history of the built commit) |
+| Event commit | <code>d00604e6dd4a9980cef8a657ed1f05f4cc66b3ff</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.14  |
+| epythet  | 0.2.15  |
 | Sphinx   | 9.1.0   |
 | docutils | 0.22.4  |
 | Python   | 3.12.15 |
@@ -49,14 +51,14 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.33/">0.1.33</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.35/">0.1.35</a>, newer than the documented version (0.1.34).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 4e6261dc830a320690a469a3aac1940eccaea9d6
-pip install "epythet==0.2.14"
+git checkout d00604e6dd4a9980cef8a657ed1f05f4cc66b3ff
+pip install "epythet==0.2.15"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

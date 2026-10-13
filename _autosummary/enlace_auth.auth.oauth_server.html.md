@@ -118,6 +118,11 @@ user can’t get a usable token another way. The `aud` is minted from the same
 normalized resource the allowlist was checked against, so the two never
 disagree about a trailing slash.
 
+*require_consent* must stay `True`; `False` raises `ValueError`.
+Registration is open to anyone, so a server that skipped the consent screen
+would hand any website a code for a signed-in visitor on a cross-site GET
+(see `enlace_auth.resource_policy.check_require_consent()`).
+
 *resource_display_names* maps the **same** resource URL to the human name the
 consent screen shows. One authorization server serves every connector on the
 platform, so this string must be per-connector: a name baked into the template

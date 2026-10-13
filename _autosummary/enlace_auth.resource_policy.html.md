@@ -24,6 +24,10 @@ The rule is **fail closed, and fail loudly on anything malformed**:
   wildcard pattern, two keys that differ only by a trailing slash) is an error,
   not a guess.
 
+The authorization server’s other config-time refusal lives here for the same
+reason: `check_require_consent()` refuses to skip the consent screen, because
+client registration is open to anyone (i2mint/enlace_auth#46).
+
 Pure functions, no web or crypto imports, so the config model can use them.
 
 ### Module Attributes

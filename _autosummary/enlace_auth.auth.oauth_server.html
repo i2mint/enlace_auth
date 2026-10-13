@@ -43,7 +43,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=449df4d2"></script>
+    <script src="../_static/documentation_options.js?v=8f14641f"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.33" />
+  <meta name="docsearch:version" content="0.1.34" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -526,6 +526,10 @@ connector only accepts tokens whose <code class="docutils literal notranslate"><
 user can’t get a usable token another way. The <code class="docutils literal notranslate"><span class="pre">aud</span></code> is minted from the same
 normalized resource the allowlist was checked against, so the two never
 disagree about a trailing slash.</p>
+<p><em>require_consent</em> must stay <code class="docutils literal notranslate"><span class="pre">True</span></code>; <code class="docutils literal notranslate"><span class="pre">False</span></code> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.
+Registration is open to anyone, so a server that skipped the consent screen
+would hand any website a code for a signed-in visitor on a cross-site GET
+(see <code class="xref py py-func docutils literal notranslate"><span class="pre">enlace_auth.resource_policy.check_require_consent()</span></code>).</p>
 <p><em>resource_display_names</em> maps the <strong>same</strong> resource URL to the human name the
 consent screen shows. One authorization server serves every connector on the
 platform, so this string must be per-connector: a name baked into the template
