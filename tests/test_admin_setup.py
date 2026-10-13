@@ -124,7 +124,9 @@ def _oauth_app(users, claims, *, provider="google", provider_cfg=None):
 
 def test_an_admin_can_be_set_up_by_a_verified_oauth_sign_in():
     users: dict = {}
-    client = _oauth_app(users, {"email": _ADMIN.upper(), "email_verified": True})
+    client = _oauth_app(
+        users, {"email": _ADMIN.upper(), "email_verified": True, "sub": "g-123"}
+    )
     assert client.get("/auth/callback/google").status_code == 200
     assert users[_ADMIN]["created_via"] == "oauth:google"
     assert users[_ADMIN]["password_hash"] is None
@@ -132,9 +134,17 @@ def test_an_admin_can_be_set_up_by_a_verified_oauth_sign_in():
 
 def test_the_github_preset_counts_as_verified_for_an_admin():
     users: dict = {}
-    client = _oauth_app(users, {"email": _ADMIN}, provider="github")
+    client = _oauth_app(users, {"email": _ADMIN, "id": 42}, provider="github")
     assert client.get("/auth/callback/github").status_code == 200
     assert _ADMIN in users
+
+
+def test_an_admin_sign_in_without_a_provider_subject_is_refused():
+    """No subject, no link: the account would open to any identity at the provider."""
+    users: dict = {}
+    client = _oauth_app(users, {"email": _ADMIN, "email_verified": True})
+    assert client.get("/auth/callback/google").status_code == 403
+    assert users == {}
 
 
 def test_trust_unverified_email_is_not_enough_to_create_an_admin():

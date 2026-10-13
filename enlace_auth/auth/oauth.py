@@ -407,7 +407,12 @@ def make_oauth_router(
             record = None
         if record is None:
             if email in admins:
-                permitted = _email_verified_by_provider(provider, claims)
+                # A subject binds the account to THIS identity at the provider;
+                # without one, any later identity presenting the address would
+                # be let in (_login_refusal has no link to compare against).
+                permitted = bool(subject) and _email_verified_by_provider(
+                    provider, claims
+                )
             else:
                 permitted = can_register(email)
             if not permitted:
