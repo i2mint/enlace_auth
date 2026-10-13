@@ -254,6 +254,106 @@ def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
     return checks
 
 
+def check_widened_spellings(config: PlatformConfig) -> Iterable[Check]:
+    """Warn about accounts a written list admits only through the other spelling.
+
+    Written lists (an app's ``allowed_users``, grants, explicit ``app_meta``
+    editors, a connector's ``resource_allowlist``) admit both canonical spellings
+    of an entry (#45), but ``/auth/register`` proves nothing about who owns an
+    address. Two cases follow (#52):
+
+    - an entry whose written spelling has no account, while the other spelling
+      has one that was self-registered: possibly a squatter, registered before
+      registration refused the other spelling of an existing account;
+    - with ``registration_open``, an entry written in punycode with no account in
+      either spelling: anyone can register its Unicode spelling (which is how
+      registration keys it) and be admitted.
+
+    The admin list and the registration allowlist compare as written, so they
+    are not read here.
+    """
+    from pathlib import Path
+
+    from enlace_auth.auth.grants import GrantStore
+    from enlace_auth.emails import account_spellings, normalize_email
+    from enlace_auth.plugin import ADMINS_ALIAS
+    from enlace_auth.resource_policy import ANY_ACCOUNT
+    from enlace_auth.stores import make_file_store_factory
+
+    name = "widened_spellings"
+    auth = coerce_auth_config(getattr(config, "auth", None))
+    if not auth.enabled:
+        return [Check(name, SKIP, "auth.enabled=false")]
+    factory = make_file_store_factory(auth.stores.path)
+    users = factory("users")
+    grants_root = Path(os.path.expanduser(auth.stores.path)) / "grants"
+
+    written_in: dict[str, list[str]] = {}
+
+    def note(entry, where: str) -> None:
+        if isinstance(entry, str) and entry.strip() not in ("", ADMINS_ALIAS):
+            if entry.strip() != ANY_ACCOUNT:
+                written_in.setdefault(entry.strip(), []).append(where)
+
+    for app in getattr(config, "apps", None) or ():
+        for entry in getattr(app, "allowed_users", None) or ():
+            note(entry, f"{getattr(app, 'name', '?')} allowed_users")
+    for record in GrantStore(factory("grants"), root=grants_root).list_all():
+        note(record.get("email"), f"grant on {record.get('app_id')}")
+    app_meta = getattr(config, "app_meta", None)
+    for entry in getattr(app_meta, "editors", None) or ():
+        note(entry, "app_meta editors")
+    for resource, entries in (auth.oauth_server.resource_allowlist or {}).items():
+        for entry in entries or ():
+            note(entry, f"connector {resource}")
+
+    def created_via(key: str):
+        record = users[key]
+        return record.get("created_via") if isinstance(record, dict) else None
+
+    squatted, claimable = [], []
+    for entry, where in written_in.items():
+        written, *others = account_spellings(entry)
+        if not others or written in users:
+            continue
+        place = ", ".join(dict.fromkeys(where))
+        held = [o for o in others if o in users]
+        squatted += [
+            f"{entry!r} ({place}) admits {o!r}, which was self-registered"
+            for o in held
+            if created_via(o) == "register"
+        ]
+        if not held and auth.registration_open and normalize_email(written) != written:
+            claimable.append(f"{entry!r} ({place})")
+
+    checks = []
+    if squatted:
+        checks.append(
+            Check(
+                name,
+                WARN,
+                "account(s) admitted only through the other spelling of a list "
+                f"entry, made by self-registration: {'; '.join(squatted)}. "
+                "Registration does not prove who owns an address: confirm each "
+                "account is the intended person's, or delete it.",
+            )
+        )
+    if claimable:
+        checks.append(
+            Check(
+                name,
+                WARN,
+                "registration is open and these punycode entries have no account "
+                f"in either spelling: {', '.join(claimable)}. Anyone can register "
+                "the Unicode spelling and be admitted. Create the account with "
+                "`enlace-auth add-user`, or close registration.",
+            )
+        )
+    return checks or [
+        Check(name, PASS, "no list entry admits a doubtful other-spelling account")
+    ]
+
+
 def check_csrf(
     config: PlatformConfig, base_url: str, timeout: float
 ) -> Iterable[Check]:
@@ -405,6 +505,7 @@ static_checks = (
             check_oauth_importable,
             check_connector_session_longevity,
             check_admin_accounts,
+            check_widened_spellings,
         ),
     ),
 )

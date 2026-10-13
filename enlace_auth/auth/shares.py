@@ -43,7 +43,7 @@ from enlace_auth.auth.grants import (
     _normalize_email,
     _validate_app_id,
 )
-from enlace_auth.emails import resolve_account
+from enlace_auth.emails import account_spellings, resolve_account
 
 #: The access levels a share may carry: read-write, or read-only (GET).
 ACCESS_LEVELS = ("rw", "ro")
@@ -162,12 +162,38 @@ class ShareStore:
             return None
         return value if isinstance(value, dict) else None
 
-    def revoke(self, app_id: str, owner: str, grantee: str) -> bool:
+    def revoke(
+        self,
+        app_id: str,
+        owner: str,
+        grantee: str,
+        *,
+        widen_owner: bool = False,
+        widen_grantee: bool = False,
+    ) -> list[tuple[str, str]]:
+        """Delete the share ``owner`` -> ``grantee``; return the ``(owner, grantee)``
+        pairs removed (empty, so falsy, when there was none).
+
+        A side that was *typed* (an admin's pick, a URL segment) may be widened
+        to both canonical spellings of its address, as :meth:`share` resolved it
+        when the share was made. Never widen a side that is the caller's own
+        session key: its other spelling may be someone else's account.
+        """
         try:
-            del self._store[self._key(_app(app_id), _email(owner), _email(grantee))]
-            return True
-        except (KeyError, ShareError):
-            return False
+            app_id, owner, grantee = _app(app_id), _email(owner), _email(grantee)
+        except ShareError:
+            return []
+        owners = account_spellings(owner) if widen_owner else (owner,)
+        grantees = account_spellings(grantee) if widen_grantee else (grantee,)
+        removed = []
+        for o in owners:
+            for g in grantees:
+                try:
+                    del self._store[self._key(app_id, o, g)]
+                except KeyError:
+                    continue
+                removed.append((o, g))
+        return removed
 
     def access(
         self, app_id: str, owner: str, grantee: str, *, now: Optional[float] = None
@@ -224,7 +250,7 @@ class ShareStore:
         gone = 0
         for rec in self.list_all():
             if email in (rec.get("owner"), rec.get("grantee")):
-                gone += self.revoke(rec["app_id"], rec["owner"], rec["grantee"])
+                gone += len(self.revoke(rec["app_id"], rec["owner"], rec["grantee"]))
         return gone
 
     def _records(self, app_id: str) -> Iterator[dict]:

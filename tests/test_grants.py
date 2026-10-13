@@ -42,9 +42,9 @@ def test_grant_get_revoke_roundtrip_dict():
     assert store.get("vault", "alice@example.com") is not None
     # Lookup is case-insensitive on the email.
     assert store.get("vault", "ALICE@example.com") is not None
-    assert store.revoke("vault", "alice@example.com") is True
+    assert store.revoke("vault", "alice@example.com") == ["alice@example.com"]
     assert store.get("vault", "alice@example.com") is None
-    assert store.revoke("vault", "alice@example.com") is False
+    assert store.revoke("vault", "alice@example.com") == []
 
 
 def test_grant_upsert_replaces():
@@ -123,7 +123,7 @@ def test_file_backend_per_app_scan_and_persist(tmp_path):
     # Rebuild over the same path — grants persist (the whole point: survive restarts).
     store2 = _file_store(tmp_path)
     assert store2.active_emails_for_app("vault") == {"a@x.com", "b@x.com"}
-    assert store2.revoke("vault", "a@x.com") is True
+    assert store2.revoke("vault", "a@x.com") == ["a@x.com"]
     assert store2.active_emails_for_app("vault") == {"b@x.com"}
 
 
