@@ -92,10 +92,14 @@ All grant records across all apps. Admin-only / infrequent.
 
 #### revoke(app_id, email)
 
-Remove the grant to *email*, in whichever spelling it was made.
+Remove the grant to *email* in both spellings; return the emails removed.
+
+Empty (falsy) when there was none. Two entries may be two distinct
+accounts (an OAuth account keyed in punycode, a registered one keyed in
+Unicode), which is why the caller is told which.
 
 * **Return type:**
-  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### enlace_auth.auth.grants.parse_expires_at(value, , now=None)
 

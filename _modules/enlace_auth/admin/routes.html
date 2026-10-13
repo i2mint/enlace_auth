@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=b8ecee75"></script>
+    <script src="../../../_static/documentation_options.js?v=50f64db7"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.37" />
+  <meta name="docsearch:version" content="0.1.38" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -1206,18 +1206,33 @@ window.runMermaid = runMermaid;</script>
         <span class="n">_require_admin</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">share_store</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">503</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Shares store unavailable"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">share_store</span><span class="o">.</span><span class="n">revoke</span><span class="p">(</span><span class="n">app_id</span><span class="p">,</span> <span class="n">owner</span><span class="p">,</span> <span class="n">grantee</span><span class="p">):</span>
+        <span class="c1"># Both sides typed by an admin: either spelling of each, and the</span>
+        <span class="c1"># response says which shares went (they may be distinct accounts).</span>
+        <span class="n">removed</span> <span class="o">=</span> <span class="n">share_store</span><span class="o">.</span><span class="n">revoke</span><span class="p">(</span>
+            <span class="n">app_id</span><span class="p">,</span> <span class="n">owner</span><span class="p">,</span> <span class="n">grantee</span><span class="p">,</span> <span class="n">widen_owner</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">widen_grantee</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">removed</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Share not found"</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">"ok"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"ok"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">"removed"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"owner"</span><span class="p">:</span> <span class="n">o</span><span class="p">,</span> <span class="s2">"grantee"</span><span class="p">:</span> <span class="n">g</span><span class="p">}</span> <span class="k">for</span> <span class="n">o</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">removed</span><span class="p">],</span>
+        <span class="p">}</span>
 
     <span class="nd">@router</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">"/grants/</span><span class="si">{app_id}</span><span class="s2">/</span><span class="si">{email}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">revoke_grant</span><span class="p">(</span><span class="n">app_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">_require_admin</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">grant_store</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">503</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Grants store unavailable"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">grant_store</span><span class="o">.</span><span class="n">revoke</span><span class="p">(</span><span class="n">app_id</span><span class="p">,</span> <span class="n">email</span><span class="p">):</span>
+        <span class="n">removed</span> <span class="o">=</span> <span class="n">grant_store</span><span class="o">.</span><span class="n">revoke</span><span class="p">(</span><span class="n">app_id</span><span class="p">,</span> <span class="n">email</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">removed</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Grant not found"</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">"ok"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"app_id"</span><span class="p">:</span> <span class="n">app_id</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">:</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()}</span>
+        <span class="c1"># Both spellings are revoked; they may be two distinct accounts.</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"ok"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">"app_id"</span><span class="p">:</span> <span class="n">app_id</span><span class="p">,</span>
+            <span class="s2">"email"</span><span class="p">:</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span>
+            <span class="s2">"removed"</span><span class="p">:</span> <span class="n">removed</span><span class="p">,</span>
+        <span class="p">}</span>
 
     <span class="k">return</span> <span class="n">router</span></div>
 

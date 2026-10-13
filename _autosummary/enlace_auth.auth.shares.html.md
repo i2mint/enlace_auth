@@ -115,6 +115,23 @@ Delete every share `email` is part of, either side. Returns how many.
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
+#### revoke(app_id, owner, grantee, , widen_owner=False, widen_grantee=False, first_only=False)
+
+Delete the share `owner` -> `grantee`; return the `(owner, grantee)`
+pairs removed (empty, so falsy, when there was none).
+
+A side that was *typed* (an admin’s pick, a URL segment) may be widened
+to both canonical spellings of its address, as [`share()`](#enlace_auth.auth.shares.ShareStore.share) resolved it
+when the share was made. Never widen a side that is the caller’s own
+session key: its other spelling may be someone else’s account.
+
+With *first_only*, stop at the first share found, trying the spellings
+as written first: a user naming one owner or grantee means one account,
+though the two spellings may be two accounts. An admin revokes both.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
+
 #### share(app_id, owner, grantee, , access='rw', label=None, expires_at=None, granted_by=None, now=None)
 
 Create or replace the share `owner` → `grantee` in `app_id`.

@@ -16,4 +16,5 @@ enlace\_auth.diagnostics
       check_oauth_server_advertises_refresh
       check_shared_passwords
       check_signing_key
+      check_widened_spellings
    

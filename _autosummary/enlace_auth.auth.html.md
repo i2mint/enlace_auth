@@ -107,10 +107,14 @@ All grant records across all apps. Admin-only / infrequent.
 
 #### revoke(app_id, email)
 
-Remove the grant to *email*, in whichever spelling it was made.
+Remove the grant to *email* in both spellings; return the emails removed.
+
+Empty (falsy) when there was none. Two entries may be two distinct
+accounts (an OAuth account keyed in punycode, a registered one keyed in
+Unicode), which is why the caller is told which.
 
 * **Return type:**
-  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### *class* enlace_auth.auth.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', dynamic_allowed_users=None)
 
@@ -207,6 +211,23 @@ Delete every share `email` is part of, either side. Returns how many.
 
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### revoke(app_id, owner, grantee, , widen_owner=False, widen_grantee=False, first_only=False)
+
+Delete the share `owner` -> `grantee`; return the `(owner, grantee)`
+pairs removed (empty, so falsy, when there was none).
+
+A side that was *typed* (an admin’s pick, a URL segment) may be widened
+to both canonical spellings of its address, as [`share()`](#enlace_auth.auth.ShareStore.share) resolved it
+when the share was made. Never widen a side that is the caller’s own
+session key: its other spelling may be someone else’s account.
+
+With *first_only*, stop at the first share found, trying the spellings
+as written first: a user naming one owner or grantee means one account,
+though the two spellings may be two accounts. An admin revokes both.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
 
 #### share(app_id, owner, grantee, , access='rw', label=None, expires_at=None, granted_by=None, now=None)
 

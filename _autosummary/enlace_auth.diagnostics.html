@@ -43,7 +43,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=b8ecee75"></script>
+    <script src="../_static/documentation_options.js?v=50f64db7"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.37" />
+  <meta name="docsearch:version" content="0.1.38" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -447,6 +447,9 @@ moved here when auth was extracted from enlace.</p>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_signing_key</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_widened_spellings" title="enlace_auth.diagnostics.check_widened_spellings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_widened_spellings</span></code></a>(config)</p></td>
+<td><p>Warn about accounts a written list admits only through the other spelling.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -526,6 +529,32 @@ requests). This asks the running server what it actually advertises.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.diagnostics.check_widened_spellings">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.diagnostics.</span></span><span class="sig-name descname"><span class="pre">check_widened_spellings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/diagnostics.html#check_widened_spellings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.diagnostics.check_widened_spellings" title="Link to this definition">#</a></dt>
+<dd><p>Warn about accounts a written list admits only through the other spelling.</p>
+<p>Written lists (an app’s <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code>, grants, explicit <code class="docutils literal notranslate"><span class="pre">app_meta</span></code>
+editors, a connector’s <code class="docutils literal notranslate"><span class="pre">resource_allowlist</span></code>) admit both canonical spellings
+of an entry (#45), but <code class="docutils literal notranslate"><span class="pre">/auth/register</span></code> proves nothing about who owns an
+address. Two cases follow (#52):</p>
+<ul class="simple">
+<li><p>an entry whose other spelling has an account that was self-registered (or
+whose origin is not recorded), whether or not the written spelling has one
+too: possibly a squatter, registered before registration refused the other
+spelling of an existing account;</p></li>
+<li><p>with <code class="docutils literal notranslate"><span class="pre">registration_open</span></code>, an entry written in punycode with no account in
+either spelling: anyone can register its Unicode spelling (which is how
+registration keys it) and be admitted.</p></li>
+</ul>
+<p>The admin list and the registration allowlist compare as written, so they
+are not read here.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
@@ -580,6 +609,7 @@ requests). This asks the running server what it actually advertises.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_connector_session_longevity"><code class="docutils literal notranslate"><span class="pre">check_connector_session_longevity()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_csrf"><code class="docutils literal notranslate"><span class="pre">check_csrf()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_oauth_server_advertises_refresh"><code class="docutils literal notranslate"><span class="pre">check_oauth_server_advertises_refresh()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_widened_spellings"><code class="docutils literal notranslate"><span class="pre">check_widened_spellings()</span></code></a></li>
 </ul>
   </nav></div>
 

@@ -1,4 +1,4 @@
-> built 2026-10-13 10:53 UTC from e35a10c (main) · enlace_auth 0.1.37. Details: build_info.json
+> built 2026-10-13 10:59 UTC from 1c2b260 (main) · enlace_auth 0.1.38. Details: build_info.json
 
 # index.html.md
 
@@ -698,10 +698,14 @@ All grant records across all apps. Admin-only / infrequent.
 
 #### revoke(app_id, email)
 
-Remove the grant to *email*, in whichever spelling it was made.
+Remove the grant to *email* in both spellings; return the emails removed.
+
+Empty (falsy) when there was none. Two entries may be two distinct
+accounts (an OAuth account keyed in punycode, a registered one keyed in
+Unicode), which is why the caller is told which.
 
 * **Return type:**
-  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### enlace_auth.auth.grants.parse_expires_at(value, , now=None)
 
@@ -834,10 +838,14 @@ All grant records across all apps. Admin-only / infrequent.
 
 #### revoke(app_id, email)
 
-Remove the grant to *email*, in whichever spelling it was made.
+Remove the grant to *email* in both spellings; return the emails removed.
+
+Empty (falsy) when there was none. Two entries may be two distinct
+accounts (an OAuth account keyed in punycode, a registered one keyed in
+Unicode), which is why the caller is told which.
 
 * **Return type:**
-  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### *class* enlace_auth.auth.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', dynamic_allowed_users=None)
 
@@ -934,6 +942,23 @@ Delete every share `email` is part of, either side. Returns how many.
 
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### revoke(app_id, owner, grantee, , widen_owner=False, widen_grantee=False, first_only=False)
+
+Delete the share `owner` -> `grantee`; return the `(owner, grantee)`
+pairs removed (empty, so falsy, when there was none).
+
+A side that was *typed* (an admin’s pick, a URL segment) may be widened
+to both canonical spellings of its address, as [`share()`](_autosummary/enlace_auth.auth.html.md#enlace_auth.auth.ShareStore.share) resolved it
+when the share was made. Never widen a side that is the caller’s own
+session key: its other spelling may be someone else’s account.
+
+With *first_only*, stop at the first share found, trying the spellings
+as written first: a user naming one owner or grantee means one account,
+though the two spellings may be two accounts. An admin revokes both.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
 
 #### share(app_id, owner, grantee, , access='rw', label=None, expires_at=None, granted_by=None, now=None)
 
@@ -2054,6 +2079,23 @@ Delete every share `email` is part of, either side. Returns how many.
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
+#### revoke(app_id, owner, grantee, , widen_owner=False, widen_grantee=False, first_only=False)
+
+Delete the share `owner` -> `grantee`; return the `(owner, grantee)`
+pairs removed (empty, so falsy, when there was none).
+
+A side that was *typed* (an admin’s pick, a URL segment) may be widened
+to both canonical spellings of its address, as [`share()`](_autosummary/enlace_auth.auth.shares.html.md#enlace_auth.auth.shares.ShareStore.share) resolved it
+when the share was made. Never widen a side that is the caller’s own
+session key: its other spelling may be someone else’s account.
+
+With *first_only*, stop at the first share found, trying the spellings
+as written first: a user naming one owner or grantee means one account,
+though the two spellings may be two accounts. An admin revokes both.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
+
 #### share(app_id, owner, grantee, , access='rw', label=None, expires_at=None, granted_by=None, now=None)
 
 Create or replace the share `owner` → `grantee` in `app_id`.
@@ -2182,15 +2224,16 @@ moved here when auth was extracted from enlace.
 
 ### Functions
 
-| [`check_admin_accounts`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_admin_accounts)(config)               | Every configured admin address should already have an account.      |
-|---------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| [`check_auth_config`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_auth_config)(config)                  | Report an `[auth]` table the plugin would refuse at startup.        |
-| [`check_connector_session_longevity`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_connector_session_longevity)(config)  | Can a connector survive its own access-token expiry unattended?     |
-| [`check_csrf`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_csrf)(config, base_url, timeout)      | GET /auth/csrf must return JSON with a 'csrf' key.                  |
-| `check_oauth_importable`(config)                                                            |                                                                     |
-| [`check_oauth_server_advertises_refresh`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_oauth_server_advertises_refresh)(...) | The live server must offer refresh_token in its discovery metadata. |
-| `check_shared_passwords`(config)                                                            |                                                                     |
-| `check_signing_key`(config)                                                                 |                                                                     |
+| [`check_admin_accounts`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_admin_accounts)(config)               | Every configured admin address should already have an account.             |
+|---------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| [`check_auth_config`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_auth_config)(config)                  | Report an `[auth]` table the plugin would refuse at startup.               |
+| [`check_connector_session_longevity`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_connector_session_longevity)(config)  | Can a connector survive its own access-token expiry unattended?            |
+| [`check_csrf`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_csrf)(config, base_url, timeout)      | GET /auth/csrf must return JSON with a 'csrf' key.                         |
+| `check_oauth_importable`(config)                                                            |                                                                            |
+| [`check_oauth_server_advertises_refresh`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_oauth_server_advertises_refresh)(...) | The live server must offer refresh_token in its discovery metadata.        |
+| `check_shared_passwords`(config)                                                            |                                                                            |
+| `check_signing_key`(config)                                                                 |                                                                            |
+| [`check_widened_spellings`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_widened_spellings)(config)            | Warn about accounts a written list admits only through the other spelling. |
 
 ### enlace_auth.diagnostics.check_admin_accounts(config)
 
@@ -2249,6 +2292,29 @@ Static config can be right while the deployed build is an older release that
 has no refresh support at all — exactly the drift that caused the outage
 (config and code were fine locally; the installed wheel was what served
 requests). This asks the running server what it actually advertises.
+
+* **Return type:**
+  [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
+
+### enlace_auth.diagnostics.check_widened_spellings(config)
+
+Warn about accounts a written list admits only through the other spelling.
+
+Written lists (an app’s `allowed_users`, grants, explicit `app_meta`
+editors, a connector’s `resource_allowlist`) admit both canonical spellings
+of an entry (#45), but `/auth/register` proves nothing about who owns an
+address. Two cases follow (#52):
+
+- an entry whose other spelling has an account that was self-registered (or
+  whose origin is not recorded), whether or not the written spelling has one
+  too: possibly a squatter, registered before registration refused the other
+  spelling of an existing account;
+- with `registration_open`, an entry written in punycode with no account in
+  either spelling: anyone can register its Unicode spelling (which is how
+  registration keys it) and be admitted.
+
+The admin list and the registration allowlist compare as written, so they
+are not read here.
 
 * **Return type:**
   [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
@@ -2933,16 +2999,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-13 10:53 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/e35a10c4e24b992df52c495c3db0518145c03d41"><code>e35a10c</code></a> on branch <code>main</code>, for **enlace_auth 0.1.37** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 10:59 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/1c2b260155af88c191bc84fce4c97969edc53f24"><code>1c2b260</code></a> on branch <code>main</code>, for **enlace_auth 0.1.38** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.38) is behind the latest release on PyPI (0.1.39): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/e35a10c4e24b992df52c495c3db0518145c03d41"><code>e35a10c4e24b992df52c495c3db0518145c03d41</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/1c2b260155af88c191bc84fce4c97969edc53f24"><code>1c2b260155af88c191bc84fce4c97969edc53f24</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -2953,9 +3021,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38386110608">38386110608</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38386864371">38386864371</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>e35a10c4e24b992df52c495c3db0518145c03d41</code> (in the history of the built commit) |
+| Event commit | <code>1c2b260155af88c191bc84fce4c97969edc53f24</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2980,13 +3048,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.37/">0.1.37</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.39/">0.1.39</a>, newer than the documented version (0.1.38).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout e35a10c4e24b992df52c495c3db0518145c03d41
+git checkout 1c2b260155af88c191bc84fce4c97969edc53f24
 pip install "epythet==0.2.15"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
