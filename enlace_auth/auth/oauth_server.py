@@ -66,6 +66,7 @@ from enlace_auth.auth.revocation import (
 from enlace_auth.auth.sessions import SessionStore
 from enlace_auth.resource_policy import (
     ANY_ACCOUNT,
+    check_require_consent,
     normalize_resource,
     parse_resource_allowlist,
     parse_resource_display_names,
@@ -79,6 +80,12 @@ __all__ = ["ANY_ACCOUNT", "OAuthKeys", "make_oauth_server_router"]
 _REFRESH_SALT = "oauth-refresh"  # domain separation for refresh-token hashing
 
 _CONSENT_SALT = "oauth-consent"  # CSRF token salt for the consent form
+#: Sent with the consent page: a page that may not be framed cannot be clickjacked
+#: into a one-click approval by a page that overlays it (#46).
+_NO_FRAMING = {
+    "Content-Security-Policy": "frame-ancestors 'none'",
+    "X-Frame-Options": "DENY",
+}
 _SESSION_SALT = "session"  # must match make_auth_router's session-cookie salt
 
 
@@ -298,6 +305,11 @@ def make_oauth_server_router(
     normalized resource the allowlist was checked against, so the two never
     disagree about a trailing slash.
 
+    *require_consent* must stay ``True``; ``False`` raises ``ValueError``.
+    Registration is open to anyone, so a server that skipped the consent screen
+    would hand any website a code for a signed-in visitor on a cross-site GET
+    (see :func:`enlace_auth.resource_policy.check_require_consent`).
+
     *resource_display_names* maps the **same** resource URL to the human name the
     consent screen shows. One authorization server serves every connector on the
     platform, so this string must be per-connector: a name baked into the template
@@ -307,6 +319,7 @@ def make_oauth_server_router(
     it.
     """
 
+    check_require_consent(require_consent)
     _norm_resource = normalize_resource
     _allowlist = parse_resource_allowlist(
         resource_allowlist, allow_unlisted_resources=allow_unlisted_resources
@@ -713,7 +726,6 @@ def make_oauth_server_router(
                 auth.redirect_uri, "invalid_request", auth.state, "PKCE S256 required"
             )
 
-        session_read_at = _now()
         email = _current_email(request)
         if not email:
             # Reuse the platform login, returning here once authenticated.
@@ -723,18 +735,17 @@ def make_oauth_server_router(
             )
 
         if not _resource_allowed(auth.resource, email):
-            return HTMLResponse(_denied_page(email), status_code=403)
-
-        if not require_consent:
-            code = _issue_code(auth, email, issued_at=session_read_at)
-            return RedirectResponse(
-                _with_query(auth.redirect_uri, {"code": code, "state": auth.state}),
-                status_code=302,
+            return HTMLResponse(
+                _denied_page(email), status_code=403, headers=_NO_FRAMING
             )
+
+        # Always a consent page, never a code: this GET is reachable by a
+        # cross-site navigation from any self-registered client (#46).
         return HTMLResponse(
             _consent_page(
                 auth, email, signing_key, display_name=_display_name(auth.resource)
-            )
+            ),
+            headers=_NO_FRAMING,
         )
 
     @router.post("/auth/oauth/authorize", include_in_schema=False)
@@ -753,7 +764,8 @@ def make_oauth_server_router(
         email = _current_email(request)
         if not email:
             return JSONResponse({"error": "login_required"}, status_code=401)
-        # CSRF: the token is signed and bound to this user's session.
+        # CSRF: the token is signed and bound to this user's email (not yet to the
+        # session, client or a lifetime: i2mint/enlace_auth#49).
         if verify_cookie(csrf, signing_key, salt=_CONSENT_SALT) != email:
             return JSONResponse({"error": "invalid_csrf"}, status_code=403)
         auth, err = _validate_authorize(

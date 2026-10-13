@@ -22,6 +22,10 @@ The rule is **fail closed, and fail loudly on anything malformed**:
   wildcard pattern, two keys that differ only by a trailing slash) is an error,
   not a guess.
 
+The authorization server's other config-time refusal lives here for the same
+reason: :func:`check_require_consent` refuses to skip the consent screen, because
+client registration is open to anyone (i2mint/enlace_auth#46).
+
 Pure functions, no web or crypto imports, so the config model can use them.
 """
 
@@ -212,3 +216,28 @@ def parse_resource_display_names(raw: Mapping[str, object] | None) -> dict[str, 
             raise ValueError(f"{field}[{resource!r}] must be a non-empty string")
         out[resource] = name
     return out
+
+
+def check_require_consent(require_consent: bool) -> None:
+    """Refuse ``require_consent=False``: it lets any website mint a code.
+
+    Dynamic client registration is unauthenticated by design, so any site can
+    register a client whose redirect URI it controls. Without a consent screen,
+    sending a signed-in visitor's browser to ``/auth/oauth/authorize`` (a top-level
+    GET, which carries a ``SameSite=Lax`` session cookie) would deliver an
+    authorization code for that visitor's account to the site, with no click. The
+    consent POST is CSRF-protected; the GET is not, and cannot be.
+
+    >>> check_require_consent(True)
+    >>> check_require_consent(False)
+    Traceback (most recent call last):
+    ...
+    ValueError: require_consent = false is refused: ...
+    """
+    if require_consent is not True:
+        raise ValueError(
+            "require_consent = false is refused: client registration is open to "
+            "anyone, so skipping the consent screen would let any website obtain "
+            "an authorization code for a signed-in visitor with no click "
+            "(i2mint/enlace_auth#46). Remove the setting; consent is always shown."
+        )

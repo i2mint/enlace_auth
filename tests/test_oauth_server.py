@@ -271,24 +271,30 @@ def test_full_authorization_code_flow_with_consent(tmp_path):
     assert again.status_code == 400
 
 
-def test_token_rejects_wrong_pkce_verifier(tmp_path):
-    client, cookie = _build(tmp_path, require_consent=False)
-    cid = _register(client)
-    _, challenge = _pkce()
-    params = {
-        "response_type": "code",
-        "client_id": cid,
-        "redirect_uri": REDIRECT,
-        "code_challenge": challenge,
-        "code_challenge_method": "S256",
-        "resource": RESOURCE,
-    }
-    r = client.get(
+def _approve(client, cookie, *, cid, challenge, redirect=REDIRECT, resource=RESOURCE):
+    """POST the consent form with "approve"; return the redirect response."""
+    return client.post(
         "/auth/oauth/authorize",
-        params=params,
+        data={
+            "client_id": cid,
+            "redirect_uri": redirect,
+            "code_challenge": challenge,
+            "state": "s",
+            "scope": "mcp:read",
+            "resource": resource,
+            "csrf": sign_cookie(EMAIL, SIGNING_KEY, salt="oauth-consent"),
+            "decision": "approve",
+        },
         cookies={COOKIE: cookie},
         follow_redirects=False,
     )
+
+
+def test_token_rejects_wrong_pkce_verifier(tmp_path):
+    client, cookie = _build(tmp_path)
+    cid = _register(client)
+    _, challenge = _pkce()
+    r = _approve(client, cookie, cid=cid, challenge=challenge)
     code = r.headers["location"].split("code=")[1].split("&")[0]
     tok = client.post(
         "/auth/oauth/token",
