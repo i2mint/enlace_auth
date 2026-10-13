@@ -18,6 +18,7 @@ from typing import Any, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
 from enlace_auth.resource_policy import (
+    check_require_consent,
     parse_resource_allowlist,
     parse_resource_display_names,
 )
@@ -134,7 +135,15 @@ class OAuthServerConfig(_StrictModel):
     )
     code_ttl_seconds: int = 120
     scopes_supported: list[str] = Field(default_factory=lambda: ["mcp:read"])
-    require_consent: bool = True
+    require_consent: StrictBool = Field(
+        default=True,
+        description=(
+            "Must stay true. Client registration is open to anyone, so skipping "
+            "the consent screen would let any website mint an authorization code "
+            "for a signed-in visitor; false is refused at load "
+            "(i2mint/enlace_auth#46)."
+        ),
+    )
     resource_allowlist: dict[str, list[str]] = Field(
         default_factory=dict,
         description=(
@@ -181,6 +190,7 @@ class OAuthServerConfig(_StrictModel):
             ),
         )
         parse_resource_display_names(self.resource_display_names)
+        check_require_consent(self.require_consent)
         return self
 
 

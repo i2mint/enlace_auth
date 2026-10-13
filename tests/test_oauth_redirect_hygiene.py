@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 
 from enlace_auth.auth.oauth_server import _redirect_uri_problem
-from tests.test_oauth_server import EMAIL, SIGNING_KEY, _build  # noqa: F401
+from tests.test_oauth_server import EMAIL, SIGNING_KEY, _approve, _build  # noqa: F401
 
 
 @pytest.mark.parametrize(
@@ -135,13 +135,14 @@ def test_legacy_client_with_unsafe_uri_is_refused_at_authorize(tmp_path):
 
 
 def test_redirect_uri_query_is_preserved(tmp_path):
-    client, cookie = _build(tmp_path, require_consent=False)
+    client, cookie = _build(tmp_path)
     uri = "https://app.example.org/cb?tenant=7"
     cid = client.post("/auth/oauth/register", json={"redirect_uris": [uri]}).json()[
         "client_id"
     ]
-    client.cookies.set("enlace_session", cookie)
-    loc = _authorize(client, cid, uri).headers["location"]
+    loc = _approve(client, cookie, cid=cid, challenge="x" * 43, redirect=uri).headers[
+        "location"
+    ]
     assert loc.startswith("https://app.example.org/cb?tenant=7&code=")
     assert loc.count("?") == 1
 

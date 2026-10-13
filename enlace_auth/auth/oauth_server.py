@@ -66,6 +66,7 @@ from enlace_auth.auth.revocation import (
 from enlace_auth.auth.sessions import SessionStore
 from enlace_auth.resource_policy import (
     ANY_ACCOUNT,
+    check_require_consent,
     normalize_resource,
     parse_resource_allowlist,
     parse_resource_display_names,
@@ -298,6 +299,11 @@ def make_oauth_server_router(
     normalized resource the allowlist was checked against, so the two never
     disagree about a trailing slash.
 
+    *require_consent* must stay ``True``; ``False`` raises ``ValueError``.
+    Registration is open to anyone, so a server that skipped the consent screen
+    would hand any website a code for a signed-in visitor on a cross-site GET
+    (see :func:`enlace_auth.resource_policy.check_require_consent`).
+
     *resource_display_names* maps the **same** resource URL to the human name the
     consent screen shows. One authorization server serves every connector on the
     platform, so this string must be per-connector: a name baked into the template
@@ -307,6 +313,7 @@ def make_oauth_server_router(
     it.
     """
 
+    check_require_consent(require_consent)
     _norm_resource = normalize_resource
     _allowlist = parse_resource_allowlist(
         resource_allowlist, allow_unlisted_resources=allow_unlisted_resources
@@ -713,7 +720,6 @@ def make_oauth_server_router(
                 auth.redirect_uri, "invalid_request", auth.state, "PKCE S256 required"
             )
 
-        session_read_at = _now()
         email = _current_email(request)
         if not email:
             # Reuse the platform login, returning here once authenticated.
@@ -725,12 +731,8 @@ def make_oauth_server_router(
         if not _resource_allowed(auth.resource, email):
             return HTMLResponse(_denied_page(email), status_code=403)
 
-        if not require_consent:
-            code = _issue_code(auth, email, issued_at=session_read_at)
-            return RedirectResponse(
-                _with_query(auth.redirect_uri, {"code": code, "state": auth.state}),
-                status_code=302,
-            )
+        # Always a consent page, never a code: this GET is reachable by a
+        # cross-site navigation from any self-registered client (#46).
         return HTMLResponse(
             _consent_page(
                 auth, email, signing_key, display_name=_display_name(auth.resource)
