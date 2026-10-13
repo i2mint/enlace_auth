@@ -122,8 +122,10 @@ class OAuthServerConfig(BaseModel):
         default_factory=dict,
         description=(
             "Per-connector access control: maps a connector resource URL to the "
-            "emails allowed to authorize for it. A resource not listed is open to "
-            "any authenticated user; a listed resource denies everyone else."
+            "emails allowed to authorize for it. Fails closed: once anything is "
+            "listed, an unlisted resource is refused to everyone. List a resource "
+            'with ["*"] to open it to every authenticated account. Only an empty '
+            "map leaves every resource open."
         ),
     )
     resource_display_names: dict[str, str] = Field(

@@ -68,7 +68,11 @@ from enlace_auth.stores.validation import sanitize_key
 
 _logger = logging.getLogger("enlace_auth")
 
-__all__ = ["OAuthKeys", "make_oauth_server_router"]
+__all__ = ["ANY_ACCOUNT", "OAuthKeys", "make_oauth_server_router"]
+
+#: A ``resource_allowlist`` entry that opens a resource to every authenticated
+#: account. Must be written out: an unlisted resource is refused (fail-closed).
+ANY_ACCOUNT = "*"
 
 _REFRESH_SALT = "oauth-refresh"  # domain separation for refresh-token hashing
 
@@ -276,10 +280,15 @@ def make_oauth_server_router(
     should stay short.
 
     *resource_allowlist* maps a connector resource URL to the emails permitted to
-    authorize for it. A resource **not** in the map is open to any authenticated
-    user (back-compatible); a resource that **is** in the map denies everyone
-    else — per-connector access control (e.g. restrict a private connector to its
-    own staff). Secure to key on the resource: the connector only accepts tokens
+    authorize for it — per-connector access control (e.g. restrict a private
+    connector to its own staff). Once it lists anything it **fails closed**: a
+    resource that is not in the map is refused to everyone, at authorization, code
+    exchange and every refresh, so a connector that is newly added, renamed or
+    mounted at a second path stays shut until someone lists it. Opening a resource
+    to every authenticated account is an explicit act: list it with
+    ``[ANY_ACCOUNT]`` (``["*"]``). Only an empty or absent map leaves every
+    resource open, which is the pre-allowlist behaviour and is logged as a
+    warning. Secure to key on the resource: the connector only accepts tokens
     whose ``aud`` is that exact resource, so a denied user can't get a usable token
     another way.
 
@@ -317,9 +326,23 @@ def make_oauth_server_router(
     _code_sweep_cursor: dict = {"pos": 0}
     _refresh_sweep_cursor: dict = {"pos": 0}
 
+    if not _allowlist:
+        _logger.warning(
+            "oauth: no resource_allowlist configured, so every resource is open to "
+            "every authenticated account; list each connector to restrict it"
+        )
+
     def _resource_allowed(resource: str, email: str) -> bool:
-        allowed = _allowlist.get(_norm_resource(resource))
-        return allowed is None or email.lower() in allowed
+        """Whether *email* may hold a token for *resource* (see the docstring)."""
+        if not _allowlist:
+            return True
+        key = _norm_resource(resource)
+        if not key:  # no resource names no connector; a "/" key must not open it
+            return False
+        allowed = _allowlist.get(key)
+        if allowed is None:
+            return False
+        return ANY_ACCOUNT in allowed or email.lower() in allowed
 
     def _narrow_scope(requested: Optional[str]) -> str:
         """Intersect a requested scope with what this server actually supports.
@@ -875,6 +898,10 @@ def make_oauth_server_router(
         revoked_before = subject_revoked_before(refresh_store, data["email"])
         code_iat = data.get("iat", data["exp"] - code_ttl)
         if revoked_before is not None and code_iat <= revoked_before:
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+        # The consent step checked this too; re-checking at issuance means no
+        # code minted under another configuration becomes a token under this one.
+        if not _resource_allowed(data["resource"], data["email"]):
             return JSONResponse({"error": "invalid_grant"}, status_code=400)
 
         body, _ = _token_payload(

@@ -73,10 +73,13 @@ access_token_ttl_seconds = 3600
 refresh_token_ttl_seconds = 2592000
 refresh_family_max_lifetime_seconds = 7776000
 
-# Who may authorize for each connector. A resource that is not listed is open
-# to any authenticated user; a listed one denies everyone else.
+# Who may authorize for each connector. Fails closed: once this table lists
+# anything, a resource it does not list is refused to everyone, so a new or
+# renamed connector stays shut until it is added here. "*" opens a resource to
+# every authenticated account, and has to be written out.
 [auth.oauth_server.resource_allowlist]
 "https://apps.example.com/connector-a-mcp" = ["alice@example.com"]
+"https://apps.example.com/connector-b-mcp" = ["*"]
 
 # The name the consent screen shows, keyed by the SAME resource URL. A resource
 # with no entry gets generic copy that names no product — never default to one
