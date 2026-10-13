@@ -9,31 +9,55 @@ an address is compared against (the admin list, the registration allowlist, a
 connector’s resource allowlist) must be put in the same form, or an entry
 spelled the other way silently never matches.
 
+Two rules keep that safe. A written list entry is widened to both canonical
+spellings of its address ([`account_spellings()`](#enlace_auth.emails.account_spellings)); the address an account is
+keyed under, which may come from an untrusted party (an OAuth provider), is
+compared exactly as stored and never normalized.
+
 ### Functions
 
-| [`account_spellings`](#enlace_auth.emails.account_spellings)(email)    | The keys an account for an operator-written *email* may be stored under.   |
-|------------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| [`bare_address_problem`](#enlace_auth.emails.bare_address_problem)(email) | Why *email* is not a bare `local@domain` address, or `None`.               |
-| [`normalize_email`](#enlace_auth.emails.normalize_email)(email)      | The key an account for *email* is stored under; `ValueError` if invalid.   |
+| [`account_spellings`](#enlace_auth.emails.account_spellings)(email)       | The keys an account for a written *email* may be stored under, as written first.   |
+|---------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| [`bare_address_problem`](#enlace_auth.emails.bare_address_problem)(email)    | Why *email* is not a bare `local@domain` address, or `None`.                       |
+| [`normalize_email`](#enlace_auth.emails.normalize_email)(email)         | The key an account for *email* is stored under; `ValueError` if invalid.           |
+| [`resolve_account`](#enlace_auth.emails.resolve_account)(email, exists) | The existing account key a written *email* names, or `None`.                       |
 
 ### enlace_auth.emails.account_spellings(email)
 
-The keys an account for an operator-written *email* may be stored under.
+The keys an account for a written *email* may be stored under, as written first.
 
-As written, lowercased (how an OAuth sign-in keys it), and normalized (how
-`add-user` and `/auth/register` key it), when those differ. For lists an
-operator wrote, never for an address an untrusted party sent: normalizing
-that could fold a look-alike spelling onto someone else’s account.
+A punycode domain and its Unicode form are one DNS name, so they name one
+mailbox, but an account is keyed in whichever spelling made it: `add-user`
+and `/auth/register` store the Unicode form, an OAuth sign-in stores the
+provider’s spelling, lowercased. A list entry written in either canonical
+spelling therefore admits both.
 
 * **Return type:**
-  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ```pycon
->>> sorted(account_spellings("Ann@XN--BCHER-KVA.example"))
-['ann@bücher.example', 'ann@xn--bcher-kva.example']
->>> sorted(account_spellings("ann@corp.local"))
-['ann@corp.local']
+>>> account_spellings("Ann@XN--BCHER-KVA.example")
+('ann@xn--bcher-kva.example', 'ann@bücher.example')
+>>> account_spellings("ann@bücher.example")
+('ann@bücher.example', 'ann@xn--bcher-kva.example')
+>>> account_spellings("ann@corp.local")  # a domain EmailStr refuses
+('ann@corp.local',)
 ```
+
+Only an entry already in one of the two canonical spellings gets the other.
+Normalizing also folds look-alikes (fullwidth letters, the Kelvin sign) onto
+plain ASCII, so an entry that only becomes canonical by normalizing stays as
+written: it must not name someone else’s account. That makes this safe to
+apply to any written list, an untrusted user’s included. It is never applied
+to the address an account is keyed under.
+
+```pycon
+>>> account_spellings("ann@ｂücher.example")  # fullwidth b
+('ann@ｂücher.example',)
+```
+
+Lowercasing alone folds a few letters (U+212A KELVIN SIGN -> `k`); such an
+entry is not widened either. Over-long strings are not looked at (nor cached).
 
 ### enlace_auth.emails.bare_address_problem(email)
 
@@ -76,4 +100,22 @@ grant to someone other than the one written down.
 Traceback (most recent call last):
 ...
 ValueError: not a bare email address: 'ann <mallory@evil.com>'
+```
+
+### enlace_auth.emails.resolve_account(email, exists)
+
+The existing account key a written *email* names, or `None`.
+
+Tries [`account_spellings()`](#enlace_auth.emails.account_spellings) in order, so an exact match wins over the
+other spelling. *exists* is `key -> bool` (e.g. `users.__contains__`).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+```pycon
+>>> users = {"ann@bücher.example"}
+>>> resolve_account("Ann@XN--BCHER-KVA.example", users.__contains__)
+'ann@bücher.example'
+>>> resolve_account("bob@example.com", set().__contains__) is None
+True
 ```

@@ -37,16 +37,20 @@ Empty records are deleted, so “no overlay” and “empty overlay” coincide.
 
 ### Functions
 
-| [`make_appmeta_can_edit`](#enlace_auth.appmeta.make_appmeta_can_edit)(editors)             | Build the `app_meta_can_edit` closure over a normalized editor set.                                                                          |
-|---------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
-| [`make_appmeta_router`](#enlace_auth.appmeta.make_appmeta_router)(\*, apps, config, ...) | Build the `PATCH/DELETE /_apps/{name}/meta` router (CSRF-gated by the plugin's middleware, since `/_apps/*` is not in the CSRF-exempt list). |
+| [`make_appmeta_can_edit`](#enlace_auth.appmeta.make_appmeta_can_edit)(editors, \*[, widen])   | Build the `app_meta_can_edit` closure over a normalized editor set.                                                                          |
+|------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| [`make_appmeta_router`](#enlace_auth.appmeta.make_appmeta_router)(\*, apps, config, ...)    | Build the `PATCH/DELETE /_apps/{name}/meta` router (CSRF-gated by the plugin's middleware, since `/_apps/*` is not in the CSRF-exempt list). |
 
-### enlace_auth.appmeta.make_appmeta_can_edit(editors)
+### enlace_auth.appmeta.make_appmeta_can_edit(editors, , widen=True)
 
 Build the `app_meta_can_edit` closure over a normalized editor set.
 
-Case-insensitive; an empty editor set means *nobody* can edit (safe default,
-so a misconfigured deploy fails closed rather than open).
+Case-insensitive, and with *widen* each editor admits both canonical
+spellings of its address ([`account_spellings()`](enlace_auth.emails.html.md#enlace_auth.emails.account_spellings)).
+Pass `widen=False` for the admin list, which is compared as written
+everywhere else. An empty editor set
+means *nobody* can edit (safe default, so a misconfigured deploy fails closed
+rather than open).
 
 * **Return type:**
   [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]

@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=8f14641f"></script>
+    <script src="../../_static/documentation_options.js?v=2b6ce006"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.34" />
+  <meta name="docsearch:version" content="0.1.35" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -739,6 +739,8 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Request</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.emails</span><span class="w"> </span><span class="kn">import</span> <span class="n">account_spellings</span>
+
 <span class="c1"># Bounds so an editor can't wedge the store with absurd input.</span>
 <span class="n">_MAX_KEYWORDS</span> <span class="o">=</span> <span class="mi">40</span>
 <span class="n">_MAX_KEYWORD_LEN</span> <span class="o">=</span> <span class="mi">60</span>
@@ -761,13 +763,24 @@ window.runMermaid = runMermaid;</script>
 
 <div class="viewcode-block" id="make_appmeta_can_edit">
 <a class="viewcode-back" href="../../_autosummary/enlace_auth.appmeta.html#enlace_auth.appmeta.make_appmeta_can_edit">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">make_appmeta_can_edit</span><span class="p">(</span><span class="n">editors</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_appmeta_can_edit</span><span class="p">(</span>
+    <span class="n">editors</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">widen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="nb">bool</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Build the ``app_meta_can_edit`` closure over a normalized editor set.</span>
 
-<span class="sd">    Case-insensitive; an empty editor set means *nobody* can edit (safe default,</span>
-<span class="sd">    so a misconfigured deploy fails closed rather than open).</span>
+<span class="sd">    Case-insensitive, and with *widen* each editor admits both canonical</span>
+<span class="sd">    spellings of its address (:func:`~enlace_auth.emails.account_spellings`).</span>
+<span class="sd">    Pass ``widen=False`` for the admin list, which is compared as written</span>
+<span class="sd">    everywhere else. An empty editor set</span>
+<span class="sd">    means *nobody* can edit (safe default, so a misconfigured deploy fails closed</span>
+<span class="sd">    rather than open).</span>
 <span class="sd">    """</span>
-    <span class="n">editor_set</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">editors</span> <span class="k">if</span> <span class="n">e</span> <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="n">editor_set</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
+        <span class="n">spelling</span>
+        <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">editors</span>
+        <span class="k">if</span> <span class="n">e</span> <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">spelling</span> <span class="ow">in</span> <span class="p">(</span><span class="n">account_spellings</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">if</span> <span class="n">widen</span> <span class="k">else</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">(),))</span>
+    <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">can_edit</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">editor_set</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">email</span><span class="p">:</span>

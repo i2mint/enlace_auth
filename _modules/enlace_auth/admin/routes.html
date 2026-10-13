@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=8f14641f"></script>
+    <script src="../../../_static/documentation_options.js?v=2b6ce006"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.34" />
+  <meta name="docsearch:version" content="0.1.35" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -754,6 +754,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">reset_url</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.shares</span><span class="w"> </span><span class="kn">import</span> <span class="n">ShareError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.emails</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_account</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.resource_policy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ANY_ACCOUNT</span><span class="p">,</span> <span class="n">parse_resource_allowlist</span>
 
 
@@ -963,10 +964,19 @@ window.runMermaid = runMermaid;</script>
         <span class="p">}</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">"ok"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">:</span> <span class="n">email</span><span class="p">}</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_account_key</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The key of the account a path's *email* names, in either spelling.</span>
+
+<span class="sd">        A punycode domain and its Unicode form are one mailbox; the admin may</span>
+<span class="sd">        type either, while the account is keyed in the one that made it. An</span>
+<span class="sd">        exact match wins. Falls back to the lowercased path (then a 404).</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="n">resolve_account</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">user_store</span><span class="o">.</span><span class="fm">__contains__</span><span class="p">)</span> <span class="ow">or</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
     <span class="nd">@router</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">"/users/</span><span class="si">{email}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">delete_user</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">actor</span> <span class="o">=</span> <span class="n">_require_admin</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
-        <span class="n">target</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">_account_key</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
         <span class="c1"># Last-admin protection: can't delete the only admin user that</span>
         <span class="c1"># actually exists in the user store.</span>
         <span class="k">if</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">admin_set</span><span class="p">:</span>
@@ -997,7 +1007,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">_ResetPasswordBody</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">_require_admin</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
-        <span class="n">target</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">_account_key</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">record</span> <span class="o">=</span> <span class="n">user_store</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
@@ -1031,7 +1041,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">status_code</span><span class="o">=</span><span class="mi">503</span><span class="p">,</span>
                 <span class="n">detail</span><span class="o">=</span><span class="s2">"Reset links unavailable: no signing key configured."</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="n">target</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">_account_key</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">record</span> <span class="o">=</span> <span class="n">user_store</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>

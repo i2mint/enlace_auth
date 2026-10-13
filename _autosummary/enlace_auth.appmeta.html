@@ -43,7 +43,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=8f14641f"></script>
+    <script src="../_static/documentation_options.js?v=2b6ce006"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.34" />
+  <meta name="docsearch:version" content="0.1.35" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -437,7 +437,7 @@ an empty overlay and “nobody can edit”, so the launcher still works read-onl
 <p class="rubric">Functions</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.appmeta.make_appmeta_can_edit" title="enlace_auth.appmeta.make_appmeta_can_edit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_appmeta_can_edit</span></code></a>(editors)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.appmeta.make_appmeta_can_edit" title="enlace_auth.appmeta.make_appmeta_can_edit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_appmeta_can_edit</span></code></a>(editors, *[, widen])</p></td>
 <td><p>Build the <code class="docutils literal notranslate"><span class="pre">app_meta_can_edit</span></code> closure over a normalized editor set.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.appmeta.make_appmeta_router" title="enlace_auth.appmeta.make_appmeta_router"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_appmeta_router</span></code></a>(*, apps, config, ...)</p></td>
@@ -448,10 +448,14 @@ an empty overlay and “nobody can edit”, so the launcher still works read-onl
 </div>
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_auth.appmeta.make_appmeta_can_edit">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.appmeta.</span></span><span class="sig-name descname"><span class="pre">make_appmeta_can_edit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">editors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/appmeta.html#make_appmeta_can_edit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.appmeta.make_appmeta_can_edit" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.appmeta.</span></span><span class="sig-name descname"><span class="pre">make_appmeta_can_edit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">editors</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">widen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/appmeta.html#make_appmeta_can_edit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.appmeta.make_appmeta_can_edit" title="Link to this definition">#</a></dt>
 <dd><p>Build the <code class="docutils literal notranslate"><span class="pre">app_meta_can_edit</span></code> closure over a normalized editor set.</p>
-<p>Case-insensitive; an empty editor set means <em>nobody</em> can edit (safe default,
-so a misconfigured deploy fails closed rather than open).</p>
+<p>Case-insensitive, and with <em>widen</em> each editor admits both canonical
+spellings of its address (<a class="reference internal" href="enlace_auth.emails.html#enlace_auth.emails.account_spellings" title="enlace_auth.emails.account_spellings"><code class="xref py py-func docutils literal notranslate"><span class="pre">account_spellings()</span></code></a>).
+Pass <code class="docutils literal notranslate"><span class="pre">widen=False</span></code> for the admin list, which is compared as written
+everywhere else. An empty editor set
+means <em>nobody</em> can edit (safe default, so a misconfigured deploy fails closed
+rather than open).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]], <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>]</span></p>

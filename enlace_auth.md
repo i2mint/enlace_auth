@@ -1,4 +1,4 @@
-> built 2026-10-13 08:47 UTC from d00604e (main) · enlace_auth 0.1.34. Details: build_info.json
+> built 2026-10-13 09:09 UTC from 53e5aea (main) · enlace_auth 0.1.35. Details: build_info.json
 
 # index.html.md
 
@@ -474,16 +474,20 @@ Empty records are deleted, so “no overlay” and “empty overlay” coincide.
 
 ### Functions
 
-| [`make_appmeta_can_edit`](_autosummary/enlace_auth.appmeta.html.md#enlace_auth.appmeta.make_appmeta_can_edit)(editors)             | Build the `app_meta_can_edit` closure over a normalized editor set.                                                                          |
-|---------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
-| [`make_appmeta_router`](_autosummary/enlace_auth.appmeta.html.md#enlace_auth.appmeta.make_appmeta_router)(\*, apps, config, ...) | Build the `PATCH/DELETE /_apps/{name}/meta` router (CSRF-gated by the plugin's middleware, since `/_apps/*` is not in the CSRF-exempt list). |
+| [`make_appmeta_can_edit`](_autosummary/enlace_auth.appmeta.html.md#enlace_auth.appmeta.make_appmeta_can_edit)(editors, \*[, widen])   | Build the `app_meta_can_edit` closure over a normalized editor set.                                                                          |
+|------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| [`make_appmeta_router`](_autosummary/enlace_auth.appmeta.html.md#enlace_auth.appmeta.make_appmeta_router)(\*, apps, config, ...)    | Build the `PATCH/DELETE /_apps/{name}/meta` router (CSRF-gated by the plugin's middleware, since `/_apps/*` is not in the CSRF-exempt list). |
 
-### enlace_auth.appmeta.make_appmeta_can_edit(editors)
+### enlace_auth.appmeta.make_appmeta_can_edit(editors, , widen=True)
 
 Build the `app_meta_can_edit` closure over a normalized editor set.
 
-Case-insensitive; an empty editor set means *nobody* can edit (safe default,
-so a misconfigured deploy fails closed rather than open).
+Case-insensitive, and with *widen* each editor admits both canonical
+spellings of its address ([`account_spellings()`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.account_spellings)).
+Pass `widen=False` for the admin list, which is compared as written
+everywhere else. An empty editor set
+means *nobody* can edit (safe default, so a misconfigured deploy fails closed
+rather than open).
 
 * **Return type:**
   [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]
@@ -667,7 +671,10 @@ Thin adapter over a `MutableMapping` that speaks grant semantics.
 
 #### active_emails_for_app(app_id, , now=None)
 
-The set of currently-active granted emails for `app_id` (hot path).
+The currently-active granted emails for `app_id` (hot path).
+
+Each in both canonical spellings, so a grant written with a punycode
+domain admits the account keyed in Unicode, and vice versa.
 
 * **Return type:**
   [`set`](https://docs.python.org/3/builtins/stdtypes.html#set)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -688,6 +695,13 @@ All grant records across all apps. Admin-only / infrequent.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### revoke(app_id, email)
+
+Remove the grant to *email*, in whichever spelling it was made.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 ### enlace_auth.auth.grants.parse_expires_at(value, , now=None)
 
@@ -793,7 +807,10 @@ Thin adapter over a `MutableMapping` that speaks grant semantics.
 
 #### active_emails_for_app(app_id, , now=None)
 
-The set of currently-active granted emails for `app_id` (hot path).
+The currently-active granted emails for `app_id` (hot path).
+
+Each in both canonical spellings, so a grant written with a punycode
+domain admits the account keyed in Unicode, and vice versa.
 
 * **Return type:**
   [`set`](https://docs.python.org/3/builtins/stdtypes.html#set)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -814,6 +831,13 @@ All grant records across all apps. Admin-only / infrequent.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### revoke(app_id, email)
+
+Remove the grant to *email*, in whichever spelling it was made.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 ### *class* enlace_auth.auth.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', dynamic_allowed_users=None)
 
@@ -2238,31 +2262,55 @@ an address is compared against (the admin list, the registration allowlist, a
 connector’s resource allowlist) must be put in the same form, or an entry
 spelled the other way silently never matches.
 
+Two rules keep that safe. A written list entry is widened to both canonical
+spellings of its address ([`account_spellings()`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.account_spellings)); the address an account is
+keyed under, which may come from an untrusted party (an OAuth provider), is
+compared exactly as stored and never normalized.
+
 ### Functions
 
-| [`account_spellings`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.account_spellings)(email)    | The keys an account for an operator-written *email* may be stored under.   |
-|------------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| [`bare_address_problem`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.bare_address_problem)(email) | Why *email* is not a bare `local@domain` address, or `None`.               |
-| [`normalize_email`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.normalize_email)(email)      | The key an account for *email* is stored under; `ValueError` if invalid.   |
+| [`account_spellings`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.account_spellings)(email)       | The keys an account for a written *email* may be stored under, as written first.   |
+|---------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| [`bare_address_problem`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.bare_address_problem)(email)    | Why *email* is not a bare `local@domain` address, or `None`.                       |
+| [`normalize_email`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.normalize_email)(email)         | The key an account for *email* is stored under; `ValueError` if invalid.           |
+| [`resolve_account`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.resolve_account)(email, exists) | The existing account key a written *email* names, or `None`.                       |
 
 ### enlace_auth.emails.account_spellings(email)
 
-The keys an account for an operator-written *email* may be stored under.
+The keys an account for a written *email* may be stored under, as written first.
 
-As written, lowercased (how an OAuth sign-in keys it), and normalized (how
-`add-user` and `/auth/register` key it), when those differ. For lists an
-operator wrote, never for an address an untrusted party sent: normalizing
-that could fold a look-alike spelling onto someone else’s account.
+A punycode domain and its Unicode form are one DNS name, so they name one
+mailbox, but an account is keyed in whichever spelling made it: `add-user`
+and `/auth/register` store the Unicode form, an OAuth sign-in stores the
+provider’s spelling, lowercased. A list entry written in either canonical
+spelling therefore admits both.
 
 * **Return type:**
-  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ```pycon
->>> sorted(account_spellings("Ann@XN--BCHER-KVA.example"))
-['ann@bücher.example', 'ann@xn--bcher-kva.example']
->>> sorted(account_spellings("ann@corp.local"))
-['ann@corp.local']
+>>> account_spellings("Ann@XN--BCHER-KVA.example")
+('ann@xn--bcher-kva.example', 'ann@bücher.example')
+>>> account_spellings("ann@bücher.example")
+('ann@bücher.example', 'ann@xn--bcher-kva.example')
+>>> account_spellings("ann@corp.local")  # a domain EmailStr refuses
+('ann@corp.local',)
 ```
+
+Only an entry already in one of the two canonical spellings gets the other.
+Normalizing also folds look-alikes (fullwidth letters, the Kelvin sign) onto
+plain ASCII, so an entry that only becomes canonical by normalizing stays as
+written: it must not name someone else’s account. That makes this safe to
+apply to any written list, an untrusted user’s included. It is never applied
+to the address an account is keyed under.
+
+```pycon
+>>> account_spellings("ann@ｂücher.example")  # fullwidth b
+('ann@ｂücher.example',)
+```
+
+Lowercasing alone folds a few letters (U+212A KELVIN SIGN -> `k`); such an
+entry is not widened either. Over-long strings are not looked at (nor cached).
 
 ### enlace_auth.emails.bare_address_problem(email)
 
@@ -2305,6 +2353,24 @@ grant to someone other than the one written down.
 Traceback (most recent call last):
 ...
 ValueError: not a bare email address: 'ann <mallory@evil.com>'
+```
+
+### enlace_auth.emails.resolve_account(email, exists)
+
+The existing account key a written *email* names, or `None`.
+
+Tries [`account_spellings()`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.account_spellings) in order, so an exact match wins over the
+other spelling. *exists* is `key -> bool` (e.g. `users.__contains__`).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+```pycon
+>>> users = {"ann@bücher.example"}
+>>> resolve_account("Ann@XN--BCHER-KVA.example", users.__contains__)
+'ann@bücher.example'
+>>> resolve_account("bob@example.com", set().__contains__) is None
+True
 ```
 
 
@@ -2823,18 +2889,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-13 08:47 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/d00604e6dd4a9980cef8a657ed1f05f4cc66b3ff"><code>d00604e</code></a> on branch <code>main</code>, for **enlace_auth 0.1.34** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 09:09 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/53e5aeaad56bbcda91a08bd9defcc2ca01910f8d"><code>53e5aea</code></a> on branch <code>main</code>, for **enlace_auth 0.1.35** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.34) is behind the latest release on PyPI (0.1.35): `pip install enlace_auth` gives newer code than these docs describe.
+- The documented version (0.1.35) is behind the latest release on PyPI (0.1.36): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/d00604e6dd4a9980cef8a657ed1f05f4cc66b3ff"><code>d00604e6dd4a9980cef8a657ed1f05f4cc66b3ff</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/53e5aeaad56bbcda91a08bd9defcc2ca01910f8d"><code>53e5aeaad56bbcda91a08bd9defcc2ca01910f8d</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -2845,9 +2911,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38371356480">38371356480</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38374029258">38374029258</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>d00604e6dd4a9980cef8a657ed1f05f4cc66b3ff</code> (in the history of the built commit) |
+| Event commit | <code>53e5aeaad56bbcda91a08bd9defcc2ca01910f8d</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2872,13 +2938,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.35/">0.1.35</a>, newer than the documented version (0.1.34).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.36/">0.1.36</a>, newer than the documented version (0.1.35).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout d00604e6dd4a9980cef8a657ed1f05f4cc66b3ff
+git checkout 53e5aeaad56bbcda91a08bd9defcc2ca01910f8d
 pip install "epythet==0.2.15"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

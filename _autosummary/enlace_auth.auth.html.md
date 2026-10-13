@@ -80,7 +80,10 @@ Thin adapter over a `MutableMapping` that speaks grant semantics.
 
 #### active_emails_for_app(app_id, , now=None)
 
-The set of currently-active granted emails for `app_id` (hot path).
+The currently-active granted emails for `app_id` (hot path).
+
+Each in both canonical spellings, so a grant written with a punycode
+domain admits the account keyed in Unicode, and vice versa.
 
 * **Return type:**
   [`set`](https://docs.python.org/3/builtins/stdtypes.html#set)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -101,6 +104,13 @@ All grant records across all apps. Admin-only / infrequent.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### revoke(app_id, email)
+
+Remove the grant to *email*, in whichever spelling it was made.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 ### *class* enlace_auth.auth.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', dynamic_allowed_users=None)
 
