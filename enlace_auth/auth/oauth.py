@@ -76,6 +76,33 @@ def _import_authlib():
 #: Presets whose userinfo exposes only verified emails, without a claim saying so.
 _EMAIL_VERIFIED_BY_PRESET = frozenset({"github"})
 
+#: Config fields that, set to anything but the preset's own value, point the
+#: provider somewhere the preset knows nothing about.
+_ENDPOINT_FIELDS = ("authorize_url", "token_url", "userinfo_url", "server_metadata_url")
+
+
+def _preset_vouches(provider: str, cfg) -> bool:
+    """Whether *provider* is a verifying preset talking to the preset's own endpoints.
+
+    The trust is in github.com, not in the word "github": a provider configured
+    under that name but pointed at another server (a GitHub Enterprise host, or
+    any IdP) has not been shown to expose only verified emails.
+
+    >>> from enlace_auth.config import OAuthProviderConfig as C
+    >>> _preset_vouches("github", C(client_id_env="I", client_secret_env="S"))
+    True
+    >>> _preset_vouches("github", C(client_id_env="I", client_secret_env="S",
+    ...     userinfo_url="https://ghe.example.com/api/v3/user"))
+    False
+    """
+    if provider not in _EMAIL_VERIFIED_BY_PRESET:
+        return False
+    preset = _PROVIDER_PRESETS.get(provider, {})
+    return all(
+        getattr(cfg, field, None) in (None, preset.get(field))
+        for field in _ENDPOINT_FIELDS
+    )
+
 
 def _verified(flag) -> bool:
     """True only when an ``email_verified`` claim affirms the address.
@@ -94,12 +121,12 @@ def _email_trusted(provider: str, cfg, claims: dict) -> bool:
         return True
     if claims.get("email_verified") is not None:
         return False  # the provider said "not verified" (in whatever form)
-    return provider in _EMAIL_VERIFIED_BY_PRESET or bool(
+    return _preset_vouches(provider, cfg) or bool(
         getattr(cfg, "trust_unverified_email", False)
     )
 
 
-def _email_verified_by_provider(provider: str, claims: dict) -> bool:
+def _email_verified_by_provider(provider: str, cfg, claims: dict) -> bool:
     """Whether the PROVIDER vouches for the address: a claim, or a known preset.
 
     Stricter than :func:`_email_trusted`: the operator's
@@ -108,7 +135,21 @@ def _email_verified_by_provider(provider: str, claims: dict) -> bool:
     """
     if claims.get("email_verified") is not None:
         return _verified(claims.get("email_verified"))
-    return provider in _EMAIL_VERIFIED_BY_PRESET
+    return _preset_vouches(provider, cfg)
+
+
+def _lowercase_folds_to_ascii(email: str) -> bool:
+    """Whether lowercasing turns a non-ASCII letter of *email* into plain ASCII.
+
+    Such a letter is a look-alike: the lowercased address would name a
+    different, ASCII mailbox than the one the provider verified.
+
+    >>> _lowercase_folds_to_ascii("\u212aen@corp.com")  # KELVIN SIGN
+    True
+    >>> _lowercase_folds_to_ascii("Ken@corp.com"), _lowercase_folds_to_ascii("Ünï@x.de")
+    (False, False)
+    """
+    return any(not c.isascii() and c.lower().isascii() for c in email)
 
 
 def _is_entra_issuer(iss: str) -> bool:
@@ -399,8 +440,22 @@ def make_oauth_router(
                 detail="The OAuth provider has not verified this email address",
             )
 
+        # Keyed exactly as the provider spelled it (lowercased), never
+        # normalized: IDNA folds look-alike spellings (fullwidth letters, the
+        # Kelvin sign) onto plain ASCII, so normalizing an address an untrusted
+        # provider sent could land it on someone else's account (#41 review).
+        # Even lowercasing folds a few (U+212A KELVIN SIGN -> "k"): refuse those.
+        email = str(email).strip()
+        if _lowercase_folds_to_ascii(email):
+            raise HTTPException(
+                status_code=401,
+                detail="The OAuth provider sent an address with a look-alike letter",
+            )
         email = email.lower()
         subject = _stable_subject(provider, claims)
+        verified_by_provider = _email_verified_by_provider(
+            provider, providers.get(provider), claims
+        )
         try:
             record = user_store[email]
         except KeyError:
@@ -410,9 +465,7 @@ def make_oauth_router(
                 # A subject binds the account to THIS identity at the provider;
                 # without one, any later identity presenting the address would
                 # be let in (_login_refusal has no link to compare against).
-                permitted = bool(subject) and _email_verified_by_provider(
-                    provider, claims
-                )
+                permitted = bool(subject) and verified_by_provider
             else:
                 permitted = can_register(email)
             if not permitted:
@@ -427,6 +480,10 @@ def make_oauth_router(
                 "password_hash": None,
                 "created_at": time.time(),
                 "created_via": f"oauth:{provider}",
+                # Whether the PROVIDER vouched for the address, as opposed to the
+                # operator trusting it (trust_unverified_email). The doctor uses
+                # it to flag an account that later became an admin's.
+                "email_verified_by_provider": verified_by_provider,
                 "oauth_provider": provider,
                 "oauth_links": {provider: subject} if subject else {},
             }

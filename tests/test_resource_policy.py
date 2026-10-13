@@ -126,7 +126,7 @@ def test_the_open_flag_beside_an_allowlist_is_a_contradiction():
         ({RES: {"emails": ["a@example.com"]}}, "valid list"),
         ({RES: ["*@example.com"]}, "pattern"),
         ({RES: ["all"]}, "not an email"),
-        ({RES: ["a@example.com "]}, "not an email"),
+        ({RES: ["a@example.com "]}, "not a bare email"),
         ({RES: [""]}, "not an email"),
         ({"x_mcp": ["a@example.com"]}, "not an absolute http"),
         ({"https://apps.example.com/": ["*"]}, "names an origin"),

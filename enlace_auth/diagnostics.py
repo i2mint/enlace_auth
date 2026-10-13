@@ -21,7 +21,7 @@ from __future__ import annotations
 import functools
 import json
 import os
-from typing import Iterable
+from typing import Iterable, Optional
 
 from enlace import doctor as _doctor
 from enlace.base import PlatformConfig
@@ -157,6 +157,7 @@ def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
     (open registration, or an allowlist that lists it), and that account would
     pass every ``@admins`` gate (i2mint/enlace_auth#35).
     """
+    from enlace_auth.emails import normalize_email
     from enlace_auth.plugin import read_email_list
     from enlace_auth.stores import make_file_store_factory
 
@@ -172,24 +173,62 @@ def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
 
     # Registration refuses admin addresses (#38), so an admin account recorded
     # as self-registered predates that fix and may belong to whoever got there
-    # first. Accounts with no ``created_via`` predate provenance and are
-    # reported as unknown rather than either.
-    def _via(email):
+    # first. So may one an OAuth sign-in created while the address was not yet an
+    # admin's, unless the provider itself vouched for the address. Accounts with
+    # no ``created_via`` predate provenance: listed as unknown, not warned about,
+    # since nothing short of recreating them would ever clear the warning.
+    def _provenance(email) -> tuple[str, Optional[bool]]:
+        """(how the account was made, whether that proves who owns the address).
+
+        ``None`` means not recorded either way.
+        """
         record = users[email]
-        return record.get("created_via") if isinstance(record, dict) else None
+        record = record if isinstance(record, dict) else {}
+        via = record.get("created_via")
+        if via is None:
+            return "unknown (accounts this old predate created_via)", None
+        if via == "register":
+            return "self-registration", False
+        if str(via).startswith("oauth:"):
+            vouched = record.get("email_verified_by_provider")
+            if vouched is True:
+                return f"{via}, address verified by the provider", True
+            if vouched is False:
+                return f"{via}, address NOT verified by the provider", False
+            return f"{via}, provider verification not recorded", False
+        return str(via), True  # add-user: the operator made it
+
+    def _spelling_hint(entry) -> str:
+        """Why an admin entry may never match: written in a form no key takes."""
+        try:
+            key = normalize_email(entry)
+        except ValueError:
+            return (
+                f" {entry!r} is not an address add-user or registration accepts, "
+                "so only an OAuth sign-in could make its account."
+            )
+        if key != entry and key in users:
+            return (
+                f" {entry!r} has an account keyed {key!r} (add-user stores the "
+                f"normalized form): write the admin entry as {key!r}."
+            )
+        return ""
 
     present = [e for e in admins if e not in missing]
-    registered = [e for e in present if _via(e) == "register"]
-    unknown = [e for e in present if _via(e) is None]
+    provenance = {e: _provenance(e) for e in present}
+    doubtful = [e for e, (_, proven) in provenance.items() if proven is False]
+    summary = "; ".join(f"{e}: {how}" for e, (how, _) in provenance.items())
     checks = []
-    if registered:
+    if doubtful:
         checks.append(
             Check(
                 name,
                 WARN,
-                f"admin account(s) created by self-registration: "
-                f"{', '.join(registered)}. Confirm each is really the admin's, "
-                "or delete it and recreate with `enlace-auth add-user`.",
+                f"admin account(s) whose owner is not established: "
+                f"{', '.join(doubtful)}. Confirm each is really the admin's "
+                "(compare created_at with when the address became an admin), or "
+                "delete it and recreate with `enlace-auth add-user`. "
+                f"Provenance: {summary}",
             )
         )
     if missing:
@@ -200,18 +239,18 @@ def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
                 f"admin address(es) with no account: {', '.join(missing)}; the "
                 "admin cannot sign in yet (registration refuses admin "
                 "addresses). Create each with `enlace-auth add-user <email>`, "
-                "or sign in once through an OAuth provider that verifies it.",
+                "or sign in once through an OAuth provider that verifies it."
+                + "".join(_spelling_hint(e) for e in missing),
             )
         )
     if not checks:
-        detail = f"all {len(admins)} admin(s) have accounts"
-        if unknown:
-            detail += (
-                f"; {len(unknown)} predate created_via, so how they were made "
-                "is not recorded (compare created_at with when each address "
-                "became an admin)"
+        checks.append(
+            Check(
+                name,
+                PASS,
+                f"all {len(admins)} admin(s) have accounts. Provenance: {summary}",
             )
-        checks.append(Check(name, PASS, detail))
+        )
     return checks
 
 

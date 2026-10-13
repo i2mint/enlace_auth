@@ -184,7 +184,13 @@ def _require_signing_key(env_var: str) -> Optional[str]:
 
 
 def read_email_list(env_var: str) -> tuple[str, ...]:
-    """Read a comma-separated, case-folded email list from env var *env_var*."""
+    """Read a comma-separated, case-folded email list from env var *env_var*.
+
+    Entries are compared as written (lowercased), not normalized: mapping an
+    operator's entry onto another spelling would also change which existing
+    account it names. ``enlace doctor`` reports an admin entry whose account is
+    keyed in another form (a punycode domain ``add-user`` stored in Unicode).
+    """
     raw = os.environ.get(env_var or "", "")
     return tuple(e.strip().lower() for e in raw.split(",") if e.strip())
 

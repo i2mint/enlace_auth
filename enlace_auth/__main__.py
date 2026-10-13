@@ -247,11 +247,11 @@ def _normalized_email(email: str) -> str:
     Validated exactly as the HTTP routes validate it (pydantic ``EmailStr``), so
     an account made here is one its owner can actually sign in to.
     """
-    from pydantic import EmailStr, TypeAdapter, ValidationError
+    from enlace_auth.emails import normalize_email
 
     try:
-        return TypeAdapter(EmailStr).validate_python(email.strip()).lower()
-    except ValidationError:
+        return normalize_email(email)
+    except ValueError:
         print(f"Not a valid email address: {email!r}", file=sys.stderr)
         sys.exit(1)
 

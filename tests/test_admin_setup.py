@@ -239,3 +239,175 @@ def test_add_user_rejects_an_invalid_email(tmp_path, bad):
     result, _ = _add_user(tmp_path, bad, "long-enough-pw")
     assert result.returncode == 1
     assert "valid email" in result.stderr
+
+
+# --- review follow-ups (i2mint/enlace_auth#41) ---------------------------------
+
+
+def test_a_github_named_provider_on_other_endpoints_is_not_trusted():
+    """The trust is in github.com, not in the word "github" (#41 item 1)."""
+    users: dict = {}
+    client = _oauth_app(
+        users,
+        {"email": _ADMIN, "id": 42},
+        provider="github",
+        provider_cfg={"userinfo_url": "https://idp.example.com/user"},
+    )
+    assert client.get("/auth/callback/github").status_code == 401
+    assert users == {}
+
+
+def test_an_oauth_account_records_whether_the_provider_verified_it():
+    users: dict = {}
+    client = _oauth_app(users, {"email": _ADMIN, "email_verified": True, "sub": "g-1"})
+    assert client.get("/auth/callback/google").status_code == 200
+    assert users[_ADMIN]["email_verified_by_provider"] is True
+
+
+@pytest.mark.parametrize(
+    "spelling",
+    [
+        "boss@ｅｘａｍｐｌｅ.com",
+        "boss@example。com",
+        "boss@\u24d4xample.com",
+    ],
+)
+def test_a_look_alike_spelling_from_the_provider_is_not_the_admin(spelling):
+    """Review of #41: normalizing the address a provider sent folded look-alike
+    spellings onto the admin's, so a self-hosted IdP could set up the admin."""
+    users: dict = {}
+    client = _oauth_app(users, {"email": spelling, "email_verified": True, "sub": "x"})
+    assert client.get("/auth/callback/google").status_code == 403
+    assert users == {}
+
+
+def test_a_letter_that_lowercases_to_ascii_does_not_open_the_ascii_account():
+    """Re-verify of #41: str.lower() folds the Kelvin sign onto "k", so a
+    provider verifying "Ken@..." as its own mailbox would open ken@'s."""
+    users = {
+        "ken@example.com": {
+            "password_hash": None,
+            "oauth_provider": "google",
+            "oauth_links": {},
+        }
+    }
+    client = _oauth_app(
+        users, {"email": "Ken@example.com", "email_verified": True, "sub": "x"}
+    )
+    assert client.get("/auth/callback/google").status_code == 401
+    assert users["ken@example.com"]["oauth_links"] == {}
+
+
+@pytest.mark.parametrize("key", ["someone@corp.local", "someone@xn--bcher-kva.example"])
+def test_an_existing_oauth_account_keeps_its_key(key):
+    """Review of #41: accounts made by OAuth sign-in are keyed as the provider
+    spelled them; a stricter or normalizing lookup orphaned or locked them out."""
+    users = {
+        key: {
+            "password_hash": None,
+            "oauth_provider": "google",
+            "oauth_links": {"google": "g-1"},
+        }
+    }
+    client = _oauth_app(users, {"email": key, "email_verified": True, "sub": "g-1"})
+    assert client.get("/auth/callback/google").status_code == 200
+    assert list(users) == [key]
+
+
+@pytest.mark.parametrize(
+    "record, status, phrase",
+    [
+        (
+            {"created_via": "oauth:google", "email_verified_by_provider": False},
+            doctor_mod.WARN,
+            "NOT verified by the provider",
+        ),
+        (
+            {"created_via": "oauth:google"},
+            doctor_mod.WARN,
+            "verification not recorded",
+        ),
+        (
+            {"created_via": "oauth:google", "email_verified_by_provider": True},
+            doctor_mod.PASS,
+            "verified by the provider",
+        ),
+        ({"created_via": "add-user"}, doctor_mod.PASS, "add-user"),
+    ],
+)
+def test_doctor_reports_every_admin_accounts_provenance(
+    env, tmp_path, single_app_dir, record, status, phrase
+):
+    """#41 item 2: an OAuth-made admin account the provider did not vouch for is
+    as doubtful as a self-registered one."""
+    users = make_file_store_factory(str(tmp_path / "platform"))("users")
+    users[_ADMIN] = {"password_hash": None, "created_at": 0, **record}
+    [check] = _admin_check(tmp_path, single_app_dir)
+    assert check.status == status
+    assert phrase in check.detail
+
+
+def test_doctor_keeps_the_provenance_note_when_another_warning_fires(
+    env, tmp_path, single_app_dir
+):
+    """The "predates created_via" line used to vanish whenever a warning fired."""
+    env.setenv("ENLACE_ADMIN_EMAILS", f"{_ADMIN},second@example.com")
+    users = make_file_store_factory(str(tmp_path / "platform"))("users")
+    users[_ADMIN] = {"password_hash": "x", "created_at": 0}
+    users["second@example.com"] = {"password_hash": "x", "created_via": "register"}
+    [check] = _admin_check(tmp_path, single_app_dir)
+    assert check.status == doctor_mod.WARN
+    assert "predate created_via" in check.detail
+
+
+def test_register_does_not_reveal_whether_an_admin_account_exists(env, tmp_path):
+    """#41 item 4: 403 for an admin address whether or not it has an account."""
+    client = _client(tmp_path)
+    csrf = _csrf(client)
+    body = {"email": _ADMIN, "password": "attacker-pw1"}
+    before = client.post("/auth/register", json=body, headers=csrf).status_code
+    users = make_file_store_factory(str(tmp_path / "platform"))("users")
+    users[_ADMIN] = {"password_hash": "x", "created_via": "add-user"}
+    after = client.post("/auth/register", json=body, headers=csrf).status_code
+    assert before == after == 403
+
+
+def test_doctor_says_how_to_spell_an_admin_entry_add_user_keyed_otherwise(
+    env, tmp_path, single_app_dir
+):
+    """#41 item 5: a punycode admin entry never matches the Unicode-keyed account
+    add-user made; rather than silently remapping it, the doctor says so."""
+    env.setenv("ENLACE_ADMIN_EMAILS", "boss@xn--bcher-kva.example")
+    users = make_file_store_factory(str(tmp_path / "platform"))("users")
+    users["boss@bücher.example"] = {"password_hash": "x", "created_via": "add-user"}
+    [check] = _admin_check(tmp_path, single_app_dir)
+    assert check.status == doctor_mod.WARN
+    assert "write the admin entry as 'boss@bücher.example'" in check.detail
+
+
+def test_a_connector_allowlist_entry_admits_both_spellings_of_its_account():
+    """#41 item 5 for the allowlist: a punycode entry matches the Unicode-keyed
+    account, and a domain EmailStr refuses (.local) still loads (review of #41)."""
+    from enlace_auth.resource_policy import parse_resource_allowlist
+
+    res = "https://apps.example.com/api/x_mcp/mcp"
+    allowed = parse_resource_allowlist(
+        {res: ["Ann@XN--BCHER-KVA.example", "bob@corp.local"]}
+    )[res]
+    assert {"ann@bücher.example", "ann@xn--bcher-kva.example"} <= allowed
+    assert "bob@corp.local" in allowed
+
+
+@pytest.mark.parametrize(
+    "entry", ["ann <mallory@evil.com>", "<mallory@evil.com>", '"a"@example.com']
+)
+def test_a_display_name_entry_never_grants_another_address(entry):
+    """Review of #39: EmailStr parses ``Name <addr>``, so a list entry naming one
+    person would have granted another."""
+    from enlace_auth.emails import normalize_email
+    from enlace_auth.resource_policy import parse_resource_allowlist
+
+    with pytest.raises(ValueError):
+        normalize_email(entry)
+    with pytest.raises(ValueError, match="not a bare email"):
+        parse_resource_allowlist({"https://apps.example.com/api/x_mcp/mcp": [entry]})

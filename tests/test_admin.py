@@ -139,7 +139,8 @@ def _register(client: TestClient, email: str, password: str, csrf):
     Registration refuses admin addresses (i2mint/enlace_auth#38), so for one of
     those this creates the account the way an operator does (``add-user``) and
     signs in, when the client says where its user store is
-    (``client.user_store_root``). A second call still gets registration's 409.
+    (``client.user_store_root``). A second call gets registration's 403: it
+    refuses an admin address before looking whether the account exists (#41).
     """
     root = getattr(client, "user_store_root", None)
     if root is not None and email.lower() in read_email_list("ENLACE_ADMIN_EMAILS"):
