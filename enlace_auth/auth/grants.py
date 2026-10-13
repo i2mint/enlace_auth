@@ -31,6 +31,7 @@ import re
 import time
 from collections.abc import Iterator, MutableMapping
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
@@ -41,6 +42,13 @@ from enlace_auth.emails import account_spellings
 # the admin API uses pydantic ``EmailStr`` for real RFC validation upstream.
 _EMAIL_RE = re.compile(r"^[^\s/\\@]+@[^\s/\\@]+\.[^\s/\\@]+$")
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+#: Spellings of granted emails, cached apart from the shared cache in
+#: :mod:`enlace_auth.emails`: only grant records (written by an admin) reach it,
+#: so request-borne strings churning the shared cache cannot turn the per-request
+#: hot path below (:meth:`GrantStore.active_emails_for_app`) into a recompute.
+_grant_spellings = lru_cache(maxsize=4096)(account_spellings)
 
 
 class GrantError(ValueError):
@@ -189,19 +197,24 @@ class GrantStore:
             return value if isinstance(value, dict) else None
         return None
 
-    def revoke(self, app_id: str, email: str) -> bool:
-        """Remove the grant to *email*, in whichever spelling it was made."""
+    def revoke(self, app_id: str, email: str) -> list[str]:
+        """Remove the grant to *email* in both spellings; return the emails removed.
+
+        Empty (falsy) when there was none. Two entries may be two distinct
+        accounts (an OAuth account keyed in punycode, a registered one keyed in
+        Unicode), which is why the caller is told which.
+        """
         try:
-            keys = self._keys(app_id, email)
+            app_id, keys = _validate_app_id(app_id), self._keys(app_id, email)
         except GrantError:
-            return False
-        removed = False
+            return []
+        removed = []
         for key in keys:
             try:
                 del self._store[key]
-                removed = True
             except KeyError:
-                pass
+                continue
+            removed.append(key[len(app_id) + 1 :])
         return removed
 
     def list_for_app(self, app_id: str) -> list[dict]:
@@ -241,7 +254,7 @@ class GrantStore:
             spelling
             for rec in self.list_for_app(app_id)
             if _is_active(rec, now) and isinstance(rec.get("email"), str)
-            for spelling in account_spellings(rec["email"])
+            for spelling in _grant_spellings(rec["email"])
         }
 
     def _emails_on_disk(self, app_id: str) -> Iterator[str]:

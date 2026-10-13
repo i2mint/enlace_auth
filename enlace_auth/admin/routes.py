@@ -505,18 +505,33 @@ def make_admin_router(
         _require_admin(request)
         if share_store is None:
             raise HTTPException(status_code=503, detail="Shares store unavailable")
-        if not share_store.revoke(app_id, owner, grantee):
+        # Both sides typed by an admin: either spelling of each, and the
+        # response says which shares went (they may be distinct accounts).
+        removed = share_store.revoke(
+            app_id, owner, grantee, widen_owner=True, widen_grantee=True
+        )
+        if not removed:
             raise HTTPException(status_code=404, detail="Share not found")
-        return {"ok": True}
+        return {
+            "ok": True,
+            "removed": [{"owner": o, "grantee": g} for o, g in removed],
+        }
 
     @router.delete("/grants/{app_id}/{email}")
     async def revoke_grant(app_id: str, email: str, request: Request) -> dict[str, Any]:
         _require_admin(request)
         if grant_store is None:
             raise HTTPException(status_code=503, detail="Grants store unavailable")
-        if not grant_store.revoke(app_id, email):
+        removed = grant_store.revoke(app_id, email)
+        if not removed:
             raise HTTPException(status_code=404, detail="Grant not found")
-        return {"ok": True, "app_id": app_id, "email": email.lower()}
+        # Both spellings are revoked; they may be two distinct accounts.
+        return {
+            "ok": True,
+            "app_id": app_id,
+            "email": email.lower(),
+            "removed": removed,
+        }
 
     return router
 

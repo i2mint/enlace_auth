@@ -441,8 +441,8 @@ def revoke_grant(app_id: str, email: str, *, toml: str = "platform.toml"):
         email: Email of the user whose grant to revoke.
         toml: Path to platform.toml (default: ./platform.toml).
     """
-    if _load_grant_store(Path(toml)).revoke(app_id, email):
-        print(f"Revoked {email.lower()} from {app_id}.")
+    if removed := _load_grant_store(Path(toml)).revoke(app_id, email):
+        print(f"Revoked {', '.join(removed)} from {app_id}.")
     else:
         print(f"No grant for {email.lower()} on {app_id}.", file=sys.stderr)
         sys.exit(1)
@@ -519,9 +519,12 @@ def revoke_share(app_id: str, owner: str, grantee: str, *, toml: str = "platform
         grantee: Email of the account that had access.
         toml: Path to platform.toml (default: ./platform.toml).
     """
-    if _load_share_store(Path(toml)).revoke(app_id, owner, grantee):
-        print(f"Revoked {grantee.lower()} from {owner.lower()}'s {app_id} data.")
-    else:
+    removed = _load_share_store(Path(toml)).revoke(
+        app_id, owner, grantee, widen_owner=True, widen_grantee=True
+    )
+    for o, g in removed:
+        print(f"Revoked {g} from {o}'s {app_id} data.")
+    if not removed:
         print(
             f"No share {owner.lower()} -> {grantee.lower()} on {app_id}.",
             file=sys.stderr,
