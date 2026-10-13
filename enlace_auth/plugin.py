@@ -310,20 +310,17 @@ def _build_can_register(
     through an OAuth provider that verifies the address (``make_oauth_router``'s
     *admin_emails*). ``doctor`` flags any admin address that has no account.
 
-    Both lists are widened to both canonical spellings of each address
-    (:func:`~enlace_auth.emails.account_spellings`): a written list may name the
-    punycode or the Unicode form of a domain, and refusing an admin address only
-    in the spelling written would let open registration claim the other one,
-    which widened lists (``allowed_users``, grants, editors) admit (#45).
+    An admin address is refused in both canonical spellings
+    (:func:`~enlace_auth.emails.account_spellings`): refusing only the spelling
+    written would let registration claim the other one (#45 review). The
+    registration allowlist is NOT widened: registration proves nothing about who
+    owns an address, so an entry admits exactly the spelling written, and the
+    other spelling can only arrive through a provider that verified it.
     """
     admins = frozenset(s for e in admin_emails for s in account_spellings(e))
     if getattr(auth_cfg, "registration_open", False):
         return lambda email: email.strip().lower() not in admins
-    allow = {
-        s
-        for e in read_email_list(getattr(auth_cfg, "registration_allowlist_env", ""))
-        for s in account_spellings(e)
-    }
+    allow = set(read_email_list(getattr(auth_cfg, "registration_allowlist_env", "")))
     return lambda email: (e := email.strip().lower()) in allow and e not in admins
 
 
