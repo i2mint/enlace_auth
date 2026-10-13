@@ -135,6 +135,7 @@ def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
         return [Check(name, SKIP, f"{auth.admin_emails_env} lists no admins")]
     users = make_file_store_factory(auth.stores.path)("users")
     missing = [email for email in admins if email not in users]
+
     # Registration refuses admin addresses (#38), so an admin account recorded
     # as self-registered predates that fix and may belong to whoever got there
     # first. Accounts with no ``created_via`` predate provenance and are

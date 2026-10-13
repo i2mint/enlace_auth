@@ -17,17 +17,17 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from enlace import doctor as doctor_mod
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from starlette.responses import RedirectResponse
 
-from enlace import doctor as doctor_mod
 from enlace_auth.auth import SessionStore
 from enlace_auth.config import OAuthProviderConfig
 from enlace_auth.plugin import _build_can_register
 from enlace_auth.stores import make_file_store_factory
-from tests.test_admin_registration import _ADMIN, _INVITED, _admin_check, _client, env
 from tests.test_admin import _csrf, _register
+from tests.test_admin_registration import _ADMIN, _INVITED, _admin_check, _client, env
 
 __all__ = ["env"]  # the fixture, re-exported for pytest
 
@@ -71,7 +71,10 @@ def test_open_registration_refuses_an_admin_address_end_to_end(env, tmp_path):
     client = TestClient(build_backend(discover_apps(config), plugins=[auth_plugin]))
     csrf = _csrf(client)
     assert _register(client, _ADMIN.upper(), "attacker-pw1", csrf).status_code == 403
-    assert _register(client, "someone@example.com", "guest-pw-123", csrf).status_code == 200
+    assert (
+        _register(client, "someone@example.com", "guest-pw-123", csrf).status_code
+        == 200
+    )
 
 
 def test_registration_enforces_the_password_minimum(env, tmp_path):
