@@ -42,6 +42,8 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
+import json
 import logging
 import secrets
 import threading
@@ -80,6 +82,7 @@ __all__ = ["ANY_ACCOUNT", "OAuthKeys", "make_oauth_server_router"]
 _REFRESH_SALT = "oauth-refresh"  # domain separation for refresh-token hashing
 
 _CONSENT_SALT = "oauth-consent"  # CSRF token salt for the consent form
+_CONSENT_TTL = 600  # seconds a rendered consent form stays submittable (#49)
 #: Sent with the consent page: a page that may not be framed cannot be clickjacked
 #: into a one-click approval by a page that overlays it (#46).
 _NO_FRAMING = {
@@ -245,6 +248,7 @@ def make_oauth_server_router(
     refresh_family_max_lifetime: int = 7776000,
     client_ttl: int = 15552000,
     code_ttl: int = 120,
+    consent_ttl: int = _CONSENT_TTL,
     scopes_supported: tuple[str, ...] = ("mcp:read",),
     require_consent: bool = True,
     resource_allowlist: Mapping[str, list[str]] | None = None,
@@ -310,6 +314,11 @@ def make_oauth_server_router(
     would hand any website a code for a signed-in visitor on a cross-site GET
     (see :func:`enlace_auth.resource_policy.check_require_consent`).
 
+    *consent_ttl* is how long, in seconds, a rendered consent form can be
+    submitted. Its CSRF token approves exactly one request — this session, this
+    client, redirect URI, PKCE challenge, state, scope and resource — and nothing
+    after it expires (see :func:`_consent_binding`). It must be positive.
+
     *resource_display_names* maps the **same** resource URL to the human name the
     consent screen shows. One authorization server serves every connector on the
     platform, so this string must be per-connector: a name baked into the template
@@ -320,6 +329,9 @@ def make_oauth_server_router(
     """
 
     check_require_consent(require_consent)
+    if consent_ttl <= 0:
+        # max_age 0 expires every token at once; a negative one is nonsense.
+        raise ValueError(f"consent_ttl must be positive, got {consent_ttl!r}")
     _norm_resource = normalize_resource
     _allowlist = parse_resource_allowlist(
         resource_allowlist, allow_unlisted_resources=allow_unlisted_resources
@@ -519,17 +531,19 @@ def make_oauth_server_router(
     def _issuer(request: Request) -> str:
         return (issuer or str(request.base_url)).rstrip("/")
 
-    def _current_email(request: Request) -> Optional[str]:
+    def _current_session(request: Request) -> tuple[Optional[str], Optional[str]]:
+        """Return ``(session_id, email)`` when signed in, else ``(None, None)``."""
         token = request.cookies.get(cookie_name)
         if not token:
-            return None
+            return None, None
         sid = verify_cookie(
             token, signing_key, max_age=session_max_age, salt=_SESSION_SALT
         )
         if not sid:
-            return None
+            return None, None
         session = session_store.get(sid)
-        return session.get("email") if session else None
+        email = session.get("email") if session else None
+        return (sid, email) if email else (None, None)
 
     def _redirect_error(
         redirect_uri: str, error: str, state: str, desc: str = ""
@@ -726,7 +740,7 @@ def make_oauth_server_router(
                 auth.redirect_uri, "invalid_request", auth.state, "PKCE S256 required"
             )
 
-        email = _current_email(request)
+        sid, email = _current_session(request)
         if not email:
             # Reuse the platform login, returning here once authenticated.
             here = f"{request.url.path}?{request.url.query}"
@@ -741,10 +755,13 @@ def make_oauth_server_router(
 
         # Always a consent page, never a code: this GET is reachable by a
         # cross-site navigation from any self-registered client (#46).
+        csrf = sign_cookie(
+            _consent_binding(auth, email=email, session_id=sid),
+            signing_key,
+            salt=_CONSENT_SALT,
+        )
         return HTMLResponse(
-            _consent_page(
-                auth, email, signing_key, display_name=_display_name(auth.resource)
-            ),
+            _consent_page(auth, email, csrf, display_name=_display_name(auth.resource)),
             headers=_NO_FRAMING,
         )
 
@@ -761,18 +778,9 @@ def make_oauth_server_router(
         decision: str = Form(...),
     ):
         session_read_at = _now()
-        email = _current_email(request)
+        sid, email = _current_session(request)
         if not email:
             return JSONResponse({"error": "login_required"}, status_code=401)
-        # CSRF: the token is signed and bound to this user's email (not yet to the
-        # session, client or a lifetime: i2mint/enlace_auth#49).
-        if verify_cookie(csrf, signing_key, salt=_CONSENT_SALT) != email:
-            return JSONResponse({"error": "invalid_csrf"}, status_code=403)
-        auth, err = _validate_authorize(
-            {"client_id": client_id, "redirect_uri": redirect_uri}
-        )
-        if err is not None:
-            return err
         auth = _Authorized(
             client_id,
             redirect_uri,
@@ -781,6 +789,28 @@ def make_oauth_server_router(
             _narrow_scope(scope),
             resource,
         )
+        # CSRF: the token approves exactly the request its page showed, for this
+        # session, for consent_ttl seconds (#49). A token read once from any page
+        # is worth nothing for another client, another session, or later.
+        token = verify_cookie(
+            csrf, signing_key, max_age=consent_ttl, salt=_CONSENT_SALT
+        )
+        expected = _consent_binding(auth, email=email, session_id=sid)
+        # Bytes: compare_digest raises on a non-ASCII str (an old, pre-#49 token
+        # carried the bare email), which would turn a stale page into a 500.
+        if not isinstance(token, str) or not hmac.compare_digest(
+            token.encode(), expected.encode()
+        ):
+            return HTMLResponse(
+                pages._page("Authorization expired", _CONSENT_STALE_BODY),
+                status_code=403,
+                headers=_NO_FRAMING,
+            )
+        _, err = _validate_authorize(
+            {"client_id": client_id, "redirect_uri": redirect_uri}
+        )
+        if err is not None:
+            return err
         if not _resource_allowed(resource, email):
             return _redirect_error(redirect_uri, "access_denied", state)
         if decision != "approve":
@@ -1257,6 +1287,10 @@ _CONSENT_PROMPT_GENERIC = (
     "platform as <strong>{email}</strong>.</p>"
 )
 
+_CONSENT_STALE_BODY = """<h1>Authorization expired</h1>
+<p>This approval form has expired, or it was opened in another sign-in.
+Nothing was approved. Go back to the application and connect again.</p>"""
+
 _CONSENT_FORM = """<form method="post" action="/auth/oauth/authorize">
   <input type="hidden" name="client_id" value="{client_id}">
   <input type="hidden" name="redirect_uri" value="{redirect_uri}">
@@ -1356,21 +1390,46 @@ def _denied_page(email: str) -> str:
     return pages._page("Access denied", pages.fill_template(_DENIED_BODY, email=email))
 
 
+def _consent_binding(auth: _Authorized, *, email: str, session_id: str) -> str:
+    """Digest of everything one consent approval covers: the CSRF token's payload.
+
+    The token used to be the bare signed email: one value per account, valid
+    forever, for any client. Read once by a script on the shared origin, it
+    approved any client's request, in any later session, without a click (#49).
+    Binding the session, every request field the form carries and (through the
+    signer's timestamp) a lifetime confines a leaked token to the one request
+    its page showed.
+
+    Hashed rather than signed in the clear: the token sits in the page, and a
+    raw session id there would hand a page-reading script the session itself.
+    """
+    fields = [
+        email,
+        session_id,
+        auth.client_id,
+        auth.redirect_uri,
+        auth.code_challenge,
+        auth.state,
+        auth.scope,
+        auth.resource,
+    ]
+    return hashlib.sha256(json.dumps(fields).encode()).hexdigest()
+
+
 def _consent_page(
     auth: _Authorized,
     email: str,
-    signing_key: str,
+    csrf: str,
     *,
     display_name: Optional[str] = None,
 ) -> str:
-    """Render the approve/deny consent form (reuses the shared page shell + CSRF).
+    """Render the approve/deny consent form (shared page shell; *csrf* pre-signed).
 
     *display_name* is the connector's human name, resolved from the request's
     ``resource``. When it is ``None`` the prompt falls back to generic copy —
     naming a specific connector here would show that name to everyone
     authorizing any *other* connector on the same platform.
     """
-    csrf = sign_cookie(email, signing_key, salt=_CONSENT_SALT)
     prompt = (
         pages.fill_template(
             _CONSENT_PROMPT_NAMED,

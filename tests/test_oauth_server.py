@@ -2,6 +2,7 @@
 
 import base64
 import hashlib
+import re
 import secrets
 
 import pytest
@@ -14,9 +15,11 @@ from authlib.jose import jwt as jose_jwt
 from fastapi import FastAPI  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from enlace_auth.auth.cookies import sign_cookie  # noqa: E402
+from enlace_auth.auth.cookies import sign_cookie, verify_cookie  # noqa: E402
 from enlace_auth.auth.oauth_server import (  # noqa: E402
     OAuthKeys,
+    _Authorized,
+    _consent_binding,
     _hash_refresh,
     make_oauth_server_router,
 )
@@ -63,8 +66,10 @@ def _build(
     refresh_reuse_grace=60,
     refresh_reuse_detection=86400,
     refresh_family_max_lifetime=7776000,
+    consent_ttl=600,
+    session_store=None,
 ):
-    session_store = SessionStore({})
+    session_store = SessionStore({}) if session_store is None else session_store
     sid = session_store.create(user_id=email, email=email)
     router = make_oauth_server_router(
         session_store=session_store,
@@ -80,6 +85,7 @@ def _build(
         refresh_reuse_grace=refresh_reuse_grace,
         refresh_reuse_detection=refresh_reuse_detection,
         refresh_family_max_lifetime=refresh_family_max_lifetime,
+        consent_ttl=consent_ttl,
         keys=OAuthKeys(tmp_path / "keys"),
         issuer=None,  # derive from request → http://testserver
         require_consent=require_consent,
@@ -99,6 +105,45 @@ def _build(
     client = TestClient(app)
     session_cookie = sign_cookie(sid, SIGNING_KEY, salt="session")
     return client, session_cookie
+
+
+_CSRF_FIELD = re.compile(r'name="csrf" value="([^"]+)"')
+
+
+def _csrf_from(page) -> str:
+    """The consent form's CSRF token, as the browser would submit it."""
+    assert page.status_code == 200, page.text
+    return _CSRF_FIELD.search(page.text).group(1)
+
+
+def _consent_csrf(
+    client,
+    cookie,
+    *,
+    cid,
+    challenge,
+    redirect=REDIRECT,
+    state="s",
+    scope="mcp:read",
+    resource=RESOURCE,
+) -> str:
+    """Open the consent page for exactly this request; return its CSRF token.
+
+    The token is bound to the session and to every field of the request (#49),
+    so a test reads it from the page rather than minting one by hand.
+    """
+    params = {
+        "response_type": "code",
+        "client_id": cid,
+        "redirect_uri": redirect,
+        "code_challenge": challenge,
+        "code_challenge_method": "S256",
+        "state": state,
+        "scope": scope,
+        "resource": resource,
+    }
+    page = client.get("/auth/oauth/authorize", params=params, cookies={COOKIE: cookie})
+    return _csrf_from(page)
 
 
 def _register(client, redirect=REDIRECT) -> str:
@@ -212,7 +257,7 @@ def test_full_authorization_code_flow_with_consent(tmp_path):
     assert page.status_code == 200 and "Approve" in page.text
 
     # 2) consent approve → redirect carrying the code
-    csrf = sign_cookie(EMAIL, SIGNING_KEY, salt="oauth-consent")
+    csrf = _csrf_from(page)
     form = {
         "client_id": cid,
         "redirect_uri": REDIRECT,
@@ -282,7 +327,14 @@ def _approve(client, cookie, *, cid, challenge, redirect=REDIRECT, resource=RESO
             "state": "s",
             "scope": "mcp:read",
             "resource": resource,
-            "csrf": sign_cookie(EMAIL, SIGNING_KEY, salt="oauth-consent"),
+            "csrf": _consent_csrf(
+                client,
+                cookie,
+                cid=cid,
+                challenge=challenge,
+                redirect=redirect,
+                resource=resource,
+            ),
             "decision": "approve",
         },
         cookies={COOKIE: cookie},
@@ -361,7 +413,16 @@ def test_resource_allowlist_refuses_an_unlisted_resource(tmp_path, resource):
         cookies={COOKIE: cookie},
     )
     assert r.status_code == 403
-    # The consent POST is a second door; it must not mint a code either.
+    # The consent POST is a second door; it must not mint a code either, even
+    # with a token that is valid for this exact request (minted here, since the
+    # denied GET renders no form to read one from).
+    sid = verify_cookie(cookie, SIGNING_KEY, salt="session")
+    auth = _Authorized(cid, REDIRECT, challenge, "s", "mcp:read", resource)
+    csrf = sign_cookie(
+        _consent_binding(auth, email=EMAIL, session_id=sid),
+        SIGNING_KEY,
+        salt="oauth-consent",
+    )
     r = client.post(
         "/auth/oauth/authorize",
         data={
@@ -371,7 +432,7 @@ def test_resource_allowlist_refuses_an_unlisted_resource(tmp_path, resource):
             "state": "s",
             "scope": "mcp:read",
             "resource": resource,
-            "csrf": sign_cookie(EMAIL, SIGNING_KEY, salt="oauth-consent"),
+            "csrf": csrf,
             "decision": "approve",
         },
         cookies={COOKIE: cookie},
@@ -531,7 +592,9 @@ def test_code_exchange_rechecks_the_allowlist(tmp_path):
             "state": "s",
             "scope": "mcp:read",
             "resource": OTHER_RESOURCE,
-            "csrf": sign_cookie(EMAIL, SIGNING_KEY, salt="oauth-consent"),
+            "csrf": _consent_csrf(
+                before, cookie, cid=cid, challenge=challenge, resource=OTHER_RESOURCE
+            ),
             "decision": "approve",
         },
         cookies={COOKIE: cookie},
@@ -764,7 +827,15 @@ def _flow(client, cookie, *, cid, resource=RESOURCE, scope="mcp:read"):
         "state": "xyz",
         "scope": scope,
         "resource": resource,
-        "csrf": sign_cookie(EMAIL, SIGNING_KEY, salt="oauth-consent"),
+        "csrf": _consent_csrf(
+            client,
+            cookie,
+            cid=cid,
+            challenge=challenge,
+            state="xyz",
+            scope=scope,
+            resource=resource,
+        ),
         "decision": "approve",
     }
     r = client.post(

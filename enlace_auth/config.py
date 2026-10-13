@@ -134,6 +134,15 @@ class OAuthServerConfig(_StrictModel):
         ),
     )
     code_ttl_seconds: int = 120
+    consent_ttl_seconds: int = Field(
+        default=600,
+        gt=0,
+        description=(
+            "How long a rendered consent form can be submitted (default 10 "
+            "minutes). Its CSRF token is bound to the session and to the one "
+            "request the page showed, and expires after this (#49)."
+        ),
+    )
     scopes_supported: list[str] = Field(default_factory=lambda: ["mcp:read"])
     require_consent: StrictBool = Field(
         default=True,
