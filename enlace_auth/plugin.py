@@ -599,6 +599,7 @@ def wire(parent: "FastAPI", config) -> None:
                 refresh_family_max_lifetime=osc.refresh_family_max_lifetime_seconds,
                 client_ttl=osc.client_ttl_seconds,
                 code_ttl=osc.code_ttl_seconds,
+                consent_ttl=osc.consent_ttl_seconds,
                 scopes_supported=tuple(osc.scopes_supported),
                 require_consent=osc.require_consent,
                 resource_allowlist=osc.resource_allowlist,
