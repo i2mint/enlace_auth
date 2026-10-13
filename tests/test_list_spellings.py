@@ -197,3 +197,52 @@ def test_register_refuses_the_other_spelling_of_an_existing_account(
         headers=csrf,
     )
     assert r.status_code == 409, r.text
+
+
+# --- adversarial review of #50 ------------------------------------------------
+
+
+def test_registration_refuses_every_spelling_of_an_admin_address():
+    """Else open registration could claim the admin's other spelling."""
+    from types import SimpleNamespace
+
+    from enlace_auth.plugin import _build_can_register
+
+    can_register = _build_can_register(SimpleNamespace(registration_open=True), (PUNY,))
+    assert not can_register(UNI) and not can_register(PUNY)
+    assert can_register("someone@example.com")
+
+
+def test_registration_allowlist_admits_both_spellings(monkeypatch):
+    from types import SimpleNamespace
+
+    from enlace_auth.plugin import _build_can_register
+
+    monkeypatch.setenv("TEST_REG_ALLOW", PUNY)
+    cfg = SimpleNamespace(
+        registration_open=False, registration_allowlist_env="TEST_REG_ALLOW"
+    )
+    can_register = _build_can_register(cfg, ())
+    assert can_register(UNI) and can_register(PUNY)
+    assert not can_register(FULLWIDTH)
+
+
+def test_the_admin_default_editor_list_is_not_widened():
+    can_edit = make_appmeta_can_edit((PUNY,), widen=False)
+    assert can_edit(PUNY) and not can_edit(UNI)
+
+
+def test_a_lowercase_fold_is_not_widened():
+    assert account_spellings("Kate@bücher.example") == ("kate@bücher.example",)
+
+
+def test_an_over_long_entry_is_returned_as_written():
+    long = "a" * 300 + "@example.com"
+    assert account_spellings(long) == (long,)
+
+
+def test_a_share_owner_is_never_resolved():
+    users = {UNI, "bob@example.com"}
+    shares = ShareStore({}, account_exists=users.__contains__)
+    with pytest.raises(ValueError, match="No account"):
+        shares.share("app", PUNY, "bob@example.com")

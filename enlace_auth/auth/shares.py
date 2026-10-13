@@ -121,11 +121,11 @@ class ShareStore:
         """
         app_id, owner, grantee = _app(app_id), _email(owner), _email(grantee)
         if self._account_exists is not None:
-            # Store the share under the keys the accounts actually have: an address
-            # written with a punycode domain names the account keyed in Unicode
-            # (or the reverse). Never applied when reading a share: the grantee
-            # there is a session's own key, compared exactly.
-            owner = resolve_account(owner, self._account_exists) or owner
+            # Store the share under the grantee's actual key: an address written
+            # with a punycode domain names the account keyed in Unicode (or the
+            # reverse). The owner is a session's own key (or an admin's exact
+            # pick) and is never resolved; nor is the grantee when a share is
+            # read, since there it is a session's own key, compared exactly.
             grantee = resolve_account(grantee, self._account_exists) or grantee
         if owner == grantee:
             raise ShareError("An owner cannot share with themselves.")

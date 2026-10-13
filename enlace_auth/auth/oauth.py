@@ -46,6 +46,7 @@ from fastapi.responses import JSONResponse
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.sessions import SessionStore
 from enlace_auth.config import OAuthProviderConfig
+from enlace_auth.emails import lowercase_folds_to_ascii
 
 _logger = logging.getLogger("enlace_auth.oauth")
 
@@ -136,20 +137,6 @@ def _email_verified_by_provider(provider: str, cfg, claims: dict) -> bool:
     if claims.get("email_verified") is not None:
         return _verified(claims.get("email_verified"))
     return _preset_vouches(provider, cfg)
-
-
-def _lowercase_folds_to_ascii(email: str) -> bool:
-    """Whether lowercasing turns a non-ASCII letter of *email* into plain ASCII.
-
-    Such a letter is a look-alike: the lowercased address would name a
-    different, ASCII mailbox than the one the provider verified.
-
-    >>> _lowercase_folds_to_ascii("\u212aen@corp.com")  # KELVIN SIGN
-    True
-    >>> _lowercase_folds_to_ascii("Ken@corp.com"), _lowercase_folds_to_ascii("Ünï@x.de")
-    (False, False)
-    """
-    return any(not c.isascii() and c.lower().isascii() for c in email)
 
 
 def _is_entra_issuer(iss: str) -> bool:
@@ -446,7 +433,7 @@ def make_oauth_router(
         # provider sent could land it on someone else's account (#41 review).
         # Even lowercasing folds a few (U+212A KELVIN SIGN -> "k"): refuse those.
         email = str(email).strip()
-        if _lowercase_folds_to_ascii(email):
+        if lowercase_folds_to_ascii(email):
             raise HTTPException(
                 status_code=401,
                 detail="The OAuth provider sent an address with a look-alike letter",

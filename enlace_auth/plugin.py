@@ -309,11 +309,21 @@ def _build_can_register(
     accounts are made with ``enlace-auth add-user``, or by a first sign-in
     through an OAuth provider that verifies the address (``make_oauth_router``'s
     *admin_emails*). ``doctor`` flags any admin address that has no account.
+
+    Both lists are widened to both canonical spellings of each address
+    (:func:`~enlace_auth.emails.account_spellings`): a written list may name the
+    punycode or the Unicode form of a domain, and refusing an admin address only
+    in the spelling written would let open registration claim the other one,
+    which widened lists (``allowed_users``, grants, editors) admit (#45).
     """
-    admins = frozenset(e.strip().lower() for e in admin_emails)
+    admins = frozenset(s for e in admin_emails for s in account_spellings(e))
     if getattr(auth_cfg, "registration_open", False):
         return lambda email: email.strip().lower() not in admins
-    allow = set(read_email_list(getattr(auth_cfg, "registration_allowlist_env", "")))
+    allow = {
+        s
+        for e in read_email_list(getattr(auth_cfg, "registration_allowlist_env", ""))
+        for s in account_spellings(e)
+    }
     return lambda email: (e := email.strip().lower()) in allow and e not in admins
 
 
@@ -626,13 +636,17 @@ def wire(parent: "FastAPI", config) -> None:
     from enlace_auth.appmeta import make_appmeta_can_edit, make_appmeta_router
 
     app_meta_cfg = getattr(config, "app_meta", None)
-    editors = tuple(getattr(app_meta_cfg, "editors", ()) or ()) or admin_emails
+    explicit_editors = tuple(getattr(app_meta_cfg, "editors", ()) or ())
     if getattr(app_meta_cfg, "store_path", None):
         overlay_factory = make_file_store_factory(str(app_meta_cfg.store_path))
     else:
         overlay_factory = platform_factory  # beside sessions/users/grants
     overlay_store = overlay_factory("app_meta")
-    can_edit_meta = make_appmeta_can_edit(editors)
+    # Only an explicit editor list is widened to both spellings: the admin
+    # default stays exactly what the admin check admits (#45 review).
+    can_edit_meta = make_appmeta_can_edit(
+        explicit_editors or admin_emails, widen=bool(explicit_editors)
+    )
 
     # DI slots read by enlace core (compose._overlay_entry / apps_listing).
     parent.state.app_meta_overlay = overlay_store

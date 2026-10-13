@@ -84,7 +84,24 @@ def bare_address_problem(email: str) -> str | None:
     return None
 
 
-@lru_cache(maxsize=4096)
+#: RFC 5321's limit on a forward path; nothing longer is a deliverable address.
+_MAX_ADDRESS_LENGTH = 254
+
+
+def lowercase_folds_to_ascii(email: str) -> bool:
+    """Whether lowercasing turns a non-ASCII letter of *email* into plain ASCII.
+
+    Such a letter is a look-alike: the lowercased address would name a
+    different, ASCII mailbox than the one written.
+
+    >>> lowercase_folds_to_ascii("\u212aen@corp.com")  # KELVIN SIGN
+    True
+    >>> lowercase_folds_to_ascii("Ken@corp.com"), lowercase_folds_to_ascii("Ünï@x.de")
+    (False, False)
+    """
+    return any(not c.isascii() and c.lower().isascii() for c in email)
+
+
 def account_spellings(email: str) -> tuple[str, ...]:
     """The keys an account for a written *email* may be stored under, as written first.
 
@@ -110,8 +127,18 @@ def account_spellings(email: str) -> tuple[str, ...]:
 
     >>> account_spellings("ann@\uff42\u00fccher.example")  # fullwidth b
     ('ann@ｂücher.example',)
+
+    Lowercasing alone folds a few letters (U+212A KELVIN SIGN -> ``k``); such an
+    entry is not widened either. Over-long strings are not looked at (nor cached).
     """
     written = email.strip().lower()
+    if len(written) > _MAX_ADDRESS_LENGTH or lowercase_folds_to_ascii(email):
+        return (written,)
+    return _canonical_spellings(email.strip(), written)
+
+
+@lru_cache(maxsize=4096)
+def _canonical_spellings(email: str, written: str) -> tuple[str, ...]:
     try:
         unicode_form = normalize_email(email)
         local, _, domain = unicode_form.rpartition("@")
