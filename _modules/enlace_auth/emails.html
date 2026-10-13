@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=1c946a6c"></script>
+    <script src="../../_static/documentation_options.js?v=b8ecee75"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.36" />
+  <meta name="docsearch:version" content="0.1.37" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -706,6 +706,11 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">connector's resource allowlist) must be put in the same form, or an entry</span>
 <span class="sd">spelled the other way silently never matches.</span>
 
+<span class="sd">One fold is refused rather than applied: ``EmailStr`` NFC-composes the local</span>
+<span class="sd">part, but a mail system may deliver a composed and a decomposed local part to two</span>
+<span class="sd">mailboxes, which one key would merge (#51). :func:`normalize_email` refuses a</span>
+<span class="sd">local part that composing would change.</span>
+
 <span class="sd">Two rules keep that safe. A written list entry is widened to both canonical</span>
 <span class="sd">spellings of its address (:func:`account_spellings`); the address an account is</span>
 <span class="sd">keyed under, which may come from an untrusted party (an OAuth provider), is</span>
@@ -714,11 +719,13 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">unicodedata</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">lru_cache</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">"account_spellings"</span><span class="p">,</span>
     <span class="s2">"bare_address_problem"</span><span class="p">,</span>
+    <span class="s2">"local_part_problem"</span><span class="p">,</span>
     <span class="s2">"normalize_email"</span><span class="p">,</span>
     <span class="s2">"resolve_account"</span><span class="p">,</span>
 <span class="p">]</span>
@@ -754,17 +761,38 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Traceback (most recent call last):</span>
 <span class="sd">    ...</span>
 <span class="sd">    ValueError: not a bare email address: 'ann &lt;mallory@evil.com&gt;'</span>
+
+<span class="sd">    Nor is a local part that composing would change (see</span>
+<span class="sd">    :func:`local_part_problem`): the key would name another mailbox's spelling.</span>
+
+<span class="sd">    &gt;&gt;&gt; normalize_email("jose\u0301@example.com")  # doctest: +ELLIPSIS</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">    ...</span>
+<span class="sd">    ValueError: the part before @ is not in composed (NFC) form...</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidationError</span>
 
     <span class="n">bare</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">bare_address_problem</span><span class="p">(</span><span class="n">bare</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"not a bare email address: </span><span class="si">{</span><span class="n">email</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"not a bare email address: </span><span class="si">{</span><span class="n">_shown</span><span class="p">(</span><span class="n">email</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">problem</span> <span class="o">:=</span> <span class="n">local_part_problem</span><span class="p">(</span><span class="n">bare</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">problem</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">_shown</span><span class="p">(</span><span class="n">email</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_email_adapter</span><span class="p">()</span><span class="o">.</span><span class="n">validate_python</span><span class="p">(</span><span class="n">bare</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
     <span class="k">except</span> <span class="n">ValidationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"not a valid email address: </span><span class="si">{</span><span class="n">email</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span></div>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"not a valid email address: </span><span class="si">{</span><span class="n">_shown</span><span class="p">(</span><span class="n">email</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span></div>
 
+
+
+<span class="c1">#: How much of a refused address an error message repeats back.</span>
+<span class="n">_SHOWN_LENGTH</span> <span class="o">=</span> <span class="mi">80</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_shown</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""*email* for an error message: quoted, and cut short if it is long."""</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">email</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">_SHOWN_LENGTH</span><span class="p">:</span>
+        <span class="n">email</span> <span class="o">=</span> <span class="n">email</span><span class="p">[:</span> <span class="n">_SHOWN_LENGTH</span> <span class="o">-</span> <span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"..."</span>
+    <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="bare_address_problem">
@@ -786,6 +814,44 @@ window.runMermaid = runMermaid;</script>
     <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">at</span> <span class="ow">and</span> <span class="n">local</span> <span class="ow">and</span> <span class="n">domain</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"@"</span> <span class="ow">in</span> <span class="n">domain</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">"not an email address"</span>
     <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="local_part_problem">
+<a class="viewcode-back" href="../../_autosummary/enlace_auth.emails.html#enlace_auth.emails.local_part_problem">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">local_part_problem</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Why keying *email* would change its local part's characters, or ``None``.</span>
+
+<span class="sd">    ``EmailStr`` NFC-composes the local part. Mail systems that compare local</span>
+<span class="sd">    parts as bytes (a Postfix/Dovecot host with ``SMTPUTF8``, for one) deliver</span>
+<span class="sd">    ``josé`` composed and ``josé`` decomposed to two mailboxes, so composing</span>
+<span class="sd">    would map both onto one account (#51). A decomposed local part is refused,</span>
+<span class="sd">    not folded, as an OAuth callback's address is never folded.</span>
+
+<span class="sd">    &gt;&gt;&gt; local_part_problem("jos\u00e9@example.com") is None</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; local_part_problem("jose\u0301@example.com")</span>
+<span class="sd">    'the part before @ is not in composed (NFC) form (U+0301); retype the address'</span>
+
+<span class="sd">    The two spellings look identical, so the message names the first character</span>
+<span class="sd">    to blame.</span>
+<span class="sd">    """</span>
+    <span class="n">local</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">rpartition</span><span class="p">(</span><span class="s2">"@"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">unicodedata</span><span class="o">.</span><span class="n">is_normalized</span><span class="p">(</span><span class="s2">"NFC"</span><span class="p">,</span> <span class="n">local</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">culprit</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">c</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">local</span>
+            <span class="k">if</span> <span class="n">unicodedata</span><span class="o">.</span><span class="n">combining</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">unicodedata</span><span class="o">.</span><span class="n">is_normalized</span><span class="p">(</span><span class="s2">"NFC"</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="p">),</span>
+        <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">named</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">" (U+</span><span class="si">{</span><span class="nb">ord</span><span class="p">(</span><span class="n">culprit</span><span class="p">)</span><span class="si">:</span><span class="s2">04X</span><span class="si">}</span><span class="s2">)"</span> <span class="k">if</span> <span class="n">culprit</span> <span class="k">else</span> <span class="s2">""</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"the part before @ is not in composed (NFC) form</span><span class="si">{</span><span class="n">named</span><span class="si">}</span><span class="s2">; "</span>
+        <span class="s2">"retype the address"</span>
+    <span class="p">)</span></div>
 
 
 

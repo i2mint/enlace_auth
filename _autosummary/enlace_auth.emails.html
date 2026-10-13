@@ -43,7 +43,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=1c946a6c"></script>
+    <script src="../_static/documentation_options.js?v=b8ecee75"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.36" />
+  <meta name="docsearch:version" content="0.1.37" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -412,6 +412,10 @@ then lowercased): <code class="docutils literal notranslate"><span class="pre">E
 an address is compared against (the admin list, the registration allowlist, a
 connector’s resource allowlist) must be put in the same form, or an entry
 spelled the other way silently never matches.</p>
+<p>One fold is refused rather than applied: <code class="docutils literal notranslate"><span class="pre">EmailStr</span></code> NFC-composes the local
+part, but a mail system may deliver a composed and a decomposed local part to two
+mailboxes, which one key would merge (#51). <a class="reference internal" href="#enlace_auth.emails.normalize_email" title="enlace_auth.emails.normalize_email"><code class="xref py py-func docutils literal notranslate"><span class="pre">normalize_email()</span></code></a> refuses a
+local part that composing would change.</p>
 <p>Two rules keep that safe. A written list entry is widened to both canonical
 spellings of its address (<a class="reference internal" href="#enlace_auth.emails.account_spellings" title="enlace_auth.emails.account_spellings"><code class="xref py py-func docutils literal notranslate"><span class="pre">account_spellings()</span></code></a>); the address an account is
 keyed under, which may come from an untrusted party (an OAuth provider), is
@@ -425,10 +429,13 @@ compared exactly as stored and never normalized.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.emails.bare_address_problem" title="enlace_auth.emails.bare_address_problem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bare_address_problem</span></code></a>(email)</p></td>
 <td><p>Why <em>email</em> is not a bare <code class="docutils literal notranslate"><span class="pre">local&#64;domain</span></code> address, or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.emails.normalize_email" title="enlace_auth.emails.normalize_email"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_email</span></code></a>(email)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.emails.local_part_problem" title="enlace_auth.emails.local_part_problem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">local_part_problem</span></code></a>(email)</p></td>
+<td><p>Why keying <em>email</em> would change its local part's characters, or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.emails.normalize_email" title="enlace_auth.emails.normalize_email"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_email</span></code></a>(email)</p></td>
 <td><p>The key an account for <em>email</em> is stored under; <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if invalid.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.emails.resolve_account" title="enlace_auth.emails.resolve_account"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resolve_account</span></code></a>(email, exists)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.emails.resolve_account" title="enlace_auth.emails.resolve_account"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resolve_account</span></code></a>(email, exists)</p></td>
 <td><p>The existing account key a written <em>email</em> names, or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></td>
 </tr>
 </tbody>
@@ -490,6 +497,30 @@ refuses what is not one plain address, such as the display-name form.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.emails.local_part_problem">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.emails.</span></span><span class="sig-name descname"><span class="pre">local_part_problem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">email</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/emails.html#local_part_problem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.emails.local_part_problem" title="Link to this definition">#</a></dt>
+<dd><p>Why keying <em>email</em> would change its local part’s characters, or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">EmailStr</span></code> NFC-composes the local part. Mail systems that compare local
+parts as bytes (a Postfix/Dovecot host with <code class="docutils literal notranslate"><span class="pre">SMTPUTF8</span></code>, for one) deliver
+<code class="docutils literal notranslate"><span class="pre">josé</span></code> composed and <code class="docutils literal notranslate"><span class="pre">josé</span></code> decomposed to two mailboxes, so composing
+would map both onto one account (#51). A decomposed local part is refused,
+not folded, as an OAuth callback’s address is never folded.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">local_part_problem</span><span class="p">(</span><span class="s2">"josé@example.com"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">local_part_problem</span><span class="p">(</span><span class="s2">"josé@example.com"</span><span class="p">)</span>
+<span class="go">'the part before @ is not in composed (NFC) form (U+0301); retype the address'</span>
+</pre></div>
+</div>
+<p>The two spellings look identical, so the message names the first character
+to blame.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="enlace_auth.emails.normalize_email">
 <span class="sig-prename descclassname"><span class="pre">enlace_auth.emails.</span></span><span class="sig-name descname"><span class="pre">normalize_email</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">email</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/emails.html#normalize_email"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.emails.normalize_email" title="Link to this definition">#</a></dt>
 <dd><p>The key an account for <em>email</em> is stored under; <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if invalid.</p>
@@ -512,6 +543,14 @@ grant to someone other than the one written down.</p>
 <span class="gt">Traceback (most recent call last):</span>
 <span class="c">...</span>
 <span class="gr">ValueError</span>: <span class="n">not a bare email address: 'ann &lt;mallory@evil.com&gt;'</span>
+</pre></div>
+</div>
+<p>Nor is a local part that composing would change (see
+<a class="reference internal" href="#enlace_auth.emails.local_part_problem" title="enlace_auth.emails.local_part_problem"><code class="xref py py-func docutils literal notranslate"><span class="pre">local_part_problem()</span></code></a>): the key would name another mailbox’s spelling.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">normalize_email</span><span class="p">(</span><span class="s2">"josé@example.com"</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">ValueError</span>: <span class="n">the part before @ is not in composed (NFC) form...</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -587,6 +626,7 @@ other spelling. <em>exists</em> is <code class="docutils literal notranslate"><s
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.emails.account_spellings"><code class="docutils literal notranslate"><span class="pre">account_spellings()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.emails.bare_address_problem"><code class="docutils literal notranslate"><span class="pre">bare_address_problem()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.emails.local_part_problem"><code class="docutils literal notranslate"><span class="pre">local_part_problem()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.emails.normalize_email"><code class="docutils literal notranslate"><span class="pre">normalize_email()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.emails.resolve_account"><code class="docutils literal notranslate"><span class="pre">resolve_account()</span></code></a></li>
 </ul>

@@ -1,4 +1,4 @@
-> built 2026-10-13 10:40 UTC from 0dcde0d (main) · enlace_auth 0.1.36. Details: build_info.json
+> built 2026-10-13 10:53 UTC from e35a10c (main) · enlace_auth 0.1.37. Details: build_info.json
 
 # index.html.md
 
@@ -2267,6 +2267,11 @@ an address is compared against (the admin list, the registration allowlist, a
 connector’s resource allowlist) must be put in the same form, or an entry
 spelled the other way silently never matches.
 
+One fold is refused rather than applied: `EmailStr` NFC-composes the local
+part, but a mail system may deliver a composed and a decomposed local part to two
+mailboxes, which one key would merge (#51). [`normalize_email()`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.normalize_email) refuses a
+local part that composing would change.
+
 Two rules keep that safe. A written list entry is widened to both canonical
 spellings of its address ([`account_spellings()`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.account_spellings)); the address an account is
 keyed under, which may come from an untrusted party (an OAuth provider), is
@@ -2277,6 +2282,7 @@ compared exactly as stored and never normalized.
 | [`account_spellings`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.account_spellings)(email)       | The keys an account for a written *email* may be stored under, as written first.   |
 |---------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
 | [`bare_address_problem`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.bare_address_problem)(email)    | Why *email* is not a bare `local@domain` address, or `None`.                       |
+| [`local_part_problem`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.local_part_problem)(email)      | Why keying *email* would change its local part's characters, or `None`.            |
 | [`normalize_email`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.normalize_email)(email)         | The key an account for *email* is stored under; `ValueError` if invalid.           |
 | [`resolve_account`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.resolve_account)(email, exists) | The existing account key a written *email* names, or `None`.                       |
 
@@ -2334,6 +2340,29 @@ True
 'not a bare email address'
 ```
 
+### enlace_auth.emails.local_part_problem(email)
+
+Why keying *email* would change its local part’s characters, or `None`.
+
+`EmailStr` NFC-composes the local part. Mail systems that compare local
+parts as bytes (a Postfix/Dovecot host with `SMTPUTF8`, for one) deliver
+`josé` composed and `josé` decomposed to two mailboxes, so composing
+would map both onto one account (#51). A decomposed local part is refused,
+not folded, as an OAuth callback’s address is never folded.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+```pycon
+>>> local_part_problem("josé@example.com") is None
+True
+>>> local_part_problem("josé@example.com")
+'the part before @ is not in composed (NFC) form (U+0301); retype the address'
+```
+
+The two spellings look identical, so the message names the first character
+to blame.
+
 ### enlace_auth.emails.normalize_email(email)
 
 The key an account for *email* is stored under; `ValueError` if invalid.
@@ -2358,6 +2387,16 @@ grant to someone other than the one written down.
 Traceback (most recent call last):
 ...
 ValueError: not a bare email address: 'ann <mallory@evil.com>'
+```
+
+Nor is a local part that composing would change (see
+[`local_part_problem()`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.local_part_problem)): the key would name another mailbox’s spelling.
+
+```pycon
+>>> normalize_email("josé@example.com")
+Traceback (most recent call last):
+...
+ValueError: the part before @ is not in composed (NFC) form...
 ```
 
 ### enlace_auth.emails.resolve_account(email, exists)
@@ -2894,18 +2933,16 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-13 10:40 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/0dcde0dcc682ebcc4e8917cb5869e33ae1112b9c"><code>0dcde0d</code></a> on branch <code>main</code>, for **enlace_auth 0.1.36** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 10:53 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/e35a10c4e24b992df52c495c3db0518145c03d41"><code>e35a10c</code></a> on branch <code>main</code>, for **enlace_auth 0.1.37** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.1.36) is behind the latest release on PyPI (0.1.37): `pip install enlace_auth` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/0dcde0dcc682ebcc4e8917cb5869e33ae1112b9c"><code>0dcde0dcc682ebcc4e8917cb5869e33ae1112b9c</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/e35a10c4e24b992df52c495c3db0518145c03d41"><code>e35a10c4e24b992df52c495c3db0518145c03d41</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -2916,9 +2953,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38384682665">38384682665</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38386110608">38386110608</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>0dcde0dcc682ebcc4e8917cb5869e33ae1112b9c</code> (in the history of the built commit) |
+| Event commit | <code>e35a10c4e24b992df52c495c3db0518145c03d41</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2943,13 +2980,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.37/">0.1.37</a>, newer than the documented version (0.1.36).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.37/">0.1.37</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 0dcde0dcc682ebcc4e8917cb5869e33ae1112b9c
+git checkout e35a10c4e24b992df52c495c3db0518145c03d41
 pip install "epythet==0.2.15"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
