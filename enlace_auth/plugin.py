@@ -124,6 +124,11 @@ def _make_file_claim(claim_dir, *, keep_seconds: int = 600):
             # Fail CLOSED: if we cannot prove we are the only claimant, do not
             # pretend we are. The caller treats this as "already consumed",
             # which costs one re-authorization rather than risking a double mint.
+            # Logged: an unwritable claim dir would otherwise refuse every grant
+            # or consent with nothing in the journal (review of #59).
+            _logger.error(
+                "claim dir %s is not writable; refusing", claim_dir, exc_info=True
+            )
             return False
         os.close(fd)
         _sweep(time.time())
@@ -587,6 +592,18 @@ def wire(parent: "FastAPI", config) -> None:
                 # mint a live successor and reuse detection never fires.
                 claim_once=_oauth_claim,
                 release_claim=_oauth_claim.release,
+                # A consent approval is one-shot (#55). The claim is keyed on the
+                # request's binding, and a reload re-mints a token for the same
+                # binding at any time in the session, so the claim must last as
+                # long as the session can: aged out after only consent_ttl, a token
+                # re-minted just before then would approve the request again.
+                consent_claim_once=_make_file_claim(
+                    Path(os.path.expanduser(auth_cfg.stores.path))
+                    / "oauth_consent_claims",
+                    keep_seconds=max(
+                        osc.consent_ttl_seconds, auth_cfg.session_max_age_seconds
+                    ),
+                ),
                 # Re-checked on every refresh: a deleted account must not keep
                 # renewing its own connector session.
                 is_active=_make_is_active(user_backend),

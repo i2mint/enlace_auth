@@ -167,3 +167,90 @@ def test_a_non_positive_consent_ttl_is_refused(tmp_path, ttl):
         _build(tmp_path, consent_ttl=ttl)
     with pytest.raises(ValueError):
         OAuthServerConfig(consent_ttl_seconds=ttl)
+
+
+# --- One click, one code (#55) ---------------------------------------------
+
+
+def test_a_token_is_spent_by_its_first_submit(tmp_path):
+    """A double-click (or a replayed POST) gets the stale page, not a second code."""
+    client, cookie = _build(tmp_path)
+    cid = _register(client)
+    _, challenge = _pkce()
+    csrf = _consent_csrf(client, cookie, cid=cid, challenge=challenge)
+    first = _post(client, cookie, csrf, client_id=cid, code_challenge=challenge)
+    assert first.status_code == 302 and "code=" in first.headers["location"]
+    _no_code(_post(client, cookie, csrf, client_id=cid, code_challenge=challenge))
+
+
+def test_a_deny_spends_the_token_too(tmp_path):
+    client, cookie = _build(tmp_path)
+    cid = _register(client)
+    _, challenge = _pkce()
+    csrf = _consent_csrf(client, cookie, cid=cid, challenge=challenge)
+    denied = _post(
+        client, cookie, csrf, client_id=cid, code_challenge=challenge, decision="deny"
+    )
+    assert denied.status_code == 302 and "access_denied" in denied.headers["location"]
+    _no_code(_post(client, cookie, csrf, client_id=cid, code_challenge=challenge))
+
+
+def test_a_new_request_gets_its_own_approval(tmp_path):
+    """Spending one request's approval leaves the next authorization untouched."""
+    client, cookie = _build(tmp_path)
+    cid = _register(client)
+    for _ in range(2):
+        _, challenge = _pkce()
+        csrf = _consent_csrf(client, cookie, cid=cid, challenge=challenge)
+        r = _post(client, cookie, csrf, client_id=cid, code_challenge=challenge)
+        assert r.status_code == 302 and "code=" in r.headers["location"]
+
+
+def test_a_forged_token_never_reaches_the_claim(tmp_path):
+    """Only a verified token spends anything: junk must not burn a real approval."""
+    claimed = []
+    client, cookie = _build(
+        tmp_path, consent_claim_once=lambda k: claimed.append(k) or True
+    )
+    cid = _register(client)
+    _, challenge = _pkce()
+    _no_code(_post(client, cookie, "junk", client_id=cid, code_challenge=challenge))
+    assert claimed == []
+    csrf = _consent_csrf(client, cookie, cid=cid, challenge=challenge)
+    _post(client, cookie, csrf, client_id=cid, code_challenge=challenge)
+    assert len(claimed) == 1 and len(claimed[0]) == 64  # a sha256 hex filename
+
+
+def test_the_injected_consent_claim_decides(tmp_path):
+    """The platform injects a cross-process claim; a False from it is stale."""
+    client, cookie = _build(tmp_path, consent_claim_once=lambda k: False)
+    cid = _register(client)
+    _, challenge = _pkce()
+    csrf = _consent_csrf(client, cookie, cid=cid, challenge=challenge)
+    _no_code(_post(client, cookie, csrf, client_id=cid, code_challenge=challenge))
+
+
+def test_a_reloaded_page_cannot_reapprove_after_consent_ttl(tmp_path, monkeypatch):
+    """Review of #59: a reload re-mints a token for the same binding at any time.
+
+    With a claim that aged out after consent_ttl, a token minted just before then
+    approved the request a second time. The platform keeps consent claims for the
+    session's lifetime instead (plugin.py), which this mirrors.
+    """
+    from enlace_auth.plugin import _make_file_claim
+
+    ttl, session_max_age = 60, 86400
+    claim = _make_file_claim(
+        tmp_path / "consent_claims", keep_seconds=max(ttl, session_max_age)
+    )
+    client, cookie = _build(tmp_path, consent_claim_once=claim, consent_ttl=ttl)
+    cid = _register(client)
+    _, challenge = _pkce()
+    csrf = _consent_csrf(client, cookie, cid=cid, challenge=challenge)
+    first = _post(client, cookie, csrf, client_id=cid, code_challenge=challenge)
+    assert first.status_code == 302 and "code=" in first.headers["location"]
+    t0 = time.time()
+    monkeypatch.setattr(time, "time", lambda: t0 + ttl - 5)
+    reloaded = _consent_csrf(client, cookie, cid=cid, challenge=challenge)
+    monkeypatch.setattr(time, "time", lambda: t0 + ttl + 2)
+    _no_code(_post(client, cookie, reloaded, client_id=cid, code_challenge=challenge))
