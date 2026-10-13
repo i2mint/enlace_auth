@@ -43,7 +43,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=34399df3"></script>
+    <script src="_static/documentation_options.js?v=904119ea"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -56,7 +56,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.28" />
+  <meta name="docsearch:version" content="0.1.29" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -388,10 +388,13 @@ connector — the <code class="docutils literal notranslate"><span class="pre">r
 <span class="n">refresh_token_ttl_seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2592000</span>
 <span class="n">refresh_family_max_lifetime_seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">7776000</span>
 
-<span class="c1"># Who may authorize for each connector. A resource that is not listed is open</span>
-<span class="c1"># to any authenticated user; a listed one denies everyone else.</span>
+<span class="c1"># Who may authorize for each connector. Fails closed: once this table lists</span>
+<span class="c1"># anything, a resource it does not list is refused to everyone, so a new or</span>
+<span class="c1"># renamed connector stays shut until it is added here. "*" opens a resource to</span>
+<span class="c1"># every authenticated account, and has to be written out.</span>
 <span class="k">[auth.oauth_server.resource_allowlist]</span>
 <span class="s2">"https://apps.example.com/connector-a-mcp"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"alice@example.com"</span><span class="p">]</span>
+<span class="s2">"https://apps.example.com/connector-b-mcp"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"*"</span><span class="p">]</span>
 
 <span class="c1"># The name the consent screen shows, keyed by the SAME resource URL. A resource</span>
 <span class="c1"># with no entry gets generic copy that names no product — never default to one</span>
@@ -565,7 +568,7 @@ ships separately as a normal enlaced app.</p>
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-10-12 02:18 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/76111ddcfda01bc4373f8ee49e72b8bd04afcdb9">76111dd</a> (main) · enlace_auth 0.1.28 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-10-13 03:27 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/664e0594d06f0bc54120132f45873457c18d7c37">664e059</a> (main) · enlace_auth 0.1.29 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               

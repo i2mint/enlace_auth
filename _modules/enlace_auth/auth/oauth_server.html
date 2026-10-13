@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=34399df3"></script>
+    <script src="../../../_static/documentation_options.js?v=904119ea"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.28" />
+  <meta name="docsearch:version" content="0.1.29" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -767,7 +767,11 @@ window.runMermaid = runMermaid;</script>
 
 <span class="n">_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">"enlace_auth"</span><span class="p">)</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"OAuthKeys"</span><span class="p">,</span> <span class="s2">"make_oauth_server_router"</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"ANY_ACCOUNT"</span><span class="p">,</span> <span class="s2">"OAuthKeys"</span><span class="p">,</span> <span class="s2">"make_oauth_server_router"</span><span class="p">]</span>
+
+<span class="c1">#: A ``resource_allowlist`` entry that opens a resource to every authenticated</span>
+<span class="c1">#: account. Must be written out: an unlisted resource is refused (fail-closed).</span>
+<span class="n">ANY_ACCOUNT</span> <span class="o">=</span> <span class="s2">"*"</span>
 
 <span class="n">_REFRESH_SALT</span> <span class="o">=</span> <span class="s2">"oauth-refresh"</span>  <span class="c1"># domain separation for refresh-token hashing</span>
 
@@ -980,10 +984,15 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    should stay short.</span>
 
 <span class="sd">    *resource_allowlist* maps a connector resource URL to the emails permitted to</span>
-<span class="sd">    authorize for it. A resource **not** in the map is open to any authenticated</span>
-<span class="sd">    user (back-compatible); a resource that **is** in the map denies everyone</span>
-<span class="sd">    else — per-connector access control (e.g. restrict a private connector to its</span>
-<span class="sd">    own staff). Secure to key on the resource: the connector only accepts tokens</span>
+<span class="sd">    authorize for it — per-connector access control (e.g. restrict a private</span>
+<span class="sd">    connector to its own staff). Once it lists anything it **fails closed**: a</span>
+<span class="sd">    resource that is not in the map is refused to everyone, at authorization, code</span>
+<span class="sd">    exchange and every refresh, so a connector that is newly added, renamed or</span>
+<span class="sd">    mounted at a second path stays shut until someone lists it. Opening a resource</span>
+<span class="sd">    to every authenticated account is an explicit act: list it with</span>
+<span class="sd">    ``[ANY_ACCOUNT]`` (``["*"]``). Only an empty or absent map leaves every</span>
+<span class="sd">    resource open, which is the pre-allowlist behaviour and is logged as a</span>
+<span class="sd">    warning. Secure to key on the resource: the connector only accepts tokens</span>
 <span class="sd">    whose ``aud`` is that exact resource, so a denied user can't get a usable token</span>
 <span class="sd">    another way.</span>
 
@@ -1021,9 +1030,23 @@ window.runMermaid = runMermaid;</script>
     <span class="n">_code_sweep_cursor</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"pos"</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
     <span class="n">_refresh_sweep_cursor</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"pos"</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
 
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_allowlist</span><span class="p">:</span>
+        <span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"oauth: no resource_allowlist configured, so every resource is open to "</span>
+            <span class="s2">"every authenticated account; list each connector to restrict it"</span>
+        <span class="p">)</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_resource_allowed</span><span class="p">(</span><span class="n">resource</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="n">allowed</span> <span class="o">=</span> <span class="n">_allowlist</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_norm_resource</span><span class="p">(</span><span class="n">resource</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">allowed</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">allowed</span>
+<span class="w">        </span><span class="sd">"""Whether *email* may hold a token for *resource* (see the docstring)."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_allowlist</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">_norm_resource</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">key</span><span class="p">:</span>  <span class="c1"># no resource names no connector; a "/" key must not open it</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">allowed</span> <span class="o">=</span> <span class="n">_allowlist</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">allowed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">ANY_ACCOUNT</span> <span class="ow">in</span> <span class="n">allowed</span> <span class="ow">or</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">allowed</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_narrow_scope</span><span class="p">(</span><span class="n">requested</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Intersect a requested scope with what this server actually supports.</span>
@@ -1579,6 +1602,10 @@ window.runMermaid = runMermaid;</script>
         <span class="n">revoked_before</span> <span class="o">=</span> <span class="n">subject_revoked_before</span><span class="p">(</span><span class="n">refresh_store</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s2">"email"</span><span class="p">])</span>
         <span class="n">code_iat</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"iat"</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s2">"exp"</span><span class="p">]</span> <span class="o">-</span> <span class="n">code_ttl</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">revoked_before</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">code_iat</span> <span class="o">&lt;=</span> <span class="n">revoked_before</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">JSONResponse</span><span class="p">({</span><span class="s2">"error"</span><span class="p">:</span> <span class="s2">"invalid_grant"</span><span class="p">},</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
+        <span class="c1"># The consent step checked this too; re-checking at issuance means no</span>
+        <span class="c1"># code minted under another configuration becomes a token under this one.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_resource_allowed</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">"resource"</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s2">"email"</span><span class="p">]):</span>
             <span class="k">return</span> <span class="n">JSONResponse</span><span class="p">({</span><span class="s2">"error"</span><span class="p">:</span> <span class="s2">"invalid_grant"</span><span class="p">},</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
 
         <span class="n">body</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_token_payload</span><span class="p">(</span>

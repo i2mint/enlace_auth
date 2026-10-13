@@ -41,6 +41,11 @@ POST /auth/oauth/token                            code + PKCE → JWT
                                                   refresh_token → JWT
 ```
 
+### Module Attributes
+
+| [`ANY_ACCOUNT`](#enlace_auth.auth.oauth_server.ANY_ACCOUNT)   | A `resource_allowlist` entry that opens a resource to every authenticated account.   |
+|----------------------------------------------------------------|--------------------------------------------------------------------------------------|
+
 ### Functions
 
 | [`make_oauth_server_router`](#enlace_auth.auth.oauth_server.make_oauth_server_router)(\*, session_store, ...)   | Build the OAuth 2.1 authorization-server router (see the module docstring).   |
@@ -50,6 +55,11 @@ POST /auth/oauth/token                            code + PKCE → JWT
 
 | [`OAuthKeys`](#enlace_auth.auth.oauth_server.OAuthKeys)(key_dir)   | The server's RSA signing key — persisted, exposed as a JWKS.   |
 |-----------------------------------------------------------------------|----------------------------------------------------------------|
+
+### enlace_auth.auth.oauth_server.ANY_ACCOUNT *= '\*'*
+
+A `resource_allowlist` entry that opens a resource to every authenticated
+account. Must be written out: an unlisted resource is refused (fail-closed).
 
 ### *class* enlace_auth.auth.oauth_server.OAuthKeys(key_dir)
 
@@ -103,10 +113,15 @@ only way a session ends before its own expiry, which is why access tokens
 should stay short.
 
 *resource_allowlist* maps a connector resource URL to the emails permitted to
-authorize for it. A resource **not** in the map is open to any authenticated
-user (back-compatible); a resource that **is** in the map denies everyone
-else — per-connector access control (e.g. restrict a private connector to its
-own staff). Secure to key on the resource: the connector only accepts tokens
+authorize for it — per-connector access control (e.g. restrict a private
+connector to its own staff). Once it lists anything it **fails closed**: a
+resource that is not in the map is refused to everyone, at authorization, code
+exchange and every refresh, so a connector that is newly added, renamed or
+mounted at a second path stays shut until someone lists it. Opening a resource
+to every authenticated account is an explicit act: list it with
+`[ANY_ACCOUNT]` (`["*"]`). Only an empty or absent map leaves every
+resource open, which is the pre-allowlist behaviour and is logged as a
+warning. Secure to key on the resource: the connector only accepts tokens
 whose `aud` is that exact resource, so a denied user can’t get a usable token
 another way.
 

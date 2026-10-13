@@ -43,7 +43,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=34399df3"></script>
+    <script src="../_static/documentation_options.js?v=904119ea"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.28" />
+  <meta name="docsearch:version" content="0.1.29" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -443,6 +443,15 @@ POST /auth/oauth/token                            code + PKCE → JWT
                                                   refresh_token → JWT
 </pre></div>
 </div>
+<p class="rubric">Module Attributes</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.oauth_server.ANY_ACCOUNT" title="enlace_auth.auth.oauth_server.ANY_ACCOUNT"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ANY_ACCOUNT</span></code></a></p></td>
+<td><p>A <code class="docutils literal notranslate"><span class="pre">resource_allowlist</span></code> entry that opens a resource to every authenticated account.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
 <p class="rubric">Functions</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
@@ -461,6 +470,13 @@ POST /auth/oauth/token                            code + PKCE → JWT
 </tbody>
 </table>
 </div>
+<dl class="py data">
+<dt class="sig sig-object py" id="enlace_auth.auth.oauth_server.ANY_ACCOUNT">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.oauth_server.</span></span><span class="sig-name descname"><span class="pre">ANY_ACCOUNT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'*'</span></span><a class="headerlink" href="#enlace_auth.auth.oauth_server.ANY_ACCOUNT" title="Link to this definition">#</a></dt>
+<dd><p>A <code class="docutils literal notranslate"><span class="pre">resource_allowlist</span></code> entry that opens a resource to every authenticated
+account. Must be written out: an unlisted resource is refused (fail-closed).</p>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="enlace_auth.auth.oauth_server.OAuthKeys">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.oauth_server.</span></span><span class="sig-name descname"><span class="pre">OAuthKeys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/oauth_server.html#OAuthKeys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.oauth_server.OAuthKeys" title="Link to this definition">#</a></dt>
@@ -510,10 +526,15 @@ every refresh — with no denylist and no revocation endpoint, they are the
 only way a session ends before its own expiry, which is why access tokens
 should stay short.</p>
 <p><em>resource_allowlist</em> maps a connector resource URL to the emails permitted to
-authorize for it. A resource <strong>not</strong> in the map is open to any authenticated
-user (back-compatible); a resource that <strong>is</strong> in the map denies everyone
-else — per-connector access control (e.g. restrict a private connector to its
-own staff). Secure to key on the resource: the connector only accepts tokens
+authorize for it — per-connector access control (e.g. restrict a private
+connector to its own staff). Once it lists anything it <strong>fails closed</strong>: a
+resource that is not in the map is refused to everyone, at authorization, code
+exchange and every refresh, so a connector that is newly added, renamed or
+mounted at a second path stays shut until someone lists it. Opening a resource
+to every authenticated account is an explicit act: list it with
+<code class="docutils literal notranslate"><span class="pre">[ANY_ACCOUNT]</span></code> (<code class="docutils literal notranslate"><span class="pre">[&quot;*&quot;]</span></code>). Only an empty or absent map leaves every
+resource open, which is the pre-allowlist behaviour and is logged as a
+warning. Secure to key on the resource: the connector only accepts tokens
 whose <code class="docutils literal notranslate"><span class="pre">aud</span></code> is that exact resource, so a denied user can’t get a usable token
 another way.</p>
 <p><em>resource_display_names</em> maps the <strong>same</strong> resource URL to the human name the
@@ -579,6 +600,7 @@ it.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.oauth_server.ANY_ACCOUNT"><code class="docutils literal notranslate"><span class="pre">ANY_ACCOUNT</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.oauth_server.OAuthKeys"><code class="docutils literal notranslate"><span class="pre">OAuthKeys</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.oauth_server.make_oauth_server_router"><code class="docutils literal notranslate"><span class="pre">make_oauth_server_router()</span></code></a></li>
 </ul>

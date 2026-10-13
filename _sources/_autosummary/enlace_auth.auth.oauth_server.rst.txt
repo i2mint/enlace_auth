@@ -4,6 +4,12 @@ enlace\_auth.auth.oauth\_server
 .. automodule:: enlace_auth.auth.oauth_server
 
    
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      ANY_ACCOUNT
+   
    .. rubric:: Functions
 
    .. autosummary::

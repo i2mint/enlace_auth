@@ -1,4 +1,4 @@
-> built 2026-10-12 02:18 UTC from 76111dd (main) · enlace_auth 0.1.28. Details: build_info.json
+> built 2026-10-13 03:27 UTC from 664e059 (main) · enlace_auth 0.1.29. Details: build_info.json
 
 # index.html.md
 
@@ -79,10 +79,13 @@ access_token_ttl_seconds = 3600
 refresh_token_ttl_seconds = 2592000
 refresh_family_max_lifetime_seconds = 7776000
 
-# Who may authorize for each connector. A resource that is not listed is open
-# to any authenticated user; a listed one denies everyone else.
+# Who may authorize for each connector. Fails closed: once this table lists
+# anything, a resource it does not list is refused to everyone, so a new or
+# renamed connector stays shut until it is added here. "*" opens a resource to
+# every authenticated account, and has to be written out.
 [auth.oauth_server.resource_allowlist]
 "https://apps.example.com/connector-a-mcp" = ["alice@example.com"]
+"https://apps.example.com/connector-b-mcp" = ["*"]
 
 # The name the consent screen shows, keyed by the SAME resource URL. A resource
 # with no entry gets generic copy that names no product — never default to one
@@ -1178,6 +1181,11 @@ POST /auth/oauth/token                            code + PKCE → JWT
                                                   refresh_token → JWT
 ```
 
+### Module Attributes
+
+| [`ANY_ACCOUNT`](_autosummary/enlace_auth.auth.oauth_server.html.md#enlace_auth.auth.oauth_server.ANY_ACCOUNT)   | A `resource_allowlist` entry that opens a resource to every authenticated account.   |
+|----------------------------------------------------------------|--------------------------------------------------------------------------------------|
+
 ### Functions
 
 | [`make_oauth_server_router`](_autosummary/enlace_auth.auth.oauth_server.html.md#enlace_auth.auth.oauth_server.make_oauth_server_router)(\*, session_store, ...)   | Build the OAuth 2.1 authorization-server router (see the module docstring).   |
@@ -1187,6 +1195,11 @@ POST /auth/oauth/token                            code + PKCE → JWT
 
 | [`OAuthKeys`](_autosummary/enlace_auth.auth.oauth_server.html.md#enlace_auth.auth.oauth_server.OAuthKeys)(key_dir)   | The server's RSA signing key — persisted, exposed as a JWKS.   |
 |-----------------------------------------------------------------------|----------------------------------------------------------------|
+
+### enlace_auth.auth.oauth_server.ANY_ACCOUNT *= '\*'*
+
+A `resource_allowlist` entry that opens a resource to every authenticated
+account. Must be written out: an unlisted resource is refused (fail-closed).
 
 ### *class* enlace_auth.auth.oauth_server.OAuthKeys(key_dir)
 
@@ -1240,10 +1253,15 @@ only way a session ends before its own expiry, which is why access tokens
 should stay short.
 
 *resource_allowlist* maps a connector resource URL to the emails permitted to
-authorize for it. A resource **not** in the map is open to any authenticated
-user (back-compatible); a resource that **is** in the map denies everyone
-else — per-connector access control (e.g. restrict a private connector to its
-own staff). Secure to key on the resource: the connector only accepts tokens
+authorize for it — per-connector access control (e.g. restrict a private
+connector to its own staff). Once it lists anything it **fails closed**: a
+resource that is not in the map is refused to everyone, at authorization, code
+exchange and every refresh, so a connector that is newly added, renamed or
+mounted at a second path stays shut until someone lists it. Opening a resource
+to every authenticated account is an explicit act: list it with
+`[ANY_ACCOUNT]` (`["*"]`). Only an empty or absent map leaves every
+resource open, which is the pre-allowlist behaviour and is logged as a
+warning. Secure to key on the resource: the connector only accepts tokens
 whose `aud` is that exact resource, so a denied user can’t get a usable token
 another way.
 
@@ -2568,18 +2586,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-12 02:18 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/76111ddcfda01bc4373f8ee49e72b8bd04afcdb9"><code>76111dd</code></a> on branch <code>main</code>, for **enlace_auth 0.1.28** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 03:27 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/664e0594d06f0bc54120132f45873457c18d7c37"><code>664e059</code></a> on branch <code>main</code>, for **enlace_auth 0.1.29** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.28) is behind the latest release on PyPI (0.1.29): `pip install enlace_auth` gives newer code than these docs describe.
+- The documented version (0.1.29) is behind the latest release on PyPI (0.1.30): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/76111ddcfda01bc4373f8ee49e72b8bd04afcdb9"><code>76111ddcfda01bc4373f8ee49e72b8bd04afcdb9</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/664e0594d06f0bc54120132f45873457c18d7c37"><code>664e0594d06f0bc54120132f45873457c18d7c37</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -2590,15 +2608,15 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38195086639">38195086639</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38341604799">38341604799</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>76111ddcfda01bc4373f8ee49e72b8bd04afcdb9</code> (in the history of the built commit) |
+| Event commit | <code>664e0594d06f0bc54120132f45873457c18d7c37</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.12  |
+| epythet  | 0.2.13  |
 | Sphinx   | 9.1.0   |
 | docutils | 0.22.4  |
 | Python   | 3.12.15 |
@@ -2617,14 +2635,14 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.29/">0.1.29</a>, newer than the documented version (0.1.28).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.30/">0.1.30</a>, newer than the documented version (0.1.29).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 76111ddcfda01bc4373f8ee49e72b8bd04afcdb9
-pip install "epythet==0.2.12"
+git checkout 664e0594d06f0bc54120132f45873457c18d7c37
+pip install "epythet==0.2.13"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 
