@@ -228,3 +228,29 @@ def test_the_injected_consent_claim_decides(tmp_path):
     _, challenge = _pkce()
     csrf = _consent_csrf(client, cookie, cid=cid, challenge=challenge)
     _no_code(_post(client, cookie, csrf, client_id=cid, code_challenge=challenge))
+
+
+def test_a_reloaded_page_cannot_reapprove_after_consent_ttl(tmp_path, monkeypatch):
+    """Review of #59: a reload re-mints a token for the same binding at any time.
+
+    With a claim that aged out after consent_ttl, a token minted just before then
+    approved the request a second time. The platform keeps consent claims for the
+    session's lifetime instead (plugin.py), which this mirrors.
+    """
+    from enlace_auth.plugin import _make_file_claim
+
+    ttl, session_max_age = 60, 86400
+    claim = _make_file_claim(
+        tmp_path / "consent_claims", keep_seconds=max(ttl, session_max_age)
+    )
+    client, cookie = _build(tmp_path, consent_claim_once=claim, consent_ttl=ttl)
+    cid = _register(client)
+    _, challenge = _pkce()
+    csrf = _consent_csrf(client, cookie, cid=cid, challenge=challenge)
+    first = _post(client, cookie, csrf, client_id=cid, code_challenge=challenge)
+    assert first.status_code == 302 and "code=" in first.headers["location"]
+    t0 = time.time()
+    monkeypatch.setattr(time, "time", lambda: t0 + ttl - 5)
+    reloaded = _consent_csrf(client, cookie, cid=cid, challenge=challenge)
+    monkeypatch.setattr(time, "time", lambda: t0 + ttl + 2)
+    _no_code(_post(client, cookie, reloaded, client_id=cid, code_challenge=challenge))

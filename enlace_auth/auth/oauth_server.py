@@ -322,7 +322,9 @@ def make_oauth_server_router(
     also **one-shot**: its first submit (approve or deny) spends it, through
     *consent_claim_once*, so a double-click or a replayed POST gets the stale-form
     page instead of a second code (#55). Like *claim_once* it must be atomic across
-    processes and remember a claim for at least *consent_ttl* seconds; when it is
+    processes. The key is the request's binding, and a page reload re-mints a token
+    for the same binding, so it must remember a claim for as long as the session
+    can live (the platform uses ``max(consent_ttl, session_max_age)``); when it is
     ``None`` an in-process set is used, which is one-shot only within one worker.
 
     *resource_display_names* maps the **same** resource URL to the human name the
