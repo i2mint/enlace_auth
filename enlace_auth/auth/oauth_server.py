@@ -796,7 +796,11 @@ def make_oauth_server_router(
             csrf, signing_key, max_age=consent_ttl, salt=_CONSENT_SALT
         )
         expected = _consent_binding(auth, email=email, session_id=sid)
-        if not isinstance(token, str) or not hmac.compare_digest(token, expected):
+        # Bytes: compare_digest raises on a non-ASCII str (an old, pre-#49 token
+        # carried the bare email), which would turn a stale page into a 500.
+        if not isinstance(token, str) or not hmac.compare_digest(
+            token.encode(), expected.encode()
+        ):
             return HTMLResponse(
                 pages._page("Authorization expired", _CONSENT_STALE_BODY),
                 status_code=403,

@@ -130,11 +130,13 @@ def test_a_token_expires_after_consent_ttl(tmp_path, monkeypatch):
     _no_code(_post(client, cookie, csrf, client_id=cid, code_challenge=challenge))
 
 
-def test_the_old_email_token_is_refused(tmp_path):
-    client, cookie = _build(tmp_path)
+@pytest.mark.parametrize("email", [EMAIL, "j\u00f6rg@example.com"])
+def test_the_old_email_token_is_refused(tmp_path, email):
+    """A page rendered before #49 carries the bare email, non-ASCII ones too."""
+    client, cookie = _build(tmp_path, email=email)
     cid = _register(client)
     _, challenge = _pkce()
-    legacy = sign_cookie(EMAIL, SIGNING_KEY, salt="oauth-consent")
+    legacy = sign_cookie(email, SIGNING_KEY, salt="oauth-consent")
     _no_code(_post(client, cookie, legacy, client_id=cid, code_challenge=challenge))
 
 
