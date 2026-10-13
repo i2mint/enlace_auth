@@ -50,6 +50,7 @@ def _build(
     *,
     require_consent=True,
     resource_allowlist=None,
+    allow_unlisted_resources=None,
     resource_display_names=None,
     email=EMAIL,
     refresh_store=None,
@@ -84,6 +85,13 @@ def _build(
         require_consent=require_consent,
         refresh_token_ttl=refresh_token_ttl,
         resource_allowlist=resource_allowlist,
+        # A test that passes no allowlist is not about the allowlist, so it opts
+        # in to the open server explicitly; the allowlist tests pass their own.
+        allow_unlisted_resources=(
+            resource_allowlist is None
+            if allow_unlisted_resources is None
+            else allow_unlisted_resources
+        ),
         resource_display_names=resource_display_names,
     )
     app = FastAPI()
@@ -377,10 +385,14 @@ def test_resource_allowlist_wildcard_opens_a_resource_to_every_account(tmp_path)
 
 
 def test_a_slash_key_does_not_open_the_empty_resource(tmp_path):
-    """``"/"`` normalizes to ``""``; it must not become a way to mint iss-audience tokens."""
-    client, cookie = _build(
-        tmp_path, resource_allowlist={"/": ["*"], RESOURCE: [EMAIL]}
-    )
+    """``"/"`` normalizes to ``""``; it must not become a way to mint iss-audience tokens.
+
+    Such a key is now refused when the allowlist is read, and a request naming no
+    resource is still refused on its own.
+    """
+    with pytest.raises(ValueError, match="not an absolute http"):
+        _build(tmp_path, resource_allowlist={"/": ["*"], RESOURCE: [EMAIL]})
+    client, cookie = _build(tmp_path, resource_allowlist={RESOURCE: ["*"]})
     cid = _register(client)
     _, challenge = _pkce()
     r = client.get(
@@ -397,12 +409,20 @@ def test_resource_allowlist_wildcard_is_the_exported_constant():
     assert ANY_ACCOUNT == "*"
 
 
-def test_no_allowlist_leaves_every_resource_open(tmp_path, caplog):
-    """Back-compat: a deployment that never configured an allowlist keeps working,
-    and is told about it."""
+def test_no_allowlist_refuses_to_build_without_the_explicit_opt_in(tmp_path):
+    """An empty allowlist is what a misspelled or misnested table arrives as, so it
+    must not silently mean "every resource open" (#39)."""
+    with pytest.raises(ValueError, match="allow_unlisted_resources"):
+        _build(tmp_path, resource_allowlist={}, allow_unlisted_resources=False)
+
+
+def test_explicit_opt_in_leaves_every_resource_open(tmp_path, caplog):
+    """An open server is still possible, but only when asked for, and it is logged."""
     with caplog.at_level("WARNING", logger="enlace_auth"):
-        client, cookie = _build(tmp_path, resource_allowlist={})
-    assert "no resource_allowlist configured" in caplog.text
+        client, cookie = _build(
+            tmp_path, resource_allowlist={}, allow_unlisted_resources=True
+        )
+    assert "every resource is open" in caplog.text
     cid = _register(client)
     assert "access_token" in _flow(client, cookie, cid=cid, resource=UNMAPPED_RESOURCE)
 
@@ -1433,3 +1453,27 @@ def test_revocation_survives_a_concurrent_rotation(tmp_path):
     assert _refresh(client, survivor, cid).status_code == 400, (
         "a token that escaped the revocation scan was still honoured"
     )
+
+
+def test_aud_is_the_normalized_resource_the_allowlist_checked(tmp_path):
+    """#39 item 3: a trailing slash must not split the checked key from the ``aud``."""
+    client, cookie = _build(tmp_path, resource_allowlist={RESOURCE: [EMAIL]})
+    cid = _register(client)
+    body = _flow(client, cookie, cid=cid, resource=RESOURCE + "/")
+    jwks = client.get("/auth/oauth/jwks").json()
+    claims = jose_jwt.decode(body["access_token"], JsonWebKey.import_key_set(jwks))
+    assert claims["aud"] == RESOURCE
+
+
+@pytest.mark.parametrize(
+    "allowlist",
+    [
+        {RESOURCE: EMAIL},  # a bare string, not a list
+        {RESOURCE: ["*@example.com"]},  # a pattern, read as a literal before
+        {"connector-a": [EMAIL]},  # not a URL
+        {RESOURCE: [EMAIL], RESOURCE + "/": ["*"]},  # one resource, two answers
+    ],
+)
+def test_a_malformed_allowlist_refuses_to_build(tmp_path, allowlist):
+    with pytest.raises(ValueError):
+        _build(tmp_path, resource_allowlist=allowlist)

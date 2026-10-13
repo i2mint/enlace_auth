@@ -15,20 +15,37 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
+
+from enlace_auth.resource_policy import (
+    parse_resource_allowlist,
+    parse_resource_display_names,
+)
 
 # "local" is a legacy alias for "public" — middleware treats it as public.
 AccessLevel = Literal["public", "protected:shared", "protected:user", "local"]
 
 
-class StoreBackendConfig(BaseModel):
+class _StrictModel(BaseModel):
+    """Refuses unknown keys, so a misspelled or misnested setting is an error.
+
+    These models are read from hand-written TOML. Ignoring an unknown key turns a
+    typo into a silently applied default, and for security settings the default
+    is often the open one (``resource_allowlists = {...}`` used to mean "no
+    allowlist").
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class StoreBackendConfig(_StrictModel):
     """Backend configuration for a MutableMapping-backed store."""
 
     backend: str = "file"
     path: str = "~/.enlace/platform_store"
 
 
-class OAuthProviderConfig(BaseModel):
+class OAuthProviderConfig(_StrictModel):
     """Configuration for a single OAuth2/OIDC provider."""
 
     client_id_env: str
@@ -46,7 +63,7 @@ class OAuthProviderConfig(BaseModel):
     trust_unverified_email: bool = False
 
 
-class OAuthServerConfig(BaseModel):
+class OAuthServerConfig(_StrictModel):
     """OAuth 2.1 authorization-server settings (for MCP connectors).
 
     When ``enabled``, ``enlace_auth`` issues signed JWT access tokens that a
@@ -122,10 +139,20 @@ class OAuthServerConfig(BaseModel):
         default_factory=dict,
         description=(
             "Per-connector access control: maps a connector resource URL to the "
-            "emails allowed to authorize for it. Fails closed: once anything is "
-            "listed, an unlisted resource is refused to everyone. List a resource "
-            'with ["*"] to open it to every authenticated account. Only an empty '
-            "map leaves every resource open."
+            "emails allowed to authorize for it. Fails closed: an unlisted "
+            'resource is refused to everyone. List a resource with ["*"] to '
+            "open it to every authenticated account. Required when the server "
+            "is enabled, unless allow_unlisted_resources is set."
+        ),
+    )
+    allow_unlisted_resources: StrictBool = Field(
+        default=False,
+        description=(
+            "Run the OAuth server with NO resource_allowlist, so every resource "
+            "is open to every authenticated account. Must be set explicitly: an "
+            "enabled server with an empty allowlist and this unset refuses to "
+            "start, because a misspelled or misnested allowlist table arrives as "
+            "an empty one. Conflicts with a non-empty resource_allowlist."
         ),
     )
     resource_display_names: dict[str, str] = Field(
@@ -139,8 +166,25 @@ class OAuthServerConfig(BaseModel):
         ),
     )
 
+    @model_validator(mode="after")
+    def _check_resource_policy(self) -> "OAuthServerConfig":
+        """Refuse a malformed allowlist, and an enabled server with none.
 
-class AuthConfig(BaseModel):
+        A disabled server issues no tokens, so it may go without an allowlist; one
+        that is written out is still checked, because the dashboard reports it.
+        """
+        parse_resource_allowlist(
+            self.resource_allowlist,
+            allow_unlisted_resources=(
+                self.allow_unlisted_resources
+                or (not self.enabled and not self.resource_allowlist)
+            ),
+        )
+        parse_resource_display_names(self.resource_display_names)
+        return self
+
+
+class AuthConfig(_StrictModel):
     """Platform-wide authentication configuration."""
 
     enabled: bool = False

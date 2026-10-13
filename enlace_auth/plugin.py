@@ -566,6 +566,7 @@ def wire(parent: "FastAPI", config) -> None:
                 scopes_supported=tuple(osc.scopes_supported),
                 require_consent=osc.require_consent,
                 resource_allowlist=osc.resource_allowlist,
+                allow_unlisted_resources=osc.allow_unlisted_resources,
                 resource_display_names=osc.resource_display_names,
             )
             parent.include_router(oauth_server_router)
@@ -633,6 +634,7 @@ def wire(parent: "FastAPI", config) -> None:
         store_apps=store_apps,
         signing_key=signing_key,
         resource_allowlist=auth_cfg.oauth_server.resource_allowlist,
+        oauth_server_enabled=auth_cfg.oauth_server.enabled,
         public_base_url=_public_base_url(config, auth_cfg),
         on_credentials_changed=on_credentials_changed,
     )

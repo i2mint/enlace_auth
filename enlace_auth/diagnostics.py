@@ -18,6 +18,7 @@ moved here when auth was extracted from enlace.
 
 from __future__ import annotations
 
+import functools
 import json
 import os
 from typing import Iterable
@@ -27,6 +28,39 @@ from enlace.base import PlatformConfig
 from enlace.doctor import FAIL, PASS, SKIP, WARN, Check
 
 from enlace_auth.config import coerce_auth_config
+
+
+def _auth_config_error(config: PlatformConfig) -> str | None:
+    """Why ``[auth]`` does not load, or ``None`` if it does."""
+    try:
+        coerce_auth_config(getattr(config, "auth", None))
+    except ValueError as e:  # pydantic's ValidationError is a ValueError
+        return str(e)
+    return None
+
+
+def check_auth_config(config: PlatformConfig) -> Iterable[Check]:
+    """Report an ``[auth]`` table the plugin would refuse at startup.
+
+    Unknown keys and a malformed or missing OAuth resource allowlist are errors
+    (see :mod:`enlace_auth.resource_policy`), so this is the one check that says
+    why; every other check skips a config that does not load.
+    """
+    if err := _auth_config_error(config):
+        return [Check("auth_config", FAIL, f"[auth] does not load: {err}")]
+    return [Check("auth_config", PASS, "[auth] loads")]
+
+
+def _skip_if_auth_config_invalid(check):
+    """Make *check* return nothing for a config ``check_auth_config`` reports."""
+
+    @functools.wraps(check)
+    def guarded(config, *args, **kwargs):
+        if _auth_config_error(config):
+            return []
+        return check(config, *args, **kwargs)
+
+    return guarded
 
 
 def check_signing_key(config: PlatformConfig) -> Iterable[Check]:
@@ -323,10 +357,21 @@ def check_oauth_server_advertises_refresh(
 
 # Convenience tuples for `extra_static_checks=` / `extra_http_checks=`.
 static_checks = (
-    check_signing_key,
-    check_shared_passwords,
-    check_oauth_importable,
-    check_connector_session_longevity,
-    check_admin_accounts,
+    check_auth_config,
+    *map(
+        _skip_if_auth_config_invalid,
+        (
+            check_signing_key,
+            check_shared_passwords,
+            check_oauth_importable,
+            check_connector_session_longevity,
+            check_admin_accounts,
+        ),
+    ),
 )
-http_checks = (check_csrf, check_oauth_server_advertises_refresh)
+http_checks = tuple(
+    map(
+        _skip_if_auth_config_invalid,
+        (check_csrf, check_oauth_server_advertises_refresh),
+    )
+)

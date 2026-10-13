@@ -55,6 +55,7 @@ from enlace_auth.auth.reset_tokens import (
     reset_url,
 )
 from enlace_auth.auth.shares import ShareError
+from enlace_auth.resource_policy import ANY_ACCOUNT, parse_resource_allowlist
 
 
 class _CreateUserBody(BaseModel):
@@ -97,6 +98,7 @@ def make_admin_router(
     signing_key: Optional[str] = None,
     reset_link_ttl: int = DEFAULT_HANDOFF_TTL,
     resource_allowlist: Optional[Mapping[str, list[str]]] = None,
+    oauth_server_enabled: bool = False,
     public_base_url: Optional[str] = None,
     on_credentials_changed=None,  # CredentialsChanged; default: sessions only
 ) -> APIRouter:
@@ -127,7 +129,9 @@ def make_admin_router(
     "public" badge invites the reader to conclude private data is world-open
     (it isn't) or, worse, to make some *other* app public by analogy (which
     would be). Passing the allow-list lets the dashboard show who can actually
-    reach each one.
+    reach each one. ``oauth_server_enabled`` lets it also say what happens to a
+    resource that is NOT listed: refused to everyone while an allowlist is set,
+    open to every account when the server runs without one.
 
     ``on_credentials_changed`` (``hook(email, *, keep=None)``) runs after a
     user is deleted or has their password set. The default revokes the
@@ -154,25 +158,61 @@ def make_admin_router(
         from urllib.parse import urlparse
 
         by_prefix: dict[str, list[dict]] = {}
-        for resource, emails in (resource_allowlist or {}).items():
-            path = urlparse(resource).path or resource
-            for app in apps_snapshot:
-                prefix = getattr(app, "route_prefix", "") or ""
-                if prefix and path.startswith(prefix.rstrip("/")):
-                    by_prefix.setdefault(prefix, []).append(
-                        {
-                            "resource": resource,
-                            # Parsed here, where a malformed value degrades to
-                            # the raw string. Doing it in the browser means one
-                            # bad config key throws and blanks the whole table.
-                            "path": path,
-                            "allowed_users": sorted(emails),
-                        }
-                    )
+        # Longest prefix first, as enlace routes (/api/foo wins over /api):
+        # first-match would hang a nested connector's entry on its parent's row.
+        by_length = sorted(
+            apps_snapshot,
+            key=lambda a: len(getattr(a, "route_prefix", "") or ""),
+            reverse=True,
+        )
+        base = urlparse(public_base_url or "")
+        own_origin = (base.scheme, base.netloc) if base.netloc else None
+        for resource, emails in _allowlist.items():
+            parsed = urlparse(resource)
+            path = parsed.path or resource
+            gate = {
+                "resource": resource,
+                # Parsed here, where a malformed value degrades to the raw
+                # string. Doing it in the browser means one bad config key
+                # throws and blanks the whole table.
+                "path": path,
+                "any_account": ANY_ACCOUNT in emails,
+                "allowed_users": sorted(emails - {ANY_ACCOUNT}),
+            }
+            if own_origin and (parsed.scheme, parsed.netloc) != own_origin:
+                unmatched.append(gate)  # another host: no app here serves it
+                continue
+            for app in by_length:
+                prefix = (getattr(app, "route_prefix", "") or "").rstrip("/")
+                # Segment-aware: /api/x_mcp must not claim /api/x_mcp_beta.
+                if prefix and (path == prefix or path.startswith(prefix + "/")):
+                    by_prefix.setdefault(app.route_prefix, []).append(gate)
                     break
+            else:
+                # No app serves it: a stale or misspelled key, or a connector on
+                # another host. Either way an operator should see it.
+                unmatched.append(gate)
         return by_prefix
 
+    # Already validated when the config loaded; parsed again so a direct caller
+    # gets the same shape (and the same refusal of a malformed one).
+    _allowlist = parse_resource_allowlist(
+        resource_allowlist, allow_unlisted_resources=not resource_allowlist
+    )
+    unmatched: list[dict] = []
     oauth_gates = _oauth_gates()
+    oauth_policy = {
+        "enabled": bool(oauth_server_enabled),
+        # What a resource that is not in the allowlist gets.
+        "unlisted": (
+            "n/a"
+            if not oauth_server_enabled
+            else "refused"
+            if _allowlist
+            else "open to every account"
+        ),
+        "unmatched_resources": unmatched,
+    }
 
     router = APIRouter(prefix="/_admin/api")
 
@@ -356,7 +396,7 @@ def make_admin_router(
                 entry["is_open"] = not allowed_users
                 entry["grants"] = _grants_for(app.name, now)
             items.append(entry)
-        return {"apps": items}
+        return {"apps": items, "oauth_policy": oauth_policy}
 
     @router.post("/grants")
     async def create_grant(body: _CreateGrantBody, request: Request) -> dict[str, Any]:
