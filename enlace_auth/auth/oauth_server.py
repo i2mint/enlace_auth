@@ -1316,7 +1316,8 @@ _CONSENT_PROMPT_GENERIC = (
 
 _CONSENT_STALE_BODY = """<h1>Authorization expired</h1>
 <p>This approval form has expired, was already submitted, or was opened in
-another sign-in. Nothing was approved by this submission. Go back to the application and connect again.</p>"""
+another sign-in. Nothing was approved by this submission. Go back to the
+application and connect again.</p>"""
 
 _CONSENT_FORM = """<form method="post" action="/auth/oauth/authorize">
   <input type="hidden" name="client_id" value="{client_id}">
