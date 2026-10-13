@@ -561,7 +561,7 @@ def test_change_own_password_enforces_minimum_length(admin_client):
 # --- connectors declared public are not reported as world-open --------------
 
 
-def _connector_client(tmp_path, monkeypatch):
+def _connector_client(tmp_path, monkeypatch, *, oauth_server=None):
     """Gateway with a `public` app that is really gated by the OAuth allowlist.
 
     That is the shape of every MCP connector: enlace must not gate it at the
@@ -588,7 +588,8 @@ def _connector_client(tmp_path, monkeypatch):
             "secure_cookies": False,
             "registration_open": True,
             "stores": {"backend": "file", "path": str(tmp_path / "platform")},
-            "oauth_server": {
+            "oauth_server": oauth_server
+            or {
                 "enabled": False,  # the allowlist is read regardless
                 "resource_allowlist": {
                     "https://apps.example.com/api/snout_mcp/mcp": [
@@ -630,3 +631,45 @@ def test_genuinely_public_app_carries_no_oauth_annotation(tmp_path, monkeypatch)
     """The badge must mean something — an app with no allowlist doesn't get it."""
     apps = _apps_by_name(_connector_client(tmp_path, monkeypatch))
     assert "oauth_resources" not in apps["ping"]
+
+
+def test_dashboard_says_what_an_unlisted_connector_gets(tmp_path, monkeypatch):
+    """#39: no row can mark an unlisted connector, so the policy line must say it.
+
+    Also: ``["*"]`` is reported as "every account", not as a user called ``*``;
+    a listed resource no app serves is surfaced; and a prefix only claims its own
+    path segment (``/api/snout_mcp`` must not claim ``/api/snout_mcp_beta``).
+    """
+    client = _connector_client(
+        tmp_path,
+        monkeypatch,
+        oauth_server={
+            "enabled": True,
+            "key_dir": str(tmp_path / "keys"),
+            "resource_allowlist": {
+                "https://apps.example.com/api/snout_mcp/mcp": ["*"],
+                "https://apps.example.com/api/snout_mcp_beta/mcp": ["a@example.com"],
+            },
+        },
+    )
+    csrf = _csrf(client)
+    _register(client, "boss@example.com", "bosspw1!", csrf)
+    body = client.get("/_admin/api/apps").json()
+    policy = body["oauth_policy"]
+    assert policy["enabled"] is True
+    assert policy["unlisted"] == "refused"
+    assert [r["path"] for r in policy["unmatched_resources"]] == [
+        "/api/snout_mcp_beta/mcp"
+    ]
+    (gate,) = {a["name"]: a for a in body["apps"]}["snout_mcp"]["oauth_resources"]
+    assert gate["any_account"] is True
+    assert gate["allowed_users"] == []
+
+
+def test_dashboard_policy_is_quiet_when_the_oauth_server_is_off(tmp_path, monkeypatch):
+    client = _connector_client(tmp_path, monkeypatch)
+    csrf = _csrf(client)
+    _register(client, "boss@example.com", "bosspw1!", csrf)
+    policy = client.get("/_admin/api/apps").json()["oauth_policy"]
+    assert policy["enabled"] is False
+    assert policy["unlisted"] == "n/a"

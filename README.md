@@ -73,10 +73,15 @@ access_token_ttl_seconds = 3600
 refresh_token_ttl_seconds = 2592000
 refresh_family_max_lifetime_seconds = 7776000
 
-# Who may authorize for each connector. Fails closed: once this table lists
-# anything, a resource it does not list is refused to everyone, so a new or
-# renamed connector stays shut until it is added here. "*" opens a resource to
-# every authenticated account, and has to be written out.
+# Who may authorize for each connector. Fails closed: a resource this table does
+# not list is refused to everyone, so a new or renamed connector stays shut until
+# it is added here. "*" opens a resource to every authenticated account, and has
+# to be written out. It fails loudly too: an unknown key anywhere under [auth]
+# (a misspelled or misnested table), a key that is not an http(s) URL, a value
+# that is not a list of emails, or a pattern such as "*@example.com" stops the
+# platform at startup, and `enlace doctor` names it. An enabled server with no
+# allowlist refuses to start unless `allow_unlisted_resources = true` says an
+# open server is intended.
 [auth.oauth_server.resource_allowlist]
 "https://apps.example.com/connector-a-mcp" = ["alice@example.com"]
 "https://apps.example.com/connector-b-mcp" = ["*"]

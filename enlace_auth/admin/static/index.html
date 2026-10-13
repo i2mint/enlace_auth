@@ -131,6 +131,7 @@
 
 <section>
   <h2>Apps</h2>
+  <div id="oauth-policy" class="muted-line"></div>
   <table id="apps">
     <thead>
       <tr><th>Name</th><th>Route</th><th>Access</th><th>Allowed users</th></tr>
@@ -281,17 +282,36 @@ function oauthBadge(a) {
 function allowedCell(a, baseline) {
   if (!a.oauth_resources || !a.oauth_resources.length) return baseline;
   return a.oauth_resources.map(r => {
-    const who = (r.allowed_users || []).map(e => `<code>${escapeHtml(e)}</code>`).join(", ")
-      || "<em>nobody — every token request is denied</em>";
+    const who = r.any_account
+      ? "<em>every authenticated account</em>"
+      : (r.allowed_users || []).map(e => `<code>${escapeHtml(e)}</code>`).join(", ")
+        || "<em>nobody — every token request is denied</em>";
     return `<div class="muted-line"><code>${escapeHtml(r.path || r.resource)}</code></div>${who}`;
   }).join("");
+}
+
+// The allowlist says who may reach each LISTED connector; this line says what
+// happens to one that is not listed, which no row can show (nothing marks an
+// app as a connector until it is listed), plus any listed resource no app serves.
+function oauthPolicyLine(p) {
+  if (!p || !p.enabled) return "";
+  let line = p.unlisted === "refused"
+    ? "OAuth connectors: a connector not listed in the resource allowlist is refused to everyone, whatever its access badge says."
+    : "OAuth connectors: no resource allowlist — every connector is open to every authenticated account.";
+  const stray = p.unmatched_resources || [];
+  if (stray.length) {
+    line += " Listed resources served by no app here (stale or misspelled?): "
+      + stray.map(r => `<code>${escapeHtml(r.resource)}</code>`).join(", ") + ".";
+  }
+  return line;
 }
 
 async function loadApps() {
   const tbody = document.querySelector("#apps tbody");
   tbody.innerHTML = "";
   try {
-    const { apps } = await api("GET", "/apps");
+    const { apps, oauth_policy } = await api("GET", "/apps");
+    document.querySelector("#oauth-policy").innerHTML = oauthPolicyLine(oauth_policy);
     for (const a of apps) {
       const accessClass = "access-" + a.access.replace(":", "-");
       const baseline = (a.allowed_users || []).map(e => `<code>${escapeHtml(e)}</code>`).join(", ") || "—";

@@ -157,7 +157,11 @@ def platform(tmp_path, monkeypatch):
             "secure_cookies": False,
             "registration_open": True,
             "stores": {"backend": "file", "path": str(store_root)},
-            "oauth_server": {"enabled": True, "key_dir": str(tmp_path / "keys")},
+            "oauth_server": {
+                "enabled": True,
+                "key_dir": str(tmp_path / "keys"),
+                "allow_unlisted_resources": True,  # not what these tests are about
+            },
         },
     )
     app = build_backend(discover_apps(config), plugins=[auth_plugin])

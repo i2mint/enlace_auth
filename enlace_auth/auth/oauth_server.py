@@ -64,15 +64,17 @@ from enlace_auth.auth.revocation import (
     subject_revoked_before,
 )
 from enlace_auth.auth.sessions import SessionStore
+from enlace_auth.resource_policy import (
+    ANY_ACCOUNT,
+    normalize_resource,
+    parse_resource_allowlist,
+    parse_resource_display_names,
+)
 from enlace_auth.stores.validation import sanitize_key
 
 _logger = logging.getLogger("enlace_auth")
 
 __all__ = ["ANY_ACCOUNT", "OAuthKeys", "make_oauth_server_router"]
-
-#: A ``resource_allowlist`` entry that opens a resource to every authenticated
-#: account. Must be written out: an unlisted resource is refused (fail-closed).
-ANY_ACCOUNT = "*"
 
 _REFRESH_SALT = "oauth-refresh"  # domain separation for refresh-token hashing
 
@@ -239,6 +241,7 @@ def make_oauth_server_router(
     scopes_supported: tuple[str, ...] = ("mcp:read",),
     require_consent: bool = True,
     resource_allowlist: Mapping[str, list[str]] | None = None,
+    allow_unlisted_resources: bool = False,
     resource_display_names: Mapping[str, str] | None = None,
 ) -> APIRouter:
     """Build the OAuth 2.1 authorization-server router (see the module docstring).
@@ -286,11 +289,14 @@ def make_oauth_server_router(
     exchange and every refresh, so a connector that is newly added, renamed or
     mounted at a second path stays shut until someone lists it. Opening a resource
     to every authenticated account is an explicit act: list it with
-    ``[ANY_ACCOUNT]`` (``["*"]``). Only an empty or absent map leaves every
-    resource open, which is the pre-allowlist behaviour and is logged as a
-    warning. Secure to key on the resource: the connector only accepts tokens
-    whose ``aud`` is that exact resource, so a denied user can't get a usable token
-    another way.
+    ``[ANY_ACCOUNT]`` (``["*"]``). An empty or absent map would leave every resource
+    open, so it raises ``ValueError`` unless *allow_unlisted_resources* asks for
+    exactly that (and is then logged as a warning); a malformed map raises too.
+    See :mod:`enlace_auth.resource_policy`. Secure to key on the resource: the
+    connector only accepts tokens whose ``aud`` is that exact resource, so a denied
+    user can't get a usable token another way. The ``aud`` is minted from the same
+    normalized resource the allowlist was checked against, so the two never
+    disagree about a trailing slash.
 
     *resource_display_names* maps the **same** resource URL to the human name the
     consent screen shows. One authorization server serves every connector on the
@@ -301,17 +307,11 @@ def make_oauth_server_router(
     it.
     """
 
-    def _norm_resource(resource: str) -> str:
-        """Canonical form of a resource URL — the shared key for both maps."""
-        return (resource or "").rstrip("/")
-
-    _allowlist = {
-        _norm_resource(r): {e.lower() for e in emails}
-        for r, emails in (resource_allowlist or {}).items()
-    }
-    _display_names = {
-        _norm_resource(r): name for r, name in (resource_display_names or {}).items()
-    }
+    _norm_resource = normalize_resource
+    _allowlist = parse_resource_allowlist(
+        resource_allowlist, allow_unlisted_resources=allow_unlisted_resources
+    )
+    _display_names = parse_resource_display_names(resource_display_names)
 
     # One flag, consulted everywhere: a store with a zero TTL is NOT refresh
     # support, and metadata that says otherwise mints tokens dead on arrival.
@@ -328,8 +328,9 @@ def make_oauth_server_router(
 
     if not _allowlist:
         _logger.warning(
-            "oauth: no resource_allowlist configured, so every resource is open to "
-            "every authenticated account; list each connector to restrict it"
+            "oauth: allow_unlisted_resources is set and no resource_allowlist is "
+            "configured, so every resource is open to every authenticated account; "
+            "list each connector to restrict it"
         )
 
     def _resource_allowed(resource: str, email: str) -> bool:
@@ -491,7 +492,7 @@ def make_oauth_server_router(
             {
                 "iss": iss,
                 "sub": email,
-                "aud": resource or iss,
+                "aud": _norm_resource(resource) or iss,
                 "scope": scope,
                 "client_id": client_id,
                 "iat": now,

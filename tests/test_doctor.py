@@ -235,7 +235,11 @@ def _oauth_config(single_app_dir, **oauth_server):
             enabled=True,
             signing_key_env=_KEY_ENV,
             secure_cookies=False,
-            oauth_server={"enabled": True, **oauth_server},
+            oauth_server={
+                "enabled": True,
+                "allow_unlisted_resources": True,  # not what these tests are about
+                **oauth_server,
+            },
         ).model_dump(),
     )
     return discover_apps(cfg)
@@ -312,3 +316,30 @@ def test_http_check_passes_when_the_server_advertises_refresh(
         base_url="http://testserver",
     )
     assert check.status == doctor_mod.PASS
+
+
+def test_a_malformed_auth_table_is_one_doctor_failure(clean_env, single_app_dir):
+    """#39: the doctor names the problem instead of crashing on it."""
+    clean_env.setenv(_KEY_ENV, _GOOD_KEY)
+    cfg = discover_apps(
+        PlatformConfig(
+            apps_dir=single_app_dir,
+            auth={
+                "enabled": True,
+                "signing_key_env": _KEY_ENV,
+                "oauth_server": {"enabled": True, "resource_allowlists": {}},
+            },
+        )
+    )
+    report = _doctor(cfg)
+    (check,) = [c for c in report.checks if c.name == "auth_config"]
+    assert check.status == doctor_mod.FAIL
+    assert "resource_allowlists" in check.detail
+    assert not [c for c in report.checks if c.name == "signing_key"]
+
+
+def test_a_valid_auth_table_passes_the_config_check(clean_env, single_app_dir):
+    clean_env.setenv(_KEY_ENV, _GOOD_KEY)
+    assert _check(_auth_enabled_config(single_app_dir), "auth_config").status == (
+        doctor_mod.PASS
+    )
