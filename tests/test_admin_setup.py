@@ -266,7 +266,11 @@ def test_an_oauth_account_records_whether_the_provider_verified_it():
 
 @pytest.mark.parametrize(
     "spelling",
-    ["boss@ｅｘａｍｐｌｅ.com", "boss@example。com", "boss@\u24d4xample.com"],
+    [
+        "boss@ｅｘａｍｐｌｅ.com",
+        "boss@example。com",
+        "boss@\u24d4xample.com",
+    ],
 )
 def test_a_look_alike_spelling_from_the_provider_is_not_the_admin(spelling):
     """Review of #41: normalizing the address a provider sent folded look-alike
@@ -275,6 +279,23 @@ def test_a_look_alike_spelling_from_the_provider_is_not_the_admin(spelling):
     client = _oauth_app(users, {"email": spelling, "email_verified": True, "sub": "x"})
     assert client.get("/auth/callback/google").status_code == 403
     assert users == {}
+
+
+def test_a_letter_that_lowercases_to_ascii_does_not_open_the_ascii_account():
+    """Re-verify of #41: str.lower() folds the Kelvin sign onto "k", so a
+    provider verifying "Ken@..." as its own mailbox would open ken@'s."""
+    users = {
+        "ken@example.com": {
+            "password_hash": None,
+            "oauth_provider": "google",
+            "oauth_links": {},
+        }
+    }
+    client = _oauth_app(
+        users, {"email": "Ken@example.com", "email_verified": True, "sub": "x"}
+    )
+    assert client.get("/auth/callback/google").status_code == 401
+    assert users["ken@example.com"]["oauth_links"] == {}
 
 
 @pytest.mark.parametrize("key", ["someone@corp.local", "someone@xn--bcher-kva.example"])

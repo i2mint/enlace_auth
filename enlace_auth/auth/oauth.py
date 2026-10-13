@@ -138,6 +138,20 @@ def _email_verified_by_provider(provider: str, cfg, claims: dict) -> bool:
     return _preset_vouches(provider, cfg)
 
 
+def _lowercase_folds_to_ascii(email: str) -> bool:
+    """Whether lowercasing turns a non-ASCII letter of *email* into plain ASCII.
+
+    Such a letter is a look-alike: the lowercased address would name a
+    different, ASCII mailbox than the one the provider verified.
+
+    >>> _lowercase_folds_to_ascii("\u212aen@corp.com")  # KELVIN SIGN
+    True
+    >>> _lowercase_folds_to_ascii("Ken@corp.com"), _lowercase_folds_to_ascii("Ünï@x.de")
+    (False, False)
+    """
+    return any(not c.isascii() and c.lower().isascii() for c in email)
+
+
 def _is_entra_issuer(iss: str) -> bool:
     """True for Microsoft Entra ID token issuers."""
     from urllib.parse import urlparse
@@ -430,7 +444,14 @@ def make_oauth_router(
         # normalized: IDNA folds look-alike spellings (fullwidth letters, the
         # Kelvin sign) onto plain ASCII, so normalizing an address an untrusted
         # provider sent could land it on someone else's account (#41 review).
-        email = str(email).strip().lower()
+        # Even lowercasing folds a few (U+212A KELVIN SIGN -> "k"): refuse those.
+        email = str(email).strip()
+        if _lowercase_folds_to_ascii(email):
+            raise HTTPException(
+                status_code=401,
+                detail="The OAuth provider sent an address with a look-alike letter",
+            )
+        email = email.lower()
         subject = _stable_subject(provider, claims)
         verified_by_provider = _email_verified_by_provider(
             provider, providers.get(provider), claims
