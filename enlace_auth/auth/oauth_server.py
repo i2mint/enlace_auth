@@ -240,6 +240,7 @@ def make_oauth_server_router(
     refresh_store: MutableMapping[str, Any] | None = None,
     claim_once: Optional[Callable[[str], bool]] = None,
     release_claim: Optional[Callable[[str], None]] = None,
+    consent_claim_once: Optional[Callable[[str], bool]] = None,
     is_active: Optional[Callable[[str], bool]] = None,
     access_token_ttl: int = 3600,
     refresh_token_ttl: int = 2592000,
@@ -317,7 +318,12 @@ def make_oauth_server_router(
     *consent_ttl* is how long, in seconds, a rendered consent form can be
     submitted. Its CSRF token approves exactly one request — this session, this
     client, redirect URI, PKCE challenge, state, scope and resource — and nothing
-    after it expires (see :func:`_consent_binding`). It must be positive.
+    after it expires (see :func:`_consent_binding`). It must be positive. It is
+    also **one-shot**: its first submit (approve or deny) spends it, through
+    *consent_claim_once*, so a double-click or a replayed POST gets the stale-form
+    page instead of a second code (#55). Like *claim_once* it must be atomic across
+    processes and remember a claim for at least *consent_ttl* seconds; when it is
+    ``None`` an in-process set is used, which is one-shot only within one worker.
 
     *resource_display_names* maps the **same** resource URL to the human name the
     consent screen shows. One authorization server serves every connector on the
@@ -503,6 +509,19 @@ def make_oauth_server_router(
         """
         if claim_once is not None:
             return claim_once(key)
+        with _local_claim_lock:
+            if key in _local_claims:
+                return False
+            _local_claims.add(key)
+            return True
+
+    def _claim_consent(binding: str) -> bool:
+        """Spend the consent approval for *binding*, exactly once (#55)."""
+        key = hashlib.sha256(f"consent:{binding}".encode()).hexdigest()
+        if consent_claim_once is not None:
+            return consent_claim_once(key)
+        # Not *claim_once*: that one is the refresh grant's, with a window sized
+        # for one request, and its caller may count or release what it holds.
         with _local_claim_lock:
             if key in _local_claims:
                 return False
@@ -789,6 +808,11 @@ def make_oauth_server_router(
             _narrow_scope(scope),
             resource,
         )
+        stale = HTMLResponse(
+            pages._page("Authorization expired", _CONSENT_STALE_BODY),
+            status_code=403,
+            headers=_NO_FRAMING,
+        )
         # CSRF: the token approves exactly the request its page showed, for this
         # session, for consent_ttl seconds (#49). A token read once from any page
         # is worth nothing for another client, another session, or later.
@@ -801,11 +825,12 @@ def make_oauth_server_router(
         if not isinstance(token, str) or not hmac.compare_digest(
             token.encode(), expected.encode()
         ):
-            return HTMLResponse(
-                pages._page("Authorization expired", _CONSENT_STALE_BODY),
-                status_code=403,
-                headers=_NO_FRAMING,
-            )
+            return stale
+        # One click, one code (#55): the first submit for this binding spends it,
+        # whatever the decision, so a double-click or a replay within consent_ttl
+        # is stale rather than a second code for the same PKCE challenge.
+        if not _claim_consent(expected):
+            return stale
         _, err = _validate_authorize(
             {"client_id": client_id, "redirect_uri": redirect_uri}
         )
@@ -1288,8 +1313,8 @@ _CONSENT_PROMPT_GENERIC = (
 )
 
 _CONSENT_STALE_BODY = """<h1>Authorization expired</h1>
-<p>This approval form has expired, or it was opened in another sign-in.
-Nothing was approved. Go back to the application and connect again.</p>"""
+<p>This approval form has expired, was already submitted, or was opened in
+another sign-in. Nothing was approved by this submission. Go back to the application and connect again.</p>"""
 
 _CONSENT_FORM = """<form method="post" action="/auth/oauth/authorize">
   <input type="hidden" name="client_id" value="{client_id}">
@@ -1402,6 +1427,11 @@ def _consent_binding(auth: _Authorized, *, email: str, session_id: str) -> str:
 
     Hashed rather than signed in the clear: the token sits in the page, and a
     raw session id there would hand a page-reading script the session itself.
+
+    Known edge (#55): browsers normalise a bare ``\\n`` or ``\\r`` in a hidden
+    input's value to CRLF on submit, so a client whose ``state`` or ``resource``
+    holds a raw newline gets the stale-form page (403). Before #49 it got its value
+    silently altered instead. Refusing is the better failure; no fix is planned.
     """
     fields = [
         email,

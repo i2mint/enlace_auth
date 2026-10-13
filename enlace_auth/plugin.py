@@ -587,6 +587,13 @@ def wire(parent: "FastAPI", config) -> None:
                 # mint a live successor and reuse detection never fires.
                 claim_once=_oauth_claim,
                 release_claim=_oauth_claim.release,
+                # A consent approval is one-shot (#55); its claim must outlive the
+                # form's whole lifetime, not just one request.
+                consent_claim_once=_make_file_claim(
+                    Path(os.path.expanduser(auth_cfg.stores.path))
+                    / "oauth_consent_claims",
+                    keep_seconds=osc.consent_ttl_seconds,
+                ),
                 # Re-checked on every refresh: a deleted account must not keep
                 # renewing its own connector session.
                 is_active=_make_is_active(user_backend),
