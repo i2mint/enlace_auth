@@ -1,4 +1,4 @@
-> built 2026-10-13 04:53 UTC from d5dc3f6 (main) · enlace_auth 0.1.32. Details: build_info.json
+> built 2026-10-13 06:41 UTC from 4e6261d (main) · enlace_auth 0.1.33. Details: build_info.json
 
 # index.html.md
 
@@ -1459,6 +1459,7 @@ from parameter tuning.
 
 | [`hash_password`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.hash_password)(password)           | Return an argon2id hash string for `password`.                |
 |------------------------------------------------------------------------------------|---------------------------------------------------------------|
+| [`password_problem`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.password_problem)(password)        | Why *password* may not be set, or `None` if it may.           |
 | [`verify_password`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.verify_password)(hashed, password) | Return True iff `password` matches the stored `hashed` value. |
 
 ### enlace_auth.auth.passwords.MIN_PASSWORD_LEN *= 8*
@@ -1475,6 +1476,22 @@ Return an argon2id hash string for `password`.
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.auth.passwords.password_problem(password)
+
+Why *password* may not be set, or `None` if it may.
+
+The one rule every way of setting a password applies (see
+[`MIN_PASSWORD_LEN`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.MIN_PASSWORD_LEN)), so they cannot drift apart.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+```pycon
+>>> password_problem("long-enough")
+>>> password_problem("short")
+'Password must be at least 8 characters.'
+```
 
 ### enlace_auth.auth.passwords.verify_password(hashed, password)
 
@@ -2797,18 +2814,16 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-13 04:53 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/d5dc3f6eb863d197ded7e5e55e35d791642abf33"><code>d5dc3f6</code></a> on branch <code>main</code>, for **enlace_auth 0.1.32** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 06:41 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/4e6261dc830a320690a469a3aac1940eccaea9d6"><code>4e6261d</code></a> on branch <code>main</code>, for **enlace_auth 0.1.33** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.1.32) is behind the latest release on PyPI (0.1.33): `pip install enlace_auth` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/d5dc3f6eb863d197ded7e5e55e35d791642abf33"><code>d5dc3f6eb863d197ded7e5e55e35d791642abf33</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/4e6261dc830a320690a469a3aac1940eccaea9d6"><code>4e6261dc830a320690a469a3aac1940eccaea9d6</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -2819,15 +2834,15 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38348431218">38348431218</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38357926446">38357926446</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>d5dc3f6eb863d197ded7e5e55e35d791642abf33</code> (in the history of the built commit) |
+| Event commit | <code>4e6261dc830a320690a469a3aac1940eccaea9d6</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.13  |
+| epythet  | 0.2.14  |
 | Sphinx   | 9.1.0   |
 | docutils | 0.22.4  |
 | Python   | 3.12.15 |
@@ -2846,14 +2861,14 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.33/">0.1.33</a>, newer than the documented version (0.1.32).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.33/">0.1.33</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout d5dc3f6eb863d197ded7e5e55e35d791642abf33
-pip install "epythet==0.2.13"
+git checkout 4e6261dc830a320690a469a3aac1940eccaea9d6
+pip install "epythet==0.2.14"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 
