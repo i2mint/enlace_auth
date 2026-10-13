@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=d71dfaa1"></script>
+    <script src="../../../_static/documentation_options.js?v=e0e570cb"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.31" />
+  <meta name="docsearch:version" content="0.1.32" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -866,8 +866,9 @@ window.runMermaid = runMermaid;</script>
     <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/register"</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">register</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">_RegisterBody</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Response</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">email</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">email</span> <span class="ow">in</span> <span class="n">user_store</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">409</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Email already registered"</span><span class="p">)</span>
+        <span class="c1"># Permission before existence: answering 409 first would tell anyone</span>
+        <span class="c1"># whether an address registration refuses (an admin's, say) has an</span>
+        <span class="c1"># account.</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">can_register</span><span class="p">(</span><span class="n">email</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
                 <span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span>
@@ -877,6 +878,8 @@ window.runMermaid = runMermaid;</script>
                     <span class="s2">"allowlist."</span>
                 <span class="p">),</span>
             <span class="p">)</span>
+        <span class="k">if</span> <span class="n">email</span> <span class="ow">in</span> <span class="n">user_store</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">409</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Email already registered"</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">password</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">_MIN_PASSWORD_LEN</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
                 <span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span>

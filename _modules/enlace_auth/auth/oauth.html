@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=d71dfaa1"></script>
+    <script src="../../../_static/documentation_options.js?v=e0e570cb"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.31" />
+  <meta name="docsearch:version" content="0.1.32" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -775,6 +775,33 @@ window.runMermaid = runMermaid;</script>
 <span class="c1">#: Presets whose userinfo exposes only verified emails, without a claim saying so.</span>
 <span class="n">_EMAIL_VERIFIED_BY_PRESET</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"github"</span><span class="p">})</span>
 
+<span class="c1">#: Config fields that, set to anything but the preset's own value, point the</span>
+<span class="c1">#: provider somewhere the preset knows nothing about.</span>
+<span class="n">_ENDPOINT_FIELDS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"authorize_url"</span><span class="p">,</span> <span class="s2">"token_url"</span><span class="p">,</span> <span class="s2">"userinfo_url"</span><span class="p">,</span> <span class="s2">"server_metadata_url"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_preset_vouches</span><span class="p">(</span><span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cfg</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether *provider* is a verifying preset talking to the preset's own endpoints.</span>
+
+<span class="sd">    The trust is in github.com, not in the word "github": a provider configured</span>
+<span class="sd">    under that name but pointed at another server (a GitHub Enterprise host, or</span>
+<span class="sd">    any IdP) has not been shown to expose only verified emails.</span>
+
+<span class="sd">    &gt;&gt;&gt; from enlace_auth.config import OAuthProviderConfig as C</span>
+<span class="sd">    &gt;&gt;&gt; _preset_vouches("github", C(client_id_env="I", client_secret_env="S"))</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; _preset_vouches("github", C(client_id_env="I", client_secret_env="S",</span>
+<span class="sd">    ...     userinfo_url="https://ghe.example.com/api/v3/user"))</span>
+<span class="sd">    False</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">provider</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_EMAIL_VERIFIED_BY_PRESET</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="n">preset</span> <span class="o">=</span> <span class="n">_PROVIDER_PRESETS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">provider</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="k">return</span> <span class="nb">all</span><span class="p">(</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">preset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">_ENDPOINT_FIELDS</span>
+    <span class="p">)</span>
+
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_verified</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""True only when an ``email_verified`` claim affirms the address.</span>
@@ -793,12 +820,12 @@ window.runMermaid = runMermaid;</script>
         <span class="k">return</span> <span class="kc">True</span>
     <span class="k">if</span> <span class="n">claims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email_verified"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">False</span>  <span class="c1"># the provider said "not verified" (in whatever form)</span>
-    <span class="k">return</span> <span class="n">provider</span> <span class="ow">in</span> <span class="n">_EMAIL_VERIFIED_BY_PRESET</span> <span class="ow">or</span> <span class="nb">bool</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">_preset_vouches</span><span class="p">(</span><span class="n">provider</span><span class="p">,</span> <span class="n">cfg</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">bool</span><span class="p">(</span>
         <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"trust_unverified_email"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
     <span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_email_verified_by_provider</span><span class="p">(</span><span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">claims</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_email_verified_by_provider</span><span class="p">(</span><span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">claims</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Whether the PROVIDER vouches for the address: a claim, or a known preset.</span>
 
 <span class="sd">    Stricter than :func:`_email_trusted`: the operator's</span>
@@ -807,7 +834,21 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">claims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email_verified"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_verified</span><span class="p">(</span><span class="n">claims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email_verified"</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">provider</span> <span class="ow">in</span> <span class="n">_EMAIL_VERIFIED_BY_PRESET</span>
+    <span class="k">return</span> <span class="n">_preset_vouches</span><span class="p">(</span><span class="n">provider</span><span class="p">,</span> <span class="n">cfg</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_lowercase_folds_to_ascii</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether lowercasing turns a non-ASCII letter of *email* into plain ASCII.</span>
+
+<span class="sd">    Such a letter is a look-alike: the lowercased address would name a</span>
+<span class="sd">    different, ASCII mailbox than the one the provider verified.</span>
+
+<span class="sd">    &gt;&gt;&gt; _lowercase_folds_to_ascii("\u212aen@corp.com")  # KELVIN SIGN</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; _lowercase_folds_to_ascii("Ken@corp.com"), _lowercase_folds_to_ascii("Ünï@x.de")</span>
+<span class="sd">    (False, False)</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="ow">not</span> <span class="n">c</span><span class="o">.</span><span class="n">isascii</span><span class="p">()</span> <span class="ow">and</span> <span class="n">c</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">isascii</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">email</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_is_entra_issuer</span><span class="p">(</span><span class="n">iss</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -1100,8 +1141,22 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">detail</span><span class="o">=</span><span class="s2">"The OAuth provider has not verified this email address"</span><span class="p">,</span>
             <span class="p">)</span>
 
+        <span class="c1"># Keyed exactly as the provider spelled it (lowercased), never</span>
+        <span class="c1"># normalized: IDNA folds look-alike spellings (fullwidth letters, the</span>
+        <span class="c1"># Kelvin sign) onto plain ASCII, so normalizing an address an untrusted</span>
+        <span class="c1"># provider sent could land it on someone else's account (#41 review).</span>
+        <span class="c1"># Even lowercasing folds a few (U+212A KELVIN SIGN -&gt; "k"): refuse those.</span>
+        <span class="n">email</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">email</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">_lowercase_folds_to_ascii</span><span class="p">(</span><span class="n">email</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="mi">401</span><span class="p">,</span>
+                <span class="n">detail</span><span class="o">=</span><span class="s2">"The OAuth provider sent an address with a look-alike letter"</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="n">email</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="n">subject</span> <span class="o">=</span> <span class="n">_stable_subject</span><span class="p">(</span><span class="n">provider</span><span class="p">,</span> <span class="n">claims</span><span class="p">)</span>
+        <span class="n">verified_by_provider</span> <span class="o">=</span> <span class="n">_email_verified_by_provider</span><span class="p">(</span>
+            <span class="n">provider</span><span class="p">,</span> <span class="n">providers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">provider</span><span class="p">),</span> <span class="n">claims</span>
+        <span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">record</span> <span class="o">=</span> <span class="n">user_store</span><span class="p">[</span><span class="n">email</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
@@ -1111,9 +1166,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="c1"># A subject binds the account to THIS identity at the provider;</span>
                 <span class="c1"># without one, any later identity presenting the address would</span>
                 <span class="c1"># be let in (_login_refusal has no link to compare against).</span>
-                <span class="n">permitted</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">subject</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_email_verified_by_provider</span><span class="p">(</span>
-                    <span class="n">provider</span><span class="p">,</span> <span class="n">claims</span>
-                <span class="p">)</span>
+                <span class="n">permitted</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">subject</span><span class="p">)</span> <span class="ow">and</span> <span class="n">verified_by_provider</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">permitted</span> <span class="o">=</span> <span class="n">can_register</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">permitted</span><span class="p">:</span>
@@ -1128,6 +1181,10 @@ window.runMermaid = runMermaid;</script>
                 <span class="s2">"password_hash"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                 <span class="s2">"created_at"</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
                 <span class="s2">"created_via"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"oauth:</span><span class="si">{</span><span class="n">provider</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                <span class="c1"># Whether the PROVIDER vouched for the address, as opposed to the</span>
+                <span class="c1"># operator trusting it (trust_unverified_email). The doctor uses</span>
+                <span class="c1"># it to flag an account that later became an admin's.</span>
+                <span class="s2">"email_verified_by_provider"</span><span class="p">:</span> <span class="n">verified_by_provider</span><span class="p">,</span>
                 <span class="s2">"oauth_provider"</span><span class="p">:</span> <span class="n">provider</span><span class="p">,</span>
                 <span class="s2">"oauth_links"</span><span class="p">:</span> <span class="p">{</span><span class="n">provider</span><span class="p">:</span> <span class="n">subject</span><span class="p">}</span> <span class="k">if</span> <span class="n">subject</span> <span class="k">else</span> <span class="p">{},</span>
             <span class="p">}</span>

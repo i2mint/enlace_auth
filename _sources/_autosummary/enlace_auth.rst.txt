@@ -36,5 +36,6 @@
    auth
    config
    diagnostics
+   emails
    resource_policy
    stores

@@ -103,5 +103,6 @@ Plugin entry point. Safe to call when auth is disabled — does nothing.
 | [`auth`](enlace_auth.auth.html.md#module-enlace_auth.auth)                       | Authentication subsystem for enlace.                                        |
 | [`config`](enlace_auth.config.html.md#module-enlace_auth.config)                   | Auth-side configuration models.                                             |
 | [`diagnostics`](enlace_auth.diagnostics.html.md#module-enlace_auth.diagnostics)         | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`.      |
+| [`emails`](enlace_auth.emails.html.md#module-enlace_auth.emails)                   | One normal form for an email address, wherever one is compared.             |
 | [`resource_policy`](enlace_auth.resource_policy.html.md#module-enlace_auth.resource_policy) | The OAuth per-connector allowlist: its shape, its parsing and its one rule. |
 | [`stores`](enlace_auth.stores.html.md#module-enlace_auth.stores)                   | Per-user stores for enlace.                                                 |

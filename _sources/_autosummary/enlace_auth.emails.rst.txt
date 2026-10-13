@@ -1,0 +1,14 @@
+enlace\_auth.emails
+===================
+
+.. automodule:: enlace_auth.emails
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      account_spellings
+      bare_address_problem
+      normalize_email
+   

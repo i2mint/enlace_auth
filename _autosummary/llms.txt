@@ -26,6 +26,7 @@
 - [enlace_auth.auth.shares](enlace_auth.auth.shares.html.md): Owner-granted data shares: let named users at one user’s per-user data in one app.
 - [enlace_auth.config](enlace_auth.config.html.md): Auth-side configuration models.
 - [enlace_auth.diagnostics](enlace_auth.diagnostics.html.md): Auth-specific doctor checks that plug into &#96;enlace.doctor.run_doctor&#96;.
+- [enlace_auth.emails](enlace_auth.emails.html.md): One normal form for an email address, wherever one is compared.
 - [enlace_auth.resource_policy](enlace_auth.resource_policy.html.md): The OAuth per-connector allowlist: its shape, its parsing and its one rule.
 - [enlace_auth.stores](enlace_auth.stores.html.md): Per-user stores for enlace.
 - [enlace_auth.stores.backends](enlace_auth.stores.backends.html.md): MutableMapping-backed store factories for enlace.

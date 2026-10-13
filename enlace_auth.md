@@ -1,4 +1,4 @@
-> built 2026-10-13 04:33 UTC from e42a8a8 (main) · enlace_auth 0.1.31. Details: build_info.json
+> built 2026-10-13 04:53 UTC from d5dc3f6 (main) · enlace_auth 0.1.32. Details: build_info.json
 
 # index.html.md
 
@@ -2203,6 +2203,89 @@ requests). This asks the running server what it actually advertises.
   [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
 
 
+# _autosummary/enlace_auth.emails.html.md
+
+# enlace_auth.emails
+
+One normal form for an email address, wherever one is compared.
+
+Accounts are keyed by the address the HTTP routes accept (pydantic `EmailStr`,
+then lowercased): `EmailStr` decodes a punycode domain to Unicode, so
+`admin@xn--bcher-kva.example` is stored as `admin@bücher.example`. Every list
+an address is compared against (the admin list, the registration allowlist, a
+connector’s resource allowlist) must be put in the same form, or an entry
+spelled the other way silently never matches.
+
+### Functions
+
+| [`account_spellings`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.account_spellings)(email)    | The keys an account for an operator-written *email* may be stored under.   |
+|------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| [`bare_address_problem`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.bare_address_problem)(email) | Why *email* is not a bare `local@domain` address, or `None`.               |
+| [`normalize_email`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.normalize_email)(email)      | The key an account for *email* is stored under; `ValueError` if invalid.   |
+
+### enlace_auth.emails.account_spellings(email)
+
+The keys an account for an operator-written *email* may be stored under.
+
+As written, lowercased (how an OAuth sign-in keys it), and normalized (how
+`add-user` and `/auth/register` key it), when those differ. For lists an
+operator wrote, never for an address an untrusted party sent: normalizing
+that could fold a look-alike spelling onto someone else’s account.
+
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+```pycon
+>>> sorted(account_spellings("Ann@XN--BCHER-KVA.example"))
+['ann@bücher.example', 'ann@xn--bcher-kva.example']
+>>> sorted(account_spellings("ann@corp.local"))
+['ann@corp.local']
+```
+
+### enlace_auth.emails.bare_address_problem(email)
+
+Why *email* is not a bare `local@domain` address, or `None`.
+
+Deliberately lenient about the domain (`.local`, `localhost`): it only
+refuses what is not one plain address, such as the display-name form.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+```pycon
+>>> bare_address_problem("ann@corp.local") is None
+True
+>>> bare_address_problem("ann <mallory@evil.com>")
+'not a bare email address'
+```
+
+### enlace_auth.emails.normalize_email(email)
+
+The key an account for *email* is stored under; `ValueError` if invalid.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+```pycon
+>>> normalize_email("  Admin@XN--BCHER-KVA.example ")
+'admin@bücher.example'
+>>> normalize_email("A@Example.COM")
+'a@example.com'
+```
+
+Only a bare address is accepted. `EmailStr` also parses the display-name
+form, so `ann <mallory@evil.com>` would otherwise normalize to an address
+the text does not appear to name; in a list that grants access, that is a
+grant to someone other than the one written down.
+
+```pycon
+>>> normalize_email("ann <mallory@evil.com>")
+Traceback (most recent call last):
+...
+ValueError: not a bare email address: 'ann <mallory@evil.com>'
+```
+
+
 # _autosummary/enlace_auth.html.md
 
 # enlace_auth
@@ -2310,6 +2393,7 @@ Plugin entry point. Safe to call when auth is disabled — does nothing.
 | [`auth`](_autosummary/enlace_auth.auth.html.md#module-enlace_auth.auth)                       | Authentication subsystem for enlace.                                        |
 | [`config`](_autosummary/enlace_auth.config.html.md#module-enlace_auth.config)                   | Auth-side configuration models.                                             |
 | [`diagnostics`](_autosummary/enlace_auth.diagnostics.html.md#module-enlace_auth.diagnostics)         | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`.      |
+| [`emails`](_autosummary/enlace_auth.emails.html.md#module-enlace_auth.emails)                   | One normal form for an email address, wherever one is compared.             |
 | [`resource_policy`](_autosummary/enlace_auth.resource_policy.html.md#module-enlace_auth.resource_policy) | The OAuth per-connector allowlist: its shape, its parsing and its one rule. |
 | [`stores`](_autosummary/enlace_auth.stores.html.md#module-enlace_auth.stores)                   | Per-user stores for enlace.                                                 |
 
@@ -2713,18 +2797,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-13 04:33 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/e42a8a88c06a855baf7bc9ee648727278ca46a10"><code>e42a8a8</code></a> on branch <code>main</code>, for **enlace_auth 0.1.31** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 04:53 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/d5dc3f6eb863d197ded7e5e55e35d791642abf33"><code>d5dc3f6</code></a> on branch <code>main</code>, for **enlace_auth 0.1.32** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.31) is behind the latest release on PyPI (0.1.32): `pip install enlace_auth` gives newer code than these docs describe.
+- The documented version (0.1.32) is behind the latest release on PyPI (0.1.33): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/e42a8a88c06a855baf7bc9ee648727278ca46a10"><code>e42a8a88c06a855baf7bc9ee648727278ca46a10</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/d5dc3f6eb863d197ded7e5e55e35d791642abf33"><code>d5dc3f6eb863d197ded7e5e55e35d791642abf33</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -2735,9 +2819,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38346846134">38346846134</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38348431218">38348431218</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>e42a8a88c06a855baf7bc9ee648727278ca46a10</code> (in the history of the built commit) |
+| Event commit | <code>d5dc3f6eb863d197ded7e5e55e35d791642abf33</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2762,13 +2846,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.32/">0.1.32</a>, newer than the documented version (0.1.31).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.33/">0.1.33</a>, newer than the documented version (0.1.32).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout e42a8a88c06a855baf7bc9ee648727278ca46a10
+git checkout d5dc3f6eb863d197ded7e5e55e35d791642abf33
 pip install "epythet==0.2.13"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
