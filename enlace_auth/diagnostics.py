@@ -157,7 +157,7 @@ def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
     (open registration, or an allowlist that lists it), and that account would
     pass every ``@admins`` gate (i2mint/enlace_auth#35).
     """
-    from enlace_auth.emails import normalize_email
+    from enlace_auth.emails import lowercase_changes_letter, normalize_email
     from enlace_auth.plugin import read_email_list
     from enlace_auth.stores import make_file_store_factory
 
@@ -165,7 +165,7 @@ def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
     auth = coerce_auth_config(getattr(config, "auth", None))
     if not auth.enabled:
         return [Check(name, SKIP, "auth.enabled=false")]
-    admins = read_email_list(auth.admin_emails_env)
+    admins = read_email_list(auth.admin_emails_env, keep_unsafe=True)
     if not admins:
         return [Check(name, SKIP, f"{auth.admin_emails_env} lists no admins")]
     users = make_file_store_factory(auth.stores.path)("users")
@@ -203,6 +203,11 @@ def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
 
     def _spelling_hint(entry) -> str:
         """Why an admin entry may never match: written in a form no key takes."""
+        if lowercase_changes_letter(entry.rpartition("@")[0] or entry):
+            return (
+                f" {entry!r} changes letters when lowercased, so no path can make "
+                "its account and the platform ignores the entry: retype it."
+            )
         try:
             key = normalize_email(entry)
         except ValueError:
