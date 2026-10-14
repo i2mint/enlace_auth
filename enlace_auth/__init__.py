@@ -28,7 +28,12 @@ from enlace_auth.config import (
 )
 from enlace_auth.plugin import EnlaceAuthConfigError, plugin, wire
 
-__version__ = "0.0.1"
+try:
+    from importlib.metadata import version as _version
+
+    __version__ = _version("enlace_auth")
+except Exception:  # not installed (a bare source checkout on sys.path)
+    __version__ = "0+unknown"
 
 __all__ = [
     "AccessLevel",
