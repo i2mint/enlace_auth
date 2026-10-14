@@ -451,7 +451,7 @@ def make_oauth_router(
             # A new key must name the mailbox the provider verified: lowercasing
             # İ or ẞ changes the letter, not its case, and a password reset is
             # mailed to the key (#57). An account already keyed so still signs in.
-            if lowercase_changes_letter(raw_email.rpartition("@")[0]):
+            if lowercase_changes_letter(raw_email.rpartition("@")[0] or raw_email):
                 raise HTTPException(
                     status_code=403,
                     detail=(

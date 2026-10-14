@@ -39,7 +39,7 @@ from typing import TYPE_CHECKING, Callable, Iterable, Mapping, Optional
 from enlace.access import GRANTS_STATE_ATTR
 
 from enlace_auth.config import coerce_auth_config, coerce_stores_map
-from enlace_auth.emails import account_spellings
+from enlace_auth.emails import account_spellings, lowercase_changes_letter
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -301,16 +301,37 @@ def _require_signing_key(env_var: str) -> Optional[str]:
     )
 
 
-def read_email_list(env_var: str) -> tuple[str, ...]:
+def read_email_list(env_var: str, *, keep_unsafe: bool = False) -> tuple[str, ...]:
     """Read a comma-separated, case-folded email list from env var *env_var*.
 
     Entries are compared as written (lowercased), not normalized: mapping an
     operator's entry onto another spelling would also change which existing
     account it names. ``enlace doctor`` reports an admin entry whose account is
     keyed in another form (a punycode domain ``add-user`` stored in Unicode).
+
+    An entry whose local part lowercasing changes by more than case (``İ``,
+    ``ẞ``) is dropped with a warning, unless *keep_unsafe*: lowercased, it names
+    another mailbox, one no path may now create an account for except a provider
+    vouching for that other mailbox, so honouring it would hand the slot (an
+    admin's, say) to whoever holds the twin (#57). The doctor reads the list
+    with *keep_unsafe* to say why the entry never matches.
     """
     raw = os.environ.get(env_var or "", "")
-    return tuple(e.strip().lower() for e in raw.split(",") if e.strip())
+    out = []
+    for entry in (e.strip() for e in raw.split(",")):
+        if not entry:
+            continue
+        culprit = lowercase_changes_letter(entry.rpartition("@")[0] or entry)
+        if culprit and not keep_unsafe:
+            _logger.warning(
+                "%s: ignoring an entry whose part before @ changes letters when "
+                "lowercased (U+%04X); retype it (see `enlace doctor`).",
+                env_var,
+                ord(culprit),
+            )
+            continue
+        out.append(entry.lower())
+    return tuple(out)
 
 
 # ``allowed_users = ["@admins"]`` in an app.toml means "the platform admins"

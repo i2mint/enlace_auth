@@ -166,17 +166,20 @@ def lowercase_changes_letter(text: str) -> str | None:
     """The first character of *text* that lowercasing changes by more than case.
 
     A case map is one character for one, and goes back: ``"A".lower().upper()``
-    is ``"A"``. ``İ`` lowercases to two characters, ``ẞ`` to ``ß`` (which
-    uppercases to ``SS``), the Kelvin sign to ``k`` (which uppercases to ``K``).
+    is ``"A"`` (``.title()`` for a titlecase digraph such as ``ǅ``). ``İ``
+    lowercases to two characters, ``ẞ`` to ``ß`` (which uppercases to ``SS``),
+    the Kelvin sign to ``k`` (which uppercases to ``K``).
 
     >>> lowercase_changes_letter("Ann-Marie") is None
     True
-    >>> [hex(ord(lowercase_changes_letter(s))) for s in ("\u0130x", "\u1e9ex", "\u212ax")]
+    >>> [hex(ord(lowercase_changes_letter(s))) for s in ("\u0130", "\u1e9e", "\u212a")]
     ['0x130', '0x1e9e', '0x212a']
     """
     for c in text:
         lowered = c.lower()
-        if lowered != c and (len(lowered) != 1 or lowered.upper() != c):
+        if lowered == c:
+            continue
+        if len(lowered) != 1 or c not in (lowered.upper(), lowered.title()):
             return c
     return None
 
