@@ -306,15 +306,17 @@ def make_admin_router(
             del user_store[target]
         except KeyError:
             raise HTTPException(status_code=404, detail="User not found")
+        # Sessions are not checked against the user store on each request, so
+        # a deleted account keeps working until its cookie expires unless its
+        # sessions go too. (An actor deleting themselves is logged out.) This
+        # comes before the share cleanup so a failure there cannot leave a
+        # deleted account signed in.
+        _ = actor
+        credentials_changed(target)
         # A share never outlives an account it names (ADR 0001 §2): the email is
         # free to be registered again by someone else.
         if share_store is not None:
             share_store.remove_account(target)
-        # Sessions are not checked against the user store on each request, so
-        # a deleted account keeps working until its cookie expires unless its
-        # sessions go too. (An actor deleting themselves is logged out.)
-        _ = actor
-        credentials_changed(target)
         return {"ok": True, "email": target}
 
     @router.post("/users/{email}/password")

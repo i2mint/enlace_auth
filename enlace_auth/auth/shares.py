@@ -75,9 +75,11 @@ def _app(value: str) -> str:
         raise ShareError(str(e).replace("grant", "share")) from None
 
 
-def _is_complete(rec: dict) -> bool:
+def _is_complete(rec: object) -> bool:
     """True when ``rec`` carries the three keys that identify a share."""
-    return all(isinstance(rec.get(k), str) and rec.get(k) for k in _IDENTITY_KEYS)
+    return isinstance(rec, dict) and all(
+        isinstance(rec.get(k), str) and rec.get(k) for k in _IDENTITY_KEYS
+    )
 
 
 _IDENTITY_KEYS = ("app_id", "owner", "grantee")

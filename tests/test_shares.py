@@ -488,3 +488,16 @@ def test_remove_account_deletes_every_key_that_names_it():
     shares.share("practice", DAD, KID)  # not hers
     assert shares.remove_account(MUM) == 2
     assert {k for k in backend} == {f"practice/{KID}/{DAD}", f"practice/{DAD}/{KID}"}
+
+
+def test_remove_account_survives_a_non_dict_record_naming_neither_side():
+    """A null / list / string record elsewhere must not stop an account's deletion
+    (review of #66: it raised AttributeError and left the share behind)."""
+    shares = _store()
+    shares.share("practice", KID, MUM)
+    backend = shares._store
+    backend[f"practice/{DAD}/{STRANGER}"] = None
+    backend[f"practice/{STRANGER}/{DAD}"] = ["x"]
+    backend["practice/loose"] = "text"
+    assert shares.remove_account(KID) == 1
+    assert shares.list_all() == []

@@ -54,8 +54,9 @@ Every POST, PUT, PATCH and DELETE needs the CSRF pair, except the OAuth callback
 
 ```python
 token = client.get("/auth/csrf").json()["csrf"]
-client.post("/auth/login", json={"email": e, "password": p},
-            headers={"X-CSRF-Token": token})
+client.post(
+    "/auth/login", json={"email": e, "password": p}, headers={"X-CSRF-Token": token}
+)
 ```
 
 The cookie is set only by `/auth/*`, `/_admin` and `protected:*` apps. Public pages set no cookie, so a public page that must POST has to call `/auth/csrf` itself. Sub-app APIs under `/api/` are exempt because the session cookie is `SameSite=Lax`.

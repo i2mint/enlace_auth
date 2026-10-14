@@ -156,3 +156,20 @@ def test_cli_set_password_revokes_that_users_sessions(tmp_path, monkeypatch):
 
     assert sessions.get(mine) is None
     assert sessions.get(theirs) is not None
+
+
+def test_deleting_a_user_ends_sessions_even_if_share_cleanup_fails(
+    admin_client, monkeypatch
+):
+    """Revocation comes first, so a failure while removing the account's shares
+    can never leave a deleted account signed in (review of #66)."""
+    from enlace_auth.auth.shares import ShareStore
+
+    def boom(self, email):
+        raise RuntimeError("shares store unreadable")
+
+    monkeypatch.setattr(ShareStore, "remove_account", boom)
+    csrf, holder = _setup_admin_and_user(admin_client)
+    with pytest.raises(RuntimeError, match="unreadable"):
+        admin_client.delete("/_admin/api/users/vic@example.com", headers=csrf)
+    assert holder.get("/api/lobby/").status_code == 401
