@@ -176,7 +176,10 @@ def _make_file_claim(claim_dir, *, keep_seconds: int = 600):
         fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         nonce = secrets.token_hex(16).encode()
         try:
-            os.write(fd, nonce)
+            if os.write(fd, nonce) != len(nonce):
+                # A short write would make the claim one its owner can never
+                # release, stranding the token for a whole window.
+                raise OSError(f"short write to claim file {path}")
         except BaseException:
             # A claim nobody can release would strand the token for a whole
             # window. The file is ours alone: fresh, so no takeover touches it.
