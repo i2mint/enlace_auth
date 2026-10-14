@@ -36,6 +36,8 @@ def test_skill_is_spec_clean(skill_dir):
 
 
 def test_claude_skill_symlinks_resolve():
+    if not (ROOT / ".claude").exists():
+        pytest.skip("not a git checkout (an sdist leaves .claude out on purpose)")
     for skill_dir in SKILL_DIRS:
         link = ROOT / ".claude" / "skills" / skill_dir.name
         assert link.is_symlink()

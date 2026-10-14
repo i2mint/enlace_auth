@@ -32,7 +32,7 @@ With `uvicorn --factory enlace.compose:create_app`, set `ENLACE_PLUGINS=enlace_a
 
 `python -m enlace_auth init` prints a starter `[auth]` block. `python -m enlace_auth generate-signing-key` prints a value for `ENLACE_SIGNING_KEY` (32+ characters; the platform refuses to start without one, and `ENLACE_ALLOW_UNSIGNED=1` boots it with authentication disabled, for diagnostics only). `ENLACE_ADMIN_EMAILS` (comma separated) names who may open `/_admin`.
 
-An app declares `access` in its `app.toml`: `public`, `protected:shared` (one shared password, `shared_password_env` holds its argon2 hash from `python -m enlace_auth hash-password`) or `protected:user` (a signed-in account, optionally narrowed by `allowed_users`). Anything unmatched is treated as `protected:user`.
+An app declares `access` in its `app.toml`: `public`, `protected:shared` (one shared password, `shared_password_env` holds its argon2 hash from `python -m enlace_auth hash-password`) or `protected:user` (a signed-in account, optionally narrowed by `allowed_users`). **An app with no `access` is `local`, which the gate treats as open to everyone.** Always write `access` explicitly. A request path that matches no app falls under the platform's public root rule, and an unrecognized `access` value is denied.
 
 ## 3. Accounts and access from the CLI
 
@@ -50,7 +50,7 @@ Self-registration is off by default. `registration_open = true` in `[auth]` or `
 
 ## 4. Calling the HTTP API correctly
 
-Every POST, PUT, PATCH and DELETE under `/auth`, `/_admin` and `/api/{app}/store` needs the CSRF pair. Fetch the token first, then echo it in a header:
+Every POST, PUT, PATCH and DELETE needs the CSRF pair, except the OAuth callback and consent routes (`/auth/callback`, `/auth/login/<provider>`, `/auth/oauth/`), sub-app APIs under `/api/` (but not `/api/{app}/store`), and proxied `process`/`external` apps. That covers `/auth`, `/_admin`, `/_apps/{name}/meta` and the per-user store. Fetch the token first, then echo it in a header:
 
 ```python
 token = client.get("/auth/csrf").json()["csrf"]
@@ -58,7 +58,7 @@ client.post("/auth/login", json={"email": e, "password": p},
             headers={"X-CSRF-Token": token})
 ```
 
-The cookie is set only by `/auth/*`, `/_admin` and `protected:*` apps. Public pages set no cookie, so a public page that must POST has to call `/auth/csrf` itself. Sub-app APIs under `/api/` are exempt from CSRF because the session cookie is `SameSite=Lax`, except the per-user store routes.
+The cookie is set only by `/auth/*`, `/_admin` and `protected:*` apps. Public pages set no cookie, so a public page that must POST has to call `/auth/csrf` itself. Sub-app APIs under `/api/` are exempt because the session cookie is `SameSite=Lax`.
 
 ## 5. Inside an app
 

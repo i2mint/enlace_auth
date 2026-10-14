@@ -46,7 +46,7 @@ def app_factory(tmp_path, monkeypatch):
     apps_dir = tmp_path / "apps"
     apps_dir.mkdir()
     for name, toml in {
-        "pub": None,
+        "pub": 'access = "public"\n',
         "priv": 'access = "protected:user"\n',
         "shr": 'access = "protected:shared"\nshared_password_env = "SHARED_PW"\n',
     }.items():

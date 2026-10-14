@@ -235,7 +235,7 @@ Plus environment variables:
 
 ## CSRF
 
-Every `POST`, `PUT`, `PATCH` and `DELETE` under `/auth`, `/_admin` and `/api/{app}/store` must carry an `X-CSRF-Token` header that matches the signed `enlace_csrf` cookie. A client gets the token from `GET /auth/csrf`, which also sets the cookie.
+Every `POST`, `PUT`, `PATCH` and `DELETE` must carry an `X-CSRF-Token` header that matches the signed `enlace_csrf` cookie. That covers `/auth`, `/_admin`, `/_apps/{name}/meta` and the per-user store `/api/{app}/store`. Exempt: `/auth/callback`, `/auth/login/<provider>`, `/auth/oauth/`, other sub-app APIs under `/api/`, and proxied `process` and `external` apps. A client gets the token from `GET /auth/csrf`, which also sets the cookie.
 
 The cookie is set only on `/auth/*`, `/_admin` and `protected:*` apps. A `public` app's pages set no cookie, so an app that promises "nothing is stored on your device" keeps that promise on this platform. A public page that has to `POST` to the auth routes fetches `/auth/csrf` first. Sub-app APIs under `/api/` are exempt from the check because the session cookie is `SameSite=Lax`, except the per-user store routes.
 

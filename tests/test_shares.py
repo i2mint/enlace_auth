@@ -76,7 +76,7 @@ def test_remove_account_deletes_both_directions():
 
 
 def _with_damaged_records(shares):
-    """Add hand-edited / truncated records beside real shares (i2mint/enlace_auth#58)."""
+    """Add hand-edited or truncated records beside real shares (#58)."""
     backend = shares._store
     backend[f"practice/{MUM}/{KID}"] = {
         "grantee": KID,
@@ -452,3 +452,39 @@ def test_label_is_capped_and_trimmed():
     with pytest.raises(ShareError) as missing:
         shares.share("practice", KID, STRANGER)
     assert missing.value.code == "no_account"
+
+
+def test_a_record_that_does_not_match_its_key_grants_nothing():
+    """access() is fail-closed: an incomplete record, or one whose fields name
+    other people than its key, opens nothing (review of #66)."""
+    shares = _store()
+    backend = shares._store
+    backend[f"practice/{MUM}/{KID}"] = {"grantee": KID, "access": "rw"}  # incomplete
+    backend[f"practice/{MUM}/{DAD}"] = {
+        "app_id": "practice",
+        "owner": KID,
+        "grantee": DAD,
+        "access": "rw",
+    }  # fields disagree with the key
+    assert shares.access("practice", MUM, KID) is None
+    assert shares.access("practice", MUM, DAD) is None
+    assert shares.received("practice", KID) == []
+    assert shares.granted("practice", MUM) == []
+
+
+def test_remove_account_deletes_every_key_that_names_it():
+    """Whatever the record holds (damaged, null, naming others), a key
+    ``app/<email>/x`` or ``app/x/<email>`` is the account's and goes."""
+    shares = _store()
+    backend = shares._store
+    backend[f"practice/{MUM}/{DAD}"] = {
+        "app_id": "practice",
+        "owner": KID,
+        "grantee": DAD,
+        "access": "rw",
+    }
+    backend[f"practice/{KID}/{MUM}"] = None
+    backend[f"practice/{KID}/{DAD}"] = {"grantee": DAD}  # not hers
+    shares.share("practice", DAD, KID)  # not hers
+    assert shares.remove_account(MUM) == 2
+    assert {k for k in backend} == {f"practice/{KID}/{DAD}", f"practice/{DAD}/{KID}"}

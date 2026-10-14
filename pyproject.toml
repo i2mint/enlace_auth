@@ -84,5 +84,11 @@ python_versions = ["3.10", "3.12"]
 coverage_enabled = false
 test_on_windows = false
 
+[tool.hatch.build.targets.sdist]
+# .claude/skills holds symlinks to the real skills; if the sdist walks them first
+# it drops the real files, and the wheel built from the sdist ships no skills.
+exclude = [".claude"]
+skip-excluded-dirs = true
+
 [tool.hatch.build.targets.wheel]
 packages = ["enlace_auth"]
