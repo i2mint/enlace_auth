@@ -1,4 +1,4 @@
-> built 2026-10-14 01:07 UTC from f9362d2 (main) · enlace_auth 0.1.41. Details: build_info.json
+> built 2026-10-14 02:02 UTC from f9ab779 (main) · enlace_auth 0.1.42. Details: build_info.json
 
 # index.html.md
 
@@ -2343,7 +2343,8 @@ spelled the other way silently never matches.
 One fold is refused rather than applied: `EmailStr` NFC-composes the local
 part, but a mail system may deliver a composed and a decomposed local part to two
 mailboxes, which one key would merge (#51). [`normalize_email()`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.normalize_email) refuses a
-local part that composing would change.
+local part that composing would change. So is one that lowercasing would
+change by more than case (`İ` -> `i̇`, `ẞ` -> `ß`, #57).
 
 Two rules keep that safe. A written list entry is widened to both canonical
 spellings of its address ([`account_spellings()`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.account_spellings)); the address an account is
@@ -2356,6 +2357,7 @@ compared exactly as stored and never normalized.
 |---------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
 | [`bare_address_problem`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.bare_address_problem)(email)    | Why *email* is not a bare `local@domain` address, or `None`.                       |
 | [`local_part_problem`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.local_part_problem)(email)      | Why keying *email* would change its local part's characters, or `None`.            |
+| [`lowercase_changes_letter`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.lowercase_changes_letter)(text) | The first character of *text* that lowercasing changes by more than case.          |
 | [`normalize_email`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.normalize_email)(email)         | The key an account for *email* is stored under; `ValueError` if invalid.           |
 | [`resolve_account`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.resolve_account)(email, exists) | The existing account key a written *email* names, or `None`.                       |
 
@@ -2435,6 +2437,37 @@ True
 
 The two spellings look identical, so the message names the first character
 to blame.
+
+Keys are also lowercased, and for a few letters that changes the letter, not
+only its case (#57): `İ` becomes `i` plus a combining dot, `ẞ` becomes
+`ß`. A host that compares local parts as bytes reads another mailbox, and a
+password reset is mailed to the key. Such a local part is refused too.
+
+```pycon
+>>> local_part_problem("Ann@example.com") is None
+True
+>>> local_part_problem("İstanbul@example.com")
+'the part before @ changes letters when lowercased (U+0130); retype the address'
+```
+
+### enlace_auth.emails.lowercase_changes_letter(text)
+
+The first character of *text* that lowercasing changes by more than case.
+
+A case map is one character for one, and goes back: `"A".lower().upper()`
+is `"A"` (`.title()` for a titlecase digraph such as `ǅ`). `İ`
+lowercases to two characters, `ẞ` to `ß` (which uppercases to `SS`),
+the Kelvin sign to `k` (which uppercases to `K`).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+```pycon
+>>> lowercase_changes_letter("Ann-Marie") is None
+True
+>>> [hex(ord(lowercase_changes_letter(s))) for s in ("İ", "ẞ", "K")]
+['0x130', '0x1e9e', '0x212a']
+```
 
 ### enlace_auth.emails.normalize_email(email)
 
@@ -3006,18 +3039,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-14 01:07 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/f9362d22b16fd4dfb30bd01277c830fb4f10d1b5"><code>f9362d2</code></a> on branch <code>main</code>, for **enlace_auth 0.1.41** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-14 02:02 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/f9ab779cb7b2a5568f17bf3dc3910bf3ec03ce77"><code>f9ab779</code></a> on branch <code>main</code>, for **enlace_auth 0.1.42** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.41) is behind the latest release on PyPI (0.1.42): `pip install enlace_auth` gives newer code than these docs describe.
+- The documented version (0.1.42) is behind the latest release on PyPI (0.1.43): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/f9362d22b16fd4dfb30bd01277c830fb4f10d1b5"><code>f9362d22b16fd4dfb30bd01277c830fb4f10d1b5</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/f9ab779cb7b2a5568f17bf3dc3910bf3ec03ce77"><code>f9ab779cb7b2a5568f17bf3dc3910bf3ec03ce77</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -3028,9 +3061,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38493700372">38493700372</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38498693693">38498693693</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>f9362d22b16fd4dfb30bd01277c830fb4f10d1b5</code> (in the history of the built commit) |
+| Event commit | <code>f9ab779cb7b2a5568f17bf3dc3910bf3ec03ce77</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -3055,13 +3088,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.42/">0.1.42</a>, newer than the documented version (0.1.41).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.43/">0.1.43</a>, newer than the documented version (0.1.42).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout f9362d22b16fd4dfb30bd01277c830fb4f10d1b5
+git checkout f9ab779cb7b2a5568f17bf3dc3910bf3ec03ce77
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

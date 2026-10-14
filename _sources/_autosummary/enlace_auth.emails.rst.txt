@@ -11,6 +11,7 @@ enlace\_auth.emails
       account_spellings
       bare_address_problem
       local_part_problem
+      lowercase_changes_letter
       normalize_email
       resolve_account
    

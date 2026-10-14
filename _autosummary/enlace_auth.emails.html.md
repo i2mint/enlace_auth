@@ -12,7 +12,8 @@ spelled the other way silently never matches.
 One fold is refused rather than applied: `EmailStr` NFC-composes the local
 part, but a mail system may deliver a composed and a decomposed local part to two
 mailboxes, which one key would merge (#51). [`normalize_email()`](#enlace_auth.emails.normalize_email) refuses a
-local part that composing would change.
+local part that composing would change. So is one that lowercasing would
+change by more than case (`İ` -> `i̇`, `ẞ` -> `ß`, #57).
 
 Two rules keep that safe. A written list entry is widened to both canonical
 spellings of its address ([`account_spellings()`](#enlace_auth.emails.account_spellings)); the address an account is
@@ -25,6 +26,7 @@ compared exactly as stored and never normalized.
 |---------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
 | [`bare_address_problem`](#enlace_auth.emails.bare_address_problem)(email)    | Why *email* is not a bare `local@domain` address, or `None`.                       |
 | [`local_part_problem`](#enlace_auth.emails.local_part_problem)(email)      | Why keying *email* would change its local part's characters, or `None`.            |
+| [`lowercase_changes_letter`](#enlace_auth.emails.lowercase_changes_letter)(text) | The first character of *text* that lowercasing changes by more than case.          |
 | [`normalize_email`](#enlace_auth.emails.normalize_email)(email)         | The key an account for *email* is stored under; `ValueError` if invalid.           |
 | [`resolve_account`](#enlace_auth.emails.resolve_account)(email, exists) | The existing account key a written *email* names, or `None`.                       |
 
@@ -104,6 +106,37 @@ True
 
 The two spellings look identical, so the message names the first character
 to blame.
+
+Keys are also lowercased, and for a few letters that changes the letter, not
+only its case (#57): `İ` becomes `i` plus a combining dot, `ẞ` becomes
+`ß`. A host that compares local parts as bytes reads another mailbox, and a
+password reset is mailed to the key. Such a local part is refused too.
+
+```pycon
+>>> local_part_problem("Ann@example.com") is None
+True
+>>> local_part_problem("İstanbul@example.com")
+'the part before @ changes letters when lowercased (U+0130); retype the address'
+```
+
+### enlace_auth.emails.lowercase_changes_letter(text)
+
+The first character of *text* that lowercasing changes by more than case.
+
+A case map is one character for one, and goes back: `"A".lower().upper()`
+is `"A"` (`.title()` for a titlecase digraph such as `ǅ`). `İ`
+lowercases to two characters, `ẞ` to `ß` (which uppercases to `SS`),
+the Kelvin sign to `k` (which uppercases to `K`).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+```pycon
+>>> lowercase_changes_letter("Ann-Marie") is None
+True
+>>> [hex(ord(lowercase_changes_letter(s))) for s in ("İ", "ẞ", "K")]
+['0x130', '0x1e9e', '0x212a']
+```
 
 ### enlace_auth.emails.normalize_email(email)
 
