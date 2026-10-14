@@ -373,6 +373,12 @@ class CSRFMiddleware:
     present. On state-changing requests, requires the cookie and an
     ``X-CSRF-Token`` header to match after signature verification.
 
+    ``mint_prefixes`` narrows *where* the cookie is set (not where the check
+    runs): a request outside every prefix never receives one. The default,
+    ``None``, mints on every safe request. The platform plugin passes the
+    places a state-changing request can follow, so a ``public`` app's pages
+    set no cookie (i2mint/enlace_auth#31).
+
     Exempt paths skip the check entirely. Defaults exempt sub-app APIs
     under ``/api/`` because the ``enlace_session`` cookie is ``SameSite=Lax``:
     a cross-site POST from an attacker site arrives without credentials and
@@ -395,16 +401,31 @@ class CSRFMiddleware:
             "/api/",
         ),
         enforce_prefixes: Iterable[str] = (),
+        mint_prefixes: Optional[Iterable[str]] = None,
     ):
         """``enforce_prefixes`` are checked even under an exempt prefix: the per-user
         store routes (``/api/{app}/store``) sit under ``/api/`` but carry data a
-        share can expose to someone else's cookie, so they never skip the check."""
+        share can expose to someone else's cookie, so they never skip the check.
+
+        ``mint_prefixes``: path prefixes (whole segments: ``/auth`` matches
+        ``/auth`` and ``/auth/x``, not ``/authors``) where the cookie may be
+        set. ``None`` means everywhere."""
         self.app = app
         self._signing_key = signing_key
         self._cookie = cookie_name
         self._enforce = tuple(p.rstrip("/") for p in enforce_prefixes)
         self._header = header_name.lower().encode("latin-1")
         self._exempt = tuple(exempt_prefixes)
+        self._mint = (
+            None
+            if mint_prefixes is None
+            else tuple(p.rstrip("/") for p in mint_prefixes)
+        )
+
+    def _may_mint(self, path: str) -> bool:
+        if self._mint is None:
+            return True
+        return any(path == p or path.startswith(p + "/") for p in self._mint)
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
@@ -428,8 +449,9 @@ class CSRFMiddleware:
         )
 
         if method in _SAFE_METHODS or is_exempt:
-            # Ensure a token is present on safe requests.
-            if existing_value is None:
+            # Ensure a token is present on safe requests, where one can be
+            # needed (see ``mint_prefixes``).
+            if existing_value is None and self._may_mint(path):
                 await self._send_with_csrf_cookie(scope, receive, send)
                 return
             await self.app(scope, receive, send)

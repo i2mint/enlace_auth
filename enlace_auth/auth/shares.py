@@ -75,6 +75,30 @@ def _app(value: str) -> str:
         raise ShareError(str(e).replace("grant", "share")) from None
 
 
+def _is_complete(rec: object) -> bool:
+    """True when ``rec`` carries the three keys that identify a share."""
+    return isinstance(rec, dict) and all(
+        isinstance(rec.get(k), str) and rec.get(k) for k in _IDENTITY_KEYS
+    )
+
+
+_IDENTITY_KEYS = ("app_id", "owner", "grantee")
+
+
+def _is_genuine(key: object, rec: object) -> bool:
+    """True when ``rec`` is a complete share stored under the key it names.
+
+    Only a genuine record grants anything: a damaged one, or one whose fields
+    disagree with its ``{app_id}/{owner}/{grantee}`` key, is ignored everywhere
+    (fail closed), whatever its ``access`` says.
+    """
+    return (
+        isinstance(rec, dict)
+        and _is_complete(rec)
+        and key == f"{rec['app_id']}/{rec['owner']}/{rec['grantee']}"
+    )
+
+
 class ShareStore:
     """Share semantics over a ``MutableMapping``.
 
@@ -157,10 +181,11 @@ class ShareStore:
 
     def get(self, app_id: str, owner: str, grantee: str) -> Optional[dict]:
         try:
-            value = self._store[self._key(_app(app_id), _email(owner), _email(grantee))]
+            key = self._key(_app(app_id), _email(owner), _email(grantee))
+            value = self._store[key]
         except (KeyError, ShareError):
             return None
-        return value if isinstance(value, dict) else None
+        return value if _is_genuine(key, value) else None
 
     def revoke(
         self,
@@ -237,28 +262,56 @@ class ShareStore:
         ]
 
     def list_all(self) -> list[dict]:
-        """Every share in every app. Admin-only, infrequent."""
-        out = []
-        for key in list(self._store):
-            try:
-                rec = self._store[key]
-            except KeyError:
-                continue
-            if isinstance(rec, dict) and "grantee" in rec:
-                out.append(rec)
-        return out
+        """Every share in every app. Admin-only, infrequent.
+
+        Only genuine records are listed (see :func:`_is_genuine`): a record that is
+        damaged, or disagrees with its key, grants nothing, and callers can index
+        ``app_id``, ``owner`` and ``grantee`` on what they get.
+        """
+        return [rec for key, rec in self._scan() if _is_genuine(key, rec)]
 
     def remove_account(self, email: str) -> int:
-        """Delete every share ``email`` is part of, either side. Returns how many."""
+        """Delete every share ``email`` is part of, either side. Returns how many.
+
+        Anything stored under a key ``{app_id}/{owner}/{grantee}`` that names
+        ``email`` goes, whatever the record holds (a damaged or null record
+        included), and so does a complete record whose fields name ``email``.
+        Account deletion never raises on a damaged record.
+        """
         try:
             email = _email(email)
         except ShareError:
             return 0
         gone = 0
-        for rec in self.list_all():
-            if email in (rec.get("owner"), rec.get("grantee")):
-                gone += len(self.revoke(rec["app_id"], rec["owner"], rec["grantee"]))
+        for key in list(self._store):
+            parts = key.split("/") if isinstance(key, str) else []
+            named = len(parts) == 3 and email in parts[1:]
+            if not named:
+                try:
+                    rec = self._store[key]
+                except Exception:
+                    continue
+                named = _is_complete(rec) and email in (rec["owner"], rec["grantee"])
+            if named:
+                try:
+                    del self._store[key]
+                except KeyError:
+                    continue
+                gone += 1
         return gone
+
+    def _scan(self) -> Iterator[tuple[str, dict]]:
+        """``(key, record)`` for every share-shaped record, complete or not: a dict
+        with a ``grantee``, or one under an ``{app_id}/{owner}/{grantee}`` key."""
+        for key in list(self._store):
+            try:
+                rec = self._store[key]
+            except KeyError:
+                continue
+            if not isinstance(rec, dict):
+                continue
+            if "grantee" in rec or (isinstance(key, str) and key.count("/") == 2):
+                yield key, rec
 
     def _records(self, app_id: str) -> Iterator[dict]:
         for key in self._keys_for_app(app_id):
@@ -266,7 +319,7 @@ class ShareStore:
                 rec = self._store[key]
             except KeyError:
                 continue
-            if isinstance(rec, dict):
+            if _is_genuine(key, rec):
                 yield rec
 
     def _keys_for_app(self, app_id: str) -> Iterator[str]:

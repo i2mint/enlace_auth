@@ -854,6 +854,15 @@ def wire(parent: "FastAPI", config) -> None:
             if prefix not in csrf_exempt:
                 csrf_exempt.append(prefix)
 
+    # The CSRF cookie is minted only where a state-changing request can follow:
+    # the auth routes (``/auth/csrf`` is where every client fetches its token),
+    # the admin page, and the ``protected:*`` apps. A ``public`` app's pages set
+    # no cookie, so an app that promises "nothing stored on the device" keeps
+    # that promise when it runs on this platform (i2mint/enlace_auth#31).
+    csrf_mint = ["/auth", "/_admin"] + [
+        r.prefix for r in access_rules if r.level.startswith("protected:")
+    ]
+
     # Register middleware in the order requests traverse them:
     # outermost = first added last. FastAPI/Starlette runs middleware in
     # reverse insertion order, so the last `add_middleware` call is the
@@ -863,6 +872,7 @@ def wire(parent: "FastAPI", config) -> None:
         signing_key=signing_key,
         exempt_prefixes=csrf_exempt,
         enforce_prefixes=[f"/api/{name}/store" for name in sorted(store_apps)],
+        mint_prefixes=csrf_mint,
     )
     parent.add_middleware(StoreInjectionMiddleware, base_store=user_data_backend)
     parent.add_middleware(

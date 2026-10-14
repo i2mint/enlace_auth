@@ -104,7 +104,7 @@ def gw(tmp_path, monkeypatch):
 
 
 def _csrf(client):
-    client.get("/api/widget/ping")
+    client.get("/auth/csrf")
     from enlace_auth.auth.cookies import verify_cookie
 
     raw = verify_cookie(client.cookies.get("enlace_csrf"), _SIGNING_KEY, salt="csrf")

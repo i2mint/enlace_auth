@@ -106,8 +106,8 @@ def e2e_client(tmp_path, monkeypatch):
 
 
 def _csrf_pair(client: TestClient) -> tuple[str, str]:
-    """Do a safe GET so the server issues a CSRF cookie, then extract it."""
-    r = client.get("/api/public_app/ping")
+    """GET /auth/csrf so the server issues a CSRF cookie, then extract it."""
+    r = client.get("/auth/csrf")
     assert r.status_code == 200
     signed = client.cookies.get("enlace_csrf")
     assert signed is not None

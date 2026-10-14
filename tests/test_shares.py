@@ -75,6 +75,57 @@ def test_remove_account_deletes_both_directions():
     assert {(r["owner"], r["grantee"]) for r in shares.list_all()} == {(KID, DAD)}
 
 
+def _with_damaged_records(shares):
+    """Add hand-edited or truncated records beside real shares (#58)."""
+    backend = shares._store
+    backend[f"practice/{MUM}/{KID}"] = {
+        "grantee": KID,
+        "access": "rw",
+    }  # no app_id/owner
+    backend[f"practice/{KID}/{MUM}"] = {"owner": KID, "grantee": MUM}  # no app_id
+    backend[f"practice/{DAD}/{KID}"] = {
+        "app_id": "practice",
+        "grantee": KID,
+    }  # no owner
+    backend[f"practice/{DAD}/{MUM}"] = {
+        "app_id": "practice",
+        "owner": DAD,
+    }  # no grantee
+    backend["note"] = {"unrelated": True}  # not a share at all
+
+
+def test_list_all_skips_incomplete_records():
+    shares = _store()
+    shares.share("practice", KID, DAD)
+    _with_damaged_records(shares)
+    assert [(r["app_id"], r["owner"], r["grantee"]) for r in shares.list_all()] == [
+        ("practice", KID, DAD)
+    ]
+
+
+def test_remove_account_survives_incomplete_records():
+    """A damaged record must not stop the deletion of the account's other shares."""
+    shares = _store()
+    shares.share("practice", KID, MUM)
+    shares.share("practice", KID, DAD)
+    shares.share("practice", MUM, DAD)
+    _with_damaged_records(shares)
+    shares.remove_account(MUM)  # raised KeyError before the fix
+    assert {(r["owner"], r["grantee"]) for r in shares.list_all()} == {(KID, DAD)}
+
+
+def test_remove_account_also_removes_damaged_records_that_name_it():
+    """Whose key says it is MUM's goes with her; a record of two others stays."""
+    shares = _store()
+    _with_damaged_records(shares)
+    backend = shares._store
+    backend[f"practice/{KID}/{DAD}"] = {"grantee": DAD}  # damaged, not MUM's
+    shares.remove_account(MUM)
+    left = {k for k in backend if k.startswith("practice/")}
+    assert left == {f"practice/{DAD}/{KID}", f"practice/{KID}/{DAD}"}
+    assert "note" in backend
+
+
 def test_file_backend_lists_one_app_by_directory(tmp_path):
     factory = make_file_store_factory(str(tmp_path))
     shares = ShareStore(factory("shares"), root=tmp_path / "shares")
@@ -287,7 +338,7 @@ def platform(tmp_path, monkeypatch):
 
 def _signed_in(app, email):
     client = TestClient(app)
-    client.get("/api/practice/ping")
+    client.get("/auth/csrf")
     raw = verify_cookie(client.cookies.get("enlace_csrf"), KEY, salt="csrf")
     client.headers["X-CSRF-Token"] = raw
     verb = "login" if email == DAD else "register"
@@ -401,3 +452,52 @@ def test_label_is_capped_and_trimmed():
     with pytest.raises(ShareError) as missing:
         shares.share("practice", KID, STRANGER)
     assert missing.value.code == "no_account"
+
+
+def test_a_record_that_does_not_match_its_key_grants_nothing():
+    """access() is fail-closed: an incomplete record, or one whose fields name
+    other people than its key, opens nothing (review of #66)."""
+    shares = _store()
+    backend = shares._store
+    backend[f"practice/{MUM}/{KID}"] = {"grantee": KID, "access": "rw"}  # incomplete
+    backend[f"practice/{MUM}/{DAD}"] = {
+        "app_id": "practice",
+        "owner": KID,
+        "grantee": DAD,
+        "access": "rw",
+    }  # fields disagree with the key
+    assert shares.access("practice", MUM, KID) is None
+    assert shares.access("practice", MUM, DAD) is None
+    assert shares.received("practice", KID) == []
+    assert shares.granted("practice", MUM) == []
+
+
+def test_remove_account_deletes_every_key_that_names_it():
+    """Whatever the record holds (damaged, null, naming others), a key
+    ``app/<email>/x`` or ``app/x/<email>`` is the account's and goes."""
+    shares = _store()
+    backend = shares._store
+    backend[f"practice/{MUM}/{DAD}"] = {
+        "app_id": "practice",
+        "owner": KID,
+        "grantee": DAD,
+        "access": "rw",
+    }
+    backend[f"practice/{KID}/{MUM}"] = None
+    backend[f"practice/{KID}/{DAD}"] = {"grantee": DAD}  # not hers
+    shares.share("practice", DAD, KID)  # not hers
+    assert shares.remove_account(MUM) == 2
+    assert {k for k in backend} == {f"practice/{KID}/{DAD}", f"practice/{DAD}/{KID}"}
+
+
+def test_remove_account_survives_a_non_dict_record_naming_neither_side():
+    """A null / list / string record elsewhere must not stop an account's deletion
+    (review of #66: it raised AttributeError and left the share behind)."""
+    shares = _store()
+    shares.share("practice", KID, MUM)
+    backend = shares._store
+    backend[f"practice/{DAD}/{STRANGER}"] = None
+    backend[f"practice/{STRANGER}/{DAD}"] = ["x"]
+    backend["practice/loose"] = "text"
+    assert shares.remove_account(KID) == 1
+    assert shares.list_all() == []

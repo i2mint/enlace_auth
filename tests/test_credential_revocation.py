@@ -281,7 +281,7 @@ def test_rotating_a_shared_password_ends_old_cookies(tmp_path, monkeypatch):
 def _csrf_shared(client: TestClient) -> dict:
     from enlace_auth.auth.cookies import verify_cookie
 
-    client.get("/api/public_app/ping")
+    client.get("/auth/csrf")
     raw = verify_cookie(client.cookies.get("enlace_csrf"), _SIGNING_KEY, salt="csrf")
     return {"X-CSRF-Token": raw}
 

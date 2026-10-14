@@ -8,8 +8,21 @@ version = "0.1.44"
 description = "Authentication, sessions, admin dashboard, and per-user stores for the enlace platform"
 readme = "README.md"
 requires-python = ">=3.10"
-keywords = ["enlace", "auth", "fastapi", "platform", "argon2", "session", "admin"]
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["enlace", "auth", "fastapi", "platform", "argon2", "session", "admin", "csrf", "oauth"]
 authors = [{ name = "Thor Whalen" }]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Topic :: Internet :: WWW/HTTP :: Session",
+    "Topic :: Security",
+]
 dependencies = [
     "enlace>=0.1.43",  # needs AppConfig.user_store (and enlace.access)
     "fastapi>=0.100.0",
@@ -21,11 +34,10 @@ dependencies = [
     "cw>=0.1.1,<0.2",
 ]
 
-[project.license]
-text = "Apache-2.0"
-
 [project.urls]
 Homepage = "https://github.com/i2mint/enlace_auth"
+Repository = "https://github.com/i2mint/enlace_auth"
+Issues = "https://github.com/i2mint/enlace_auth/issues"
 
 [project.scripts]
 enlace-auth = "enlace_auth.__main__:main"
@@ -71,6 +83,12 @@ extras = "dev"
 python_versions = ["3.10", "3.12"]
 coverage_enabled = false
 test_on_windows = false
+
+[tool.hatch.build.targets.sdist]
+# .claude/skills holds symlinks to the real skills; if the sdist walks them first
+# it drops the real files, and the wheel built from the sdist ships no skills.
+exclude = [".claude"]
+skip-excluded-dirs = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["enlace_auth"]
