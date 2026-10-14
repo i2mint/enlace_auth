@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 import time
 
 try:
@@ -31,8 +32,9 @@ try:
 except ImportError:  # pragma: no cover - Windows
     fcntl = None
 from contextlib import contextmanager, suppress
+from contextvars import ContextVar
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Iterable, Optional
+from typing import TYPE_CHECKING, Callable, Iterable, Mapping, Optional
 
 from enlace.access import GRANTS_STATE_ATTR
 
@@ -68,6 +70,16 @@ def _make_is_active(user_backend):
             return True
 
     return is_active
+
+
+# The nonce each file claim wrote, keyed by claimant and key, so a release can only
+# delete its own file (#62). A ContextVar, not a dict: a uvicorn worker serves
+# many requests at once, and a request that took a stale claim over in this same
+# process must not have its file deleted by the slow request it replaced. Each
+# request runs in its own context, so each sees only the nonces it wrote.
+_held_claims: ContextVar[Mapping[tuple[str, str], bytes]] = ContextVar(
+    "enlace_auth_held_claims", default={}
+)
 
 
 def _make_file_claim(claim_dir, *, keep_seconds: int = 600):
@@ -153,16 +165,55 @@ def _make_file_claim(claim_dir, *, keep_seconds: int = 600):
             for entry in islice(claim_dir.iterdir(), limit):
                 _unlink_if_stale(entry, now)
 
+    # Two claimants on one directory are two owners, even in one context.
+    owner = secrets.token_hex(8)
+
+    def _create(path) -> None:
+        """Create *path* exclusively and stamp it with a nonce this claim keeps.
+
+        Raises ``FileExistsError`` if it already exists, like ``O_EXCL`` itself.
+        """
+        fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        nonce = secrets.token_hex(16).encode()
+        try:
+            if os.write(fd, nonce) != len(nonce):
+                # A short write would make the claim one its owner can never
+                # release, stranding the token for a whole window.
+                raise OSError(f"short write to claim file {path}")
+        except BaseException:
+            # A claim nobody can release would strand the token for a whole
+            # window. The file is ours alone: fresh, so no takeover touches it.
+            with suppress(OSError):
+                path.unlink()
+            raise
+        finally:
+            os.close(fd)
+        _held_claims.set({**_held_claims.get(), (owner, path.name): nonce})
+
     def release(key: str) -> None:
-        """Hand a claim back after a failed rotation."""
+        """Hand a claim back after a failed rotation -- only if it is still ours.
+
+        A rotation that outlived *keep_seconds* has had its claim taken over as
+        stale; unlinking by name would then delete the new claimant's live file
+        and let a third one in: two rotations of one token (#62). So unlink only
+        if the file still holds the nonce this claim wrote, checked under the
+        lock so nothing can replace the file in between.
+        """
+        mine = _held_claims.get()
+        nonce = mine.get((owner, key))
+        if nonce is None:
+            return
+        _held_claims.set({k: v for k, v in mine.items() if k != (owner, key)})
+        path = claim_dir / key
         with suppress(OSError), _unlinking():
-            (claim_dir / key).unlink()
+            if path.read_bytes() == nonce:
+                path.unlink()
 
     def claim(key: str) -> bool:
         # `key` is a sha256 hex digest, so it is already a safe filename.
         path = claim_dir / key
         try:
-            fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            _create(path)
         except FileExistsError:
             # A claim older than the window belonged to a worker that died before
             # it could consume the token. Without taking it over, that token is
@@ -176,7 +227,7 @@ def _make_file_claim(claim_dir, *, keep_seconds: int = 600):
                 with _unlinking():
                     if not _unlink_if_stale(path, time.time()):
                         return False
-                    fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+                    _create(path)
             except (OSError, ValueError):
                 # Someone else created it between our unlink and our create (a
                 # plain O_EXCL claimant needs no lock), or the dir is unusable.
@@ -192,7 +243,6 @@ def _make_file_claim(claim_dir, *, keep_seconds: int = 600):
                 "claim dir %s is not writable; refusing", claim_dir, exc_info=True
             )
             return False
-        os.close(fd)
         _sweep(time.time())
         return True
 

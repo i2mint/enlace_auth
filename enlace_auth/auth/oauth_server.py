@@ -1081,6 +1081,10 @@ def make_oauth_server_router(
             # unconsumed -- the connector is dead and nothing explains why.
             if release_claim is not None:
                 try:
+                    # Must run in the same context (task or thread hop) as the
+                    # _claim above: a file claim only releases what this
+                    # context claimed, and elsewhere it is a silent no-op that
+                    # strands the token for the claim window (#62).
                     release_claim(key)
                 except Exception:  # noqa: BLE001 - never mask the real error
                     pass

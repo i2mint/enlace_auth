@@ -203,3 +203,46 @@ def test_a_claim_dir_that_cannot_be_locked_is_logged(tmp_path, monkeypatch, capl
     os.utime(stale, (time.time() - 600, time.time() - 600))
     assert claim(key) is False  # fail closed
     assert "cannot lock claim dir" in caplog.text
+
+
+def _age(path, seconds):
+    import os
+    import time
+
+    then = time.time() - seconds
+    os.utime(path, (then, then))
+
+
+def test_a_late_release_does_not_delete_a_claim_taken_over_since(tmp_path):
+    """A release used to unlink by name, whoever held the file then (#62).
+
+    P1's rotation outlives the window, P2 takes the claim over as stale, then
+    P1 fails and releases: that deleted P2's live claim and let P3 in too.
+    """
+    first = _make_file_claim(str(tmp_path), keep_seconds=1)
+    second = _make_file_claim(str(tmp_path), keep_seconds=1)  # another process
+    key = "7" * 64
+    assert first(key) is True
+    _age(tmp_path / key, 10)
+    assert second(key) is True, "the stale claim should be taken over"
+
+    first.release(key)
+    assert (tmp_path / key).exists(), "a late release deleted someone else's claim"
+    assert second(key) is False, "a third claimant got in: two rotations"
+
+
+def test_a_late_release_cannot_delete_a_takeover_in_the_same_process(tmp_path):
+    """One uvicorn worker serves many requests: ownership is per request."""
+    import contextvars
+
+    claim = _make_file_claim(str(tmp_path), keep_seconds=1)
+    key = "6" * 64
+    slow, fast = contextvars.copy_context(), contextvars.copy_context()
+    assert slow.run(claim, key) is True
+    _age(tmp_path / key, 10)
+    assert fast.run(claim, key) is True
+
+    slow.run(claim.release, key)
+    assert (tmp_path / key).exists(), "the slow request deleted the fast one's claim"
+    fast.run(claim.release, key)
+    assert not (tmp_path / key).exists(), "the owner could not release its claim"
