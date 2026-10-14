@@ -75,6 +75,57 @@ def test_remove_account_deletes_both_directions():
     assert {(r["owner"], r["grantee"]) for r in shares.list_all()} == {(KID, DAD)}
 
 
+def _with_damaged_records(shares):
+    """Add hand-edited / truncated records beside real shares (i2mint/enlace_auth#58)."""
+    backend = shares._store
+    backend[f"practice/{MUM}/{KID}"] = {
+        "grantee": KID,
+        "access": "rw",
+    }  # no app_id/owner
+    backend[f"practice/{KID}/{MUM}"] = {"owner": KID, "grantee": MUM}  # no app_id
+    backend[f"practice/{DAD}/{KID}"] = {
+        "app_id": "practice",
+        "grantee": KID,
+    }  # no owner
+    backend[f"practice/{DAD}/{MUM}"] = {
+        "app_id": "practice",
+        "owner": DAD,
+    }  # no grantee
+    backend["note"] = {"unrelated": True}  # not a share at all
+
+
+def test_list_all_skips_incomplete_records():
+    shares = _store()
+    shares.share("practice", KID, DAD)
+    _with_damaged_records(shares)
+    assert [(r["app_id"], r["owner"], r["grantee"]) for r in shares.list_all()] == [
+        ("practice", KID, DAD)
+    ]
+
+
+def test_remove_account_survives_incomplete_records():
+    """A damaged record must not stop the deletion of the account's other shares."""
+    shares = _store()
+    shares.share("practice", KID, MUM)
+    shares.share("practice", KID, DAD)
+    shares.share("practice", MUM, DAD)
+    _with_damaged_records(shares)
+    shares.remove_account(MUM)  # raised KeyError before the fix
+    assert {(r["owner"], r["grantee"]) for r in shares.list_all()} == {(KID, DAD)}
+
+
+def test_remove_account_also_removes_damaged_records_that_name_it():
+    """Whose key says it is MUM's goes with her; a record of two others stays."""
+    shares = _store()
+    _with_damaged_records(shares)
+    backend = shares._store
+    backend[f"practice/{KID}/{DAD}"] = {"grantee": DAD}  # damaged, not MUM's
+    shares.remove_account(MUM)
+    left = {k for k in backend if k.startswith("practice/")}
+    assert left == {f"practice/{DAD}/{KID}", f"practice/{KID}/{DAD}"}
+    assert "note" in backend
+
+
 def test_file_backend_lists_one_app_by_directory(tmp_path):
     factory = make_file_store_factory(str(tmp_path))
     shares = ShareStore(factory("shares"), root=tmp_path / "shares")

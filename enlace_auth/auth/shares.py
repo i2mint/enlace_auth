@@ -75,6 +75,14 @@ def _app(value: str) -> str:
         raise ShareError(str(e).replace("grant", "share")) from None
 
 
+def _is_complete(rec: dict) -> bool:
+    """True when ``rec`` carries the three keys that identify a share."""
+    return all(isinstance(rec.get(k), str) and rec.get(k) for k in _IDENTITY_KEYS)
+
+
+_IDENTITY_KEYS = ("app_id", "owner", "grantee")
+
+
 class ShareStore:
     """Share semantics over a ``MutableMapping``.
 
@@ -237,28 +245,54 @@ class ShareStore:
         ]
 
     def list_all(self) -> list[dict]:
-        """Every share in every app. Admin-only, infrequent."""
-        out = []
-        for key in list(self._store):
-            try:
-                rec = self._store[key]
-            except KeyError:
-                continue
-            if isinstance(rec, dict) and "grantee" in rec:
-                out.append(rec)
-        return out
+        """Every share in every app. Admin-only, infrequent.
+
+        A record missing ``app_id``, ``owner`` or ``grantee`` (hand-edited, or
+        truncated by a crashed write) is not a share anyone can act on, so it is
+        left out; callers can index all three keys.
+        """
+        return [rec for _, rec in self._scan() if _is_complete(rec)]
 
     def remove_account(self, email: str) -> int:
-        """Delete every share ``email`` is part of, either side. Returns how many."""
+        """Delete every share ``email`` is part of, either side. Returns how many.
+
+        A damaged record (see :meth:`list_all`) whose key
+        ``{app_id}/{owner}/{grantee}`` names ``email`` goes too, so account
+        deletion leaves nothing of the account behind and never raises on one.
+        """
         try:
             email = _email(email)
         except ShareError:
             return 0
         gone = 0
-        for rec in self.list_all():
-            if email in (rec.get("owner"), rec.get("grantee")):
-                gone += len(self.revoke(rec["app_id"], rec["owner"], rec["grantee"]))
+        for key, rec in self._scan():
+            if _is_complete(rec):
+                if email in (rec["owner"], rec["grantee"]):
+                    gone += len(
+                        self.revoke(rec["app_id"], rec["owner"], rec["grantee"])
+                    )
+                continue
+            parts = key.split("/") if isinstance(key, str) else []
+            if len(parts) == 3 and email in parts[1:]:
+                try:
+                    del self._store[key]
+                except KeyError:
+                    continue
+                gone += 1
         return gone
+
+    def _scan(self) -> Iterator[tuple[str, dict]]:
+        """``(key, record)`` for every share-shaped record, complete or not: a dict
+        with a ``grantee``, or one under an ``{app_id}/{owner}/{grantee}`` key."""
+        for key in list(self._store):
+            try:
+                rec = self._store[key]
+            except KeyError:
+                continue
+            if not isinstance(rec, dict):
+                continue
+            if "grantee" in rec or (isinstance(key, str) and key.count("/") == 2):
+                yield key, rec
 
     def _records(self, app_id: str) -> Iterator[dict]:
         for key in self._keys_for_app(app_id):
