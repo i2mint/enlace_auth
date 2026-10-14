@@ -211,7 +211,9 @@ def test_patch_item_shape_matches_listing_item(gw):
     assert set(patched.keys()) == set(listing_item.keys())
 
 
-def test_patch_reports_a_manifest_rewritten_since_the_last_listing(tmp_path, monkeypatch):
+def test_patch_reports_a_manifest_rewritten_since_the_last_listing(
+    tmp_path, monkeypatch
+):
     """enlace#87: with no GET /_apps between a manifest rewrite and the PATCH,
     the edit used to return the date the last listing stamped."""
     import json
@@ -230,26 +232,33 @@ def test_patch_reports_a_manifest_rewritten_since_the_last_listing(tmp_path, mon
     path = manifests / "widget.json"
 
     def write_manifest(committed_at, bump=0):
-        path.write_text(json.dumps({
-            "schema_version": 1, "app": "widget",
-            "app_source": {"sha": "abc", "committed_at": committed_at},
-        }))
+        path.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "app": "widget",
+                    "app_source": {"sha": "abc", "committed_at": committed_at},
+                }
+            )
+        )
         st = path.stat()  # out of the same mtime tick, so the reader re-reads
         os.utime(path, (st.st_atime + bump, st.st_mtime + bump))
 
     write_manifest("2026-04-28T12:16:50+02:00")
     monkeypatch.setenv("ENLACE_SIGNING_KEY", _SIGNING_KEY)
     monkeypatch.setenv("ENLACE_ADMIN_EMAILS", "boss@example.com")
-    config = discover_apps(PlatformConfig(
-        apps_dir=apps_dir,
-        manifest_dir=manifests,
-        auth={
-            "enabled": True,
-            "secure_cookies": False,
-            "registration_open": True,
-            "stores": {"backend": "file", "path": str(tmp_path / "platform")},
-        },
-    ))
+    config = discover_apps(
+        PlatformConfig(
+            apps_dir=apps_dir,
+            manifest_dir=manifests,
+            auth={
+                "enabled": True,
+                "secure_cookies": False,
+                "registration_open": True,
+                "stores": {"backend": "file", "path": str(tmp_path / "platform")},
+            },
+        )
+    )
     client = TestClient(build_backend(config, plugins=[auth_plugin]))
     client.user_store_root = tmp_path / "platform"
     csrf = _csrf(client)
