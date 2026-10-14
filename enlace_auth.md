@@ -1,4 +1,4 @@
-> built 2026-10-14 02:02 UTC from f9ab779 (main) · enlace_auth 0.1.42. Details: build_info.json
+> built 2026-10-14 02:05 UTC from 4ca0abf (main) · enlace_auth 0.1.43. Details: build_info.json
 
 # index.html.md
 
@@ -3039,18 +3039,16 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-14 02:02 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/f9ab779cb7b2a5568f17bf3dc3910bf3ec03ce77"><code>f9ab779</code></a> on branch <code>main</code>, for **enlace_auth 0.1.42** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-14 02:05 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/4ca0abf56c0a672b8c0f5d8fc88744fb8b9d5655"><code>4ca0abf</code></a> on branch <code>main</code>, for **enlace_auth 0.1.43** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.1.42) is behind the latest release on PyPI (0.1.43): `pip install enlace_auth` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/f9ab779cb7b2a5568f17bf3dc3910bf3ec03ce77"><code>f9ab779cb7b2a5568f17bf3dc3910bf3ec03ce77</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/4ca0abf56c0a672b8c0f5d8fc88744fb8b9d5655"><code>4ca0abf56c0a672b8c0f5d8fc88744fb8b9d5655</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -3061,9 +3059,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38498693693">38498693693</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38498965571">38498965571</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>f9ab779cb7b2a5568f17bf3dc3910bf3ec03ce77</code> (in the history of the built commit) |
+| Event commit | <code>4ca0abf56c0a672b8c0f5d8fc88744fb8b9d5655</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -3088,13 +3086,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.43/">0.1.43</a>, newer than the documented version (0.1.42).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.43/">0.1.43</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout f9ab779cb7b2a5568f17bf3dc3910bf3ec03ce77
+git checkout 4ca0abf56c0a672b8c0f5d8fc88744fb8b9d5655
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

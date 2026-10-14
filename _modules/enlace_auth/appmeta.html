@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=05fb4756"></script>
+    <script src="../../_static/documentation_options.js?v=a183c34f"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.42" />
+  <meta name="docsearch:version" content="0.1.43" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -873,7 +873,12 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    store key confined to a real app name — defense-in-depth over the ``[^/]+``</span>
 <span class="sd">    path convertor that already blocks traversal.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace.compose</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_launcher_item</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace</span><span class="w"> </span><span class="kn">import</span> <span class="n">compose</span>
+
+    <span class="n">build_launcher_item</span> <span class="o">=</span> <span class="n">compose</span><span class="o">.</span><span class="n">build_launcher_item</span>
+    <span class="c1"># enlace &gt;= the release of i2mint/enlace#87; absent before, when the item</span>
+    <span class="c1"># keeps whatever date the last GET /_apps stamped.</span>
+    <span class="n">refresh_updated_at</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">compose</span><span class="p">,</span> <span class="s2">"refresh_updated_at"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
     <span class="n">app_by_name</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">apps</span><span class="p">}</span>
     <span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">()</span>
@@ -891,11 +896,16 @@ window.runMermaid = runMermaid;</script>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="mi">404</span><span class="p">,</span> <span class="s2">"Unknown app."</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">app</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_item</span><span class="p">(</span><span class="n">app</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_item</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">record</span> <span class="o">=</span> <span class="n">overlay_store</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">{})</span>
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
             <span class="n">record</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># Re-stamp updated_at from the live manifest, so a manifest rewritten</span>
+        <span class="c1"># since the last GET /_apps shows here too (enlace#87).</span>
+        <span class="n">readers</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="s2">"app_manifest_readers"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">refresh_updated_at</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">readers</span><span class="p">:</span>
+            <span class="n">refresh_updated_at</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">readers</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">build_launcher_item</span><span class="p">(</span>
             <span class="n">app</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">record</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
         <span class="p">)</span>
@@ -917,7 +927,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="k">del</span> <span class="n">overlay_store</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
             <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
                 <span class="k">pass</span>
-        <span class="k">return</span> <span class="n">_item</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_item</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
 
     <span class="nd">@router</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">"/_apps/</span><span class="si">{name}</span><span class="s2">/meta"</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">delete_meta</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
@@ -927,7 +937,7 @@ window.runMermaid = runMermaid;</script>
             <span class="k">del</span> <span class="n">overlay_store</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">pass</span>
-        <span class="k">return</span> <span class="n">_item</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_item</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">router</span></div>
 
