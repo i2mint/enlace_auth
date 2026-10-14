@@ -46,7 +46,7 @@ from fastapi.responses import JSONResponse
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.sessions import SessionStore
 from enlace_auth.config import OAuthProviderConfig
-from enlace_auth.emails import lowercase_folds_to_ascii
+from enlace_auth.emails import lowercase_changes_letter, lowercase_folds_to_ascii
 
 _logger = logging.getLogger("enlace_auth.oauth")
 
@@ -438,7 +438,7 @@ def make_oauth_router(
                 status_code=401,
                 detail="The OAuth provider sent an address with a look-alike letter",
             )
-        email = email.lower()
+        raw_email, email = email, email.lower()
         subject = _stable_subject(provider, claims)
         verified_by_provider = _email_verified_by_provider(
             provider, providers.get(provider), claims
@@ -448,6 +448,17 @@ def make_oauth_router(
         except KeyError:
             record = None
         if record is None:
+            # A new key must name the mailbox the provider verified: lowercasing
+            # İ or ẞ changes the letter, not its case, and a password reset is
+            # mailed to the key (#57). An account already keyed so still signs in.
+            if lowercase_changes_letter(raw_email.rpartition("@")[0]):
+                raise HTTPException(
+                    status_code=403,
+                    detail=(
+                        "This address changes letters when lowercased, so no "
+                        "account can be made for it. Contact the platform admin."
+                    ),
+                )
             if email in admins:
                 # A subject binds the account to THIS identity at the provider;
                 # without one, any later identity presenting the address would
