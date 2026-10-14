@@ -169,7 +169,12 @@ def make_appmeta_router(
     store key confined to a real app name — defense-in-depth over the ``[^/]+``
     path convertor that already blocks traversal.
     """
-    from enlace.compose import build_launcher_item
+    from enlace import compose
+
+    build_launcher_item = compose.build_launcher_item
+    # enlace >= the release of i2mint/enlace#87; absent before, when the item
+    # keeps whatever date the last GET /_apps stamped.
+    refresh_updated_at = getattr(compose, "refresh_updated_at", None)
 
     app_by_name = {a.name: a for a in apps}
     router = APIRouter()
@@ -187,11 +192,16 @@ def make_appmeta_router(
             raise HTTPException(404, "Unknown app.")
         return app
 
-    def _item(app) -> dict:
+    def _item(app, request: Request) -> dict:
         try:
             record = overlay_store.get(app.name, {})
         except Exception:
             record = {}
+        # Re-stamp updated_at from the live manifest, so a manifest rewritten
+        # since the last GET /_apps shows here too (enlace#87).
+        readers = getattr(request.app.state, "app_manifest_readers", None)
+        if refresh_updated_at is not None and readers:
+            refresh_updated_at(app, readers)
         return build_launcher_item(
             app, config, record if isinstance(record, dict) else {}
         )
@@ -213,7 +223,7 @@ def make_appmeta_router(
                 del overlay_store[name]
             except KeyError:
                 pass
-        return _item(app)
+        return _item(app, request)
 
     @router.delete("/_apps/{name}/meta")
     async def delete_meta(name: str, request: Request) -> dict:
@@ -223,6 +233,6 @@ def make_appmeta_router(
             del overlay_store[name]
         except KeyError:
             pass
-        return _item(app)
+        return _item(app, request)
 
     return router
