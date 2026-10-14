@@ -105,7 +105,7 @@ def admin_client(tmp_path, monkeypatch):
 
 def _csrf(client: TestClient) -> dict:
     """Get a CSRF token + return it as the X-CSRF-Token header dict."""
-    r = client.get("/api/ping/ping")
+    r = client.get("/auth/csrf")  # the one place the cookie is minted
     assert r.status_code == 200
     signed = client.cookies.get("enlace_csrf")
     from enlace_auth.auth.cookies import verify_cookie

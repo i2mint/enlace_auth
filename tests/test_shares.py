@@ -287,7 +287,7 @@ def platform(tmp_path, monkeypatch):
 
 def _signed_in(app, email):
     client = TestClient(app)
-    client.get("/api/practice/ping")
+    client.get("/auth/csrf")
     raw = verify_cookie(client.cookies.get("enlace_csrf"), KEY, salt="csrf")
     client.headers["X-CSRF-Token"] = raw
     verb = "login" if email == DAD else "register"
