@@ -1,4 +1,4 @@
-> built 2026-10-14 02:05 UTC from 4ca0abf (main) · enlace_auth 0.1.43. Details: build_info.json
+> built 2026-10-14 21:58 UTC from 44c46e0 (main) · enlace_auth 0.1.44. Details: build_info.json
 
 # index.html.md
 
@@ -6,22 +6,96 @@
 
 # enlace_auth
 
-Authentication, sessions, an admin dashboard, and per-user stores for the
-[enlace](https://github.com/i2mint/enlace) multi-app platform.
+Sign-in, sessions, CSRF protection, an admin dashboard and per-user data stores for the [enlace](https://github.com/i2mint/enlace) multi-app platform, added as a plugin.
 
-`enlace` itself is auth-agnostic — it composes apps and routes traffic. This
-package plugs in at compose time and adds:
+Humans who still type their code by hand: [For the free-range, hand-coded developer]().
 
-- `/auth/login`, `/auth/logout`, `/auth/register`, `/auth/whoami`,
-  `/auth/csrf`, `/auth/me/password`, `/auth/shared-login`
-- `/auth/account` — the signed-in user changes their own password
-- `/auth/forgot-password` — self-service reset by emailed link
-- `/_admin/api/*` — list/create/delete users, mint a password-reset link,
-  set a password directly, view app policy, and **grant/revoke per-app access
-  at runtime** (optional expiry). Gated by an admin allowlist.
+## For coding agents
+
+Read [`CLAUDE.md`]() first: it has the architecture map, the test command and the invariants a change must keep. This package is the security boundary of the platform, so a behavior change here is a security change.
+
+Two skills live in this repo:
+
+| Skill               | For                                                         | Where                                                            |
+|---------------------|-------------------------------------------------------------|------------------------------------------------------------------|
+| `enlace-auth-usage` | using the plugin: wiring, access levels, CLI, the CSRF flow | `enlace_auth/data/skills/enlace-auth-usage` (ships in the wheel) |
+| `enlace-auth-dev`   | working on this codebase: tests, invariants, the fix loop   | `skills/enlace-auth-dev`                                         |
+
+Enable them with either route:
+
+```bash
+gh skill install i2mint/enlace_auth enlace-auth-usage --agent claude-code
+gh skill install i2mint/enlace_auth enlace-auth-dev --agent claude-code
+
+# or, from the installed package (needs `pip install skill`):
+skill link-skills "$(python -c 'import enlace_auth, os; print(os.path.join(enlace_auth.__path__[0], "data", "skills"))')"
+```
+
+Inside a checkout, `.claude/skills/` already holds relative symlinks to both.
+
+What an agent can do with it: put `public`, `protected:shared` and `protected:user` gates in front of any enlace app, manage accounts, grants and data shares with the `enlace-auth` CLI, and give each signed-in user a private `request.state.store`. This example builds a platform in a temp directory and checks the gates end to end:
+
+<!-- readme-example -->
+```python
+import os, tempfile
+from pathlib import Path
+
+from enlace import PlatformConfig, build_backend
+from enlace.discover import discover_apps
+from starlette.testclient import TestClient
+
+from enlace_auth import plugin as auth_plugin
+
+os.environ["ENLACE_SIGNING_KEY"] = "a-demo-key-of-at-least-32-characters"
+root = Path(tempfile.mkdtemp())
+
+# Two apps: a public one and one that needs a signed-in user.
+for name, access in [("hello", "public"), ("vault", "protected:user")]:
+    (root / "apps" / name).mkdir(parents=True)
+    (root / "apps" / name / "server.py").write_text(
+        "from fastapi import FastAPI\n"
+        "app = FastAPI()\n"
+        "@app.get('/ping')\n"
+        "def ping():\n"
+        "    return {'ok': True}\n"
+    )
+    (root / "apps" / name / "app.toml").write_text(f'access = "{access}"\n')
+
+config = PlatformConfig(
+    apps_dir=root / "apps",
+    auth={
+        "enabled": True,
+        "secure_cookies": False,  # plain http in this demo
+        "registration_open": True,
+        "stores": {"backend": "file", "path": str(root / "platform")},
+    },
+    stores={"user_data": {"backend": "file", "path": str(root / "user_data")}},
+)
+client = TestClient(build_backend(discover_apps(config), plugins=[auth_plugin]))
+
+assert client.get("/api/hello/ping").status_code == 200  # public: open, no cookie set
+assert "enlace_csrf" not in client.cookies
+assert client.get("/api/vault/ping").status_code == 401  # protected: denied
+
+token = client.get("/auth/csrf").json()["csrf"]  # every POST echoes this token
+headers = {"X-CSRF-Token": token}
+body = {"email": "ada@example.com", "password": "correct horse battery"}
+assert client.post("/auth/register", json=body, headers=headers).status_code == 200
+assert client.get("/api/vault/ping").status_code == 200  # now signed in
+print(client.get("/auth/whoami").json())
+```
+
+## What it adds
+
+- `/auth/login`, `/auth/logout`, `/auth/register`, `/auth/whoami`, `/auth/csrf`, `/auth/me/password`, `/auth/shared-login`
+- `/auth/account`: the signed-in user changes their own password
+- `/auth/forgot-password`: self-service reset by emailed link
+- `/_admin/api/*`: list, create and delete users, mint a password-reset link, set a password directly, view app policy, and **grant or revoke per-app access at runtime** (optional expiry). Gated by an admin allowlist.
 - per-user data injection via `request.state.store`
-- `PlatformAuthMiddleware` + `CSRFMiddleware`
-- optional OAuth2 / OIDC via Authlib
+- `PlatformAuthMiddleware` and `CSRFMiddleware`
+- optional OAuth2 / OIDC login via Authlib, and an OAuth 2.1 authorization server for MCP connectors
+
+`enlace` itself is auth-agnostic: it composes apps and routes traffic. This package plugs in at compose time.
 
 ## Quick start
 
@@ -164,6 +238,14 @@ Plus environment variables:
 - `ENLACE_SMTP_HOST` (+ `_PORT`, `_USER`, `_PASSWORD`, `_FROM`, `_TLS`) — mail
   sender for password-reset emails. Unset means **no email is sent**; see below.
 
+## CSRF
+
+Every `POST`, `PUT`, `PATCH` and `DELETE` must carry an `X-CSRF-Token` header that matches the signed `enlace_csrf` cookie. That covers `/auth`, `/_admin`, `/_apps/{name}/meta` and the per-user store `/api/{app}/store`. Exempt: `/auth/callback`, `/auth/login/<provider>`, `/auth/oauth/`, other sub-app APIs under `/api/`, and proxied `process` and `external` apps. A client gets the token from `GET /auth/csrf`, which also sets the cookie.
+
+The cookie is set only on `/auth/*`, `/_admin` and `protected:*` apps. A `public` app’s pages set no cookie, so an app that promises “nothing is stored on your device” keeps that promise on this platform. A public page that has to `POST` to the auth routes fetches `/auth/csrf` first. Sub-app APIs under `/api/` are exempt from the check because the session cookie is `SameSite=Lax`, except the per-user store routes.
+
+If you use `CSRFMiddleware` directly, `mint_prefixes` limits where it sets the cookie (default: every safe request); the check itself always runs.
+
 ## Passwords
 
 Three ways a password gets set, for three different situations:
@@ -259,10 +341,22 @@ report = run_doctor(
 )
 ```
 
-## Status
+## For the free-range, hand-coded developer
 
-Extracted from `enlace` 0.0.11. The Python API is stable; an admin frontend
-ships separately as a normal enlaced app.
+Set up and run the tests:
+
+```bash
+git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
+uv venv -q .venv && . .venv/bin/activate
+uv pip install -q -e ".[dev,oauth]" pip
+python -m pytest -q --doctest-modules enlace_auth tests
+```
+
+- **Design.** Pure ASGI middleware, deny by default, storage behind `MutableMapping`s so tests use dicts or a temp directory. The reasoning for owner-granted shares is in [`misc/docs/decisions/0001-owner-granted-data-shares.md`]().
+- **Status.** Extracted from `enlace` 0.0.11. The Python API is stable; an admin frontend ships separately as a normal enlaced app.
+- **Contributing.** Open an issue first for anything larger than a focused fix. A fix comes with a test that fails without it. CI formats the code and bumps the version, so leave `version` alone.
+- **Questions and bugs.** [GitHub issues](https://github.com/i2mint/enlace_auth/issues).
+- **License.** MIT.
 
 <p class="epythet-aggregates">This documentation as a single file: <a href="enlace_auth.md">enlace_auth.md</a> (Markdown, for agents).</p>
 
@@ -777,7 +871,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Auth policy for a single mount prefix.
 
-### *class* enlace_auth.auth.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=())
+### *class* enlace_auth.auth.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=(), mint_prefixes=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -786,6 +880,12 @@ Signed double-submit CSRF for state-changing requests.
 On safe-method requests, sets an `enlace_csrf` cookie if one isn’t
 present. On state-changing requests, requires the cookie and an
 `X-CSRF-Token` header to match after signature verification.
+
+`mint_prefixes` narrows *where* the cookie is set (not where the check
+runs): a request outside every prefix never receives one. The default,
+`None`, mints on every safe request. The platform plugin passes the
+places a state-changing request can follow, so a `public` app’s pages
+set no cookie (i2mint/enlace_auth#31).
 
 Exempt paths skip the check entirely. Defaults exempt sub-app APIs
 under `/api/` because the `enlace_session` cookie is `SameSite=Lax`:
@@ -926,6 +1026,10 @@ Every share `owner` made in `app_id`, each with `"active"`.
 
 Every share in every app. Admin-only, infrequent.
 
+Only genuine records are listed (see `_is_genuine()`): a record that is
+damaged, or disagrees with its key, grants nothing, and callers can index
+`app_id`, `owner` and `grantee` on what they get.
+
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
@@ -939,6 +1043,11 @@ The **active** shares made to `grantee` in `app_id`.
 #### remove_account(email)
 
 Delete every share `email` is part of, either side. Returns how many.
+
+Anything stored under a key `{app_id}/{owner}/{grantee}` that names
+`email` goes, whatever the record holds (a damaged or null record
+included), and so does a complete record whose fields name `email`.
+Account deletion never raises on a damaged record.
 
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
@@ -1114,7 +1223,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Auth policy for a single mount prefix.
 
-### *class* enlace_auth.auth.middleware.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=())
+### *class* enlace_auth.auth.middleware.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=(), mint_prefixes=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -1123,6 +1232,12 @@ Signed double-submit CSRF for state-changing requests.
 On safe-method requests, sets an `enlace_csrf` cookie if one isn’t
 present. On state-changing requests, requires the cookie and an
 `X-CSRF-Token` header to match after signature verification.
+
+`mint_prefixes` narrows *where* the cookie is set (not where the check
+runs): a request outside every prefix never receives one. The default,
+`None`, mints on every safe request. The platform plugin passes the
+places a state-changing request can follow, so a `public` app’s pages
+set no cookie (i2mint/enlace_auth#31).
 
 Exempt paths skip the check entirely. Defaults exempt sub-app APIs
 under `/api/` because the `enlace_session` cookie is `SameSite=Lax`:
@@ -2069,6 +2184,10 @@ Every share `owner` made in `app_id`, each with `"active"`.
 
 Every share in every app. Admin-only, infrequent.
 
+Only genuine records are listed (see `_is_genuine()`): a record that is
+damaged, or disagrees with its key, grants nothing, and callers can index
+`app_id`, `owner` and `grantee` on what they get.
+
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
@@ -2082,6 +2201,11 @@ The **active** shares made to `grantee` in `app_id`.
 #### remove_account(email)
 
 Delete every share `email` is part of, either side. Returns how many.
+
+Anything stored under a key `{app_id}/{owner}/{grantee}` that names
+`email` goes, whatever the record holds (a damaged or null record
+included), and so does a complete record whose fields name `email`.
+Account deletion never raises on a damaged record.
 
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
@@ -3039,7 +3163,7 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-14 02:05 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/4ca0abf56c0a672b8c0f5d8fc88744fb8b9d5655"><code>4ca0abf</code></a> on branch <code>main</code>, for **enlace_auth 0.1.43** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-14 21:58 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/44c46e01c545b7a8f65c09383747c28e86f1917c"><code>44c46e0</code></a> on branch <code>main</code>, for **enlace_auth 0.1.44** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -3048,7 +3172,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/4ca0abf56c0a672b8c0f5d8fc88744fb8b9d5655"><code>4ca0abf56c0a672b8c0f5d8fc88744fb8b9d5655</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/44c46e01c545b7a8f65c09383747c28e86f1917c"><code>44c46e01c545b7a8f65c09383747c28e86f1917c</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -3059,9 +3183,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38498965571">38498965571</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38643928070">38643928070</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>4ca0abf56c0a672b8c0f5d8fc88744fb8b9d5655</code> (in the history of the built commit) |
+| Event commit | <code>44c46e01c545b7a8f65c09383747c28e86f1917c</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -3086,18 +3210,70 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.43/">0.1.43</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.44/">0.1.44</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 4ca0abf56c0a672b8c0f5d8fc88744fb8b9d5655
+git checkout 44c46e01c545b7a8f65c09383747c28e86f1917c
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 
 The same data, for machines: <a href="build_info.json"><code>build_info.json</code></a> (schema version 1).
+
+
+# ai-agents.html.md
+
+<!-- generated by epythet -->
+
+# For AI agents
+
+`enlace_auth` ships artifacts for coding agents alongside its code. This page lists
+them, says where each lives in the repository, and points at the
+machine-readable copies of this documentation.
+
+## Skills
+
+Skills are folders holding a `SKILL.md` (the [Agent Skills](https://agentskills.io) format): a description that tells an agent when to use it and a body with the procedure. Install one into your agent with `gh skill` (any host: `--agent claude-code`, `copilot`, `cursor`, `codex`, `gemini`), or use the copy bundled in the wheel.
+
+### `enlace-auth-usage`
+
+How to add sign-in, sessions, CSRF protection, admin accounts, per-app access levels, runtime grants and per-user storage to an enlace multi-app platform with the enlace_auth plugin. Use when the user mentions enlace_auth, the enlace-auth CLI, protected:user or protected:shared apps, ENLACE_SIGNING_KEY, ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user, reset-link, grant, or share; or wants to put login in front of apps served by enlace.
+
+```bash
+gh skill install i2mint/enlace_auth enlace-auth-usage --agent claude-code
+```
+
+Source: [`enlace_auth/data/skills/enlace-auth-usage`](https://github.com/i2mint/enlace_auth/tree/HEAD/enlace_auth/data/skills/enlace-auth-usage) (bundled with the pip package).
+
+### `enlace-auth-dev`
+
+How to work on the enlace_auth codebase itself: run and write tests, change the auth, CSRF, session, grant, share or admin code safely, and what a change must keep true. Use when editing files in enlace_auth/, fixing an enlace_auth issue, reviewing a pull request to it, or when asked how enlace_auth is organized or tested.
+
+```bash
+gh skill install i2mint/enlace_auth enlace-auth-dev --agent claude-code
+```
+
+Source: [`skills/enlace-auth-dev`](https://github.com/i2mint/enlace_auth/tree/HEAD/skills/enlace-auth-dev).
+
+The bundled skills are also on disk after `pip install enlace_auth`, under the package’s `data/skills/` directory; link them into an agent without network access with `skill link-skills <that directory>`.
+
+## Instruction files
+
+Files agents read before working in this repository.
+
+- [`CLAUDE.md`](https://github.com/i2mint/enlace_auth/tree/HEAD/CLAUDE.md): read by Claude Code
+
+## Machine-readable documentation
+
+This site publishes the same documentation in forms that fit an agent’s context window:
+
+- [`llms.txt`](https://i2mint.github.io/enlace_auth/llms.txt): an index of every page with a one-line description ([llms.txt](https://llmstxt.org) format)
+- [`enlace_auth.md`](https://i2mint.github.io/enlace_auth/enlace_auth.md): the whole documentation as one Markdown file
+- `<page>.html.md`: a rendered Markdown twin of every page, advertised from each page’s `<head>` with `<link rel="alternate" type="text/markdown">`
+- [`objects.inv`](https://i2mint.github.io/enlace_auth/objects.inv): the Sphinx inventory: a symbol-to-URL index (`sphobjinv convert plain objects.inv -`)
 
 
 # api.html.md

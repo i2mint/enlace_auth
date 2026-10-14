@@ -43,7 +43,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=a183c34f"></script>
+    <script src="../_static/documentation_options.js?v=6a0a5382"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.43" />
+  <meta name="docsearch:version" content="0.1.44" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -142,6 +142,13 @@
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../api.html">
     API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../ai-agents.html">
+    For AI agents
   </a>
 </li>
 
@@ -243,6 +250,13 @@
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../api.html">
     API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../ai-agents.html">
+    For AI agents
   </a>
 </li>
 
@@ -486,12 +500,17 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="enlace_auth.auth.CSRFMiddleware">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.</span></span><span class="sig-name descname"><span class="pre">CSRFMiddleware</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">app</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cookie_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'enlace_csrf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'X-CSRF-Token'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exempt_prefixes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('/auth/callback',</span> <span class="pre">'/auth/login/',</span> <span class="pre">'/api/')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_prefixes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/middleware.html#CSRFMiddleware"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.CSRFMiddleware" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.</span></span><span class="sig-name descname"><span class="pre">CSRFMiddleware</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">app</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cookie_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'enlace_csrf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'X-CSRF-Token'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exempt_prefixes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('/auth/callback',</span> <span class="pre">'/auth/login/',</span> <span class="pre">'/api/')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_prefixes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mint_prefixes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/middleware.html#CSRFMiddleware"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.CSRFMiddleware" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Signed double-submit CSRF for state-changing requests.</p>
 <p>On safe-method requests, sets an <code class="docutils literal notranslate"><span class="pre">enlace_csrf</span></code> cookie if one isn’t
 present. On state-changing requests, requires the cookie and an
 <code class="docutils literal notranslate"><span class="pre">X-CSRF-Token</span></code> header to match after signature verification.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mint_prefixes</span></code> narrows <em>where</em> the cookie is set (not where the check
+runs): a request outside every prefix never receives one. The default,
+<code class="docutils literal notranslate"><span class="pre">None</span></code>, mints on every safe request. The platform plugin passes the
+places a state-changing request can follow, so a <code class="docutils literal notranslate"><span class="pre">public</span></code> app’s pages
+set no cookie (i2mint/enlace_auth#31).</p>
 <p>Exempt paths skip the check entirely. Defaults exempt sub-app APIs
 under <code class="docutils literal notranslate"><span class="pre">/api/</span></code> because the <code class="docutils literal notranslate"><span class="pre">enlace_session</span></code> cookie is <code class="docutils literal notranslate"><span class="pre">SameSite=Lax</span></code>:
 a cross-site POST from an attacker site arrives without credentials and
@@ -677,6 +696,9 @@ owner or grantee with no account. <code class="docutils literal notranslate"><sp
 <dt class="sig sig-object py" id="enlace_auth.auth.ShareStore.list_all">
 <span class="sig-name descname"><span class="pre">list_all</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/shares.html#ShareStore.list_all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.ShareStore.list_all" title="Link to this definition">#</a></dt>
 <dd><p>Every share in every app. Admin-only, infrequent.</p>
+<p>Only genuine records are listed (see <code class="xref py py-func docutils literal notranslate"><span class="pre">_is_genuine()</span></code>): a record that is
+damaged, or disagrees with its key, grants nothing, and callers can index
+<code class="docutils literal notranslate"><span class="pre">app_id</span></code>, <code class="docutils literal notranslate"><span class="pre">owner</span></code> and <code class="docutils literal notranslate"><span class="pre">grantee</span></code> on what they get.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span></p>
@@ -699,6 +721,10 @@ owner or grantee with no account. <code class="docutils literal notranslate"><sp
 <dt class="sig sig-object py" id="enlace_auth.auth.ShareStore.remove_account">
 <span class="sig-name descname"><span class="pre">remove_account</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">email</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/shares.html#ShareStore.remove_account"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.ShareStore.remove_account" title="Link to this definition">#</a></dt>
 <dd><p>Delete every share <code class="docutils literal notranslate"><span class="pre">email</span></code> is part of, either side. Returns how many.</p>
+<p>Anything stored under a key <code class="docutils literal notranslate"><span class="pre">{app_id}/{owner}/{grantee}</span></code> that names
+<code class="docutils literal notranslate"><span class="pre">email</span></code> goes, whatever the record holds (a damaged or null record
+included), and so does a complete record whose fields name <code class="docutils literal notranslate"><span class="pre">email</span></code>.
+Account deletion never raises on a damaged record.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>

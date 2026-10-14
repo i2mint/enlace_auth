@@ -98,6 +98,10 @@ Every share `owner` made in `app_id`, each with `"active"`.
 
 Every share in every app. Admin-only, infrequent.
 
+Only genuine records are listed (see `_is_genuine()`): a record that is
+damaged, or disagrees with its key, grants nothing, and callers can index
+`app_id`, `owner` and `grantee` on what they get.
+
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
@@ -111,6 +115,11 @@ The **active** shares made to `grantee` in `app_id`.
 #### remove_account(email)
 
 Delete every share `email` is part of, either side. Returns how many.
+
+Anything stored under a key `{app_id}/{owner}/{grantee}` that names
+`email` goes, whatever the record holds (a damaged or null record
+included), and so does a complete record whose fields name `email`.
+Account deletion never raises on a damaged record.
 
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)

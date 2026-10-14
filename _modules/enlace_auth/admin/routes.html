@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=a183c34f"></script>
+    <script src="../../../_static/documentation_options.js?v=6a0a5382"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.43" />
+  <meta name="docsearch:version" content="0.1.44" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -495,6 +495,13 @@ window.runMermaid = runMermaid;</script>
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../api.html">
     API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../ai-agents.html">
+    For AI agents
   </a>
 </li>
 
@@ -594,6 +601,13 @@ window.runMermaid = runMermaid;</script>
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../api.html">
     API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../ai-agents.html">
+    For AI agents
   </a>
 </li>
 
@@ -1007,15 +1021,17 @@ window.runMermaid = runMermaid;</script>
             <span class="k">del</span> <span class="n">user_store</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"User not found"</span><span class="p">)</span>
+        <span class="c1"># Sessions are not checked against the user store on each request, so</span>
+        <span class="c1"># a deleted account keeps working until its cookie expires unless its</span>
+        <span class="c1"># sessions go too. (An actor deleting themselves is logged out.) This</span>
+        <span class="c1"># comes before the share cleanup so a failure there cannot leave a</span>
+        <span class="c1"># deleted account signed in.</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">actor</span>
+        <span class="n">credentials_changed</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
         <span class="c1"># A share never outlives an account it names (ADR 0001 §2): the email is</span>
         <span class="c1"># free to be registered again by someone else.</span>
         <span class="k">if</span> <span class="n">share_store</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">share_store</span><span class="o">.</span><span class="n">remove_account</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
-        <span class="c1"># Sessions are not checked against the user store on each request, so</span>
-        <span class="c1"># a deleted account keeps working until its cookie expires unless its</span>
-        <span class="c1"># sessions go too. (An actor deleting themselves is logged out.)</span>
-        <span class="n">_</span> <span class="o">=</span> <span class="n">actor</span>
-        <span class="n">credentials_changed</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">"ok"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">:</span> <span class="n">target</span><span class="p">}</span>
 
     <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/users/</span><span class="si">{email}</span><span class="s2">/password"</span><span class="p">)</span>

@@ -46,7 +46,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Auth policy for a single mount prefix.
 
-### *class* enlace_auth.auth.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=())
+### *class* enlace_auth.auth.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=(), mint_prefixes=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -55,6 +55,12 @@ Signed double-submit CSRF for state-changing requests.
 On safe-method requests, sets an `enlace_csrf` cookie if one isn’t
 present. On state-changing requests, requires the cookie and an
 `X-CSRF-Token` header to match after signature verification.
+
+`mint_prefixes` narrows *where* the cookie is set (not where the check
+runs): a request outside every prefix never receives one. The default,
+`None`, mints on every safe request. The platform plugin passes the
+places a state-changing request can follow, so a `public` app’s pages
+set no cookie (i2mint/enlace_auth#31).
 
 Exempt paths skip the check entirely. Defaults exempt sub-app APIs
 under `/api/` because the `enlace_session` cookie is `SameSite=Lax`:
@@ -195,6 +201,10 @@ Every share `owner` made in `app_id`, each with `"active"`.
 
 Every share in every app. Admin-only, infrequent.
 
+Only genuine records are listed (see `_is_genuine()`): a record that is
+damaged, or disagrees with its key, grants nothing, and callers can index
+`app_id`, `owner` and `grantee` on what they get.
+
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
@@ -208,6 +218,11 @@ The **active** shares made to `grantee` in `app_id`.
 #### remove_account(email)
 
 Delete every share `email` is part of, either side. Returns how many.
+
+Anything stored under a key `{app_id}/{owner}/{grantee}` that names
+`email` goes, whatever the record holds (a damaged or null record
+included), and so does a complete record whose fields name `email`.
+Account deletion never raises on a damaged record.
 
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)

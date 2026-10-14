@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=a183c34f"></script>
+    <script src="../../../_static/documentation_options.js?v=6a0a5382"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.43" />
+  <meta name="docsearch:version" content="0.1.44" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -495,6 +495,13 @@ window.runMermaid = runMermaid;</script>
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../api.html">
     API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../ai-agents.html">
+    For AI agents
   </a>
 </li>
 
@@ -594,6 +601,13 @@ window.runMermaid = runMermaid;</script>
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../api.html">
     API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../ai-agents.html">
+    For AI agents
   </a>
 </li>
 
@@ -1080,6 +1094,12 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    present. On state-changing requests, requires the cookie and an</span>
 <span class="sd">    ``X-CSRF-Token`` header to match after signature verification.</span>
 
+<span class="sd">    ``mint_prefixes`` narrows *where* the cookie is set (not where the check</span>
+<span class="sd">    runs): a request outside every prefix never receives one. The default,</span>
+<span class="sd">    ``None``, mints on every safe request. The platform plugin passes the</span>
+<span class="sd">    places a state-changing request can follow, so a ``public`` app's pages</span>
+<span class="sd">    set no cookie (i2mint/enlace_auth#31).</span>
+
 <span class="sd">    Exempt paths skip the check entirely. Defaults exempt sub-app APIs</span>
 <span class="sd">    under ``/api/`` because the ``enlace_session`` cookie is ``SameSite=Lax``:</span>
 <span class="sd">    a cross-site POST from an attacker site arrives without credentials and</span>
@@ -1102,16 +1122,31 @@ window.runMermaid = runMermaid;</script>
             <span class="s2">"/api/"</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="n">enforce_prefixes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+        <span class="n">mint_prefixes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""``enforce_prefixes`` are checked even under an exempt prefix: the per-user</span>
 <span class="sd">        store routes (``/api/{app}/store``) sit under ``/api/`` but carry data a</span>
-<span class="sd">        share can expose to someone else's cookie, so they never skip the check."""</span>
+<span class="sd">        share can expose to someone else's cookie, so they never skip the check.</span>
+
+<span class="sd">        ``mint_prefixes``: path prefixes (whole segments: ``/auth`` matches</span>
+<span class="sd">        ``/auth`` and ``/auth/x``, not ``/authors``) where the cookie may be</span>
+<span class="sd">        set. ``None`` means everywhere."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">app</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_signing_key</span> <span class="o">=</span> <span class="n">signing_key</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cookie</span> <span class="o">=</span> <span class="n">cookie_name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_enforce</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">enforce_prefixes</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_header</span> <span class="o">=</span> <span class="n">header_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"latin-1"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_exempt</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">exempt_prefixes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mint</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">mint_prefixes</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">mint_prefixes</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_may_mint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mint</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">path</span> <span class="o">==</span> <span class="n">p</span> <span class="ow">or</span> <span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">p</span> <span class="o">+</span> <span class="s2">"/"</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mint</span><span class="p">)</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">scope</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"http"</span><span class="p">:</span>
@@ -1135,8 +1170,9 @@ window.runMermaid = runMermaid;</script>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">_SAFE_METHODS</span> <span class="ow">or</span> <span class="n">is_exempt</span><span class="p">:</span>
-            <span class="c1"># Ensure a token is present on safe requests.</span>
-            <span class="k">if</span> <span class="n">existing_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Ensure a token is present on safe requests, where one can be</span>
+            <span class="c1"># needed (see ``mint_prefixes``).</span>
+            <span class="k">if</span> <span class="n">existing_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_may_mint</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
                 <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_send_with_csrf_cookie</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">)</span>
                 <span class="k">return</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">)</span>

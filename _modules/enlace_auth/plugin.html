@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=a183c34f"></script>
+    <script src="../../_static/documentation_options.js?v=6a0a5382"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.43" />
+  <meta name="docsearch:version" content="0.1.44" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -495,6 +495,13 @@ window.runMermaid = runMermaid;</script>
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../api.html">
     API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../ai-agents.html">
+    For AI agents
   </a>
 </li>
 
@@ -594,6 +601,13 @@ window.runMermaid = runMermaid;</script>
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../api.html">
     API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../ai-agents.html">
+    For AI agents
   </a>
 </li>
 
@@ -1558,6 +1572,15 @@ window.runMermaid = runMermaid;</script>
             <span class="k">if</span> <span class="n">prefix</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">csrf_exempt</span><span class="p">:</span>
                 <span class="n">csrf_exempt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
 
+    <span class="c1"># The CSRF cookie is minted only where a state-changing request can follow:</span>
+    <span class="c1"># the auth routes (``/auth/csrf`` is where every client fetches its token),</span>
+    <span class="c1"># the admin page, and the ``protected:*`` apps. A ``public`` app's pages set</span>
+    <span class="c1"># no cookie, so an app that promises "nothing stored on the device" keeps</span>
+    <span class="c1"># that promise when it runs on this platform (i2mint/enlace_auth#31).</span>
+    <span class="n">csrf_mint</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"/auth"</span><span class="p">,</span> <span class="s2">"/_admin"</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">prefix</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">access_rules</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">level</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"protected:"</span><span class="p">)</span>
+    <span class="p">]</span>
+
     <span class="c1"># Register middleware in the order requests traverse them:</span>
     <span class="c1"># outermost = first added last. FastAPI/Starlette runs middleware in</span>
     <span class="c1"># reverse insertion order, so the last `add_middleware` call is the</span>
@@ -1567,6 +1590,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">signing_key</span><span class="o">=</span><span class="n">signing_key</span><span class="p">,</span>
         <span class="n">exempt_prefixes</span><span class="o">=</span><span class="n">csrf_exempt</span><span class="p">,</span>
         <span class="n">enforce_prefixes</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">"/api/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">/store"</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">store_apps</span><span class="p">)],</span>
+        <span class="n">mint_prefixes</span><span class="o">=</span><span class="n">csrf_mint</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parent</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span><span class="n">StoreInjectionMiddleware</span><span class="p">,</span> <span class="n">base_store</span><span class="o">=</span><span class="n">user_data_backend</span><span class="p">)</span>
     <span class="n">parent</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span>

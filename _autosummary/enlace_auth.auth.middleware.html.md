@@ -43,7 +43,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Auth policy for a single mount prefix.
 
-### *class* enlace_auth.auth.middleware.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=())
+### *class* enlace_auth.auth.middleware.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=(), mint_prefixes=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -52,6 +52,12 @@ Signed double-submit CSRF for state-changing requests.
 On safe-method requests, sets an `enlace_csrf` cookie if one isn’t
 present. On state-changing requests, requires the cookie and an
 `X-CSRF-Token` header to match after signature verification.
+
+`mint_prefixes` narrows *where* the cookie is set (not where the check
+runs): a request outside every prefix never receives one. The default,
+`None`, mints on every safe request. The platform plugin passes the
+places a state-changing request can follow, so a `public` app’s pages
+set no cookie (i2mint/enlace_auth#31).
 
 Exempt paths skip the check entirely. Defaults exempt sub-app APIs
 under `/api/` because the `enlace_session` cookie is `SameSite=Lax`:
