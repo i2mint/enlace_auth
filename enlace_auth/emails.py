@@ -161,7 +161,6 @@ def local_part_problem(email: str) -> str | None:
     return f"the part before @ is not in composed (NFC) form{named}; retype the address"
 
 
-
 def lowercase_changes_letter(text: str) -> str | None:
     """The first character of *text* that lowercasing changes by more than case.
 
@@ -182,6 +181,7 @@ def lowercase_changes_letter(text: str) -> str | None:
         if len(lowered) != 1 or c not in (lowered.upper(), lowered.title()):
             return c
     return None
+
 
 #: RFC 5321's limit on a forward path; nothing longer is a deliverable address.
 _MAX_ADDRESS_LENGTH = 254
