@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=b5e87a2a"></script>
+    <script src="../../../_static/documentation_options.js?v=1190fe33"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.48" />
+  <meta name="docsearch:version" content="0.1.49" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -718,7 +718,14 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">seconds) marks an account that exists, keeps its grants, shares and history,</span>
 <span class="sd">but cannot sign in by any path; its connector grants are refused too (see</span>
 <span class="sd">``enlace_auth.plugin._make_is_active``). Disabling also ends its sessions;</span>
-<span class="sd">re-enabling only removes the key.</span>
+<span class="sd">re-enabling only removes the mark.</span>
+
+<span class="sd">The platform keeps that mark in its own mapping, not in the stored record</span>
+<span class="sd">(:class:`AccountRecords`, #71): several paths rewrite a whole record from a copy</span>
+<span class="sd">read moments earlier (password change, reset, OAuth subject binding), and the</span>
+<span class="sd">file store has no compare-and-set, so a mark inside the record could be undone</span>
+<span class="sd">by any of them. Reads still show ``disabled_at`` on the record, so every</span>
+<span class="sd">``is_disabled(record)`` check is unchanged; only :func:`set_disabled` writes it.</span>
 
 <span class="sd">Every sign-in path opens its session through :func:`open_session`, which</span>
 <span class="sd">re-checks the record after creating the session, so a sign-in racing an admin's</span>
@@ -731,9 +738,10 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">MutableMapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">MutableMapping</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 
 <span class="n">DISABLED_KEY</span> <span class="o">=</span> <span class="s2">"disabled_at"</span>
@@ -755,6 +763,148 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_without_mark</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="n">DISABLED_KEY</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="AccountRecords">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.accounts.html#enlace_auth.auth.accounts.AccountRecords">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AccountRecords</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""User records whose disabled mark lives in its own mapping.</span>
+
+<span class="sd">    Reading a record adds ``disabled_at`` from *disabled*; writing one drops</span>
+<span class="sd">    that key, so a path that rewrites a record from a copy read before an</span>
+<span class="sd">    admin's disable cannot undo it. Only :meth:`set_disabled` writes</span>
+<span class="sd">    *disabled*, one key at a time, with no read-modify-write.</span>
+
+<span class="sd">    &gt;&gt;&gt; users = AccountRecords({"a@x.io": {"password_hash": "old"}}, {})</span>
+<span class="sd">    &gt;&gt;&gt; copy = users["a@x.io"]                   # a password change reads...</span>
+<span class="sd">    &gt;&gt;&gt; _ = users.set_disabled("a@x.io", True, now=5)  # ...an admin disables...</span>
+<span class="sd">    &gt;&gt;&gt; users["a@x.io"] = {**copy, "password_hash": "new"}  # ...it writes back</span>
+<span class="sd">    &gt;&gt;&gt; is_disabled(users["a@x.io"]), users["a@x.io"]["password_hash"]</span>
+<span class="sd">    (True, 'new')</span>
+
+<span class="sd">    A mark that exists but cannot be read counts as disabled (fail closed). A</span>
+<span class="sd">    record written before this split (#70) may still carry the key itself:</span>
+<span class="sd">    :func:`make_account_records` moves such marks out at startup, and until then</span>
+<span class="sd">    the record stays disabled (rewrites keep it) until an enable clears it.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">users</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">disabled</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">users</span> <span class="o">=</span> <span class="n">users</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disabled</span> <span class="o">=</span> <span class="n">disabled</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">[</span><span class="n">email</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_marked</span><span class="p">(</span><span class="n">email</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">record</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">at</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">disabled</span><span class="p">[</span><span class="n">email</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>  <span class="c1"># present but unreadable (or just cleared): fail closed</span>
+            <span class="n">at</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="n">record</span><span class="p">,</span> <span class="n">DISABLED_KEY</span><span class="p">:</span> <span class="mf">0.0</span> <span class="k">if</span> <span class="n">at</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">at</span><span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">email</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">:</span>  <span class="c1"># a new account starts with no stale mark</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_clear_mark</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="n">_without_mark</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+            <span class="n">stored</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_disabled</span><span class="p">(</span><span class="n">stored</span><span class="p">):</span>  <span class="c1"># a pre-split mark: only an enable clears it</span>
+                <span class="n">record</span><span class="p">[</span><span class="n">DISABLED_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">stored</span><span class="p">[</span><span class="n">DISABLED_KEY</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">[</span><span class="n">email</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">[</span><span class="n">email</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_clear_mark</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">email</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">users</span>
+
+<div class="viewcode-block" id="AccountRecords.set_disabled">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.accounts.html#enlace_auth.auth.accounts.AccountRecords.set_disabled">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_disabled</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">disabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Mark *email* disabled (or not); return its record as now read.</span>
+
+<span class="sd">        Raises ``KeyError`` when there is no such account.</span>
+<span class="sd">        """</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">[</span><span class="n">email</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">disabled</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">disabled</span><span class="p">[</span><span class="n">email</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="k">if</span> <span class="n">now</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">now</span>
+            <span class="k">if</span> <span class="n">email</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">:</span>  <span class="c1"># deleted meanwhile: leave no orphan mark</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_clear_mark</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_clear_mark</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_disabled</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>  <span class="c1"># clear a pre-split mark too</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">[</span><span class="n">email</span><span class="p">]</span> <span class="o">=</span> <span class="n">_without_mark</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">email</span><span class="p">]</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_marked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="c1"># A file store says whether the mark exists even when it cannot be read.</span>
+        <span class="n">stored</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">disabled</span><span class="p">,</span> <span class="s2">"stored"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">stored</span><span class="p">(</span><span class="n">email</span><span class="p">)</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">stored</span><span class="p">)</span> <span class="k">else</span> <span class="n">email</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">disabled</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_clear_mark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Not ``pop``: its read-then-delete raises if a racing call got there first.</span>
+        <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">suppress</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">disabled</span><span class="p">[</span><span class="n">email</span><span class="p">]</span>
+
+<div class="viewcode-block" id="AccountRecords.migrate_legacy_marks">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.accounts.html#enlace_auth.auth.accounts.AccountRecords.migrate_legacy_marks">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">migrate_legacy_marks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Move marks written into records (before #71) to *disabled*; return how many.</span>
+
+<span class="sd">        &gt;&gt;&gt; records = AccountRecords({"a@x.io": {"disabled_at": 3.0}}, {})</span>
+<span class="sd">        &gt;&gt;&gt; records.migrate_legacy_marks(), records.users, records.disabled</span>
+<span class="sd">        (1, {'a@x.io': {}}, {'a@x.io': 3.0})</span>
+<span class="sd">        """</span>
+        <span class="n">moved</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">email</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">[</span><span class="n">email</span><span class="p">]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">is_disabled</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="n">email</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">disabled</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">disabled</span><span class="p">[</span><span class="n">email</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="n">DISABLED_KEY</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">[</span><span class="n">email</span><span class="p">]</span> <span class="o">=</span> <span class="n">_without_mark</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+                <span class="n">moved</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - one bad record must not stop startup</span>
+                <span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"enlace_auth: could not migrate the mark of </span><span class="si">%r</span><span class="s2">"</span><span class="p">,</span> <span class="n">email</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">moved</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="make_account_records">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.accounts.html#enlace_auth.auth.accounts.make_account_records">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_account_records</span><span class="p">(</span>
+    <span class="n">store_factory</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">MutableMapping</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AccountRecords</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The platform's user records: ``users`` plus the ``disabled_accounts`` marks.</span>
+
+<span class="sd">    Marks still inside records (written before #71) are moved out first.</span>
+
+<span class="sd">    &gt;&gt;&gt; stores = {}</span>
+<span class="sd">    &gt;&gt;&gt; records = make_account_records(lambda name: stores.setdefault(name, {}))</span>
+<span class="sd">    &gt;&gt;&gt; sorted(stores)</span>
+<span class="sd">    ['disabled_accounts', 'users']</span>
+<span class="sd">    """</span>
+    <span class="n">records</span> <span class="o">=</span> <span class="n">AccountRecords</span><span class="p">(</span><span class="n">store_factory</span><span class="p">(</span><span class="s2">"users"</span><span class="p">),</span> <span class="n">store_factory</span><span class="p">(</span><span class="s2">"disabled_accounts"</span><span class="p">))</span>
+    <span class="n">records</span><span class="o">.</span><span class="n">migrate_legacy_marks</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">records</span></div>
+
+
+
 <div class="viewcode-block" id="set_disabled">
 <a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.accounts.html#enlace_auth.auth.accounts.set_disabled">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">set_disabled</span><span class="p">(</span>
@@ -762,7 +912,9 @@ window.runMermaid = runMermaid;</script>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Mark *email*'s record disabled (or not); return the new record.</span>
 
-<span class="sd">    Raises ``KeyError`` when there is no such account.</span>
+<span class="sd">    Raises ``KeyError`` when there is no such account. On</span>
+<span class="sd">    :class:`AccountRecords` (the platform's store) the mark is written apart</span>
+<span class="sd">    from the record; on a plain mapping it is written into the record.</span>
 
 <span class="sd">    &gt;&gt;&gt; s = {"a@x.io": {"created_at": 0}}</span>
 <span class="sd">    &gt;&gt;&gt; is_disabled(set_disabled(s, "a@x.io", True, now=5))</span>
@@ -770,6 +922,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    &gt;&gt;&gt; is_disabled(set_disabled(s, "a@x.io", False))</span>
 <span class="sd">    False</span>
 <span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">user_store</span><span class="p">,</span> <span class="n">AccountRecords</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">user_store</span><span class="o">.</span><span class="n">set_disabled</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">disabled</span><span class="p">,</span> <span class="n">now</span><span class="o">=</span><span class="n">now</span><span class="p">)</span>
     <span class="n">record</span> <span class="o">=</span> <span class="n">user_store</span><span class="p">[</span><span class="n">email</span><span class="p">]</span>
     <span class="n">record</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
     <span class="k">if</span> <span class="n">disabled</span><span class="p">:</span>

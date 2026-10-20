@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=b5e87a2a"></script>
+    <script src="../_static/documentation_options.js?v=1190fe33"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.48" />
+  <meta name="docsearch:version" content="0.1.49" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -429,7 +429,13 @@
 seconds) marks an account that exists, keeps its grants, shares and history,
 but cannot sign in by any path; its connector grants are refused too (see
 <code class="docutils literal notranslate"><span class="pre">enlace_auth.plugin._make_is_active</span></code>). Disabling also ends its sessions;
-re-enabling only removes the key.</p>
+re-enabling only removes the mark.</p>
+<p>The platform keeps that mark in its own mapping, not in the stored record
+(<a class="reference internal" href="#enlace_auth.auth.accounts.AccountRecords" title="enlace_auth.auth.accounts.AccountRecords"><code class="xref py py-class docutils literal notranslate"><span class="pre">AccountRecords</span></code></a>, #71): several paths rewrite a whole record from a copy
+read moments earlier (password change, reset, OAuth subject binding), and the
+file store has no compare-and-set, so a mark inside the record could be undone
+by any of them. Reads still show <code class="docutils literal notranslate"><span class="pre">disabled_at</span></code> on the record, so every
+<code class="docutils literal notranslate"><span class="pre">is_disabled(record)</span></code> check is unchanged; only <a class="reference internal" href="#enlace_auth.auth.accounts.set_disabled" title="enlace_auth.auth.accounts.set_disabled"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_disabled()</span></code></a> writes it.</p>
 <p>Every sign-in path opens its session through <a class="reference internal" href="#enlace_auth.auth.accounts.open_session" title="enlace_auth.auth.accounts.open_session"><code class="xref py py-func docutils literal notranslate"><span class="pre">open_session()</span></code></a>, which
 re-checks the record after creating the session, so a sign-in racing an admin’s
 disable cannot keep a session the revocation already missed.</p>
@@ -451,15 +457,80 @@ it in its own mapping (<code class="docutils literal notranslate"><span class="p
 <tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.is_disabled" title="enlace_auth.auth.accounts.is_disabled"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_disabled</span></code></a>(record)</p></td>
 <td><p>True when <em>record</em> is a user record marked disabled.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.open_session" title="enlace_auth.auth.accounts.open_session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_session</span></code></a>(session_store, user_store, email)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.make_account_records" title="enlace_auth.auth.accounts.make_account_records"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_account_records</span></code></a>(store_factory)</p></td>
+<td><p>The platform's user records: <code class="docutils literal notranslate"><span class="pre">users</span></code> plus the <code class="docutils literal notranslate"><span class="pre">disabled_accounts</span></code> marks.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.open_session" title="enlace_auth.auth.accounts.open_session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_session</span></code></a>(session_store, user_store, email)</p></td>
 <td><p>Create a session for <em>email</em> and return its id, unless it is disabled.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.set_disabled" title="enlace_auth.auth.accounts.set_disabled"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_disabled</span></code></a>(user_store, email, disabled, *)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.set_disabled" title="enlace_auth.auth.accounts.set_disabled"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_disabled</span></code></a>(user_store, email, disabled, *)</p></td>
 <td><p>Mark <em>email</em>'s record disabled (or not); return the new record.</p></td>
 </tr>
 </tbody>
 </table>
 </div>
+<p class="rubric">Classes</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.AccountRecords" title="enlace_auth.auth.accounts.AccountRecords"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AccountRecords</span></code></a>(users, disabled)</p></td>
+<td><p>User records whose disabled mark lives in its own mapping.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="enlace_auth.auth.accounts.AccountRecords">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.accounts.</span></span><span class="sig-name descname"><span class="pre">AccountRecords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">users</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disabled</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/accounts.html#AccountRecords"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.accounts.AccountRecords" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">MutableMapping</span></code></a></p>
+<p>User records whose disabled mark lives in its own mapping.</p>
+<p>Reading a record adds <code class="docutils literal notranslate"><span class="pre">disabled_at</span></code> from <em>disabled</em>; writing one drops
+that key, so a path that rewrites a record from a copy read before an
+admin’s disable cannot undo it. Only <a class="reference internal" href="#enlace_auth.auth.accounts.set_disabled" title="enlace_auth.auth.accounts.set_disabled"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_disabled()</span></code></a> writes
+<em>disabled</em>, one key at a time, with no read-modify-write.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">users</span> <span class="o">=</span> <span class="n">AccountRecords</span><span class="p">({</span><span class="s2">"a@x.io"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"password_hash"</span><span class="p">:</span> <span class="s2">"old"</span><span class="p">}},</span> <span class="p">{})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">copy</span> <span class="o">=</span> <span class="n">users</span><span class="p">[</span><span class="s2">"a@x.io"</span><span class="p">]</span>                   <span class="c1"># a password change reads...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">users</span><span class="o">.</span><span class="n">set_disabled</span><span class="p">(</span><span class="s2">"a@x.io"</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">now</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>  <span class="c1"># ...an admin disables...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">users</span><span class="p">[</span><span class="s2">"a@x.io"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">copy</span><span class="p">,</span> <span class="s2">"password_hash"</span><span class="p">:</span> <span class="s2">"new"</span><span class="p">}</span>  <span class="c1"># ...it writes back</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">is_disabled</span><span class="p">(</span><span class="n">users</span><span class="p">[</span><span class="s2">"a@x.io"</span><span class="p">]),</span> <span class="n">users</span><span class="p">[</span><span class="s2">"a@x.io"</span><span class="p">][</span><span class="s2">"password_hash"</span><span class="p">]</span>
+<span class="go">(True, 'new')</span>
+</pre></div>
+</div>
+<p>A mark that exists but cannot be read counts as disabled (fail closed). A
+record written before this split (#70) may still carry the key itself:
+<a class="reference internal" href="#enlace_auth.auth.accounts.make_account_records" title="enlace_auth.auth.accounts.make_account_records"><code class="xref py py-func docutils literal notranslate"><span class="pre">make_account_records()</span></code></a> moves such marks out at startup, and until then
+the record stays disabled (rewrites keep it) until an enable clears it.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.auth.accounts.AccountRecords.migrate_legacy_marks">
+<span class="sig-name descname"><span class="pre">migrate_legacy_marks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/accounts.html#AccountRecords.migrate_legacy_marks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.accounts.AccountRecords.migrate_legacy_marks" title="Link to this definition">#</a></dt>
+<dd><p>Move marks written into records (before #71) to <em>disabled</em>; return how many.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">records</span> <span class="o">=</span> <span class="n">AccountRecords</span><span class="p">({</span><span class="s2">"a@x.io"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"disabled_at"</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">}},</span> <span class="p">{})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">records</span><span class="o">.</span><span class="n">migrate_legacy_marks</span><span class="p">(),</span> <span class="n">records</span><span class="o">.</span><span class="n">users</span><span class="p">,</span> <span class="n">records</span><span class="o">.</span><span class="n">disabled</span>
+<span class="go">(1, {'a@x.io': {}}, {'a@x.io': 3.0})</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.auth.accounts.AccountRecords.set_disabled">
+<span class="sig-name descname"><span class="pre">set_disabled</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disabled</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">now</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/accounts.html#AccountRecords.set_disabled"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.accounts.AccountRecords.set_disabled" title="Link to this definition">#</a></dt>
+<dd><p>Mark <em>email</em> disabled (or not); return its record as now read.</p>
+<p>Raises <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> when there is no such account.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py data">
 <dt class="sig sig-object py" id="enlace_auth.auth.accounts.DISABLED_DETAIL">
 <span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.accounts.</span></span><span class="sig-name descname"><span class="pre">DISABLED_DETAIL</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'This</span> <span class="pre">account</span> <span class="pre">is</span> <span class="pre">disabled.</span> <span class="pre">Contact</span> <span class="pre">the</span> <span class="pre">platform</span> <span class="pre">admin.'</span></span><a class="headerlink" href="#enlace_auth.auth.accounts.DISABLED_DETAIL" title="Link to this definition">#</a></dt>
@@ -477,6 +548,24 @@ it in its own mapping (<code class="docutils literal notranslate"><span class="p
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.auth.accounts.make_account_records">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.accounts.</span></span><span class="sig-name descname"><span class="pre">make_account_records</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store_factory</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/accounts.html#make_account_records"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.accounts.make_account_records" title="Link to this definition">#</a></dt>
+<dd><p>The platform’s user records: <code class="docutils literal notranslate"><span class="pre">users</span></code> plus the <code class="docutils literal notranslate"><span class="pre">disabled_accounts</span></code> marks.</p>
+<p>Marks still inside records (written before #71) are moved out first.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">stores</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">records</span> <span class="o">=</span> <span class="n">make_account_records</span><span class="p">(</span><span class="k">lambda</span> <span class="n">name</span><span class="p">:</span> <span class="n">stores</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">{}))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">sorted</span><span class="p">(</span><span class="n">stores</span><span class="p">)</span>
+<span class="go">['disabled_accounts', 'users']</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#enlace_auth.auth.accounts.AccountRecords" title="enlace_auth.auth.accounts.AccountRecords"><code class="xref py py-class docutils literal notranslate"><span class="pre">AccountRecords</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -500,7 +589,9 @@ new session is deleted here and the sign-in refused. Raises
 <dt class="sig sig-object py" id="enlace_auth.auth.accounts.set_disabled">
 <span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.accounts.</span></span><span class="sig-name descname"><span class="pre">set_disabled</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disabled</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">now</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/accounts.html#set_disabled"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.accounts.set_disabled" title="Link to this definition">#</a></dt>
 <dd><p>Mark <em>email</em>’s record disabled (or not); return the new record.</p>
-<p>Raises <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> when there is no such account.</p>
+<p>Raises <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> when there is no such account. On
+<a class="reference internal" href="#enlace_auth.auth.accounts.AccountRecords" title="enlace_auth.auth.accounts.AccountRecords"><code class="xref py py-class docutils literal notranslate"><span class="pre">AccountRecords</span></code></a> (the platform’s store) the mark is written apart
+from the record; on a plain mapping it is written into the record.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"a@x.io"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"created_at"</span><span class="p">:</span> <span class="mi">0</span><span class="p">}}</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">is_disabled</span><span class="p">(</span><span class="n">set_disabled</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s2">"a@x.io"</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">now</span><span class="o">=</span><span class="mi">5</span><span class="p">))</span>
 <span class="go">True</span>
@@ -564,8 +655,14 @@ new session is deleted here and the sign-in refused. Raises
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.accounts.AccountRecords"><code class="docutils literal notranslate"><span class="pre">AccountRecords</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.accounts.AccountRecords.migrate_legacy_marks"><code class="docutils literal notranslate"><span class="pre">AccountRecords.migrate_legacy_marks()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.accounts.AccountRecords.set_disabled"><code class="docutils literal notranslate"><span class="pre">AccountRecords.set_disabled()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.accounts.DISABLED_DETAIL"><code class="docutils literal notranslate"><span class="pre">DISABLED_DETAIL</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.accounts.is_disabled"><code class="docutils literal notranslate"><span class="pre">is_disabled()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.accounts.make_account_records"><code class="docutils literal notranslate"><span class="pre">make_account_records()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.accounts.open_session"><code class="docutils literal notranslate"><span class="pre">open_session()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.accounts.set_disabled"><code class="docutils literal notranslate"><span class="pre">set_disabled()</span></code></a></li>
 </ul>

@@ -15,6 +15,13 @@ enlace\_auth.auth.accounts
    .. autosummary::
    
       is_disabled
+      make_account_records
       open_session
       set_disabled
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AccountRecords
    
