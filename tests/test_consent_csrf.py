@@ -20,7 +20,6 @@ from enlace_auth.auth.cookies import sign_cookie, verify_cookie  # noqa: E402
 from enlace_auth.auth.sessions import SessionStore  # noqa: E402
 from enlace_auth.config import OAuthServerConfig  # noqa: E402
 from tests.test_oauth_server import (  # noqa: E402
-    COOKIE,
     EMAIL,
     OTHER_RESOURCE,
     REDIRECT,
@@ -30,6 +29,7 @@ from tests.test_oauth_server import (  # noqa: E402
     _consent_csrf,
     _pkce,
     _register,
+    _sign_in,
 )
 
 ATTACKER_REDIRECT = "https://attacker.example/cb"
@@ -37,6 +37,7 @@ SECOND_REDIRECT = "https://claude.ai/api/mcp/callback2"
 
 
 def _post(client, cookie, csrf, **overrides):
+    _sign_in(client, cookie)
     form = {
         "redirect_uri": REDIRECT,
         "state": "s",
@@ -49,7 +50,6 @@ def _post(client, cookie, csrf, **overrides):
     return client.post(
         "/auth/oauth/authorize",
         data=form,
-        cookies={COOKIE: cookie},
         follow_redirects=False,
     )
 

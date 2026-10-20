@@ -21,7 +21,6 @@ from enlace.base import PlatformConfig  # noqa: E402
 from enlace_auth.auth.oauth_server import make_oauth_server_router  # noqa: E402
 from enlace_auth.config import OAuthServerConfig, coerce_auth_config  # noqa: E402
 from tests.test_oauth_server import (  # noqa: E402
-    COOKIE,
     REDIRECT,
     RESOURCE,
     _authorize_params,
@@ -98,7 +97,6 @@ def test_cross_site_get_from_a_fresh_client_gets_a_page_not_a_code(tmp_path):
             **_authorize_params(cid, challenge, redirect=ATTACKER_REDIRECT),
             "state": "s",
         },
-        cookies={COOKIE: cookie},
         headers={"Sec-Fetch-Site": "cross-site", "Referer": ATTACKER_REDIRECT},
         follow_redirects=False,
     )
@@ -125,7 +123,6 @@ def test_the_consent_post_still_needs_its_csrf_token(tmp_path):
             "csrf": "forged",
             "decision": "approve",
         },
-        cookies={COOKIE: cookie},
         follow_redirects=False,
     )
     assert r.status_code == 403
@@ -140,7 +137,6 @@ def test_the_consent_page_refuses_to_be_framed(tmp_path):
     r = client.get(
         "/auth/oauth/authorize",
         params=_authorize_params(cid, challenge),
-        cookies={COOKIE: cookie},
     )
     assert r.status_code == 200
     assert r.headers["x-frame-options"] == "DENY"

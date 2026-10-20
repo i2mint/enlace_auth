@@ -47,6 +47,8 @@ oauth = ["authlib>=1.4", "joserfc>=1.0", "httpx>=0.24.0", "cryptography>=42", "p
 dev = [
     "pytest",
     "httpx",
+    # Starlette's TestClient moved to httpx2 (#69); it needs Python 3.11+.
+    "httpx2; python_version >= '3.11'",
     "pytest-asyncio",
     "authlib>=1.4",
     "joserfc>=1.0",

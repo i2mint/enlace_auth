@@ -85,6 +85,7 @@ def _build(
     refresh_family_max_lifetime=7776000,
     consent_ttl=600,
     session_store=None,
+    signed_in=True,
 ):
     session_store = SessionStore({}) if session_store is None else session_store
     sid = session_store.create(user_id=email, email=email)
@@ -122,7 +123,17 @@ def _build(
     app.include_router(router)
     client = TestClient(app)
     session_cookie = sign_cookie(sid, SIGNING_KEY, salt="session")
+    if signed_in:
+        _sign_in(client, session_cookie)
     return client, session_cookie
+
+
+def _sign_in(client, cookie):
+    """Put the session cookie on the client, as a browser keeps it.
+
+    Per-request ``cookies=`` is deprecated in Starlette's TestClient (#69).
+    """
+    client.cookies.set(COOKIE, cookie)
 
 
 _CSRF_FIELD = re.compile(r'name="csrf" value="([^"]+)"')
@@ -160,7 +171,8 @@ def _consent_csrf(
         "scope": scope,
         "resource": resource,
     }
-    page = client.get("/auth/oauth/authorize", params=params, cookies={COOKIE: cookie})
+    _sign_in(client, cookie)
+    page = client.get("/auth/oauth/authorize", params=params)
     return _csrf_from(page)
 
 
@@ -197,7 +209,7 @@ def test_register_requires_redirect_uris(tmp_path):
 
 
 def test_authorize_redirects_to_login_when_unauthenticated(tmp_path):
-    client, _ = _build(tmp_path)
+    client, _ = _build(tmp_path, signed_in=False)
     cid = _register(client)
     _, challenge = _pkce()
     r = client.get(
@@ -227,7 +239,6 @@ def test_authorize_rejects_unknown_client(tmp_path):
             "code_challenge": "x",
             "code_challenge_method": "S256",
         },
-        cookies={COOKIE: cookie},
         follow_redirects=False,
     )
     assert r.status_code == 400
@@ -250,7 +261,6 @@ def test_authorize_blank_client_id_is_clean_400_not_500(tmp_path):
         r = client.get(
             "/auth/oauth/authorize",
             params=params,
-            cookies={COOKIE: cookie},
             follow_redirects=False,
         )
         assert r.status_code == 400, f"client_id={cid!r} -> {r.status_code}"
@@ -271,7 +281,7 @@ def test_full_authorization_code_flow_with_consent(tmp_path):
         "resource": RESOURCE,
     }
     # 1) authorize → consent page
-    page = client.get("/auth/oauth/authorize", params=params, cookies={COOKIE: cookie})
+    page = client.get("/auth/oauth/authorize", params=params)
     assert page.status_code == 200 and "Approve" in page.text
 
     # 2) consent approve → redirect carrying the code
@@ -289,7 +299,6 @@ def test_full_authorization_code_flow_with_consent(tmp_path):
     r = client.post(
         "/auth/oauth/authorize",
         data=form,
-        cookies={COOKIE: cookie},
         follow_redirects=False,
     )
     assert r.status_code == 302
@@ -336,6 +345,7 @@ def test_full_authorization_code_flow_with_consent(tmp_path):
 
 def _approve(client, cookie, *, cid, challenge, redirect=REDIRECT, resource=RESOURCE):
     """POST the consent form with "approve"; return the redirect response."""
+    _sign_in(client, cookie)
     return client.post(
         "/auth/oauth/authorize",
         data={
@@ -355,7 +365,6 @@ def _approve(client, cookie, *, cid, challenge, redirect=REDIRECT, resource=RESO
             ),
             "decision": "approve",
         },
-        cookies={COOKIE: cookie},
         follow_redirects=False,
     )
 
@@ -398,7 +407,6 @@ def test_resource_allowlist_denies_unlisted_user(tmp_path):
     r = client.get(
         "/auth/oauth/authorize",
         params=_authorize_params(cid, challenge),
-        cookies={COOKIE: cookie},
     )
     assert r.status_code == 403
     assert "Access denied" in r.text
@@ -411,7 +419,6 @@ def test_resource_allowlist_allows_listed_user(tmp_path):
     r = client.get(
         "/auth/oauth/authorize",
         params=_authorize_params(cid, challenge),
-        cookies={COOKIE: cookie},
     )
     assert r.status_code == 200 and "Approve" in r.text
 
@@ -428,7 +435,6 @@ def test_resource_allowlist_refuses_an_unlisted_resource(tmp_path, resource):
     r = client.get(
         "/auth/oauth/authorize",
         params=_authorize_params(cid, challenge, resource=resource),
-        cookies={COOKIE: cookie},
     )
     assert r.status_code == 403
     # The consent POST is a second door; it must not mint a code either, even
@@ -453,7 +459,6 @@ def test_resource_allowlist_refuses_an_unlisted_resource(tmp_path, resource):
             "csrf": csrf,
             "decision": "approve",
         },
-        cookies={COOKIE: cookie},
         follow_redirects=False,
     )
     assert r.status_code == 302
@@ -483,7 +488,6 @@ def test_a_slash_key_does_not_open_the_empty_resource(tmp_path):
     r = client.get(
         "/auth/oauth/authorize",
         params=_authorize_params(cid, challenge, resource=""),
-        cookies={COOKIE: cookie},
     )
     assert r.status_code == 403
 
@@ -585,7 +589,6 @@ def test_no_spelling_of_a_restricted_resource_gets_through(tmp_path, variant):
     r = client.get(
         "/auth/oauth/authorize",
         params=_authorize_params(cid, challenge, resource=variant),
-        cookies={COOKIE: cookie},
     )
     assert r.status_code == 403, variant
 
@@ -615,7 +618,6 @@ def test_code_exchange_rechecks_the_allowlist(tmp_path):
             ),
             "decision": "approve",
         },
-        cookies={COOKIE: cookie},
         follow_redirects=False,
     )
     code = r.headers["location"].split("code=")[1].split("&")[0]
@@ -651,7 +653,6 @@ def _consent_html(tmp_path, *, resource, display_names=DISPLAY_NAMES):
     r = client.get(
         "/auth/oauth/authorize",
         params=_authorize_params(cid, challenge, resource=resource),
-        cookies={COOKIE: cookie},
     )
     assert r.status_code == 200, r.text
     return r.text
@@ -743,7 +744,7 @@ def test_consent_page_escapes_query_supplied_values(tmp_path, field):
     params["state"] = "s"
     params["scope"] = "mcp:read"
     params[field] = BREAKOUT
-    r = client.get("/auth/oauth/authorize", params=params, cookies={COOKIE: cookie})
+    r = client.get("/auth/oauth/authorize", params=params)
     assert r.status_code == 200, r.text
     _assert_escaped(r.text, field)
 
@@ -759,7 +760,7 @@ def test_a_hostile_scope_never_reaches_the_consent_page(tmp_path):
     _, challenge = _pkce()
     params = _authorize_params(cid, challenge)
     params["scope"] = BREAKOUT
-    r = client.get("/auth/oauth/authorize", params=params, cookies={COOKIE: cookie})
+    r = client.get("/auth/oauth/authorize", params=params)
     assert r.status_code == 200
     assert BREAKOUT not in r.text
 
@@ -784,7 +785,6 @@ def test_consent_page_escapes_the_registered_redirect_uri(tmp_path):
     r = client.get(
         "/auth/oauth/authorize",
         params=_authorize_params(cid, challenge, redirect=hostile),
-        cookies={COOKIE: cookie},
     )
     assert r.status_code == 200, r.text
     _assert_escaped(r.text, "redirect_uri")
@@ -797,7 +797,6 @@ def test_consent_page_escapes_the_session_email(tmp_path):
     r = client.get(
         "/auth/oauth/authorize",
         params=_authorize_params(cid, challenge),
-        cookies={COOKIE: cookie},
     )
     assert r.status_code == 200, r.text
     _assert_escaped(r.text, "email")
@@ -820,7 +819,6 @@ def test_denied_page_escapes_the_session_email(tmp_path):
     r = client.get(
         "/auth/oauth/authorize",
         params=_authorize_params(cid, challenge),
-        cookies={COOKIE: cookie},
     )
     assert r.status_code == 403
     _assert_escaped(r.text, "email")
@@ -837,6 +835,7 @@ def test_denied_page_escapes_the_session_email(tmp_path):
 
 def _flow(client, cookie, *, cid, resource=RESOURCE, scope="mcp:read"):
     """Drive authorize → consent → token once; return the token response body."""
+    _sign_in(client, cookie)
     verifier, challenge = _pkce()
     form = {
         "client_id": cid,
@@ -859,7 +858,6 @@ def _flow(client, cookie, *, cid, resource=RESOURCE, scope="mcp:read"):
     r = client.post(
         "/auth/oauth/authorize",
         data=form,
-        cookies={COOKIE: cookie},
         follow_redirects=False,
     )
     assert r.status_code == 302, r.text
@@ -1714,7 +1712,6 @@ def test_a_code_for_a_since_disabled_account_never_becomes_a_token(tmp_path):
     r = client.post(
         "/auth/oauth/authorize",
         data=form,
-        cookies={COOKIE: cookie},
         follow_redirects=False,
     )
     assert r.status_code == 302, r.text
