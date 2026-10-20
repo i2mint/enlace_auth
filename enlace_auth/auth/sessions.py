@@ -28,7 +28,13 @@ class SessionStore:
         max_age: Optional[float] = None,
         sweep_batch: int = 100,
         sweep_interval: float = 3600.0,
+        sign_ins: Optional[MutableMapping] = None,
     ):
+        # *sign_ins* (email -> epoch seconds) records when each account last
+        # opened a session. Kept apart from the user records on purpose: a
+        # read-modify-write of the user record at every login could overwrite
+        # a concurrent disable or password change.
+        self._sign_ins = sign_ins
         self._store = store
         self._max_age = max_age
         self._sweep_batch = sweep_batch
@@ -77,7 +83,22 @@ class SessionStore:
             "email": email,
             "created_at": time.time(),
         }
+        if self._sign_ins is not None and (email or user_id):
+            try:
+                self._sign_ins[str(email or user_id).lower()] = time.time()
+            except Exception:  # noqa: BLE001 - bookkeeping must never block a login
+                pass
         return session_id
+
+    def last_sign_in(self, user: str) -> Optional[float]:
+        """When *user* last opened a session (epoch seconds), if recorded."""
+        if self._sign_ins is None or not user:
+            return None
+        try:
+            value = self._sign_ins.get(user.lower())
+        except Exception:  # noqa: BLE001 - a listing must not fail on bookkeeping
+            return None
+        return value if isinstance(value, (int, float)) else None
 
     def get(self, session_id: str) -> Optional[dict[str, Any]]:
         try:

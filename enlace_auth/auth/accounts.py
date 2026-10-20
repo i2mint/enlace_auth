@@ -1,13 +1,18 @@
-"""Account state kept on the user record: disabled, and last sign-in.
+"""Disabled accounts, and the one way a sign-in opens a session.
 
-A user record is a plain dict in the user store. Two optional keys live there:
+A user record is a plain dict in the user store. ``disabled_at`` (epoch
+seconds) marks an account that exists, keeps its grants, shares and history,
+but cannot sign in by any path; its connector grants are refused too (see
+``enlace_auth.plugin._make_is_active``). Disabling also ends its sessions;
+re-enabling only removes the key.
 
-- ``disabled_at`` (epoch seconds): the account exists, keeps its grants, shares
-  and history, but cannot sign in by any path, and its connector refresh
-  families are refused (see ``enlace_auth.plugin._make_is_active``). Disabling
-  also ends its sessions; re-enabling only removes the key.
-- ``last_login_at`` (epoch seconds): written each time a session is opened for
-  the account. Best effort: a store failure here never fails a sign-in.
+Every sign-in path opens its session through :func:`open_session`, which
+re-checks the record after creating the session, so a sign-in racing an admin's
+disable cannot keep a session the revocation already missed.
+
+The last sign-in time is NOT kept on the user record (a read-modify-write there
+at every login could overwrite a concurrent disable); ``SessionStore`` records
+it in its own mapping (``sign_ins``).
 """
 
 from __future__ import annotations
@@ -15,10 +20,9 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import MutableMapping
-from typing import Any, Optional
+from typing import Any
 
 DISABLED_KEY = "disabled_at"
-LAST_LOGIN_KEY = "last_login_at"
 #: What a disabled account is told when it tries to sign in.
 DISABLED_DETAIL = "This account is disabled. Contact the platform admin."
 
@@ -35,7 +39,7 @@ def is_disabled(record: Any) -> bool:
 
 
 def set_disabled(
-    user_store: MutableMapping, email: str, disabled: bool, *, now: float = None
+    user_store: MutableMapping, email: str, disabled: bool, *, now: float | None = None
 ) -> dict:
     """Mark *email*'s record disabled (or not); return the new record.
 
@@ -57,26 +61,23 @@ def set_disabled(
     return record
 
 
-def note_sign_in(
-    user_store: MutableMapping, email: str, *, now: Optional[float] = None
-) -> None:
-    """Record that a session was just opened for *email*. Never raises.
+def open_session(session_store, user_store: MutableMapping, email: str) -> str:
+    """Create a session for *email* and return its id, unless it is disabled.
 
-    Re-reads the record so a concurrent password change is not overwritten
-    with an older copy.
-
-    >>> s = {"a@x.io": {"created_at": 0}}
-    >>> note_sign_in(s, "a@x.io", now=7); s["a@x.io"]["last_login_at"]
-    7
-    >>> note_sign_in({}, "nobody@x.io")  # no account: nothing happens
+    The disabled check runs AFTER the session exists: if an admin disabled the
+    account (and revoked its sessions) while this sign-in was in flight, the
+    new session is deleted here and the sign-in refused. Raises
+    ``fastapi.HTTPException(403)`` in that case.
     """
+    from fastapi import HTTPException
+
+    session_id = session_store.create(user_id=email, email=email)
     try:
-        record = user_store.get(email)
-        if not isinstance(record, dict):
-            return
-        user_store[email] = {
-            **record,
-            LAST_LOGIN_KEY: time.time() if now is None else now,
-        }
-    except Exception:  # noqa: BLE001 - a sign-in must not fail on bookkeeping
-        _logger.warning("enlace_auth: could not record last sign-in for %r", email)
+        disabled = is_disabled(user_store.get(email))
+    except Exception:  # noqa: BLE001 - an unreadable store must not refuse a login
+        _logger.warning("enlace_auth: user store unreadable re-checking %r", email)
+        disabled = False
+    if disabled:
+        session_store.delete(session_id)
+        raise HTTPException(status_code=403, detail=DISABLED_DETAIL)
+    return session_id

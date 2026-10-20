@@ -280,4 +280,5 @@ def test_a_disabled_account_is_not_opened_by_its_linked_identity():
     del users["alice@example.com"]["disabled_at"]
     r, _ = _signin(users, CLAIMS)
     assert r.status_code == 200
-    assert users["alice@example.com"]["last_login_at"] is not None
+    # The sign-in time is kept by the session store, never on the user record.
+    assert "last_login_at" not in users["alice@example.com"]

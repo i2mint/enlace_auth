@@ -523,7 +523,9 @@ def wire(parent: "FastAPI", config) -> None:
     session_backend = platform_factory("sessions")
     user_backend = platform_factory("users")
     session_store = SessionStore(
-        session_backend, max_age=auth_cfg.session_max_age_seconds
+        session_backend,
+        max_age=auth_cfg.session_max_age_seconds,
+        sign_ins=platform_factory("sign_ins"),
     )
 
     # Runtime per-app access grants (additive, optional UTC expiry). Lives beside

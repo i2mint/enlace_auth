@@ -10,10 +10,10 @@ import pytest
 pytest.importorskip("joserfc")
 pytest.importorskip("multipart")  # FastAPI Form parsing needs python-multipart
 
-from joserfc import jwt as jose_jwt  # noqa: E402
-from joserfc.jwk import KeySet  # noqa: E402
 from fastapi import FastAPI  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
+from joserfc import jwt as jose_jwt  # noqa: E402
+from joserfc.jwk import KeySet  # noqa: E402
 
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie  # noqa: E402
 from enlace_auth.auth.oauth_server import (  # noqa: E402
@@ -1682,3 +1682,52 @@ def test_the_connector_side_verifier_accepts_only_the_right_token(tmp_path):
     assert verify(token, audience=OTHER_RESOURCE) is None
     impostor = OAuthKeys(tmp_path / "impostor")
     assert verify(impostor.sign(_verify(token, jwks))) is None
+
+
+def test_a_code_for_a_since_disabled_account_never_becomes_a_token(tmp_path):
+    active = {"value": True}
+    client, cookie = _build(
+        tmp_path, refresh_store={}, is_active=lambda email: active["value"]
+    )
+    cid = _register(client)
+    assert "access_token" in _flow(client, cookie, cid=cid)
+    active["value"] = False
+    verifier, challenge = _pkce()
+    form = {
+        "client_id": cid,
+        "redirect_uri": REDIRECT,
+        "code_challenge": challenge,
+        "state": "xyz",
+        "scope": "mcp:read",
+        "resource": RESOURCE,
+        "csrf": _consent_csrf(
+            client,
+            cookie,
+            cid=cid,
+            challenge=challenge,
+            state="xyz",
+            scope="mcp:read",
+            resource=RESOURCE,
+        ),
+        "decision": "approve",
+    }
+    r = client.post(
+        "/auth/oauth/authorize",
+        data=form,
+        cookies={COOKIE: cookie},
+        follow_redirects=False,
+    )
+    assert r.status_code == 302, r.text
+    code = r.headers["location"].split("code=", 1)[1].split("&", 1)[0]
+    tok = client.post(
+        "/auth/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": REDIRECT,
+            "client_id": cid,
+            "code_verifier": verifier,
+        },
+    )
+    assert tok.status_code == 400
+    assert tok.json()["error"] == "invalid_grant"

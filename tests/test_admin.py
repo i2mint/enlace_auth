@@ -883,3 +883,41 @@ def test_a_disabled_account_is_not_active_for_connector_refresh():
     assert not is_active("b@x.io")
     assert not is_active("nobody@x.io")
     assert is_disabled(store["b@x.io"])
+
+
+def test_new_account_routes_need_the_csrf_token(admin_client):
+    csrf, dora = _setup(admin_client)
+    for op in ("sign-out", "disable", "enable"):
+        r = admin_client.post(f"/_admin/api/users/{DORA}/{op}")
+        assert r.status_code == 403, op
+    assert _alive(dora)
+
+
+def test_a_sign_in_racing_a_disable_does_not_keep_its_session():
+    """open_session re-checks after creating: the late session is deleted."""
+    import pytest
+    from fastapi import HTTPException
+
+    from enlace_auth.auth.accounts import open_session, set_disabled
+    from enlace_auth.auth.sessions import SessionStore
+
+    users = {DORA: {"created_at": 0}}
+    sign_ins = {}
+
+    class RacingStore(SessionStore):
+        def create(self, user_id, email=None):
+            sid = super().create(user_id, email)
+            set_disabled(users, DORA, True)  # the admin's disable lands here
+            return sid
+
+    sessions = RacingStore({}, sign_ins=sign_ins)
+    with pytest.raises(HTTPException) as exc:
+        open_session(sessions, users, DORA)
+    assert exc.value.status_code == 403
+    assert sessions.revoke_user(DORA) == 0  # nothing left behind
+
+    ok = SessionStore({}, sign_ins=sign_ins)
+    set_disabled(users, DORA, False)
+    assert ok.get(open_session(ok, users, DORA))["email"] == DORA
+    assert ok.last_sign_in(DORA) is not None
+    assert "last_login_at" not in users[DORA]

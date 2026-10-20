@@ -43,7 +43,7 @@ from typing import Any, Callable, Iterable, Optional
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 
-from enlace_auth.auth.accounts import DISABLED_DETAIL, is_disabled, note_sign_in
+from enlace_auth.auth.accounts import DISABLED_DETAIL, is_disabled, open_session
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.sessions import SessionStore
 from enlace_auth.config import OAuthProviderConfig
@@ -509,8 +509,7 @@ def make_oauth_router(
                         provider: subject,
                     },
                 }
-        note_sign_in(user_store, email)
-        session_id = session_store.create(user_id=email, email=email)
+        session_id = open_session(session_store, user_store, email)
         resp = JSONResponse({"ok": True, "email": email})
         _set_session_cookie(resp, session_id)
         return resp

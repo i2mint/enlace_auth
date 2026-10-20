@@ -47,11 +47,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, BeforeValidator, EmailStr
 
-from enlace_auth.auth.accounts import (
-    DISABLED_KEY,
-    LAST_LOGIN_KEY,
-    set_disabled,
-)
+from enlace_auth.auth.accounts import DISABLED_KEY, set_disabled
 from enlace_auth.auth.grants import GrantError, parse_expires_at
 from enlace_auth.auth.passwords import hash_password, password_problem
 from enlace_auth.auth.reset_tokens import (
@@ -261,7 +257,7 @@ def make_admin_router(
                 {
                     "email": email,
                     "created_at": record.get("created_at"),
-                    "last_login_at": record.get(LAST_LOGIN_KEY),
+                    "last_login_at": session_store.last_sign_in(email),
                     "disabled_at": record.get(DISABLED_KEY),
                     "is_admin": email.lower() in admin_set,
                 }

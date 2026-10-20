@@ -219,19 +219,21 @@ async function loadUsers() {
     }
     for (const u of users) {
       const tr = document.createElement("tr");
+      // Account keys can come from an external provider's claims: escape them.
+      const email = escapeHtml(u.email);
       tr.innerHTML = `
-        <td><code>${u.email}</code></td>
+        <td><code>${email}</code></td>
         <td>${fmtTime(u.created_at)}</td>
         <td>${u.last_login_at ? fmtTime(u.last_login_at) : '<span style="color:var(--muted)">never</span>'}</td>
         <td>${u.is_admin ? '<span class="badge">admin</span> ' : ""}${u.disabled_at ? '<span class="badge">disabled</span>' : ""}</td>
         <td class="actions">
-          <button data-act="reset-link" data-email="${u.email}">Reset link</button>
-          <button class="ghost" data-act="sign-out" data-email="${u.email}">Sign out everywhere</button>
+          <button data-act="reset-link" data-email="${email}">Reset link</button>
+          <button class="ghost" data-act="sign-out" data-email="${email}">Sign out everywhere</button>
           ${u.disabled_at
-            ? `<button class="ghost" data-act="enable" data-email="${u.email}">Enable</button>`
-            : `<button class="ghost" data-act="disable" data-email="${u.email}">Disable</button>`}
-          <button class="ghost" data-act="reset" data-email="${u.email}">Set password</button>
-          <button class="danger" data-act="delete" data-email="${u.email}">Delete</button>
+            ? `<button class="ghost" data-act="enable" data-email="${email}">Enable</button>`
+            : `<button class="ghost" data-act="disable" data-email="${email}">Disable</button>`}
+          <button class="ghost" data-act="reset" data-email="${email}">Set password</button>
+          <button class="danger" data-act="delete" data-email="${email}">Delete</button>
         </td>`;
       tbody.appendChild(tr);
     }
