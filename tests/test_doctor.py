@@ -166,6 +166,13 @@ def test_csrf_probe_accepts_valid_json(clean_env, single_app_dir, monkeypatch):
                     b'{"csrf": "abc123"}',
                     None,
                 ),
+                # Newer enlace doctors also read the gateway's own /_meta.
+                "http://x/_meta": (
+                    200,
+                    {"content-type": "application/json"},
+                    b"{}",
+                    None,
+                ),
                 "http://x/api/foo/": (
                     200,
                     {"content-type": "application/json"},
