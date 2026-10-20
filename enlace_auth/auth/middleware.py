@@ -152,7 +152,7 @@ async def _send_json_response(send, status: int, body: dict):
     await send({"type": "http.response.body", "body": data})
 
 
-async def _send_html_response(send, status: int, html: str):
+async def _send_html_response(send, status: int, html: str, *, head: bool = False):
     await send(
         {
             "type": "http.response.start",
@@ -160,10 +160,13 @@ async def _send_html_response(send, status: int, html: str):
             "headers": [
                 (b"content-type", b"text/html; charset=utf-8"),
                 (b"cache-control", b"no-store"),
+                (b"x-frame-options", b"DENY"),
+                (b"content-security-policy", b"frame-ancestors 'none'"),
             ],
         }
     )
-    await send({"type": "http.response.body", "body": html.encode("utf-8")})
+    body = b"" if head else html.encode("utf-8")
+    await send({"type": "http.response.body", "body": body})
 
 
 async def _send_redirect(send, location: str):
@@ -381,7 +384,8 @@ class PlatformAuthMiddleware:
                     email=email,
                     switch_url=_redirect_target(scope, self._login_redirect),
                 )
-                await _send_html_response(send, 403, page)
+                head = scope.get("method", "GET").upper() == "HEAD"
+                await _send_html_response(send, 403, page, head=head)
                 return
             await _send_json_response(
                 send, 403, {"detail": "Not allowed for this account", "auth": kind}

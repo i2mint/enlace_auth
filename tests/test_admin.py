@@ -970,3 +970,22 @@ def test_a_non_admin_still_gets_a_sign_in_answer_from_an_app(admin_client):
     csrf = _csrf(admin_client)
     _register(admin_client, "alice@example.com", "secretpw1", csrf)
     assert admin_client.get("/api/vault/thing").status_code == 401
+
+
+@pytest.mark.parametrize("bad", ["admin", "a@x.io,b@x.io", "a b@x.io", "a@@x.io"])
+def test_declared_admin_entries_must_be_single_addresses(bad):
+    from pydantic import ValidationError
+
+    from enlace_auth.config import AuthConfig
+
+    with pytest.raises(ValidationError, match="single email"):
+        AuthConfig(admin_emails=[bad])
+
+
+def test_the_admin_403_page_cannot_be_framed(admin_client):
+    csrf = _csrf(admin_client)
+    _register(admin_client, "alice@example.com", "secretpw1", csrf)
+    r = admin_client.get("/_admin/", headers={"Accept": "text/html"})
+    assert r.status_code == 403
+    assert r.headers["x-frame-options"] == "DENY"
+    assert "frame-ancestors 'none'" in r.headers["content-security-policy"]
