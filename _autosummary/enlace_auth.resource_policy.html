@@ -34,6 +34,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=d146b16c" />
   
@@ -43,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=6a0a5382"></script>
+    <script src="../_static/documentation_options.js?v=ce72d79b"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.44" />
+  <meta name="docsearch:version" content="0.1.45" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -480,15 +481,15 @@ account. Must be written out: an unlisted resource is refused (fail-closed).</p>
 <dt class="sig sig-object py" id="enlace_auth.resource_policy.normalize_resource">
 <span class="sig-prename descclassname"><span class="pre">enlace_auth.resource_policy.</span></span><span class="sig-name descname"><span class="pre">normalize_resource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resource</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/resource_policy.html#normalize_resource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.resource_policy.normalize_resource" title="Link to this definition">#</a></dt>
 <dd><p>Canonical form of a resource URL: the key both maps use, and the token <code class="docutils literal notranslate"><span class="pre">aud</span></code>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">normalize_resource</span><span class="p">(</span><span class="s2">"https://apps.example.com/api/x_mcp/mcp/"</span><span class="p">)</span>
+<span class="go">'https://apps.example.com/api/x_mcp/mcp'</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
 </dd>
 </dl>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">normalize_resource</span><span class="p">(</span><span class="s2">"https://apps.example.com/api/x_mcp/mcp/"</span><span class="p">)</span>
-<span class="go">'https://apps.example.com/api/x_mcp/mcp'</span>
-</pre></div>
-</div>
 </dd></dl>
 
 <dl class="py function">
@@ -500,11 +501,6 @@ exactly the documented shape, and for an empty allowlist unless
 <em>allow_unlisted_resources</em> says an open server is intended. Setting that flag
 alongside a non-empty allowlist is also an error: the allowlist always refuses
 unlisted resources, so the flag would promise something that does not happen.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">frozenset</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">allowlist</span> <span class="o">=</span> <span class="n">parse_resource_allowlist</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="p">{</span><span class="s2">"https://a.example/api/x/mcp/"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Ann@Example.com"</span><span class="p">,</span> <span class="s2">"bob@example.com"</span><span class="p">]}</span>
 <span class="gp">... </span><span class="p">)</span>
@@ -514,6 +510,11 @@ unlisted resources, so the flag would promise something that does not happen.</p
 <span class="go">{}</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">frozenset</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">

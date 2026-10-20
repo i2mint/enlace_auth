@@ -31,17 +31,17 @@ changes platform behavior unless the operator opts in.
 
 ### Classes
 
-| [`AuthConfig`](#enlace_auth.AuthConfig)(\*\*data)          | Platform-wide authentication configuration.              |
-|--------------------------------------------------------------------------------|----------------------------------------------------------|
-| [`OAuthProviderConfig`](#enlace_auth.OAuthProviderConfig)(\*\*data) | Configuration for a single OAuth2/OIDC provider.         |
-| [`StoreBackendConfig`](#enlace_auth.StoreBackendConfig)(\*\*data)  | Backend configuration for a MutableMapping-backed store. |
+| [`AuthConfig`](#enlace_auth.AuthConfig)(\*[, enabled, ...])                     | Platform-wide authentication configuration.              |
+|-----------------------------------------------------------------------------------------------------|----------------------------------------------------------|
+| [`OAuthProviderConfig`](#enlace_auth.OAuthProviderConfig)(\*, client_id_env, ...[, ...]) | Configuration for a single OAuth2/OIDC provider.         |
+| [`StoreBackendConfig`](#enlace_auth.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store. |
 
 ### Exceptions
 
 | [`EnlaceAuthConfigError`](#enlace_auth.EnlaceAuthConfigError)   | Raised when auth configuration is unusable at startup.   |
 |--------------------------------------------------------------------------|----------------------------------------------------------|
 
-### *class* enlace_auth.AuthConfig(\*\*data)
+### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST')
 
 Bases: `_StrictModel`
 
@@ -57,7 +57,7 @@ Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#Runti
 
 Raised when auth configuration is unusable at startup.
 
-### *class* enlace_auth.OAuthProviderConfig(\*\*data)
+### *class* enlace_auth.OAuthProviderConfig(\*, client_id_env, client_secret_env, scopes=<factory>, authorize_url=None, token_url=None, userinfo_url=None, server_metadata_url=None, trust_unverified_email=False)
 
 Bases: `_StrictModel`
 
@@ -67,7 +67,7 @@ Configuration for a single OAuth2/OIDC provider.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* enlace_auth.StoreBackendConfig(\*\*data)
+### *class* enlace_auth.StoreBackendConfig(, backend='file', path='~/.enlace/platform_store')
 
 Bases: `_StrictModel`
 

@@ -40,9 +40,6 @@ and `/auth/register` store the Unicode form, an OAuth sign-in stores the
 provider’s spelling, lowercased. A list entry written in either canonical
 spelling therefore admits both.
 
-* **Return type:**
-  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
-
 ```pycon
 >>> account_spellings("Ann@XN--BCHER-KVA.example")
 ('ann@xn--bcher-kva.example', 'ann@bücher.example')
@@ -67,6 +64,9 @@ to the address an account is keyed under.
 Lowercasing alone folds a few letters (U+212A KELVIN SIGN -> `k`); such an
 entry is not widened either. Over-long strings are not looked at (nor cached).
 
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
 ### enlace_auth.emails.bare_address_problem(email)
 
 Why *email* is not a bare `local@domain` address, or `None`.
@@ -74,15 +74,15 @@ Why *email* is not a bare `local@domain` address, or `None`.
 Deliberately lenient about the domain (`.local`, `localhost`): it only
 refuses what is not one plain address, such as the display-name form.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
-
 ```pycon
 >>> bare_address_problem("ann@corp.local") is None
 True
 >>> bare_address_problem("ann <mallory@evil.com>")
 'not a bare email address'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### enlace_auth.emails.local_part_problem(email)
 
@@ -93,9 +93,6 @@ parts as bytes (a Postfix/Dovecot host with `SMTPUTF8`, for one) deliver
 `josé` composed and `josé` decomposed to two mailboxes, so composing
 would map both onto one account (#51). A decomposed local part is refused,
 not folded, as an OAuth callback’s address is never folded.
-
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ```pycon
 >>> local_part_problem("josé@example.com") is None
@@ -119,6 +116,9 @@ True
 'the part before @ changes letters when lowercased (U+0130); retype the address'
 ```
 
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### enlace_auth.emails.lowercase_changes_letter(text)
 
 The first character of *text* that lowercasing changes by more than case.
@@ -128,9 +128,6 @@ is `"A"` (`.title()` for a titlecase digraph such as `ǅ`). `İ`
 lowercases to two characters, `ẞ` to `ß` (which uppercases to `SS`),
 the Kelvin sign to `k` (which uppercases to `K`).
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
-
 ```pycon
 >>> lowercase_changes_letter("Ann-Marie") is None
 True
@@ -138,12 +135,12 @@ True
 ['0x130', '0x1e9e', '0x212a']
 ```
 
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### enlace_auth.emails.normalize_email(email)
 
 The key an account for *email* is stored under; `ValueError` if invalid.
-
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ```pycon
 >>> normalize_email("  Admin@XN--BCHER-KVA.example ")
@@ -174,15 +171,15 @@ Traceback (most recent call last):
 ValueError: the part before @ is not in composed (NFC) form...
 ```
 
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### enlace_auth.emails.resolve_account(email, exists)
 
 The existing account key a written *email* names, or `None`.
 
 Tries [`account_spellings()`](#enlace_auth.emails.account_spellings) in order, so an exact match wins over the
 other spelling. *exists* is `key -> bool` (e.g. `users.__contains__`).
-
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ```pycon
 >>> users = {"ann@bücher.example"}
@@ -191,3 +188,6 @@ other spelling. *exists* is `key -> bool` (e.g. `users.__contains__`).
 >>> resolve_account("bob@example.com", set().__contains__) is None
 True
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)

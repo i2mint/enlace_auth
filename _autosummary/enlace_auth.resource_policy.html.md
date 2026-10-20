@@ -51,13 +51,13 @@ account. Must be written out: an unlisted resource is refused (fail-closed).
 
 Canonical form of a resource URL: the key both maps use, and the token `aud`.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> normalize_resource("https://apps.example.com/api/x_mcp/mcp/")
 'https://apps.example.com/api/x_mcp/mcp'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_auth.resource_policy.parse_resource_allowlist(raw, , allow_unlisted_resources=False)
 
@@ -69,9 +69,6 @@ exactly the documented shape, and for an empty allowlist unless
 alongside a non-empty allowlist is also an error: the allowlist always refuses
 unlisted resources, so the flag would promise something that does not happen.
 
-* **Return type:**
-  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
-
 ```pycon
 >>> allowlist = parse_resource_allowlist(
 ...     {"https://a.example/api/x/mcp/": ["Ann@Example.com", "bob@example.com"]}
@@ -81,6 +78,9 @@ unlisted resources, so the flag would promise something that does not happen.
 >>> parse_resource_allowlist({}, allow_unlisted_resources=True)
 {}
 ```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
 
 ### enlace_auth.resource_policy.parse_resource_display_names(raw)
 

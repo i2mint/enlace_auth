@@ -40,14 +40,14 @@ Why *password* may not be set, or `None` if it may.
 The one rule every way of setting a password applies (see
 [`MIN_PASSWORD_LEN`](#enlace_auth.auth.passwords.MIN_PASSWORD_LEN)), so they cannot drift apart.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
-
 ```pycon
 >>> password_problem("long-enough")
 >>> password_problem("short")
 'Password must be at least 8 characters.'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### enlace_auth.auth.passwords.verify_password(hashed, password)
 

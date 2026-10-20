@@ -1,4 +1,4 @@
-> built 2026-10-14 21:58 UTC from 44c46e0 (main) · enlace_auth 0.1.44. Details: build_info.json
+> built 2026-10-20 14:35 UTC from 80c2b01 (main) · enlace_auth 0.1.45. Details: build_info.json
 
 # index.html.md
 
@@ -1516,9 +1516,6 @@ other than its placeholders ([`str.format()`](https://docs.python.org/3/builtins
 page from several `fill_template` results rather than leaving an
 un-escaped hole in one big template.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> fill_template('<input value="{v}">', v='" onx=1')
 '<input value="&quot; onx=1">'
@@ -1530,6 +1527,9 @@ Only *values* are escaped; the template’s own markup passes through as-is:
 >>> fill_template("<p>{who} &amp; {what}</p>", who="a<b", what="c>d")
 '<p>a&lt;b &amp; c&gt;d</p>'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_auth.auth.pages.render_account_page(, email, error=None)
 
@@ -1665,14 +1665,14 @@ Why *password* may not be set, or `None` if it may.
 The one rule every way of setting a password applies (see
 [`MIN_PASSWORD_LEN`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.MIN_PASSWORD_LEN)), so they cannot drift apart.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
-
 ```pycon
 >>> password_problem("long-enough")
 >>> password_problem("short")
 'Password must be at least 8 characters.'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### enlace_auth.auth.passwords.verify_password(hashed, password)
 
@@ -2262,13 +2262,13 @@ we just deserialize them into typed objects here when the plugin runs.
 
 ### Classes
 
-| [`AuthConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.AuthConfig)(\*\*data)          | Platform-wide authentication configuration.                   |
-|--------------------------------------------------------------------------------|---------------------------------------------------------------|
-| [`OAuthProviderConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthProviderConfig)(\*\*data) | Configuration for a single OAuth2/OIDC provider.              |
-| [`OAuthServerConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthServerConfig)(\*\*data)   | OAuth 2.1 authorization-server settings (for MCP connectors). |
-| [`StoreBackendConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.StoreBackendConfig)(\*\*data)  | Backend configuration for a MutableMapping-backed store.      |
+| [`AuthConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.AuthConfig)(\*[, enabled, ...])                     | Platform-wide authentication configuration.                   |
+|-----------------------------------------------------------------------------------------------------|---------------------------------------------------------------|
+| [`OAuthProviderConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthProviderConfig)(\*, client_id_env, ...[, ...]) | Configuration for a single OAuth2/OIDC provider.              |
+| [`OAuthServerConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthServerConfig)(\*[, enabled, issuer, ...])      | OAuth 2.1 authorization-server settings (for MCP connectors). |
+| [`StoreBackendConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.      |
 
-### *class* enlace_auth.config.AuthConfig(\*\*data)
+### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST')
 
 Bases: `_StrictModel`
 
@@ -2278,7 +2278,7 @@ Platform-wide authentication configuration.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* enlace_auth.config.OAuthProviderConfig(\*\*data)
+### *class* enlace_auth.config.OAuthProviderConfig(\*, client_id_env, client_secret_env, scopes=<factory>, authorize_url=None, token_url=None, userinfo_url=None, server_metadata_url=None, trust_unverified_email=False)
 
 Bases: `_StrictModel`
 
@@ -2288,7 +2288,7 @@ Configuration for a single OAuth2/OIDC provider.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* enlace_auth.config.OAuthServerConfig(\*\*data)
+### *class* enlace_auth.config.OAuthServerConfig(\*, enabled=False, issuer=None, key_dir='~/.enlace/oauth_keys', access_token_ttl_seconds=3600, refresh_token_ttl_seconds=2592000, refresh_reuse_grace_seconds=60, refresh_reuse_detection_seconds=86400, refresh_family_max_lifetime_seconds=7776000, client_ttl_seconds=15552000, code_ttl_seconds=120, consent_ttl_seconds=600, scopes_supported=<factory>, require_consent=True, resource_allowlist=<factory>, allow_unlisted_resources=False, resource_display_names=<factory>)
 
 Bases: `_StrictModel`
 
@@ -2302,7 +2302,7 @@ session login. See [`enlace_auth.auth.oauth_server`](_autosummary/enlace_auth.au
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* enlace_auth.config.StoreBackendConfig(\*\*data)
+### *class* enlace_auth.config.StoreBackendConfig(, backend='file', path='~/.enlace/platform_store')
 
 Bases: `_StrictModel`
 
@@ -2495,9 +2495,6 @@ and `/auth/register` store the Unicode form, an OAuth sign-in stores the
 provider’s spelling, lowercased. A list entry written in either canonical
 spelling therefore admits both.
 
-* **Return type:**
-  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
-
 ```pycon
 >>> account_spellings("Ann@XN--BCHER-KVA.example")
 ('ann@xn--bcher-kva.example', 'ann@bücher.example')
@@ -2522,6 +2519,9 @@ to the address an account is keyed under.
 Lowercasing alone folds a few letters (U+212A KELVIN SIGN -> `k`); such an
 entry is not widened either. Over-long strings are not looked at (nor cached).
 
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
 ### enlace_auth.emails.bare_address_problem(email)
 
 Why *email* is not a bare `local@domain` address, or `None`.
@@ -2529,15 +2529,15 @@ Why *email* is not a bare `local@domain` address, or `None`.
 Deliberately lenient about the domain (`.local`, `localhost`): it only
 refuses what is not one plain address, such as the display-name form.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
-
 ```pycon
 >>> bare_address_problem("ann@corp.local") is None
 True
 >>> bare_address_problem("ann <mallory@evil.com>")
 'not a bare email address'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### enlace_auth.emails.local_part_problem(email)
 
@@ -2548,9 +2548,6 @@ parts as bytes (a Postfix/Dovecot host with `SMTPUTF8`, for one) deliver
 `josé` composed and `josé` decomposed to two mailboxes, so composing
 would map both onto one account (#51). A decomposed local part is refused,
 not folded, as an OAuth callback’s address is never folded.
-
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ```pycon
 >>> local_part_problem("josé@example.com") is None
@@ -2574,6 +2571,9 @@ True
 'the part before @ changes letters when lowercased (U+0130); retype the address'
 ```
 
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### enlace_auth.emails.lowercase_changes_letter(text)
 
 The first character of *text* that lowercasing changes by more than case.
@@ -2583,9 +2583,6 @@ is `"A"` (`.title()` for a titlecase digraph such as `ǅ`). `İ`
 lowercases to two characters, `ẞ` to `ß` (which uppercases to `SS`),
 the Kelvin sign to `k` (which uppercases to `K`).
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
-
 ```pycon
 >>> lowercase_changes_letter("Ann-Marie") is None
 True
@@ -2593,12 +2590,12 @@ True
 ['0x130', '0x1e9e', '0x212a']
 ```
 
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### enlace_auth.emails.normalize_email(email)
 
 The key an account for *email* is stored under; `ValueError` if invalid.
-
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ```pycon
 >>> normalize_email("  Admin@XN--BCHER-KVA.example ")
@@ -2629,15 +2626,15 @@ Traceback (most recent call last):
 ValueError: the part before @ is not in composed (NFC) form...
 ```
 
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### enlace_auth.emails.resolve_account(email, exists)
 
 The existing account key a written *email* names, or `None`.
 
 Tries [`account_spellings()`](_autosummary/enlace_auth.emails.html.md#enlace_auth.emails.account_spellings) in order, so an exact match wins over the
 other spelling. *exists* is `key -> bool` (e.g. `users.__contains__`).
-
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ```pycon
 >>> users = {"ann@bücher.example"}
@@ -2646,6 +2643,9 @@ other spelling. *exists* is `key -> bool` (e.g. `users.__contains__`).
 >>> resolve_account("bob@example.com", set().__contains__) is None
 True
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 
 # _autosummary/enlace_auth.html.md
@@ -2683,17 +2683,17 @@ changes platform behavior unless the operator opts in.
 
 ### Classes
 
-| [`AuthConfig`](_autosummary/enlace_auth.html.md#enlace_auth.AuthConfig)(\*\*data)          | Platform-wide authentication configuration.              |
-|--------------------------------------------------------------------------------|----------------------------------------------------------|
-| [`OAuthProviderConfig`](_autosummary/enlace_auth.html.md#enlace_auth.OAuthProviderConfig)(\*\*data) | Configuration for a single OAuth2/OIDC provider.         |
-| [`StoreBackendConfig`](_autosummary/enlace_auth.html.md#enlace_auth.StoreBackendConfig)(\*\*data)  | Backend configuration for a MutableMapping-backed store. |
+| [`AuthConfig`](_autosummary/enlace_auth.html.md#enlace_auth.AuthConfig)(\*[, enabled, ...])                     | Platform-wide authentication configuration.              |
+|-----------------------------------------------------------------------------------------------------|----------------------------------------------------------|
+| [`OAuthProviderConfig`](_autosummary/enlace_auth.html.md#enlace_auth.OAuthProviderConfig)(\*, client_id_env, ...[, ...]) | Configuration for a single OAuth2/OIDC provider.         |
+| [`StoreBackendConfig`](_autosummary/enlace_auth.html.md#enlace_auth.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store. |
 
 ### Exceptions
 
 | [`EnlaceAuthConfigError`](_autosummary/enlace_auth.html.md#enlace_auth.EnlaceAuthConfigError)   | Raised when auth configuration is unusable at startup.   |
 |--------------------------------------------------------------------------|----------------------------------------------------------|
 
-### *class* enlace_auth.AuthConfig(\*\*data)
+### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST')
 
 Bases: `_StrictModel`
 
@@ -2709,7 +2709,7 @@ Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#Runti
 
 Raised when auth configuration is unusable at startup.
 
-### *class* enlace_auth.OAuthProviderConfig(\*\*data)
+### *class* enlace_auth.OAuthProviderConfig(\*, client_id_env, client_secret_env, scopes=<factory>, authorize_url=None, token_url=None, userinfo_url=None, server_metadata_url=None, trust_unverified_email=False)
 
 Bases: `_StrictModel`
 
@@ -2719,7 +2719,7 @@ Configuration for a single OAuth2/OIDC provider.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* enlace_auth.StoreBackendConfig(\*\*data)
+### *class* enlace_auth.StoreBackendConfig(, backend='file', path='~/.enlace/platform_store')
 
 Bases: `_StrictModel`
 
@@ -2815,13 +2815,13 @@ account. Must be written out: an unlisted resource is refused (fail-closed).
 
 Canonical form of a resource URL: the key both maps use, and the token `aud`.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> normalize_resource("https://apps.example.com/api/x_mcp/mcp/")
 'https://apps.example.com/api/x_mcp/mcp'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_auth.resource_policy.parse_resource_allowlist(raw, , allow_unlisted_resources=False)
 
@@ -2833,9 +2833,6 @@ exactly the documented shape, and for an empty allowlist unless
 alongside a non-empty allowlist is also an error: the allowlist always refuses
 unlisted resources, so the flag would promise something that does not happen.
 
-* **Return type:**
-  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
-
 ```pycon
 >>> allowlist = parse_resource_allowlist(
 ...     {"https://a.example/api/x/mcp/": ["Ann@Example.com", "bob@example.com"]}
@@ -2845,6 +2842,9 @@ unlisted resources, so the flag would promise something that does not happen.
 >>> parse_resource_allowlist({}, allow_unlisted_resources=True)
 {}
 ```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
 
 ### enlace_auth.resource_policy.parse_resource_display_names(raw)
 
@@ -3163,16 +3163,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-14 21:58 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/44c46e01c545b7a8f65c09383747c28e86f1917c"><code>44c46e0</code></a> on branch <code>main</code>, for **enlace_auth 0.1.44** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-20 14:35 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/80c2b014ad3147421155bd9088dea05469eede19"><code>80c2b01</code></a> on branch <code>main</code>, for **enlace_auth 0.1.45** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.45) is behind the latest release on PyPI (0.1.46): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/44c46e01c545b7a8f65c09383747c28e86f1917c"><code>44c46e01c545b7a8f65c09383747c28e86f1917c</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/80c2b014ad3147421155bd9088dea05469eede19"><code>80c2b014ad3147421155bd9088dea05469eede19</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -3183,16 +3185,16 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/38643928070">38643928070</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/39440198314">39440198314</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>44c46e01c545b7a8f65c09383747c28e86f1917c</code> (in the history of the built commit) |
+| Event commit | <code>80c2b014ad3147421155bd9088dea05469eede19</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.17  |
-| Sphinx   | 9.1.0   |
+| epythet  | 0.2.21  |
+| Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
 | Python   | 3.12.15 |
 
@@ -3210,14 +3212,14 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.44/">0.1.44</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.46/">0.1.46</a>, newer than the documented version (0.1.45).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 44c46e01c545b7a8f65c09383747c28e86f1917c
-pip install "epythet==0.2.17"
+git checkout 80c2b014ad3147421155bd9088dea05469eede19
+pip install "epythet==0.2.21"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

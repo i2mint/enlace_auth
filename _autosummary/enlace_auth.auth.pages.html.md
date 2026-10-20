@@ -46,9 +46,6 @@ other than its placeholders ([`str.format()`](https://docs.python.org/3/builtins
 page from several `fill_template` results rather than leaving an
 un-escaped hole in one big template.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> fill_template('<input value="{v}">', v='" onx=1')
 '<input value="&quot; onx=1">'
@@ -60,6 +57,9 @@ Only *values* are escaped; the template’s own markup passes through as-is:
 >>> fill_template("<p>{who} &amp; {what}</p>", who="a<b", what="c>d")
 '<p>a&lt;b &amp; c&gt;d</p>'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_auth.auth.pages.render_account_page(, email, error=None)
 
