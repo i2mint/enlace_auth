@@ -263,3 +263,21 @@ def test_stable_subject_ignores_tid_oid_outside_entra():
         )
         == "t/o"
     )
+
+
+def test_a_disabled_account_is_not_opened_by_its_linked_identity():
+    users = {
+        "alice@example.com": {
+            "password_hash": None,
+            "oauth_provider": "stub",
+            "oauth_links": {"stub": "subject-1"},
+            "disabled_at": 1.0,
+        }
+    }
+    r, _ = _signin(users, CLAIMS)
+    assert r.status_code == 403
+    assert "disabled" in r.text
+    del users["alice@example.com"]["disabled_at"]
+    r, _ = _signin(users, CLAIMS)
+    assert r.status_code == 200
+    assert users["alice@example.com"]["last_login_at"] is not None

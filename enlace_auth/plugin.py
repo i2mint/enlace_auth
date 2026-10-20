@@ -54,13 +54,17 @@ def _make_is_active(user_backend):
     A False answer revokes the caller's whole connector session, so a transient
     unreadable user store would silently kill every connector at once -- the
     outage this refresh grant exists to prevent, triggered by a disk hiccup.
-    Only a store that answers successfully and says "absent" is grounds for
-    revocation; the resource allowlist still gates everything either way.
+    Only a store that answers successfully and says "absent" (or "disabled")
+    is grounds for revocation; the resource allowlist still gates everything
+    either way.
     """
+    from enlace_auth.auth.accounts import is_disabled
 
     def is_active(email: str) -> bool:
         try:
-            return email in user_backend
+            if email not in user_backend:
+                return False
+            return not is_disabled(user_backend.get(email))
         except Exception:  # noqa: BLE001 - availability beats eager revocation
             _logger.warning(
                 "enlace_auth: user store unreadable while checking %r; "

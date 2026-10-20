@@ -47,6 +47,11 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, BeforeValidator, EmailStr
 
+from enlace_auth.auth.accounts import (
+    DISABLED_KEY,
+    LAST_LOGIN_KEY,
+    set_disabled,
+)
 from enlace_auth.auth.grants import GrantError, parse_expires_at
 from enlace_auth.auth.passwords import hash_password, password_problem
 from enlace_auth.auth.reset_tokens import (
@@ -256,6 +261,8 @@ def make_admin_router(
                 {
                     "email": email,
                     "created_at": record.get("created_at"),
+                    "last_login_at": record.get(LAST_LOGIN_KEY),
+                    "disabled_at": record.get(DISABLED_KEY),
                     "is_admin": email.lower() in admin_set,
                 }
             )
@@ -318,6 +325,55 @@ def make_admin_router(
         if share_store is not None:
             share_store.remove_account(target)
         return {"ok": True, "email": target}
+
+    def _existing_account(email: str) -> str:
+        target = _account_key(email)
+        if target not in user_store:
+            raise HTTPException(status_code=404, detail="User not found")
+        return target
+
+    @router.post("/users/{email}/sign-out")
+    async def sign_out_everywhere(email: str, request: Request) -> dict[str, Any]:
+        """End every session and connector refresh family the account holds.
+
+        The account and its password are untouched; it can sign in again.
+        """
+        _require_admin(request)
+        target = _existing_account(email)
+        credentials_changed(target)
+        return {"ok": True, "email": target}
+
+    @router.post("/users/{email}/disable")
+    async def disable_user(email: str, request: Request) -> dict[str, Any]:
+        """Block sign-in by every path and end the account's sessions.
+
+        Grants, shares and data are kept, so re-enabling restores the account
+        as it was. An admin cannot disable themselves (no lock-out by mistake).
+        """
+        actor = _require_admin(request)
+        target = _existing_account(email)
+        if target.lower() == actor:
+            raise HTTPException(
+                status_code=409, detail="You cannot disable your own account"
+            )
+        try:
+            set_disabled(user_store, target, True)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="User not found") from None
+        # Marked before revoking, so a sign-in that starts after this point is
+        # refused, and connector refreshes are refused from now on (is_active).
+        credentials_changed(target)
+        return {"ok": True, "email": target, "disabled": True}
+
+    @router.post("/users/{email}/enable")
+    async def enable_user(email: str, request: Request) -> dict[str, Any]:
+        _require_admin(request)
+        target = _existing_account(email)
+        try:
+            set_disabled(user_store, target, False)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="User not found") from None
+        return {"ok": True, "email": target, "disabled": False}
 
     @router.post("/users/{email}/password")
     async def admin_reset_password(
