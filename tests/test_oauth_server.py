@@ -6,11 +6,11 @@ import secrets
 
 import pytest
 
-pytest.importorskip("authlib")
+pytest.importorskip("joserfc")
 pytest.importorskip("multipart")  # FastAPI Form parsing needs python-multipart
 
-from authlib.jose import JsonWebKey  # noqa: E402
-from authlib.jose import jwt as jose_jwt
+from joserfc import jwt as jose_jwt  # noqa: E402
+from joserfc.jwk import KeySet  # noqa: E402
 from fastapi import FastAPI  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -33,6 +33,22 @@ OTHER_RESOURCE = "https://apps.example.com/connector-b-mcp"
 UNMAPPED_RESOURCE = "https://apps.example.com/connector-c-mcp"
 DISPLAY_NAMES = {RESOURCE: "Connector A", OTHER_RESOURCE: "Connector B"}
 GENERIC_PROMPT = "requesting access to your data on this platform"
+
+
+def _verify(token, jwks, *, iss="http://testserver", aud=RESOURCE, now=None):
+    """Verify *token* the way a connector does: RS256 only, against *jwks*, with
+    ``iss``, ``aud`` and ``exp`` checked. Returns the claims; raises on refusal."""
+    from joserfc.jwt import JWTClaimsRegistry
+
+    decoded = jose_jwt.decode(token, KeySet.import_key_set(jwks), algorithms=["RS256"])
+    JWTClaimsRegistry(
+        now=now,
+        leeway=0,
+        iss={"essential": True, "value": iss},
+        aud={"essential": True, "value": aud},
+        exp={"essential": True},
+    ).validate(decoded.claims)
+    return decoded.claims
 
 
 def _pkce():
@@ -251,7 +267,7 @@ def test_full_authorization_code_flow_with_consent(tmp_path):
 
     # 4) the JWT validates against the published JWKS, with the right claims
     jwks = client.get("/auth/oauth/jwks").json()
-    claims = jose_jwt.decode(body["access_token"], JsonWebKey.import_key_set(jwks))
+    claims = _verify(body["access_token"], jwks)
     assert claims["sub"] == EMAIL
     assert claims["aud"] == RESOURCE
     assert claims["iss"] == "http://testserver"
@@ -682,7 +698,7 @@ def test_a_token_cannot_carry_an_unsupported_scope(tmp_path):
     cid = _register(client)
     body = _flow(client, cookie, cid=cid, scope="mcp:read mcp:admin")
     jwks = client.get("/auth/oauth/jwks").json()
-    claims = jose_jwt.decode(body["access_token"], JsonWebKey.import_key_set(jwks))
+    claims = _verify(body["access_token"], jwks)
     assert "mcp:admin" not in claims["scope"]
     assert claims["scope"] == "mcp:read"
 
@@ -889,7 +905,7 @@ def test_refresh_mints_a_working_access_token_with_the_same_identity(tmp_path):
     body = r.json()
 
     jwks = client.get("/auth/oauth/jwks").json()
-    claims = jose_jwt.decode(body["access_token"], JsonWebKey.import_key_set(jwks))
+    claims = _verify(body["access_token"], jwks)
     assert claims["sub"] == EMAIL
     assert claims["aud"] == RESOURCE  # audience binding survives refresh
     assert claims["scope"] == "mcp:read"
@@ -1461,7 +1477,7 @@ def test_aud_is_the_normalized_resource_the_allowlist_checked(tmp_path):
     cid = _register(client)
     body = _flow(client, cookie, cid=cid, resource=RESOURCE + "/")
     jwks = client.get("/auth/oauth/jwks").json()
-    claims = jose_jwt.decode(body["access_token"], JsonWebKey.import_key_set(jwks))
+    claims = _verify(body["access_token"], jwks)
     assert claims["aud"] == RESOURCE
 
 
@@ -1477,3 +1493,113 @@ def test_aud_is_the_normalized_resource_the_allowlist_checked(tmp_path):
 def test_a_malformed_allowlist_refuses_to_build(tmp_path, allowlist):
     with pytest.raises(ValueError):
         _build(tmp_path, resource_allowlist=allowlist)
+
+
+# --- token verification: what a connector must refuse ---------------------------
+#
+# The server only signs; the connector verifies (fastmcp's JWTVerifier, on joserfc).
+# These pin that an issued token verifies only under the right key, issuer,
+# audience, algorithm and time window, so a change of signing library cannot
+# quietly produce tokens a verifier accepts for the wrong reasons.
+
+
+def _issued(tmp_path):
+    client, cookie = _build(tmp_path, refresh_store={})
+    body = _flow(client, cookie, cid=_register(client))
+    return body["access_token"], client.get("/auth/oauth/jwks").json()
+
+
+def test_an_issued_token_carries_the_header_a_verifier_expects(tmp_path):
+    token, jwks = _issued(tmp_path)
+    header = jose_jwt.decode(
+        token, KeySet.import_key_set(jwks), algorithms=["RS256"]
+    ).header
+    assert header == {"alg": "RS256", "kid": jwks["keys"][0]["kid"], "typ": "JWT"}
+    assert _verify(token, jwks)["sub"] == EMAIL
+
+
+def test_a_token_from_the_wrong_issuer_is_refused(tmp_path):
+    from joserfc.errors import InvalidClaimError
+
+    token, jwks = _issued(tmp_path)
+    with pytest.raises(InvalidClaimError):
+        _verify(token, jwks, iss="https://elsewhere.example.com")
+
+
+def test_a_token_for_another_resource_is_refused(tmp_path):
+    from joserfc.errors import InvalidClaimError
+
+    token, jwks = _issued(tmp_path)
+    with pytest.raises(InvalidClaimError):
+        _verify(token, jwks, aud=OTHER_RESOURCE)
+
+
+def test_an_expired_token_is_refused(tmp_path):
+    from joserfc.errors import ExpiredTokenError
+
+    token, jwks = _issued(tmp_path)
+    exp = _verify(token, jwks)["exp"]
+    with pytest.raises(ExpiredTokenError):
+        _verify(token, jwks, now=exp + 1)
+
+
+def test_an_unsigned_alg_none_token_is_refused(tmp_path):
+    from joserfc.errors import JoseError
+
+    token, jwks = _issued(tmp_path)
+    header_b64, payload_b64, _ = token.split(".")
+    none_header = (
+        base64.urlsafe_b64encode(b'{"alg":"none","typ":"JWT"}').rstrip(b"=").decode()
+    )
+    for forged in (f"{none_header}.{payload_b64}.", f"{header_b64}.{payload_b64}."):
+        with pytest.raises((JoseError, ValueError)):
+            _verify(forged, jwks)
+
+
+def test_a_token_signed_by_another_key_is_refused(tmp_path):
+    from joserfc.errors import JoseError
+
+    token, jwks = _issued(tmp_path)
+    claims = _verify(token, jwks)
+    impostor = OAuthKeys(tmp_path / "impostor")
+    impostor.kid = jwks["keys"][0]["kid"]  # even claiming the real key's id
+    with pytest.raises((JoseError, ValueError)):
+        _verify(impostor.sign(claims), jwks)
+
+
+def test_the_signing_key_and_its_kid_survive_a_restart(tmp_path):
+    first = OAuthKeys(tmp_path / "keys")
+    second = OAuthKeys(tmp_path / "keys")
+    assert first.kid == second.kid
+    assert first.jwks() == second.jwks()
+    pub = first.jwks()["keys"][0]
+    assert set(pub) == {"kty", "n", "e", "use", "alg", "kid"}  # no private part
+
+
+def test_the_connector_side_verifier_accepts_only_the_right_token(tmp_path):
+    """Cross-check with the verifier connectors actually run (skipped without it)."""
+    import asyncio
+
+    pytest.importorskip("fastmcp")
+    from cryptography.hazmat.primitives import serialization
+    from fastmcp.server.auth.providers.jwt import JWTVerifier
+
+    token, jwks = _issued(tmp_path)
+    private = serialization.load_pem_private_key(
+        (tmp_path / "keys" / "private_key.pem").read_bytes(), password=None
+    )
+    public_pem = private.public_key().public_bytes(
+        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+
+    def verify(token, *, issuer="http://testserver", audience=RESOURCE):
+        verifier = JWTVerifier(
+            public_key=public_pem, issuer=issuer, audience=audience, algorithm="RS256"
+        )
+        return asyncio.run(verifier.verify_token(token))
+
+    assert verify(token) is not None
+    assert verify(token, issuer="https://elsewhere.example.com") is None
+    assert verify(token, audience=OTHER_RESOURCE) is None
+    impostor = OAuthKeys(tmp_path / "impostor")
+    assert verify(impostor.sign(_verify(token, jwks))) is None

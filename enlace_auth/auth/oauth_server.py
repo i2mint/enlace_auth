@@ -172,9 +172,9 @@ class OAuthKeys:
         self._dir.mkdir(parents=True, exist_ok=True)
         self._pem_path = self._dir / "private_key.pem"
         self._pem = self._load_or_create()
-        from authlib.jose import JsonWebKey
+        from joserfc.jwk import RSAKey
 
-        self._jwk = JsonWebKey.import_key(self._pem)
+        self._jwk = RSAKey.import_key(self._pem)
         self.kid = self._jwk.thumbprint()
 
     def _load_or_create(self) -> bytes:
@@ -194,15 +194,15 @@ class OAuthKeys:
         return pem
 
     def jwks(self) -> dict[str, Any]:
-        pub = self._jwk.as_dict(is_private=False)
+        pub = self._jwk.as_dict(private=False)
         pub.update({"use": "sig", "alg": "RS256", "kid": self.kid})
         return {"keys": [pub]}
 
     def sign(self, claims: dict[str, Any]) -> str:
-        from authlib.jose import jwt
+        from joserfc import jwt
 
         header = {"alg": "RS256", "kid": self.kid, "typ": "JWT"}
-        return jwt.encode(header, claims, self._pem).decode("ascii")
+        return jwt.encode(header, claims, self._jwk, algorithms=["RS256"])
 
 
 @dataclass

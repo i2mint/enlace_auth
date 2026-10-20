@@ -578,7 +578,7 @@ def wire(parent: "FastAPI", config) -> None:
             parent.include_router(oauth_server_router)
         except ImportError:
             _logger.error(
-                "enlace_auth: [auth.oauth_server] is enabled but authlib/cryptography "
+                "enlace_auth: [auth.oauth_server] is enabled but joserfc/cryptography "
                 "are not installed. The OAuth server will be MISSING. Install with "
                 "`pip install enlace_auth[oauth]` to fix."
             )
