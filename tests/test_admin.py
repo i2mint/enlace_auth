@@ -927,6 +927,62 @@ def test_a_sign_in_racing_a_disable_does_not_keep_its_session():
     assert "last_login_at" not in users[DORA]
 
 
+def test_a_password_change_racing_a_disable_leaves_it_disabled(
+    admin_client, monkeypatch
+):
+    """#71: the change rewrites the record it read; the disable must survive."""
+    from enlace_auth.auth import routes as auth_routes
+    from enlace_auth.auth.accounts import make_account_records, set_disabled
+
+    csrf, dora = _setup(admin_client)
+    # Another worker on the same store root, as under gunicorn.
+    other_worker = make_account_records(
+        make_file_store_factory(str(admin_client.user_store_root))
+    )
+    real_hash = auth_routes.hash_password
+
+    def hash_while_an_admin_disables(password):
+        # Between the route's read of the record and its write-back.
+        set_disabled(other_worker, DORA, True)
+        return real_hash(password)
+
+    monkeypatch.setattr(auth_routes, "hash_password", hash_while_an_admin_disables)
+    r = dora.post(
+        "/auth/me/password",
+        json={"old_password": DORA_PW, "new_password": "a-new-password"},
+        headers=_csrf(dora),
+    )
+    assert r.status_code == 200, r.text
+    assert is_disabled(other_worker[DORA])
+    assert _users(admin_client)[DORA]["disabled_at"] is not None
+    fresh = _csrf(dora)
+    assert _login(dora, DORA, "a-new-password", fresh).status_code == 403
+
+    # The unchanged path: enabling restores the account, new password and all.
+    r = admin_client.post(f"/_admin/api/users/{DORA}/enable", headers=csrf)
+    assert r.status_code == 200, r.text
+    assert _login(dora, DORA, "a-new-password", fresh).status_code == 200
+
+
+def test_a_mark_written_into_the_record_before_the_split_still_holds(tmp_path):
+    """A record disabled by #70 (key inside the record) stays disabled."""
+    from enlace_auth.auth.accounts import AccountRecords, set_disabled
+
+    users = {DORA: {"password_hash": "h", "disabled_at": 1.0}}
+    records = AccountRecords(users, {})
+    assert is_disabled(records[DORA])
+    records[DORA] = {**records[DORA], "password_hash": "h2"}  # a rewrite keeps it
+    assert is_disabled(records[DORA])
+    set_disabled(records, DORA, False)
+    assert not is_disabled(records[DORA])
+    assert users[DORA] == {"password_hash": "h2"}
+    stale = records[DORA]
+    set_disabled(records, DORA, True)
+    records[DORA] = stale
+    assert is_disabled(records[DORA])
+    assert "disabled_at" not in users[DORA]  # the mark lives apart now
+
+
 def test_admins_can_be_declared_in_platform_config(tmp_path, monkeypatch):
     """[auth] admin_emails grants admin with no secrets-file edit."""
     apps_dir = tmp_path / "apps"

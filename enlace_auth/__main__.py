@@ -126,12 +126,13 @@ def _revoke_connector_subject(email: str, toml_path: Path) -> int:
 
 def _load_user_store(toml_path: Path = Path("platform.toml")):
     """Open the platform's user store (email -> {password_hash, ...})."""
+    from enlace_auth.auth.accounts import make_account_records
     from enlace_auth.stores import make_file_store_factory
 
     config = PlatformConfig.from_toml(toml_path)
     auth = coerce_auth_config(config.auth)
     factory = make_file_store_factory(auth.stores.path)
-    return factory("users")
+    return make_account_records(factory)
 
 
 def _load_grant_store(toml_path: Path = Path("platform.toml")):
