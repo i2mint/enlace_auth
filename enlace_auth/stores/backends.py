@@ -88,6 +88,17 @@ class _FileDict(MutableMapping):
                 os.unlink(tmp_name)
             raise
 
+    def stored(self, key: str) -> bool:
+        """Whether a file exists for *key*, readable or not (``in`` says readable).
+
+        For a caller that must fail closed on a damaged entry: ``key in store``
+        is False for a corrupt record, ``store.stored(key)`` is True.
+        """
+        try:
+            return self._path(key).is_file()
+        except KeyError:  # an unsafe key names nothing
+            return False
+
     def __delitem__(self, key: str) -> None:
         try:
             self._path(key).unlink()

@@ -540,6 +540,7 @@ def wire(parent: "FastAPI", config) -> None:
         SessionStore,
         make_auth_router,
     )
+    from enlace_auth.auth.accounts import make_account_records
     from enlace_auth.auth.middleware import AccessRule
     from enlace_auth.auth.share_routes import make_share_router
     from enlace_auth.auth.shares import ShareStore
@@ -548,7 +549,8 @@ def wire(parent: "FastAPI", config) -> None:
 
     platform_factory = make_file_store_factory(auth_cfg.stores.path)
     session_backend = platform_factory("sessions")
-    user_backend = platform_factory("users")
+    # Disabled marks are kept apart from the records they mark (#71).
+    user_backend = make_account_records(platform_factory)
     session_store = SessionStore(
         session_backend,
         max_age=auth_cfg.session_max_age_seconds,
