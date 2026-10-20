@@ -72,6 +72,10 @@ class AccessRule:
     # sessions whose email is in this set can access the app. Evaluated after
     # the standard session check, so it's a second gate on top of level.
     allowed_users: tuple[str, ...] = ()
+    # What a signed-in user outside allowed_users gets. False (the default for
+    # apps): the same answer as a signed-out one, a sign-in redirect / 401.
+    # True (the admin page): 403, "you are signed in, this is not for you".
+    deny_signed_in: bool = False
 
 
 def _normalize_path(raw_path: str) -> Optional[str]:
@@ -146,6 +150,20 @@ async def _send_json_response(send, status: int, body: dict):
         }
     )
     await send({"type": "http.response.body", "body": data})
+
+
+async def _send_html_response(send, status: int, html: str):
+    await send(
+        {
+            "type": "http.response.start",
+            "status": status,
+            "headers": [
+                (b"content-type", b"text/html; charset=utf-8"),
+                (b"cache-control", b"no-store"),
+            ],
+        }
+    )
+    await send({"type": "http.response.body", "body": html.encode("utf-8")})
 
 
 async def _send_redirect(send, location: str):
@@ -339,16 +357,35 @@ class PlatformAuthMiddleware:
                 allowed_users=rule.allowed_users,
                 granted=granted_users(self._dynamic, rule.app_id),
             ):
-                return await self._deny(scope, send, "forbidden")
+                return await self._deny(
+                    scope, send, "forbidden", signed_in_403=rule.deny_signed_in
+                )
             await self.app(scope, receive, send)
             return
 
         # Unknown level — deny by default.
         await self._deny(scope, send, "unknown")
 
-    async def _deny(self, scope, send, kind: str):
+    async def _deny(self, scope, send, kind: str, *, signed_in_403: bool = False):
         if scope["type"] == "websocket":
             await _reject_websocket(send)
+            return
+        if signed_in_403:
+            # Signed in, but this account may not open it: 403, not a sign-in
+            # redirect ("you are signed in, this is not for you").
+            if _wants_html(scope):
+                from enlace_auth.auth.pages import render_forbidden_page
+
+                email = (scope.get("state") or {}).get("user_email")
+                page = render_forbidden_page(
+                    email=email,
+                    switch_url=_redirect_target(scope, self._login_redirect),
+                )
+                await _send_html_response(send, 403, page)
+                return
+            await _send_json_response(
+                send, 403, {"detail": "Not allowed for this account", "auth": kind}
+            )
             return
         if _wants_html(scope):
             await _send_redirect(send, _redirect_target(scope, self._login_redirect))

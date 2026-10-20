@@ -321,8 +321,19 @@ def read_email_list(env_var: str, *, keep_unsafe: bool = False) -> tuple[str, ..
     with *keep_unsafe* to say why the entry never matches.
     """
     raw = os.environ.get(env_var or "", "")
+    return parse_email_list(raw.split(","), source=env_var, keep_unsafe=keep_unsafe)
+
+
+def parse_email_list(
+    entries: Iterable[str], *, source: str, keep_unsafe: bool = False
+) -> tuple[str, ...]:
+    """Case-fold *entries* as :func:`read_email_list` does; *source* names them in logs.
+
+    >>> parse_email_list([" A@x.io", "", "b@x.io"], source="test")
+    ('a@x.io', 'b@x.io')
+    """
     out = []
-    for entry in (e.strip() for e in raw.split(",")):
+    for entry in (str(e).strip() for e in entries):
         if not entry:
             continue
         culprit = lowercase_changes_letter(entry.rpartition("@")[0] or entry)
@@ -330,12 +341,28 @@ def read_email_list(env_var: str, *, keep_unsafe: bool = False) -> tuple[str, ..
             _logger.warning(
                 "%s: ignoring an entry whose part before @ changes letters when "
                 "lowercased (U+%04X); retype it (see `enlace doctor`).",
-                env_var,
+                source,
                 ord(culprit),
             )
             continue
         out.append(entry.lower())
     return tuple(out)
+
+
+def platform_admin_emails(auth_cfg, *, keep_unsafe: bool = False) -> tuple[str, ...]:
+    """The platform admins: ``[auth] admin_emails`` plus the ``admin_emails_env`` list.
+
+    The config list is declared and reviewable (a committed change); the env
+    var is the older, secrets-file way and still works. Order kept, duplicates
+    dropped.
+    """
+    declared = parse_email_list(
+        getattr(auth_cfg, "admin_emails", ()) or (),
+        source="[auth] admin_emails",
+        keep_unsafe=keep_unsafe,
+    )
+    from_env = read_email_list(auth_cfg.admin_emails_env, keep_unsafe=keep_unsafe)
+    return tuple(dict.fromkeys(declared + from_env))
 
 
 # ``allowed_users = ["@admins"]`` in an app.toml means "the platform admins"
@@ -554,7 +581,7 @@ def wire(parent: "FastAPI", config) -> None:
         user_data_factory = make_file_store_factory(user_data_cfg.path)
         user_data_backend = user_data_factory("user_data")
 
-    admin_emails = read_email_list(auth_cfg.admin_emails_env)
+    admin_emails = platform_admin_emails(auth_cfg)
     can_register = _build_can_register(auth_cfg, admin_emails)
     email_sender = _build_email_sender()
 
@@ -619,6 +646,7 @@ def wire(parent: "FastAPI", config) -> None:
                 level="protected:user",
                 app_id="_admin",
                 allowed_users=admin_emails,
+                deny_signed_in=True,
             )
         )
 
