@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../../_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.46" />
+  <meta name="docsearch:version" content="0.1.47" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1038,8 +1038,19 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    with *keep_unsafe* to say why the entry never matches.</span>
 <span class="sd">    """</span>
     <span class="n">raw</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">env_var</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">parse_email_list</span><span class="p">(</span><span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">),</span> <span class="n">source</span><span class="o">=</span><span class="n">env_var</span><span class="p">,</span> <span class="n">keep_unsafe</span><span class="o">=</span><span class="n">keep_unsafe</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_email_list</span><span class="p">(</span>
+    <span class="n">entries</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">keep_unsafe</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Case-fold *entries* as :func:`read_email_list` does; *source* names them in logs.</span>
+
+<span class="sd">    &gt;&gt;&gt; parse_email_list([" A@x.io", "", "b@x.io"], source="test")</span>
+<span class="sd">    ('a@x.io', 'b@x.io')</span>
+<span class="sd">    """</span>
     <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)):</span>
+    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">entry</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="n">culprit</span> <span class="o">=</span> <span class="n">lowercase_changes_letter</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">rpartition</span><span class="p">(</span><span class="s2">"@"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">entry</span><span class="p">)</span>
@@ -1047,12 +1058,28 @@ window.runMermaid = runMermaid;</script>
             <span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="s2">"</span><span class="si">%s</span><span class="s2">: ignoring an entry whose part before @ changes letters when "</span>
                 <span class="s2">"lowercased (U+</span><span class="si">%04X</span><span class="s2">); retype it (see `enlace doctor`)."</span><span class="p">,</span>
-                <span class="n">env_var</span><span class="p">,</span>
+                <span class="n">source</span><span class="p">,</span>
                 <span class="nb">ord</span><span class="p">(</span><span class="n">culprit</span><span class="p">),</span>
             <span class="p">)</span>
             <span class="k">continue</span>
         <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">platform_admin_emails</span><span class="p">(</span><span class="n">auth_cfg</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">keep_unsafe</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The platform admins: ``[auth] admin_emails`` plus the ``admin_emails_env`` list.</span>
+
+<span class="sd">    The config list is declared and reviewable (a committed change); the env</span>
+<span class="sd">    var is the older, secrets-file way and still works. Order kept, duplicates</span>
+<span class="sd">    dropped.</span>
+<span class="sd">    """</span>
+    <span class="n">declared</span> <span class="o">=</span> <span class="n">parse_email_list</span><span class="p">(</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="n">auth_cfg</span><span class="p">,</span> <span class="s2">"admin_emails"</span><span class="p">,</span> <span class="p">())</span> <span class="ow">or</span> <span class="p">(),</span>
+        <span class="n">source</span><span class="o">=</span><span class="s2">"[auth] admin_emails"</span><span class="p">,</span>
+        <span class="n">keep_unsafe</span><span class="o">=</span><span class="n">keep_unsafe</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">from_env</span> <span class="o">=</span> <span class="n">read_email_list</span><span class="p">(</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">admin_emails_env</span><span class="p">,</span> <span class="n">keep_unsafe</span><span class="o">=</span><span class="n">keep_unsafe</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">declared</span> <span class="o">+</span> <span class="n">from_env</span><span class="p">))</span>
 
 
 <span class="c1"># ``allowed_users = ["@admins"]`` in an app.toml means "the platform admins"</span>
@@ -1273,7 +1300,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">user_data_factory</span> <span class="o">=</span> <span class="n">make_file_store_factory</span><span class="p">(</span><span class="n">user_data_cfg</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
         <span class="n">user_data_backend</span> <span class="o">=</span> <span class="n">user_data_factory</span><span class="p">(</span><span class="s2">"user_data"</span><span class="p">)</span>
 
-    <span class="n">admin_emails</span> <span class="o">=</span> <span class="n">read_email_list</span><span class="p">(</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">admin_emails_env</span><span class="p">)</span>
+    <span class="n">admin_emails</span> <span class="o">=</span> <span class="n">platform_admin_emails</span><span class="p">(</span><span class="n">auth_cfg</span><span class="p">)</span>
     <span class="n">can_register</span> <span class="o">=</span> <span class="n">_build_can_register</span><span class="p">(</span><span class="n">auth_cfg</span><span class="p">,</span> <span class="n">admin_emails</span><span class="p">)</span>
     <span class="n">email_sender</span> <span class="o">=</span> <span class="n">_build_email_sender</span><span class="p">()</span>
 
@@ -1338,6 +1365,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">level</span><span class="o">=</span><span class="s2">"protected:user"</span><span class="p">,</span>
                 <span class="n">app_id</span><span class="o">=</span><span class="s2">"_admin"</span><span class="p">,</span>
                 <span class="n">allowed_users</span><span class="o">=</span><span class="n">admin_emails</span><span class="p">,</span>
+                <span class="n">deny_signed_in</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
 

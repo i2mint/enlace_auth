@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../../../_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.46" />
+  <meta name="docsearch:version" content="0.1.47" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -787,7 +787,11 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># Optional user whitelist (tuple for hashability). When non-empty, only</span>
     <span class="c1"># sessions whose email is in this set can access the app. Evaluated after</span>
     <span class="c1"># the standard session check, so it's a second gate on top of level.</span>
-    <span class="n">allowed_users</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span></div>
+    <span class="n">allowed_users</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="c1"># What a signed-in user outside allowed_users gets. False (the default for</span>
+    <span class="c1"># apps): the same answer as a signed-out one, a sign-in redirect / 401.</span>
+    <span class="c1"># True (the admin page): 403, "you are signed in, this is not for you".</span>
+    <span class="n">deny_signed_in</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></div>
 
 
 
@@ -863,6 +867,23 @@ window.runMermaid = runMermaid;</script>
         <span class="p">}</span>
     <span class="p">)</span>
     <span class="k">await</span> <span class="n">send</span><span class="p">({</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http.response.body"</span><span class="p">,</span> <span class="s2">"body"</span><span class="p">:</span> <span class="n">data</span><span class="p">})</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_send_html_response</span><span class="p">(</span><span class="n">send</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">html</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">head</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="k">await</span> <span class="n">send</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http.response.start"</span><span class="p">,</span>
+            <span class="s2">"status"</span><span class="p">:</span> <span class="n">status</span><span class="p">,</span>
+            <span class="s2">"headers"</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">(</span><span class="sa">b</span><span class="s2">"content-type"</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"text/html; charset=utf-8"</span><span class="p">),</span>
+                <span class="p">(</span><span class="sa">b</span><span class="s2">"cache-control"</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"no-store"</span><span class="p">),</span>
+                <span class="p">(</span><span class="sa">b</span><span class="s2">"x-frame-options"</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"DENY"</span><span class="p">),</span>
+                <span class="p">(</span><span class="sa">b</span><span class="s2">"content-security-policy"</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"frame-ancestors 'none'"</span><span class="p">),</span>
+            <span class="p">],</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">""</span> <span class="k">if</span> <span class="n">head</span> <span class="k">else</span> <span class="n">html</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
+    <span class="k">await</span> <span class="n">send</span><span class="p">({</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http.response.body"</span><span class="p">,</span> <span class="s2">"body"</span><span class="p">:</span> <span class="n">body</span><span class="p">})</span>
 
 
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_send_redirect</span><span class="p">(</span><span class="n">send</span><span class="p">,</span> <span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
@@ -1058,16 +1079,36 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">allowed_users</span><span class="o">=</span><span class="n">rule</span><span class="o">.</span><span class="n">allowed_users</span><span class="p">,</span>
                 <span class="n">granted</span><span class="o">=</span><span class="n">granted_users</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dynamic</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">app_id</span><span class="p">),</span>
             <span class="p">):</span>
-                <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deny</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">send</span><span class="p">,</span> <span class="s2">"forbidden"</span><span class="p">)</span>
+                <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deny</span><span class="p">(</span>
+                    <span class="n">scope</span><span class="p">,</span> <span class="n">send</span><span class="p">,</span> <span class="s2">"forbidden"</span><span class="p">,</span> <span class="n">signed_in_403</span><span class="o">=</span><span class="n">rule</span><span class="o">.</span><span class="n">deny_signed_in</span>
+                <span class="p">)</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">)</span>
             <span class="k">return</span>
 
         <span class="c1"># Unknown level — deny by default.</span>
         <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deny</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">send</span><span class="p">,</span> <span class="s2">"unknown"</span><span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_deny</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">send</span><span class="p">,</span> <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_deny</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">send</span><span class="p">,</span> <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">signed_in_403</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">scope</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"websocket"</span><span class="p">:</span>
             <span class="k">await</span> <span class="n">_reject_websocket</span><span class="p">(</span><span class="n">send</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">signed_in_403</span><span class="p">:</span>
+            <span class="c1"># Signed in, but this account may not open it: 403, not a sign-in</span>
+            <span class="c1"># redirect ("you are signed in, this is not for you").</span>
+            <span class="k">if</span> <span class="n">_wants_html</span><span class="p">(</span><span class="n">scope</span><span class="p">):</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.pages</span><span class="w"> </span><span class="kn">import</span> <span class="n">render_forbidden_page</span>
+
+                <span class="n">email</span> <span class="o">=</span> <span class="p">(</span><span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"state"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"user_email"</span><span class="p">)</span>
+                <span class="n">page</span> <span class="o">=</span> <span class="n">render_forbidden_page</span><span class="p">(</span>
+                    <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">,</span>
+                    <span class="n">switch_url</span><span class="o">=</span><span class="n">_redirect_target</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_login_redirect</span><span class="p">),</span>
+                <span class="p">)</span>
+                <span class="n">head</span> <span class="o">=</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"method"</span><span class="p">,</span> <span class="s2">"GET"</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"HEAD"</span>
+                <span class="k">await</span> <span class="n">_send_html_response</span><span class="p">(</span><span class="n">send</span><span class="p">,</span> <span class="mi">403</span><span class="p">,</span> <span class="n">page</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="n">head</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="k">await</span> <span class="n">_send_json_response</span><span class="p">(</span>
+                <span class="n">send</span><span class="p">,</span> <span class="mi">403</span><span class="p">,</span> <span class="p">{</span><span class="s2">"detail"</span><span class="p">:</span> <span class="s2">"Not allowed for this account"</span><span class="p">,</span> <span class="s2">"auth"</span><span class="p">:</span> <span class="n">kind</span><span class="p">}</span>
+            <span class="p">)</span>
             <span class="k">return</span>
         <span class="k">if</span> <span class="n">_wants_html</span><span class="p">(</span><span class="n">scope</span><span class="p">):</span>
             <span class="k">await</span> <span class="n">_send_redirect</span><span class="p">(</span><span class="n">send</span><span class="p">,</span> <span class="n">_redirect_target</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_login_redirect</span><span class="p">))</span>

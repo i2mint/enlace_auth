@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../../../_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.46" />
+  <meta name="docsearch:version" content="0.1.47" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -950,6 +950,27 @@ window.runMermaid = runMermaid;</script>
     <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span> <span class="ow">in</span> <span class="n">raw</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\r</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">"</span><span class="p">))</span> <span class="ow">or</span> <span class="s2">":"</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"?"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
         <span class="k">return</span> <span class="n">default</span>
     <span class="k">return</span> <span class="n">raw</span></div>
+
+
+
+<div class="viewcode-block" id="render_forbidden_page">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.render_forbidden_page">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">render_forbidden_page</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">switch_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The 403 a signed-in user sees for a page their account may not open.</span>
+
+<span class="sd">    Says who they are signed in as (a redirect to sign-in would read as "you</span>
+<span class="sd">    are not signed in", which is false) and offers to switch account.</span>
+<span class="sd">    """</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="n">fill_template</span><span class="p">(</span>
+        <span class="s2">"&lt;h1&gt;Not available to this account&lt;/h1&gt;"</span>
+        <span class="s2">"&lt;p&gt;You are signed in as &lt;strong&gt;</span><span class="si">{email}</span><span class="s2">&lt;/strong&gt;, and this page is not "</span>
+        <span class="s2">"open to that account.&lt;/p&gt;"</span>
+        <span class="s1">'&lt;p&gt;&lt;a href="</span><span class="si">{switch_url}</span><span class="s1">"&gt;Sign in with another account&lt;/a&gt; &amp;middot; '</span>
+        <span class="s1">'&lt;a href="/"&gt;Home&lt;/a&gt;&lt;/p&gt;'</span><span class="p">,</span>
+        <span class="n">email</span><span class="o">=</span><span class="n">email</span> <span class="ow">or</span> <span class="s2">"an account"</span><span class="p">,</span>
+        <span class="n">switch_url</span><span class="o">=</span><span class="n">switch_url</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_page</span><span class="p">(</span><span class="s2">"Not available"</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span></div>
 
 
 

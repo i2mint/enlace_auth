@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.46" />
+  <meta name="docsearch:version" content="0.1.47" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -444,22 +444,25 @@ page that redirect lands on, and it threads <code class="docutils literal notran
 <tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.render_account_page" title="enlace_auth.auth.pages.render_account_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_account_page</span></code></a>(*, email[, error])</p></td>
 <td><p>Render the signed-in user's &quot;change my password&quot; form.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.render_forgot_page" title="enlace_auth.auth.pages.render_forgot_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_forgot_page</span></code></a>(*[, error, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.render_forbidden_page" title="enlace_auth.auth.pages.render_forbidden_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_forbidden_page</span></code></a>(*, email, switch_url)</p></td>
+<td><p>The 403 a signed-in user sees for a page their account may not open.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.render_forgot_page" title="enlace_auth.auth.pages.render_forgot_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_forgot_page</span></code></a>(*[, error, ...])</p></td>
 <td><p>Render the &quot;request a password-reset link&quot; form.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.render_login_page" title="enlace_auth.auth.pages.render_login_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_login_page</span></code></a>(*[, next_url, error, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.render_login_page" title="enlace_auth.auth.pages.render_login_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_login_page</span></code></a>(*[, next_url, error, ...])</p></td>
 <td><p>Render the sign-in form.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.render_notice_page" title="enlace_auth.auth.pages.render_notice_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_notice_page</span></code></a>(*, title, heading, ...[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.render_notice_page" title="enlace_auth.auth.pages.render_notice_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_notice_page</span></code></a>(*, title, heading, ...[, ...])</p></td>
 <td><p>Render a centered notice card.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.render_reset_page" title="enlace_auth.auth.pages.render_reset_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_reset_page</span></code></a>(*, token[, error])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.render_reset_page" title="enlace_auth.auth.pages.render_reset_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_reset_page</span></code></a>(*, token[, error])</p></td>
 <td><p>Render the &quot;set a new password&quot; form for a reset <code class="docutils literal notranslate"><span class="pre">token</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.render_shared_login_page" title="enlace_auth.auth.pages.render_shared_login_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_shared_login_page</span></code></a>(*, app[, next_url, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.render_shared_login_page" title="enlace_auth.auth.pages.render_shared_login_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_shared_login_page</span></code></a>(*, app[, next_url, ...])</p></td>
 <td><p>Render the shared-password form for a <code class="docutils literal notranslate"><span class="pre">protected:shared</span></code> app.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.safe_next" title="enlace_auth.auth.pages.safe_next"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_next</span></code></a>(raw, *[, default])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.safe_next" title="enlace_auth.auth.pages.safe_next"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_next</span></code></a>(raw, *[, default])</p></td>
 <td><p>Return a same-origin path safe to redirect to, or <code class="docutils literal notranslate"><span class="pre">default</span></code>.</p></td>
 </tr>
 </tbody>
@@ -506,6 +509,19 @@ un-escaped hole in one big template.</p>
 so this page is safe to leave reachable on a shared machine: possession of
 a live session alone doesn’t let someone change the password out from
 under the owner.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.auth.pages.render_forbidden_page">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.pages.</span></span><span class="sig-name descname"><span class="pre">render_forbidden_page</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">switch_url</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/pages.html#render_forbidden_page"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.pages.render_forbidden_page" title="Link to this definition">#</a></dt>
+<dd><p>The 403 a signed-in user sees for a page their account may not open.</p>
+<p>Says who they are signed in as (a redirect to sign-in would read as “you
+are not signed in”, which is false) and offers to switch account.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
@@ -675,6 +691,7 @@ every <code class="docutils literal notranslate"><span class="pre">?next=</span>
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.pages.fill_template"><code class="docutils literal notranslate"><span class="pre">fill_template()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.pages.render_account_page"><code class="docutils literal notranslate"><span class="pre">render_account_page()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.pages.render_forbidden_page"><code class="docutils literal notranslate"><span class="pre">render_forbidden_page()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.pages.render_forgot_page"><code class="docutils literal notranslate"><span class="pre">render_forgot_page()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.pages.render_login_page"><code class="docutils literal notranslate"><span class="pre">render_login_page()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.pages.render_notice_page"><code class="docutils literal notranslate"><span class="pre">render_notice_page()</span></code></a></li>

@@ -41,7 +41,7 @@ changes platform behavior unless the operator opts in.
 | [`EnlaceAuthConfigError`](#enlace_auth.EnlaceAuthConfigError)   | Raised when auth configuration is unusable at startup.   |
 |--------------------------------------------------------------------------|----------------------------------------------------------|
 
-### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST')
+### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST')
 
 Bases: `_StrictModel`
 

@@ -10,6 +10,7 @@ enlace\_auth.auth.pages
    
       fill_template
       render_account_page
+      render_forbidden_page
       render_forgot_page
       render_login_page
       render_notice_page

@@ -1,4 +1,4 @@
-> built 2026-10-20 14:53 UTC from 7ce26d1 (main) · enlace_auth 0.1.46. Details: build_info.json
+> built 2026-10-20 15:12 UTC from 37c2150 (main) · enlace_auth 0.1.47. Details: build_info.json
 
 # index.html.md
 
@@ -232,7 +232,7 @@ shared-password apps once.
 Plus environment variables:
 
 - `ENLACE_SIGNING_KEY` — signing key (32+ chars). Generate with `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
-- `ENLACE_ADMIN_EMAILS` — comma-separated admin emails (gate `/_admin`). An admin address can never self-register, not even with `registration_open` or an allowlist entry, because `/auth/register` cannot prove who owns it. An admin account comes from `enlace-auth add-user <email>` (a password account), or from the admin’s first sign-in through a configured OAuth provider that itself verifies the address (an `email_verified` claim, or the `github` preset; `trust_unverified_email` does not count). Every account records how it was made (`created_via`). `enlace doctor` warns about an admin address with no account, and about an admin account that was self-registered.
+- `ENLACE_ADMIN_EMAILS` — comma-separated admin emails (gate `/_admin`). Admins can also be declared in `platform.toml` as `[auth] admin_emails = [...]`, which makes granting admin a reviewable config change; the two lists are unioned. A signed-in account that is not an admin gets a 403 page at `/_admin` (saying who is signed in, with a link to switch account), not a sign-in redirect. An admin address can never self-register, not even with `registration_open` or an allowlist entry, because `/auth/register` cannot prove who owns it. An admin account comes from `enlace-auth add-user <email>` (a password account), or from the admin’s first sign-in through a configured OAuth provider that itself verifies the address (an `email_verified` claim, or the `github` preset; `trust_unverified_email` does not count). Every account records how it was made (`created_via`). `enlace doctor` warns about an admin address with no account, and about an admin account that was self-registered.
 - `ENLACE_REGISTRATION_ALLOWLIST` — comma-separated emails allowed to self-register while `registration_open` is false (the default).
 - `ENLACE_ALLOW_UNSIGNED=1` — opt-out from fail-fast (diagnostics only).
 - `ENLACE_SMTP_HOST` (+ `_PORT`, `_USER`, `_PASSWORD`, `_FROM`, `_TLS`) — mail
@@ -943,7 +943,7 @@ Public helpers:
 | [`ShareError`](_autosummary/enlace_auth.auth.html.md#enlace_auth.auth.ShareError)(message, \*[, code])   | An invalid share.   |
 |------------------------------------------------------------------------------------|---------------------|
 
-### *class* enlace_auth.auth.AccessRule(prefix, level, app_id, shared_password_hash=None, allowed_users=())
+### *class* enlace_auth.auth.AccessRule(prefix, level, app_id, shared_password_hash=None, allowed_users=(), deny_signed_in=False)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -1303,7 +1303,7 @@ Design notes:
 | [`CSRFMiddleware`](_autosummary/enlace_auth.auth.middleware.html.md#enlace_auth.auth.middleware.CSRFMiddleware)(app, \*, signing_key[, ...])        | Signed double-submit CSRF for state-changing requests. |
 | [`PlatformAuthMiddleware`](_autosummary/enlace_auth.auth.middleware.html.md#enlace_auth.auth.middleware.PlatformAuthMiddleware)(app, \*, access_rules, ...) | Pure-ASGI auth middleware.                             |
 
-### *class* enlace_auth.auth.middleware.AccessRule(prefix, level, app_id, shared_password_hash=None, allowed_users=())
+### *class* enlace_auth.auth.middleware.AccessRule(prefix, level, app_id, shared_password_hash=None, allowed_users=(), deny_signed_in=False)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -1575,6 +1575,7 @@ page that redirect lands on, and it threads `next` back through after sign-in.
 | [`fill_template`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.fill_template)(template, /, \*\*values)             | Fill `{name}` placeholders in *template* with HTML-escaped *values*.   |
 |-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
 | [`render_account_page`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.render_account_page)(\*, email[, error])            | Render the signed-in user's "change my password" form.                 |
+| [`render_forbidden_page`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.render_forbidden_page)(\*, email, switch_url)       | The 403 a signed-in user sees for a page their account may not open.   |
 | [`render_forgot_page`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.render_forgot_page)(\*[, error, ...])               | Render the "request a password-reset link" form.                       |
 | [`render_login_page`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.render_login_page)(\*[, next_url, error, ...])      | Render the sign-in form.                                               |
 | [`render_notice_page`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.render_notice_page)(\*, title, heading, ...[, ...]) | Render a centered notice card.                                         |
@@ -1625,6 +1626,16 @@ Posts to `/auth/me/password`, which requires the *current* password —
 so this page is safe to leave reachable on a shared machine: possession of
 a live session alone doesn’t let someone change the password out from
 under the owner.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.auth.pages.render_forbidden_page(, email, switch_url)
+
+The 403 a signed-in user sees for a page their account may not open.
+
+Says who they are signed in as (a redirect to sign-in would read as “you
+are not signed in”, which is false) and offers to switch account.
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
@@ -2361,7 +2372,7 @@ we just deserialize them into typed objects here when the plugin runs.
 | [`OAuthServerConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthServerConfig)(\*[, enabled, issuer, ...])      | OAuth 2.1 authorization-server settings (for MCP connectors). |
 | [`StoreBackendConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.      |
 
-### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST')
+### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST')
 
 Bases: `_StrictModel`
 
@@ -2786,7 +2797,7 @@ changes platform behavior unless the operator opts in.
 | [`EnlaceAuthConfigError`](_autosummary/enlace_auth.html.md#enlace_auth.EnlaceAuthConfigError)   | Raised when auth configuration is unusable at startup.   |
 |--------------------------------------------------------------------------|----------------------------------------------------------|
 
-### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST')
+### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST')
 
 Bases: `_StrictModel`
 
@@ -3256,18 +3267,16 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-20 14:53 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/7ce26d180cbd8424a4e3a89dd022ceae7abb2ecb"><code>7ce26d1</code></a> on branch <code>main</code>, for **enlace_auth 0.1.46** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-20 15:12 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/37c2150d24e5672ed5691f0debe97fabd3ee830e"><code>37c2150</code></a> on branch <code>main</code>, for **enlace_auth 0.1.47** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.1.46) is behind the latest release on PyPI (0.1.47): `pip install enlace_auth` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/7ce26d180cbd8424a4e3a89dd022ceae7abb2ecb"><code>7ce26d180cbd8424a4e3a89dd022ceae7abb2ecb</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/37c2150d24e5672ed5691f0debe97fabd3ee830e"><code>37c2150d24e5672ed5691f0debe97fabd3ee830e</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -3278,9 +3287,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/39442907226">39442907226</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/39445847177">39445847177</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>7ce26d180cbd8424a4e3a89dd022ceae7abb2ecb</code> (in the history of the built commit) |
+| Event commit | <code>37c2150d24e5672ed5691f0debe97fabd3ee830e</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -3305,13 +3314,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.47/">0.1.47</a>, newer than the documented version (0.1.46).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.47/">0.1.47</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 7ce26d180cbd8424a4e3a89dd022ceae7abb2ecb
+git checkout 37c2150d24e5672ed5691f0debe97fabd3ee830e
 pip install "epythet==0.2.21"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

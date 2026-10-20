@@ -19,6 +19,7 @@ page that redirect lands on, and it threads `next` back through after sign-in.
 | [`fill_template`](#enlace_auth.auth.pages.fill_template)(template, /, \*\*values)             | Fill `{name}` placeholders in *template* with HTML-escaped *values*.   |
 |-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
 | [`render_account_page`](#enlace_auth.auth.pages.render_account_page)(\*, email[, error])            | Render the signed-in user's "change my password" form.                 |
+| [`render_forbidden_page`](#enlace_auth.auth.pages.render_forbidden_page)(\*, email, switch_url)       | The 403 a signed-in user sees for a page their account may not open.   |
 | [`render_forgot_page`](#enlace_auth.auth.pages.render_forgot_page)(\*[, error, ...])               | Render the "request a password-reset link" form.                       |
 | [`render_login_page`](#enlace_auth.auth.pages.render_login_page)(\*[, next_url, error, ...])      | Render the sign-in form.                                               |
 | [`render_notice_page`](#enlace_auth.auth.pages.render_notice_page)(\*, title, heading, ...[, ...]) | Render a centered notice card.                                         |
@@ -69,6 +70,16 @@ Posts to `/auth/me/password`, which requires the *current* password —
 so this page is safe to leave reachable on a shared machine: possession of
 a live session alone doesn’t let someone change the password out from
 under the owner.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.auth.pages.render_forbidden_page(, email, switch_url)
+
+The 403 a signed-in user sees for a page their account may not open.
+
+Says who they are signed in as (a redirect to sign-in would read as “you
+are not signed in”, which is false) and offers to switch account.
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
