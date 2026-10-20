@@ -983,6 +983,50 @@ def test_a_mark_written_into_the_record_before_the_split_still_holds(tmp_path):
     assert "disabled_at" not in users[DORA]  # the mark lives apart now
 
 
+def test_account_marks_fail_closed_and_leave_no_orphans(tmp_path):
+    """Review of #71: damaged marks, racing deletes, re-registration, migration."""
+    from enlace_auth.auth.accounts import (
+        AccountRecords,
+        make_account_records,
+        set_disabled,
+    )
+
+    factory = make_file_store_factory(str(tmp_path))
+    users = factory("users")
+    users[DORA] = {"password_hash": "h", "disabled_at": 2.0}  # written before #71
+    records = make_account_records(factory)
+    assert "disabled_at" not in users[DORA]  # moved out at startup
+    assert records[DORA]["disabled_at"] == 2.0
+
+    # A mark that exists but cannot be read still disables.
+    (tmp_path / "disabled_accounts" / DORA).write_text("{not json")
+    assert is_disabled(records[DORA])
+
+    # A delete whose mark is already gone does not raise.
+    del records.disabled[DORA]
+    del records[DORA]
+    assert DORA not in records
+
+    # A mark left behind by a disable racing a delete does not disable
+    # whoever registers the address next.
+    records.disabled[DORA] = 5.0
+    records[DORA] = {"password_hash": "fresh"}
+    assert not is_disabled(records[DORA])
+
+    # Disabling an account deleted meanwhile leaves no mark.
+    racing_users = {DORA: {}}
+
+    class DeleteOnMark(dict):
+        def __setitem__(self, key, value):
+            super().__setitem__(key, value)
+            racing_users.pop(key, None)  # the other admin's delete lands here
+
+    racing = AccountRecords(racing_users, DeleteOnMark())
+    with pytest.raises(KeyError):
+        set_disabled(racing, DORA, True)
+    assert DORA not in racing.disabled
+
+
 def test_admins_can_be_declared_in_platform_config(tmp_path, monkeypatch):
     """[auth] admin_emails grants admin with no secrets-file edit."""
     apps_dir = tmp_path / "apps"
