@@ -973,6 +973,9 @@ def make_oauth_server_router(
         # code minted under another configuration becomes a token under this one.
         if not _resource_allowed(data["resource"], data["email"]):
             return JSONResponse({"error": "invalid_grant"}, status_code=400)
+        # Deleted or disabled since the code was minted: no token, no family.
+        if is_active is not None and not is_active(data["email"]):
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
 
         body, _ = _token_payload(
             iss=_issuer(request),

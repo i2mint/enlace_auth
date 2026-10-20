@@ -16,8 +16,9 @@ from enlace.discover import discover_apps
 from starlette.testclient import TestClient
 
 from enlace_auth import plugin as auth_plugin
+from enlace_auth.auth.accounts import is_disabled
 from enlace_auth.auth.passwords import hash_password
-from enlace_auth.plugin import read_email_list
+from enlace_auth.plugin import _make_is_active, read_email_list
 from enlace_auth.stores import make_file_store_factory
 
 _SIGNING_KEY = "admin-test-key-thirtytwobyteslong!!"
@@ -775,3 +776,148 @@ def test_a_resource_on_another_origin_is_listed_as_stray():
     assert [r["resource"] for r in body["oauth_policy"]["unmatched_resources"]] == [
         "https://elsewhere.example/api/x_mcp/mcp"
     ]
+
+
+# --- account operations: disable / enable, last sign-in, sign out everywhere ---
+
+DORA, DORA_PW = "dora@example.com", "dora-password"
+
+
+def _alive(client: TestClient) -> bool:
+    """Whether *client*'s session still opens an any-signed-in-user app."""
+    return client.get("/api/lobby/").status_code != 401
+
+
+def _setup(admin_client):
+    """Admin signed in on *admin_client*; Dora signed in on a second browser."""
+    csrf = _csrf(admin_client)
+    _register(admin_client, "boss@example.com", "bosspw1!", csrf)
+    r = admin_client.post(
+        "/_admin/api/users", json={"email": DORA, "password": DORA_PW}, headers=csrf
+    )
+    assert r.status_code == 200, r.text
+    dora = TestClient(admin_client.app)
+    assert _login(dora, DORA, DORA_PW, _csrf(dora)).status_code == 200
+    assert _alive(dora)
+    return csrf, dora
+
+
+def _users(admin_client) -> dict:
+    r = admin_client.get("/_admin/api/users")
+    assert r.status_code == 200, r.text
+    return {u["email"]: u for u in r.json()["users"]}
+
+
+def test_last_sign_in_is_listed(admin_client):
+    csrf, _ = _setup(admin_client)
+    admin_client.post(
+        "/_admin/api/users",
+        json={"email": "eve@example.com", "password": "eve-password"},
+        headers=csrf,
+    )
+    users = _users(admin_client)
+    assert users[DORA]["last_login_at"] is not None
+    assert users["eve@example.com"]["last_login_at"] is None
+    assert users[DORA]["disabled_at"] is None
+
+
+def test_sign_out_everywhere_ends_sessions_but_keeps_the_account(admin_client):
+    csrf, dora = _setup(admin_client)
+    r = admin_client.post(f"/_admin/api/users/{DORA}/sign-out", headers=csrf)
+    assert r.status_code == 200, r.text
+    assert not _alive(dora)
+    assert _alive(admin_client)  # the admin's own session is untouched
+    assert _login(dora, DORA, DORA_PW, _csrf(dora)).status_code == 200
+
+
+def test_disable_blocks_every_sign_in_path_until_enabled(admin_client):
+    csrf, dora = _setup(admin_client)
+    r = admin_client.post(f"/_admin/api/users/{DORA}/disable", headers=csrf)
+    assert r.status_code == 200, r.text
+    assert not _alive(dora)
+    assert _users(admin_client)[DORA]["disabled_at"] is not None
+
+    dcsrf = _csrf(dora)
+    assert _login(dora, DORA, DORA_PW, dcsrf).status_code == 403
+    # The wrong password still gets the generic answer: "disabled" is only
+    # said to someone who already holds the credentials.
+    assert _login(dora, DORA, "wrong-password", dcsrf).status_code == 401
+
+    link = admin_client.post(f"/_admin/api/users/{DORA}/reset-link", headers=csrf)
+    token = link.json()["url"].split("token=", 1)[1]
+    redeem = dora.post(
+        "/auth/password-reset/confirm",
+        json={"token": token, "new_password": "a-new-password"},
+        headers=dcsrf,
+    )
+    assert redeem.status_code == 403
+    assert not _alive(dora)
+
+    r = admin_client.post(f"/_admin/api/users/{DORA}/enable", headers=csrf)
+    assert r.status_code == 200, r.text
+    assert _login(dora, DORA, DORA_PW, dcsrf).status_code == 200  # old password
+    assert _alive(dora)
+
+
+def test_an_admin_cannot_disable_themselves(admin_client):
+    csrf, _ = _setup(admin_client)
+    r = admin_client.post("/_admin/api/users/boss@example.com/disable", headers=csrf)
+    assert r.status_code == 409
+    assert _alive(admin_client)
+
+
+def test_account_ops_404_on_unknown_and_refuse_non_admins(admin_client):
+    csrf, dora = _setup(admin_client)
+    for op in ("sign-out", "disable", "enable"):
+        r = admin_client.post(f"/_admin/api/users/ghost@example.com/{op}", headers=csrf)
+        assert r.status_code == 404, op
+        r = dora.post(f"/_admin/api/users/{DORA}/{op}", headers=_csrf(dora))
+        assert r.status_code in (401, 403), op
+    assert _alive(dora)
+
+
+def test_a_disabled_account_is_not_active_for_connector_refresh():
+    store = {"a@x.io": {"created_at": 0}, "b@x.io": {"disabled_at": 1.0}}
+    is_active = _make_is_active(store)
+    assert is_active("a@x.io")
+    assert not is_active("b@x.io")
+    assert not is_active("nobody@x.io")
+    assert is_disabled(store["b@x.io"])
+
+
+def test_new_account_routes_need_the_csrf_token(admin_client):
+    csrf, dora = _setup(admin_client)
+    for op in ("sign-out", "disable", "enable"):
+        r = admin_client.post(f"/_admin/api/users/{DORA}/{op}")
+        assert r.status_code == 403, op
+    assert _alive(dora)
+
+
+def test_a_sign_in_racing_a_disable_does_not_keep_its_session():
+    """open_session re-checks after creating: the late session is deleted."""
+    import pytest
+    from fastapi import HTTPException
+
+    from enlace_auth.auth.accounts import open_session, set_disabled
+    from enlace_auth.auth.sessions import SessionStore
+
+    users = {DORA: {"created_at": 0}}
+    sign_ins = {}
+
+    class RacingStore(SessionStore):
+        def create(self, user_id, email=None):
+            sid = super().create(user_id, email)
+            set_disabled(users, DORA, True)  # the admin's disable lands here
+            return sid
+
+    sessions = RacingStore({}, sign_ins=sign_ins)
+    with pytest.raises(HTTPException) as exc:
+        open_session(sessions, users, DORA)
+    assert exc.value.status_code == 403
+    assert sessions.revoke_user(DORA) == 0  # nothing left behind
+
+    ok = SessionStore({}, sign_ins=sign_ins)
+    set_disabled(users, DORA, False)
+    assert ok.get(open_session(ok, users, DORA))["email"] == DORA
+    assert ok.last_sign_in(DORA) is not None
+    assert "last_login_at" not in users[DORA]

@@ -29,6 +29,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, EmailStr
 
 from enlace_auth.auth import pages
+from enlace_auth.auth.accounts import DISABLED_DETAIL, is_disabled, open_session
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.email import EmailSender, make_console_sender
 from enlace_auth.auth.passwords import (
@@ -196,7 +197,7 @@ def make_auth_router(
             "created_at": time.time(),
             "created_via": "register",
         }
-        session_id = session_store.create(user_id=email, email=email)
+        session_id = open_session(session_store, user_store, email)
         _set_session_cookie(
             response,
             session_id,
@@ -217,7 +218,11 @@ def make_auth_router(
             raise HTTPException(status_code=401, detail="Invalid credentials")
         if not verify_password(record["password_hash"], body.password):
             raise HTTPException(status_code=401, detail="Invalid credentials")
-        session_id = session_store.create(user_id=email, email=email)
+        # Only after the password checks out, so "disabled" reveals nothing
+        # to someone who does not already hold the credentials.
+        if is_disabled(record):
+            raise HTTPException(status_code=403, detail=DISABLED_DETAIL)
+        session_id = open_session(session_store, user_store, email)
         _set_session_cookie(
             response,
             session_id,
@@ -457,6 +462,10 @@ def make_auth_router(
                 status_code=400,
                 detail="This reset link is invalid, expired, or already used.",
             )
+        # A disabled account cannot sign in by any path, this one included;
+        # its password is left as it was for when it is re-enabled.
+        if is_disabled(record):
+            raise HTTPException(status_code=403, detail=DISABLED_DETAIL)
         record = dict(record)
         record["password_hash"] = hash_password(body.new_password)
         # A reset is account recovery: external sign-ins linked to the account
@@ -466,7 +475,7 @@ def make_auth_router(
         # A reset is the recovery path for a compromised account, so every
         # session opened with the old password ends here.
         credentials_changed(email)
-        session_id = session_store.create(user_id=email, email=email)
+        session_id = open_session(session_store, user_store, email)
         _set_session_cookie(
             response,
             session_id,

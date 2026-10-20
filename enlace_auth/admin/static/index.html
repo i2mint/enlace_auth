@@ -114,7 +114,7 @@
   <h2>Users</h2>
   <table id="users">
     <thead>
-      <tr><th>Email</th><th>Created</th><th>Admin</th><th class="actions">Actions</th></tr>
+      <tr><th>Email</th><th>Created</th><th>Last sign-in</th><th>Status</th><th class="actions">Actions</th></tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -214,19 +214,26 @@ async function loadUsers() {
   try {
     const { users } = await api("GET", "/users");
     if (!users.length) {
-      tbody.innerHTML = `<tr><td colspan="4" style="color:var(--muted)">No users.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" style="color:var(--muted)">No users.</td></tr>`;
       return;
     }
     for (const u of users) {
       const tr = document.createElement("tr");
+      // Account keys can come from an external provider's claims: escape them.
+      const email = escapeHtml(u.email);
       tr.innerHTML = `
-        <td><code>${u.email}</code></td>
+        <td><code>${email}</code></td>
         <td>${fmtTime(u.created_at)}</td>
-        <td>${u.is_admin ? '<span class="badge">admin</span>' : ""}</td>
+        <td>${u.last_login_at ? fmtTime(u.last_login_at) : '<span style="color:var(--muted)">never</span>'}</td>
+        <td>${u.is_admin ? '<span class="badge">admin</span> ' : ""}${u.disabled_at ? '<span class="badge">disabled</span>' : ""}</td>
         <td class="actions">
-          <button data-act="reset-link" data-email="${u.email}">Reset link</button>
-          <button class="ghost" data-act="reset" data-email="${u.email}">Set password</button>
-          <button class="danger" data-act="delete" data-email="${u.email}">Delete</button>
+          <button data-act="reset-link" data-email="${email}">Reset link</button>
+          <button class="ghost" data-act="sign-out" data-email="${email}">Sign out everywhere</button>
+          ${u.disabled_at
+            ? `<button class="ghost" data-act="enable" data-email="${email}">Enable</button>`
+            : `<button class="ghost" data-act="disable" data-email="${email}">Disable</button>`}
+          <button class="ghost" data-act="reset" data-email="${email}">Set password</button>
+          <button class="danger" data-act="delete" data-email="${email}">Delete</button>
         </td>`;
       tbody.appendChild(tr);
     }
@@ -410,6 +417,26 @@ document.querySelector("#users").addEventListener("click", async (ev) => {
       flash(`Password set for ${email}.`);
     } catch (e) {
       flash("Reset failed: " + e.message, false);
+    }
+  } else if (btn.dataset.act === "sign-out") {
+    if (!confirm(`End every session and connector sign-in of ${email}? They can sign in again.`)) return;
+    try {
+      await api("POST", `/users/${encodeURIComponent(email)}/sign-out`);
+      flash(`Signed ${email} out everywhere.`);
+    } catch (e) {
+      flash("Sign out failed: " + e.message, false);
+    }
+  } else if (btn.dataset.act === "disable" || btn.dataset.act === "enable") {
+    const act = btn.dataset.act;
+    if (act === "disable" && !confirm(
+      `Disable ${email}? They are signed out everywhere and cannot sign in ` +
+      `until re-enabled. Their grants, shares and data are kept.`)) return;
+    try {
+      await api("POST", `/users/${encodeURIComponent(email)}/${act}`);
+      flash(`${act === "disable" ? "Disabled" : "Enabled"} ${email}.`);
+      loadUsers();
+    } catch (e) {
+      flash(`${act} failed: ` + e.message, false);
     }
   } else if (btn.dataset.act === "delete") {
     if (!confirm(`Delete user ${email}? This cannot be undone.`)) return;
