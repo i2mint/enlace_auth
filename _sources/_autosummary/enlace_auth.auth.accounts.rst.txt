@@ -1,0 +1,20 @@
+enlace\_auth.auth.accounts
+==========================
+
+.. automodule:: enlace_auth.auth.accounts
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      DISABLED_DETAIL
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      is_disabled
+      open_session
+      set_disabled
+   

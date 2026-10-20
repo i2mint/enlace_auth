@@ -128,11 +128,18 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Pure-ASGI auth middleware. See module docstring for behavior.
 
-### *class* enlace_auth.auth.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0)
+### *class* enlace_auth.auth.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0, sign_ins=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Thin adapter around a MutableMapping that speaks session semantics.
+
+#### last_sign_in(user)
+
+When *user* last opened a session (epoch seconds), if recorded.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`float`](https://docs.python.org/3/builtins/functions.html#float)]
 
 #### revoke_user(user, , keep=None)
 
@@ -334,8 +341,9 @@ Return True iff `password` matches the stored `hashed` value.
 
 ### Modules
 
-| [`cookies`](enlace_auth.auth.cookies.html.md#module-enlace_auth.auth.cookies)           | Signed cookie helpers built on itsdangerous.                                        |
+| [`accounts`](enlace_auth.auth.accounts.html.md#module-enlace_auth.auth.accounts)         | Disabled accounts, and the one way a sign-in opens a session.                       |
 |----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| [`cookies`](enlace_auth.auth.cookies.html.md#module-enlace_auth.auth.cookies)           | Signed cookie helpers built on itsdangerous.                                        |
 | [`email`](enlace_auth.auth.email.html.md#module-enlace_auth.auth.email)               | Outbound email for enlace_auth — used by the password-recovery flow.                |
 | [`grants`](enlace_auth.auth.grants.html.md#module-enlace_auth.auth.grants)             | Runtime per-app access grants, with optional UTC expiry.                            |
 | [`middleware`](enlace_auth.auth.middleware.html.md#module-enlace_auth.auth.middleware)     | Platform auth middleware (pure ASGI).                                               |

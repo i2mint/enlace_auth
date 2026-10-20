@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=ce72d79b"></script>
+    <script src="../../../_static/documentation_options.js?v=f98a5df1"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.45" />
+  <meta name="docsearch:version" content="0.1.46" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -744,7 +744,13 @@ window.runMermaid = runMermaid;</script>
         <span class="n">max_age</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sweep_batch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
         <span class="n">sweep_interval</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3600.0</span><span class="p">,</span>
+        <span class="n">sign_ins</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">MutableMapping</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
+        <span class="c1"># *sign_ins* (email -&gt; epoch seconds) records when each account last</span>
+        <span class="c1"># opened a session. Kept apart from the user records on purpose: a</span>
+        <span class="c1"># read-modify-write of the user record at every login could overwrite</span>
+        <span class="c1"># a concurrent disable or password change.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sign_ins</span> <span class="o">=</span> <span class="n">sign_ins</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_store</span> <span class="o">=</span> <span class="n">store</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_max_age</span> <span class="o">=</span> <span class="n">max_age</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_sweep_batch</span> <span class="o">=</span> <span class="n">sweep_batch</span>
@@ -796,7 +802,25 @@ window.runMermaid = runMermaid;</script>
             <span class="s2">"email"</span><span class="p">:</span> <span class="n">email</span><span class="p">,</span>
             <span class="s2">"created_at"</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
         <span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sign_ins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">email</span> <span class="ow">or</span> <span class="n">user_id</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_sign_ins</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">email</span> <span class="ow">or</span> <span class="n">user_id</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - bookkeeping must never block a login</span>
+                <span class="k">pass</span>
         <span class="k">return</span> <span class="n">session_id</span>
+
+<div class="viewcode-block" id="SessionStore.last_sign_in">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.sessions.html#enlace_auth.auth.SessionStore.last_sign_in">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">last_sign_in</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""When *user* last opened a session (epoch seconds), if recorded."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sign_ins</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sign_ins</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - a listing must not fail on bookkeeping</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="k">else</span> <span class="kc">None</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
         <span class="k">try</span><span class="p">:</span>

@@ -15,11 +15,18 @@ store (and [`SessionStore.revoke_user()`](#enlace_auth.auth.sessions.SessionStor
 | [`SessionStore`](#enlace_auth.auth.sessions.SessionStore)(store, \*[, max_age, ...])   | Thin adapter around a MutableMapping that speaks session semantics.   |
 |--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 
-### *class* enlace_auth.auth.sessions.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0)
+### *class* enlace_auth.auth.sessions.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0, sign_ins=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Thin adapter around a MutableMapping that speaks session semantics.
+
+#### last_sign_in(user)
+
+When *user* last opened a session (epoch seconds), if recorded.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`float`](https://docs.python.org/3/builtins/functions.html#float)]
 
 #### revoke_user(user, , keep=None)
 

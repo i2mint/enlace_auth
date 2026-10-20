@@ -38,6 +38,7 @@ enlace\_auth.auth
    :toctree:
    :recursive:
 
+   accounts
    cookies
    email
    grants

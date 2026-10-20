@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=ce72d79b"></script>
+    <script src="../_static/documentation_options.js?v=f98a5df1"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -53,12 +53,12 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="enlace_auth.auth.cookies" href="enlace_auth.auth.cookies.html" />
+    <link rel="next" title="enlace_auth.auth.accounts" href="enlace_auth.auth.accounts.html" />
     <link rel="prev" title="enlace_auth.appmeta" href="enlace_auth.appmeta.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.45" />
+  <meta name="docsearch:version" content="0.1.46" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -326,6 +326,7 @@
 </details></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.appmeta.html">enlace_auth.appmeta</a></li>
 <li class="toctree-l2 current active has-children"><a aria-current="page" class="current reference internal" href="#">enlace_auth.auth</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.accounts.html">enlace_auth.auth.accounts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.cookies.html">enlace_auth.auth.cookies</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.email.html">enlace_auth.auth.email</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.grants.html">enlace_auth.auth.grants</a></li>
@@ -604,11 +605,22 @@ Unicode), which is why the caller is told which.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="enlace_auth.auth.SessionStore">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.</span></span><span class="sig-name descname"><span class="pre">SessionStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3600.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/sessions.html#SessionStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.SessionStore" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.</span></span><span class="sig-name descname"><span class="pre">SessionStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3600.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sign_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/sessions.html#SessionStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.SessionStore" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Thin adapter around a MutableMapping that speaks session semantics.</p>
 <dl class="field-list simple">
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.auth.SessionStore.last_sign_in">
+<span class="sig-name descname"><span class="pre">last_sign_in</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/sessions.html#SessionStore.last_sign_in"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.SessionStore.last_sign_in" title="Link to this definition">#</a></dt>
+<dd><p>When <em>user</em> last opened a session (epoch seconds), if recorded.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="enlace_auth.auth.SessionStore.revoke_user">
 <span class="sig-name descname"><span class="pre">revoke_user</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/sessions.html#SessionStore.revoke_user"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.SessionStore.revoke_user" title="Link to this definition">#</a></dt>
@@ -874,46 +886,49 @@ naive timestamp is assumed to be UTC.</p></li>
 <p class="rubric">Modules</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.cookies.html#module-enlace_auth.auth.cookies" title="enlace_auth.auth.cookies"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cookies</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.accounts.html#module-enlace_auth.auth.accounts" title="enlace_auth.auth.accounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">accounts</span></code></a></p></td>
+<td><p>Disabled accounts, and the one way a sign-in opens a session.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.cookies.html#module-enlace_auth.auth.cookies" title="enlace_auth.auth.cookies"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cookies</span></code></a></p></td>
 <td><p>Signed cookie helpers built on itsdangerous.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.email.html#module-enlace_auth.auth.email" title="enlace_auth.auth.email"><code class="xref py py-obj docutils literal notranslate"><span class="pre">email</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.email.html#module-enlace_auth.auth.email" title="enlace_auth.auth.email"><code class="xref py py-obj docutils literal notranslate"><span class="pre">email</span></code></a></p></td>
 <td><p>Outbound email for enlace_auth — used by the password-recovery flow.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.grants.html#module-enlace_auth.auth.grants" title="enlace_auth.auth.grants"><code class="xref py py-obj docutils literal notranslate"><span class="pre">grants</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.grants.html#module-enlace_auth.auth.grants" title="enlace_auth.auth.grants"><code class="xref py py-obj docutils literal notranslate"><span class="pre">grants</span></code></a></p></td>
 <td><p>Runtime per-app access grants, with optional UTC expiry.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.middleware.html#module-enlace_auth.auth.middleware" title="enlace_auth.auth.middleware"><code class="xref py py-obj docutils literal notranslate"><span class="pre">middleware</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.middleware.html#module-enlace_auth.auth.middleware" title="enlace_auth.auth.middleware"><code class="xref py py-obj docutils literal notranslate"><span class="pre">middleware</span></code></a></p></td>
 <td><p>Platform auth middleware (pure ASGI).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.oauth.html#module-enlace_auth.auth.oauth" title="enlace_auth.auth.oauth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">oauth</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.oauth.html#module-enlace_auth.auth.oauth" title="enlace_auth.auth.oauth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">oauth</span></code></a></p></td>
 <td><p>OAuth2/OIDC login via Authlib.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.oauth_server.html#module-enlace_auth.auth.oauth_server" title="enlace_auth.auth.oauth_server"><code class="xref py py-obj docutils literal notranslate"><span class="pre">oauth_server</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.oauth_server.html#module-enlace_auth.auth.oauth_server" title="enlace_auth.auth.oauth_server"><code class="xref py py-obj docutils literal notranslate"><span class="pre">oauth_server</span></code></a></p></td>
 <td><p>OAuth 2.1 authorization server — issue tokens for MCP custom connectors.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.pages.html#module-enlace_auth.auth.pages" title="enlace_auth.auth.pages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pages</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.pages.html#module-enlace_auth.auth.pages" title="enlace_auth.auth.pages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pages</span></code></a></p></td>
 <td><p>HTML pages for the enlace_auth browser-facing flows.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.passwords.html#module-enlace_auth.auth.passwords" title="enlace_auth.auth.passwords"><code class="xref py py-obj docutils literal notranslate"><span class="pre">passwords</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.passwords.html#module-enlace_auth.auth.passwords" title="enlace_auth.auth.passwords"><code class="xref py py-obj docutils literal notranslate"><span class="pre">passwords</span></code></a></p></td>
 <td><p>Password hashing via argon2id.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.reset_tokens.html#module-enlace_auth.auth.reset_tokens" title="enlace_auth.auth.reset_tokens"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset_tokens</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.reset_tokens.html#module-enlace_auth.auth.reset_tokens" title="enlace_auth.auth.reset_tokens"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset_tokens</span></code></a></p></td>
 <td><p>Password-reset tokens — minting, verification, and the link they live in.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.revocation.html#module-enlace_auth.auth.revocation" title="enlace_auth.auth.revocation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">revocation</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.revocation.html#module-enlace_auth.auth.revocation" title="enlace_auth.auth.revocation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">revocation</span></code></a></p></td>
 <td><p>Credential revocation: end everything an account holds when its credentials change.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.routes.html#module-enlace_auth.auth.routes" title="enlace_auth.auth.routes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">routes</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.routes.html#module-enlace_auth.auth.routes" title="enlace_auth.auth.routes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">routes</span></code></a></p></td>
 <td><p>Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.sessions.html#module-enlace_auth.auth.sessions" title="enlace_auth.auth.sessions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sessions</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.sessions.html#module-enlace_auth.auth.sessions" title="enlace_auth.auth.sessions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sessions</span></code></a></p></td>
 <td><p>Session storage backed by a MutableMapping.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.share_routes.html#module-enlace_auth.auth.share_routes" title="enlace_auth.auth.share_routes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">share_routes</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.share_routes.html#module-enlace_auth.auth.share_routes" title="enlace_auth.auth.share_routes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">share_routes</span></code></a></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">/auth/shares/*</span></code> — the signed-in user manages the shares of their own data.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.auth.shares.html#module-enlace_auth.auth.shares" title="enlace_auth.auth.shares"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shares</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.auth.shares.html#module-enlace_auth.auth.shares" title="enlace_auth.auth.shares"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shares</span></code></a></p></td>
 <td><p>Owner-granted data shares: let named users at one user's per-user data in one app.</p></td>
 </tr>
 </tbody>
@@ -941,11 +956,11 @@ naive timestamp is assumed to be UTC.</p></li>
       </div>
     </a>
     <a class="right-next"
-       href="enlace_auth.auth.cookies.html"
+       href="enlace_auth.auth.accounts.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">enlace_auth.auth.cookies</p>
+        <p class="prev-next-title">enlace_auth.auth.accounts</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -979,6 +994,7 @@ naive timestamp is assumed to be UTC.</p></li>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.PlatformAuthMiddleware"><code class="docutils literal notranslate"><span class="pre">PlatformAuthMiddleware</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.SessionStore"><code class="docutils literal notranslate"><span class="pre">SessionStore</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.SessionStore.last_sign_in"><code class="docutils literal notranslate"><span class="pre">SessionStore.last_sign_in()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.SessionStore.revoke_user"><code class="docutils literal notranslate"><span class="pre">SessionStore.revoke_user()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.SessionStore.sweep_expired"><code class="docutils literal notranslate"><span class="pre">SessionStore.sweep_expired()</span></code></a></li>
 </ul>

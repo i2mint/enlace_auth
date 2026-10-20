@@ -1,4 +1,4 @@
-> built 2026-10-20 14:35 UTC from 80c2b01 (main) · enlace_auth 0.1.45. Details: build_info.json
+> built 2026-10-20 14:53 UTC from 7ce26d1 (main) · enlace_auth 0.1.46. Details: build_info.json
 
 # index.html.md
 
@@ -600,6 +600,84 @@ path convertor that already blocks traversal.
   `APIRouter`
 
 
+# _autosummary/enlace_auth.auth.accounts.html.md
+
+# enlace_auth.auth.accounts
+
+Disabled accounts, and the one way a sign-in opens a session.
+
+A user record is a plain dict in the user store. `disabled_at` (epoch
+seconds) marks an account that exists, keeps its grants, shares and history,
+but cannot sign in by any path; its connector grants are refused too (see
+`enlace_auth.plugin._make_is_active`). Disabling also ends its sessions;
+re-enabling only removes the key.
+
+Every sign-in path opens its session through [`open_session()`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.open_session), which
+re-checks the record after creating the session, so a sign-in racing an admin’s
+disable cannot keep a session the revocation already missed.
+
+The last sign-in time is NOT kept on the user record (a read-modify-write there
+at every login could overwrite a concurrent disable); `SessionStore` records
+it in its own mapping (`sign_ins`).
+
+### Module Attributes
+
+| [`DISABLED_DETAIL`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.DISABLED_DETAIL)   | What a disabled account is told when it tries to sign in.   |
+|--------------------------------------------------------------------|-------------------------------------------------------------|
+
+### Functions
+
+| [`is_disabled`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.is_disabled)(record)                            | True when *record* is a user record marked disabled.                   |
+|-------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| [`open_session`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.open_session)(session_store, user_store, email) | Create a session for *email* and return its id, unless it is disabled. |
+| [`set_disabled`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.set_disabled)(user_store, email, disabled, \*)  | Mark *email*'s record disabled (or not); return the new record.        |
+
+### enlace_auth.auth.accounts.DISABLED_DETAIL *= 'This account is disabled. Contact the platform admin.'*
+
+What a disabled account is told when it tries to sign in.
+
+### enlace_auth.auth.accounts.is_disabled(record)
+
+True when *record* is a user record marked disabled.
+
+```pycon
+>>> is_disabled({"disabled_at": 1.0}), is_disabled({}), is_disabled(None)
+(True, False, False)
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### enlace_auth.auth.accounts.open_session(session_store, user_store, email)
+
+Create a session for *email* and return its id, unless it is disabled.
+
+The disabled check runs AFTER the session exists: if an admin disabled the
+account (and revoked its sessions) while this sign-in was in flight, the
+new session is deleted here and the sign-in refused. Raises
+`fastapi.HTTPException(403)` in that case.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.auth.accounts.set_disabled(user_store, email, disabled, , now=None)
+
+Mark *email*’s record disabled (or not); return the new record.
+
+Raises `KeyError` when there is no such account.
+
+```pycon
+>>> s = {"a@x.io": {"created_at": 0}}
+>>> is_disabled(set_disabled(s, "a@x.io", True, now=5))
+True
+>>> is_disabled(set_disabled(s, "a@x.io", False))
+False
+```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+
 # _autosummary/enlace_auth.auth.cookies.html.md
 
 # enlace_auth.auth.cookies
@@ -953,11 +1031,18 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Pure-ASGI auth middleware. See module docstring for behavior.
 
-### *class* enlace_auth.auth.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0)
+### *class* enlace_auth.auth.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0, sign_ins=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Thin adapter around a MutableMapping that speaks session semantics.
+
+#### last_sign_in(user)
+
+When *user* last opened a session (epoch seconds), if recorded.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`float`](https://docs.python.org/3/builtins/functions.html#float)]
 
 #### revoke_user(user, , keep=None)
 
@@ -1159,8 +1244,9 @@ Return True iff `password` matches the stored `hashed` value.
 
 ### Modules
 
-| [`cookies`](_autosummary/enlace_auth.auth.cookies.html.md#module-enlace_auth.auth.cookies)           | Signed cookie helpers built on itsdangerous.                                        |
+| [`accounts`](_autosummary/enlace_auth.auth.accounts.html.md#module-enlace_auth.auth.accounts)         | Disabled accounts, and the one way a sign-in opens a session.                       |
 |----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| [`cookies`](_autosummary/enlace_auth.auth.cookies.html.md#module-enlace_auth.auth.cookies)           | Signed cookie helpers built on itsdangerous.                                        |
 | [`email`](_autosummary/enlace_auth.auth.email.html.md#module-enlace_auth.auth.email)               | Outbound email for enlace_auth — used by the password-recovery flow.                |
 | [`grants`](_autosummary/enlace_auth.auth.grants.html.md#module-enlace_auth.auth.grants)             | Runtime per-app access grants, with optional UTC expiry.                            |
 | [`middleware`](_autosummary/enlace_auth.auth.middleware.html.md#module-enlace_auth.auth.middleware)     | Platform auth middleware (pure ASGI).                                               |
@@ -2010,11 +2096,18 @@ store (and [`SessionStore.revoke_user()`](_autosummary/enlace_auth.auth.sessions
 | [`SessionStore`](_autosummary/enlace_auth.auth.sessions.html.md#enlace_auth.auth.sessions.SessionStore)(store, \*[, max_age, ...])   | Thin adapter around a MutableMapping that speaks session semantics.   |
 |--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 
-### *class* enlace_auth.auth.sessions.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0)
+### *class* enlace_auth.auth.sessions.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0, sign_ins=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Thin adapter around a MutableMapping that speaks session semantics.
+
+#### last_sign_in(user)
+
+When *user* last opened a session (epoch seconds), if recorded.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`float`](https://docs.python.org/3/builtins/functions.html#float)]
 
 #### revoke_user(user, , keep=None)
 
@@ -3163,18 +3256,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-10-20 14:35 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/80c2b014ad3147421155bd9088dea05469eede19"><code>80c2b01</code></a> on branch <code>main</code>, for **enlace_auth 0.1.45** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-20 14:53 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/7ce26d180cbd8424a4e3a89dd022ceae7abb2ecb"><code>7ce26d1</code></a> on branch <code>main</code>, for **enlace_auth 0.1.46** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.45) is behind the latest release on PyPI (0.1.46): `pip install enlace_auth` gives newer code than these docs describe.
+- The documented version (0.1.46) is behind the latest release on PyPI (0.1.47): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/80c2b014ad3147421155bd9088dea05469eede19"><code>80c2b014ad3147421155bd9088dea05469eede19</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/7ce26d180cbd8424a4e3a89dd022ceae7abb2ecb"><code>7ce26d180cbd8424a4e3a89dd022ceae7abb2ecb</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -3185,9 +3278,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/39440198314">39440198314</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/39442907226">39442907226</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>80c2b014ad3147421155bd9088dea05469eede19</code> (in the history of the built commit) |
+| Event commit | <code>7ce26d180cbd8424a4e3a89dd022ceae7abb2ecb</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -3212,13 +3305,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.46/">0.1.46</a>, newer than the documented version (0.1.45).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.47/">0.1.47</a>, newer than the documented version (0.1.46).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 80c2b014ad3147421155bd9088dea05469eede19
+git checkout 7ce26d180cbd8424a4e3a89dd022ceae7abb2ecb
 pip install "epythet==0.2.21"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
