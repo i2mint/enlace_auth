@@ -15,7 +15,14 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    field_validator,
+    model_validator,
+)
 
 from enlace_auth.resource_policy import (
     check_require_consent,
@@ -214,11 +221,33 @@ class AuthConfig(_StrictModel):
     stores: StoreBackendConfig = Field(default_factory=StoreBackendConfig)
     oauth: dict[str, OAuthProviderConfig] = Field(default_factory=dict)
     oauth_server: OAuthServerConfig = Field(default_factory=OAuthServerConfig)
+    admin_emails: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Admin emails declared in platform.toml, so granting admin is a "
+            "reviewable config change. Unioned with the admin_emails_env list."
+        ),
+    )
+
+    @field_validator("admin_emails")
+    @classmethod
+    def _check_admin_emails(cls, emails: list[str]) -> list[str]:
+        """One address per entry: a typo would otherwise match nobody, silently."""
+        for entry in emails:
+            e = entry.strip()
+            if e.count("@") != 1 or "," in e or any(c.isspace() for c in e):
+                raise ValueError(
+                    f"[auth] admin_emails: {entry!r} is not a single email address "
+                    "(write one address per list entry)"
+                )
+        return emails
+
     admin_emails_env: str = Field(
         default="ENLACE_ADMIN_EMAILS",
         description=(
             "Env var holding a comma-separated list of admin emails. Admins "
-            "see the dashboard at /_admin and can manage users."
+            "see the dashboard at /_admin and can manage users. Unioned with "
+            "admin_emails."
         ),
     )
     registration_open: bool = Field(

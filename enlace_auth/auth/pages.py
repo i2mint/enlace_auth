@@ -233,6 +233,24 @@ def safe_next(raw: Optional[str], *, default: str = "/") -> str:
     return raw
 
 
+def render_forbidden_page(*, email: Optional[str], switch_url: str) -> str:
+    """The 403 a signed-in user sees for a page their account may not open.
+
+    Says who they are signed in as (a redirect to sign-in would read as "you
+    are not signed in", which is false) and offers to switch account.
+    """
+    body = fill_template(
+        "<h1>Not available to this account</h1>"
+        "<p>You are signed in as <strong>{email}</strong>, and this page is not "
+        "open to that account.</p>"
+        '<p><a href="{switch_url}">Sign in with another account</a> &middot; '
+        '<a href="/">Home</a></p>',
+        email=email or "an account",
+        switch_url=switch_url,
+    )
+    return _page("Not available", body)
+
+
 # --------------------------------------------------------------------------
 # Sign-in
 # --------------------------------------------------------------------------

@@ -164,7 +164,9 @@ def test_admin_blocked_for_non_admin_user(admin_client):
     csrf = _csrf(admin_client)
     _register(admin_client, "alice@example.com", "secretpw1", csrf)
     r = admin_client.get("/_admin/api/users")
-    assert r.status_code == 401  # access rule denies non-admin emails
+    # Signed in, not an admin: 403 ("not for you"), not 401 ("sign in").
+    assert r.status_code == 403
+    assert r.json()["auth"] == "forbidden"
 
 
 def test_admin_can_list_users(admin_client):
@@ -337,7 +339,9 @@ def test_admin_dashboard_blocked_for_non_admin(admin_client):
     r = admin_client.get(
         "/_admin/", headers={"Accept": "text/html"}, follow_redirects=False
     )
-    assert r.status_code == 303
+    assert r.status_code == 403
+    assert "alice@example.com" in r.text  # says who they are signed in as
+    assert "/auth/login" in r.text  # and offers to switch account
 
 
 def test_admin_dashboard_served_to_admin(admin_client):
@@ -377,7 +381,7 @@ def test_grant_requires_admin(admin_client):
     csrf = _csrf(admin_client)
     _register(admin_client, "alice@example.com", "secretpw1", csrf)  # non-admin
     r = _grant(admin_client, "vault", "carl@example.com", csrf)
-    assert r.status_code == 401  # access rule blocks non-admin from /_admin
+    assert r.status_code == 403  # signed in, not an admin
 
 
 def test_grant_unknown_app_404(admin_client):
@@ -576,7 +580,7 @@ def test_reset_link_is_admin_only(admin_client):
     r = admin_client.post(
         "/_admin/api/users/boss@example.com/reset-link", headers=csrf2
     )
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 def test_change_own_password_enforces_minimum_length(admin_client):
@@ -921,3 +925,67 @@ def test_a_sign_in_racing_a_disable_does_not_keep_its_session():
     assert ok.get(open_session(ok, users, DORA))["email"] == DORA
     assert ok.last_sign_in(DORA) is not None
     assert "last_login_at" not in users[DORA]
+
+
+def test_admins_can_be_declared_in_platform_config(tmp_path, monkeypatch):
+    """[auth] admin_emails grants admin with no secrets-file edit."""
+    apps_dir = tmp_path / "apps"
+    apps_dir.mkdir()
+    _write_dummy_app(apps_dir)
+    monkeypatch.setenv("ENLACE_SIGNING_KEY", _SIGNING_KEY)
+    monkeypatch.delenv("ENLACE_ADMIN_EMAILS", raising=False)
+    config = PlatformConfig(
+        apps_dir=apps_dir,
+        auth={
+            "enabled": True,
+            "secure_cookies": False,
+            "admin_emails": ["Chief@Example.com"],
+            "stores": {"backend": "file", "path": str(tmp_path / "platform")},
+        },
+    )
+    client = TestClient(build_backend(discover_apps(config), plugins=[auth_plugin]))
+    _seed_account(tmp_path / "platform", "chief@example.com", "chief-password")
+    csrf = _csrf(client)
+    assert (
+        _login(client, "chief@example.com", "chief-password", csrf).status_code == 200
+    )
+    r = client.get("/_admin/api/users")
+    assert r.status_code == 200, r.text
+    assert {u["email"]: u["is_admin"] for u in r.json()["users"]} == {
+        "chief@example.com": True
+    }
+
+
+def test_declared_and_env_admins_are_unioned(monkeypatch):
+    from enlace_auth.config import AuthConfig
+    from enlace_auth.plugin import platform_admin_emails
+
+    monkeypatch.setenv("ENLACE_ADMIN_EMAILS", "b@x.io, A@x.io")
+    cfg = AuthConfig(admin_emails=["a@x.io", "c@x.io"])
+    assert platform_admin_emails(cfg) == ("a@x.io", "c@x.io", "b@x.io")
+
+
+def test_a_non_admin_still_gets_a_sign_in_answer_from_an_app(admin_client):
+    """The 403 is the admin page's; apps keep the sign-in answer (unchanged)."""
+    csrf = _csrf(admin_client)
+    _register(admin_client, "alice@example.com", "secretpw1", csrf)
+    assert admin_client.get("/api/vault/thing").status_code == 401
+
+
+@pytest.mark.parametrize("bad", ["admin", "a@x.io,b@x.io", "a b@x.io", "a@@x.io"])
+def test_declared_admin_entries_must_be_single_addresses(bad):
+    from pydantic import ValidationError
+
+    from enlace_auth.config import AuthConfig
+
+    with pytest.raises(ValidationError, match="single email"):
+        AuthConfig(admin_emails=[bad])
+
+
+def test_the_admin_403_page_cannot_be_framed(admin_client):
+    csrf = _csrf(admin_client)
+    _register(admin_client, "alice@example.com", "secretpw1", csrf)
+    r = admin_client.get("/_admin/", headers={"Accept": "text/html"})
+    assert r.status_code == 403
+    assert r.headers["x-frame-options"] == "DENY"
+    assert "frame-ancestors 'none'" in r.headers["content-security-policy"]

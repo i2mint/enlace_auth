@@ -158,16 +158,23 @@ def check_admin_accounts(config: PlatformConfig) -> Iterable[Check]:
     pass every ``@admins`` gate (i2mint/enlace_auth#35).
     """
     from enlace_auth.emails import lowercase_changes_letter, normalize_email
-    from enlace_auth.plugin import read_email_list
+    from enlace_auth.plugin import platform_admin_emails
     from enlace_auth.stores import make_file_store_factory
 
     name = "admin_accounts"
     auth = coerce_auth_config(getattr(config, "auth", None))
     if not auth.enabled:
         return [Check(name, SKIP, "auth.enabled=false")]
-    admins = read_email_list(auth.admin_emails_env, keep_unsafe=True)
+    admins = platform_admin_emails(auth, keep_unsafe=True)
     if not admins:
-        return [Check(name, SKIP, f"{auth.admin_emails_env} lists no admins")]
+        return [
+            Check(
+                name,
+                SKIP,
+                f"{auth.admin_emails_env} lists no admins "
+                "(nor does [auth] admin_emails)",
+            )
+        ]
     users = make_file_store_factory(auth.stores.path)("users")
     missing = [email for email in admins if email not in users]
 
