@@ -314,9 +314,9 @@ def test_no_accept_header_gets_json_401():
     assert cap.status() == 401
 
 
-def test_forbidden_user_also_redirects_browsers():
+def test_forbidden_user_gets_403_page_in_browsers():
     """A logged-in user hitting an app they're not in `allowed_users` for
-    should also get the browser-friendly redirect, not raw JSON.
+    gets the browser-friendly 403 page, not a sign-in redirect (#72).
     """
     from enlace_auth.auth import SessionStore, sign_cookie
 
@@ -342,7 +342,7 @@ def test_forbidden_user_also_redirects_browsers():
             cap.send,
         )
     )
-    assert cap.status() == 303
+    assert cap.status() == 403
 
 
 # --------------------------------------------------------------------------
@@ -381,9 +381,9 @@ def test_grant_allows_user_not_in_config():
 
 
 def test_no_grant_denied():
-    # alice has no grant and isn't in config → denied (JSON 401, no Accept hdr).
+    # alice has no grant and isn't in config → denied (JSON 403, no Accept hdr).
     status = _grant_run("alice@example.com", _RESTRICTED, lambda app: set())
-    assert status == 401
+    assert status == 403
 
 
 def test_config_user_allowed_without_grant():
@@ -427,7 +427,7 @@ def test_resolver_exception_falls_back_to_config():
     # boss is in config → still allowed even though the resolver blows up.
     assert _grant_run("boss@example.com", _RESTRICTED, boom) == 200
     # alice relies on a grant → resolver failure fails closed (denied).
-    assert _grant_run("alice@example.com", _RESTRICTED, boom) == 401
+    assert _grant_run("alice@example.com", _RESTRICTED, boom) == 403
 
 
 def test_custom_login_redirect_path():
