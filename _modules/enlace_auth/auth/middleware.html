@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=1190fe33"></script>
+    <script src="../../../_static/documentation_options.js?v=f2b49961"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.49" />
+  <meta name="docsearch:version" content="0.1.50" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -788,10 +788,10 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># sessions whose email is in this set can access the app. Evaluated after</span>
     <span class="c1"># the standard session check, so it's a second gate on top of level.</span>
     <span class="n">allowed_users</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
-    <span class="c1"># What a signed-in user outside allowed_users gets. False (the default for</span>
-    <span class="c1"># apps): the same answer as a signed-out one, a sign-in redirect / 401.</span>
-    <span class="c1"># True (the admin page): 403, "you are signed in, this is not for you".</span>
-    <span class="n">deny_signed_in</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></div>
+    <span class="c1"># What a signed-in user outside allowed_users gets. True (the default):</span>
+    <span class="c1"># 403, "you are signed in, this is not for you". False: the same answer as</span>
+    <span class="c1"># a signed-out one, a sign-in redirect / 401.</span>
+    <span class="n">deny_signed_in</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></div>
 
 
 

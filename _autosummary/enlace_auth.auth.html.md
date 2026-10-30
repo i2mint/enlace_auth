@@ -40,7 +40,7 @@ Public helpers:
 | [`ShareError`](#enlace_auth.auth.ShareError)(message, \*[, code])   | An invalid share.   |
 |------------------------------------------------------------------------------------|---------------------|
 
-### *class* enlace_auth.auth.AccessRule(prefix, level, app_id, shared_password_hash=None, allowed_users=(), deny_signed_in=False)
+### *class* enlace_auth.auth.AccessRule(prefix, level, app_id, shared_password_hash=None, allowed_users=(), deny_signed_in=True)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 

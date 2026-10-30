@@ -37,7 +37,7 @@ Design notes:
 | [`CSRFMiddleware`](#enlace_auth.auth.middleware.CSRFMiddleware)(app, \*, signing_key[, ...])        | Signed double-submit CSRF for state-changing requests. |
 | [`PlatformAuthMiddleware`](#enlace_auth.auth.middleware.PlatformAuthMiddleware)(app, \*, access_rules, ...) | Pure-ASGI auth middleware.                             |
 
-### *class* enlace_auth.auth.middleware.AccessRule(prefix, level, app_id, shared_password_hash=None, allowed_users=(), deny_signed_in=False)
+### *class* enlace_auth.auth.middleware.AccessRule(prefix, level, app_id, shared_password_hash=None, allowed_users=(), deny_signed_in=True)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 

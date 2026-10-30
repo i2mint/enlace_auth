@@ -289,6 +289,8 @@ app admits nobody. Because `allowed_users` is only enforced for
 `protected:user`, an app using the alias is treated as `protected:user` even if
 its `access` says otherwise (an error is logged) — it never falls open.
 
+A signed-in user who is not on `allowed_users` (or an active grant) gets a **403** (a 403 page in a browser, JSON `{"auth": "forbidden"}` otherwise), not the sign-in redirect or a 401; a signed-out request still gets the redirect or 401. This is `AccessRule.deny_signed_in`, now `True` by default for every rule (it was admin-only). Upgrade note: a frontend that treats any 401 as “go sign in” will now see a 403 for a signed-in user who lacks access, and should show a “not allowed for this account” message instead.
+
 On top of that baseline you can grant access **at runtime — no redeploy** — from
 the admin dashboard or the CLI. Runtime grants are *additive* (effective access =
 `allowed_users ∪ active grants`) and may carry an optional UTC expiry:

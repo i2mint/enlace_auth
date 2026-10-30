@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=1190fe33"></script>
+    <script src="_static/documentation_options.js?v=f2b49961"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.49" />
+  <meta name="docsearch:version" content="0.1.50" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -624,6 +624,7 @@ an address: <code class="docutils literal notranslate"><span class="pre">allowed
 app admits nobody. Because <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code> is only enforced for
 <code class="docutils literal notranslate"><span class="pre">protected:user</span></code>, an app using the alias is treated as <code class="docutils literal notranslate"><span class="pre">protected:user</span></code> even if
 its <code class="docutils literal notranslate"><span class="pre">access</span></code> says otherwise (an error is logged) — it never falls open.</p>
+<p>A signed-in user who is not on <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code> (or an active grant) gets a <strong>403</strong> (a 403 page in a browser, JSON <code class="docutils literal notranslate"><span class="pre">{&quot;auth&quot;:</span> <span class="pre">&quot;forbidden&quot;}</span></code> otherwise), not the sign-in redirect or a 401; a signed-out request still gets the redirect or 401. This is <code class="docutils literal notranslate"><span class="pre">AccessRule.deny_signed_in</span></code>, now <code class="docutils literal notranslate"><span class="pre">True</span></code> by default for every rule (it was admin-only). Upgrade note: a frontend that treats any 401 as “go sign in” will now see a 403 for a signed-in user who lacks access, and should show a “not allowed for this account” message instead.</p>
 <p>On top of that baseline you can grant access <strong>at runtime — no redeploy</strong> — from
 the admin dashboard or the CLI. Runtime grants are <em>additive</em> (effective access =
 <code class="docutils literal notranslate"><span class="pre">allowed_users</span> <span class="pre">∪</span> <span class="pre">active</span> <span class="pre">grants</span></code>) and may carry an optional UTC expiry:</p>
@@ -688,7 +689,7 @@ python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> <
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-10-20 15:36 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/2f6296c05fd24671a05b3b41f463cd0a2e1eb973">2f6296c</a> (main) · enlace_auth 0.1.49 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-10-30 13:03 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/c1876cf81d25ac014e2288247132b42a09ce127e">c1876cf</a> (main) · enlace_auth 0.1.50 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               

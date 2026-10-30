@@ -37,7 +37,7 @@
 - [enlace_auth.stores.prefixed](_autosummary/enlace_auth.stores.prefixed.html.md): PrefixedStore — MutableMapping wrapper that scopes keys under a prefix.
 - [enlace_auth.stores.validation](_autosummary/enlace_auth.stores.validation.html.md): Key sanitization for user-supplied store keys.
 - [For AI agents](ai-agents.html.md): &#96;enlace_auth&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-20 15:36 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-30 13:03 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
 
 ## Optional
 
