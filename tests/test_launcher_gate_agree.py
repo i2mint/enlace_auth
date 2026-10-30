@@ -85,7 +85,7 @@ def _signed_in(backend, email):
 
 def _opens(client, app="gated") -> bool:
     status = client.get(f"/api/{app}/x").status_code
-    assert status in (200, 401), status
+    assert status in (200, 401, 403), status
     return status == 200
 
 

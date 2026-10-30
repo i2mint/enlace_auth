@@ -72,10 +72,10 @@ class AccessRule:
     # sessions whose email is in this set can access the app. Evaluated after
     # the standard session check, so it's a second gate on top of level.
     allowed_users: tuple[str, ...] = ()
-    # What a signed-in user outside allowed_users gets. False (the default for
-    # apps): the same answer as a signed-out one, a sign-in redirect / 401.
-    # True (the admin page): 403, "you are signed in, this is not for you".
-    deny_signed_in: bool = False
+    # What a signed-in user outside allowed_users gets. True (the default):
+    # 403, "you are signed in, this is not for you". False: the same answer as
+    # a signed-out one, a sign-in redirect / 401.
+    deny_signed_in: bool = True
 
 
 def _normalize_path(raw_path: str) -> Optional[str]:

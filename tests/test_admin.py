@@ -456,7 +456,7 @@ def test_grant_then_access_then_revoke_end_to_end(admin_client):
     admin_client.post("/auth/logout", headers=csrf)
     csrf = _csrf(admin_client)
     assert _login(admin_client, "carl@example.com", "carlpw99", csrf).status_code == 200
-    assert admin_client.get("/api/vault/thing").status_code == 401
+    assert admin_client.get("/api/vault/thing").status_code == 403
 
     # Admin grants carl access.
     admin_client.post("/auth/logout", headers=csrf)
@@ -484,7 +484,7 @@ def test_grant_then_access_then_revoke_end_to_end(admin_client):
     admin_client.post("/auth/logout", headers=csrf)
     csrf = _csrf(admin_client)
     _login(admin_client, "carl@example.com", "carlpw99", csrf)
-    assert admin_client.get("/api/vault/thing").status_code == 401
+    assert admin_client.get("/api/vault/thing").status_code == 403
 
 
 # --- admin-minted reset links ----------------------------------------------
@@ -1065,11 +1065,11 @@ def test_declared_and_env_admins_are_unioned(monkeypatch):
     assert platform_admin_emails(cfg) == ("a@x.io", "c@x.io", "b@x.io")
 
 
-def test_a_non_admin_still_gets_a_sign_in_answer_from_an_app(admin_client):
-    """The 403 is the admin page's; apps keep the sign-in answer (unchanged)."""
+def test_a_non_admin_gets_403_from_an_app_too(admin_client):
+    """A signed-in user outside allowed_users gets 403 from apps too (#72)."""
     csrf = _csrf(admin_client)
     _register(admin_client, "alice@example.com", "secretpw1", csrf)
-    assert admin_client.get("/api/vault/thing").status_code == 401
+    assert admin_client.get("/api/vault/thing").status_code == 403
 
 
 @pytest.mark.parametrize("bad", ["admin", "a@x.io,b@x.io", "a b@x.io", "a@@x.io"])

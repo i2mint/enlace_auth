@@ -80,7 +80,7 @@ def test_other_user_is_refused_and_does_not_see_it(tmp_path, monkeypatch):
     c = _signed_in(
         _client(tmp_path, monkeypatch, admins="boss@example.com"), "eve@example.com"
     )
-    assert c.get("/api/owner_tool/x").status_code == 401
+    assert c.get("/api/owner_tool/x").status_code == 403
     assert "owner_tool" not in _app_names(c)
 
 
@@ -91,7 +91,7 @@ def test_anonymous_is_refused(tmp_path, monkeypatch):
 
 def test_no_admins_configured_fails_closed(tmp_path, monkeypatch):
     c = _signed_in(_client(tmp_path, monkeypatch, admins=""), "eve@example.com")
-    assert c.get("/api/owner_tool/x").status_code == 401
+    assert c.get("/api/owner_tool/x").status_code == 403
 
 
 @pytest.mark.parametrize(
@@ -119,7 +119,7 @@ def test_alias_without_user_gate_still_fails_closed(tmp_path, monkeypatch, acces
     assert c.get("/api/owner_tool/x").status_code == 401
     assert "owner_tool" not in _app_names(c)
     _signed_in(c, "eve@example.com")
-    assert c.get("/api/owner_tool/x").status_code == 401
+    assert c.get("/api/owner_tool/x").status_code == 403
     assert "owner_tool" not in _app_names(c)
 
 
