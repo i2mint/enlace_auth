@@ -204,17 +204,35 @@ def _wants_html(scope) -> bool:
     return False
 
 
+def _original_target(scope) -> str:
+    """The path (and query string) the denied request asked for."""
+    raw_path = scope.get("path", "/") or "/"
+    raw_qs = scope.get("query_string", b"") or b""
+    return f"{raw_path}?{raw_qs.decode('latin-1')}" if raw_qs else raw_path
+
+
 def _redirect_target(scope, login_path: str) -> str:
     """Build the login-redirect URL, preserving the original path as ``next``."""
     from urllib.parse import quote
 
-    raw_path = scope.get("path", "/") or "/"
-    raw_qs = scope.get("query_string", b"") or b""
-    nxt = raw_path
-    if raw_qs:
-        nxt = f"{raw_path}?{raw_qs.decode('latin-1')}"
     sep = "&" if "?" in login_path else "?"
-    return f"{login_path}{sep}login_required=1&next={quote(nxt, safe='')}"
+    nxt = quote(_original_target(scope), safe="")
+    return f"{login_path}{sep}login_required=1&next={nxt}"
+
+
+def _shared_redirect_target(scope, shared_login_path: str, app_id: str) -> str:
+    """Build the shared-password redirect URL: the app's form, then ``next``.
+
+    A ``protected:shared`` app is opened with its shared password, never with a
+    user account. Sending it to the USER sign-in page instead looped forever for
+    anyone already signed in: that page 303s a signed-in visitor straight back
+    to ``next``, which denied them again (no shared cookie), and so on.
+    """
+    from urllib.parse import quote
+
+    sep = "&" if "?" in shared_login_path else "?"
+    nxt = quote(_original_target(scope), safe="")
+    return f"{shared_login_path}{sep}app={quote(app_id, safe='')}&next={nxt}"
 
 
 class PlatformAuthMiddleware:
@@ -231,6 +249,7 @@ class PlatformAuthMiddleware:
         max_age: int = 86400,
         auth_path_prefix: str = "/auth",
         login_redirect_path: str = "/",
+        shared_login_path: Optional[str] = None,
         dynamic_allowed_users: Optional[Callable[[str], set[str]]] = None,
     ):
         self.app = app
@@ -241,6 +260,10 @@ class PlatformAuthMiddleware:
         self._max_age = max_age
         self._auth_prefix = auth_path_prefix
         self._login_redirect = login_redirect_path
+        # Where a browser denied a ``protected:shared`` app goes: that app's
+        # shared-password form (served by the auth router), never the user
+        # sign-in page, which cannot admit it.
+        self._shared_login = shared_login_path or f"{auth_path_prefix}/shared-login"
         # Optional resolver: ``app_id -> set[email]`` of currently-active runtime
         # grants, consulted live per request. Layered ON TOP of each rule's
         # static ``allowed_users``. When None (the default), behavior is
@@ -392,7 +415,12 @@ class PlatformAuthMiddleware:
             )
             return
         if _wants_html(scope):
-            await _send_redirect(send, _redirect_target(scope, self._login_redirect))
+            app_id = (scope.get("state") or {}).get("app_id")
+            if kind == "shared" and app_id:
+                target = _shared_redirect_target(scope, self._shared_login, app_id)
+            else:
+                target = _redirect_target(scope, self._login_redirect)
+            await _send_redirect(send, target)
             return
         await _send_json_response(
             send, 401, {"detail": "Not authenticated", "auth": kind}

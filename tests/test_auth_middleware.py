@@ -445,3 +445,32 @@ def test_custom_login_redirect_path():
     loc = _location_header(cap.messages)
     assert loc.startswith("/landing/?welcome=1&")
     assert "login_required=1" in loc
+
+
+def test_browser_navigation_to_shared_app_goes_to_its_shared_form():
+    """A protected:shared app sends a browser to ITS shared-password form.
+
+    It used to go to the user sign-in page, which redirects anyone already
+    signed in straight back to ``next``: an endless 303 loop ("too many
+    redirects") for every signed-in user without the app's shared cookie.
+    """
+    rule = AccessRule(prefix="/s", level="protected:shared", app_id="s")
+    mw = _make_mw([rule])
+    cap = _Capture()
+    _run(mw(_http_scope("/s/page", accept="text/html"), cap.receive, cap.send))
+    assert cap.status() == 303
+    loc = _location_header(cap.messages)
+    assert loc == "/auth/shared-login?app=s&next=%2Fs%2Fpage"
+
+
+def test_shared_redirect_path_is_configurable():
+    mw = PlatformAuthMiddleware(
+        _ok_app,
+        access_rules=[AccessRule(prefix="/s", level="protected:shared", app_id="s")],
+        session_store=SessionStore({}),
+        signing_key=SIGNING_KEY,
+        shared_login_path="/gate/shared",
+    )
+    cap = _Capture()
+    _run(mw(_http_scope("/s/", accept="text/html"), cap.receive, cap.send))
+    assert _location_header(cap.messages) == "/gate/shared?app=s&next=%2Fs%2F"
