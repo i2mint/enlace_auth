@@ -353,7 +353,7 @@ class PlatformAuthMiddleware:
             )
             expected_hash = rule.shared_password_hash if rule is not None else None
             if not shared_cookie_valid(value, expected_hash, self._signing_key):
-                return await self._deny(scope, send, "shared")
+                return await self._deny(scope, send, "shared", app_id=app_id)
             state["user_id"] = "shared"
             await self.app(scope, receive, send)
             return
@@ -392,7 +392,15 @@ class PlatformAuthMiddleware:
         # Unknown level — deny by default.
         await self._deny(scope, send, "unknown")
 
-    async def _deny(self, scope, send, kind: str, *, signed_in_403: bool = False):
+    async def _deny(
+        self,
+        scope,
+        send,
+        kind: str,
+        *,
+        signed_in_403: bool = False,
+        app_id: Optional[str] = None,
+    ):
         if scope["type"] == "websocket":
             await _reject_websocket(send)
             return
@@ -415,7 +423,6 @@ class PlatformAuthMiddleware:
             )
             return
         if _wants_html(scope):
-            app_id = (scope.get("state") or {}).get("app_id")
             if kind == "shared" and app_id:
                 target = _shared_redirect_target(scope, self._shared_login, app_id)
             else:

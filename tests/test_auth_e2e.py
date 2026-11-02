@@ -220,6 +220,35 @@ def test_shared_password_flow(e2e_client):
     assert r.status_code == 200
 
 
+def test_signed_in_browser_reaches_shared_form_without_a_redirect_loop(e2e_client):
+    """A signed-in user opening a shared-password app gets that app's form.
+
+    Regression: the middleware sent the browser to the USER sign-in page, which
+    303s a signed-in visitor straight back to ``next``, which was denied again:
+    an endless loop ("too many redirects"). Follow the redirects by hand so a
+    loop fails here instead of hanging.
+    """
+    raw, _ = _csrf_pair(e2e_client)
+    r = e2e_client.post(
+        "/auth/register",
+        json={"email": "carol@example.com", "password": "secretpw123"},
+        headers={"X-CSRF-Token": raw},
+    )
+    assert r.status_code == 200, r.text
+
+    url = "/api/shared_app/peek"
+    for _ in range(5):
+        r = e2e_client.get(url, headers={"Accept": "text/html"}, follow_redirects=False)
+        if r.status_code != 303:
+            break
+        url = r.headers["location"]
+    else:
+        pytest.fail(f"still redirecting after 5 hops, last to {url}")
+    assert r.status_code == 200
+    assert url.startswith("/auth/shared-login?app=shared_app")
+    assert "shared password" in r.text
+
+
 def test_identity_header_stripped(e2e_client):
     """A spoofed X-User-ID header must not leak into request.state.user_id."""
     r = e2e_client.get(
