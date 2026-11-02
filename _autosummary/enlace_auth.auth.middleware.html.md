@@ -67,7 +67,7 @@ pre-enlace apps working out of the box without each having to implement
 the `/auth/csrf` double-submit flow. The auth endpoints themselves
 (`/auth/login`, `/auth/register`, `/auth/logout`) stay protected.
 
-### *class* enlace_auth.auth.middleware.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', dynamic_allowed_users=None)
+### *class* enlace_auth.auth.middleware.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', shared_login_path=None, dynamic_allowed_users=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
