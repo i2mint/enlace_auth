@@ -63,7 +63,7 @@ class PendingCodes:
         *,
         signing_key: str,
         ttl: int = 600,
-        max_attempts: int = 5,
+        max_attempts: int = 3,
         clock: Callable[[], float] = time.time,
     ):
         self.store = store

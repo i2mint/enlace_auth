@@ -179,12 +179,12 @@ def test_a_code_signs_in_once(platform, outbox):
     assert _verify(client, "a@example.com", code).status_code == 400
 
 
-def test_five_wrong_guesses_kill_the_code(platform, outbox):
+def test_three_wrong_guesses_kill_the_code(platform, outbox):
     client = platform(default="open")
     _start(client, "a@example.com")
     code = outbox.code_for("a@example.com")
     wrong = "000000" if code != "000000" else "111111"
-    for _ in range(5):
+    for _ in range(3):
         assert _verify(client, "a@example.com", wrong).status_code == 400
     assert _verify(client, "a@example.com", code).status_code == 400
     assert "a@example.com" not in _users(platform)
@@ -753,3 +753,27 @@ def test_deleting_an_account_leaves_everyone_elses_data_shares_and_grants(
     assert not any(
         "ann@example.com" in str(p) for p in shares_dir.rglob("*") if p.is_file()
     )
+
+
+def test_a_planted_nonce_cookie_names_nothing(platform, outbox):
+    """Review of #81: a nonce planted before start is not reused, and a second
+    cookie of the same name (planted on another path) voids both."""
+    mallory, victim = platform(default="open"), platform(default="open")
+    _register(mallory, "vic@example.com", "mallorys-own-password")
+    planted = mallory.cookies.get("enlace_signup")
+    victim.cookies.set("enlace_signup", planted, path="/")
+    _start(victim, "vic@example.com")
+    assert victim.cookies.get("enlace_signup", path="/auth") != planted
+    # The victim types the newest code they received (from their own start).
+    code = outbox.code_for("vic@example.com")
+    r = _verify(victim, "vic@example.com", code)
+    assert r.status_code == 400  # two cookies: refused, nothing created
+    assert "vic@example.com" not in _users(platform)
+    victim.cookies.delete("enlace_signup", path="/")
+    assert _verify(victim, "vic@example.com", code).status_code == 200
+    login = mallory.post(
+        "/auth/login",
+        json={"email": "vic@example.com", "password": "mallorys-own-password"},
+        headers=_csrf(mallory),
+    )
+    assert login.status_code == 401

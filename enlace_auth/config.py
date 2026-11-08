@@ -277,7 +277,7 @@ class SignupConfig(_StrictModel):
         ),
     )
     code_ttl_seconds: int = Field(default=600, gt=0, le=3600)
-    max_attempts: int = Field(default=5, ge=1, le=10)
+    max_attempts: int = Field(default=3, ge=1, le=10)
     bot_min_seconds: float = Field(
         default=2.0,
         ge=0,

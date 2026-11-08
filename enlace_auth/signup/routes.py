@@ -8,8 +8,9 @@ of a register-then-verify flow: answering whether an address has an account
 before the victim does (pre-hijacking).
 
 The code is bound to the browser that asked for it. ``start`` sets an HttpOnly
-cookie holding a random nonce, the pending code is stored under it, and
-``verify`` finds the code only through that cookie. So a sign-up is finished by
+cookie holding a fresh random nonce, the pending code is stored under it, and
+``verify`` finds the code only through that cookie (refused when the request
+carries it twice). Only the newest code of a browser works. So a sign-up is finished by
 the browser that began it: nobody can register a victim's address with their
 own password and wait for the victim to verify it, and nobody can sign a
 victim's browser into an account of theirs by sending a link. A stranger asking
@@ -250,6 +251,17 @@ def make_signup_router(
         response.headers.append("set-cookie", "; ".join(attrs))
 
     def _nonce(request: Request) -> str:
+        """The nonce this browser holds; empty when absent, malformed or doubled.
+
+        Never reused by ``start`` (which always mints a fresh one), so a value
+        planted before the sign-up began names nothing. A request carrying the
+        cookie twice (one planted on another path beside ours) gets none, as
+        the server cannot tell which one it set.
+        """
+        raw = request.headers.get("cookie", "")
+        names = [c.split("=", 1)[0].strip() for c in raw.split(";")]
+        if names.count(NONCE_COOKIE) != 1:
+            return ""
         value = request.cookies.get(NONCE_COOKIE) or ""
         return value if 20 <= len(value) <= 64 and value.isascii() else ""
 
@@ -285,7 +297,7 @@ def make_signup_router(
         usable = not policy.is_admin(email) and (
             existing is not None or policy.allows(email, app)
         )
-        nonce = _nonce(request) or secrets.token_urlsafe(24)
+        nonce = secrets.token_urlsafe(24)  # fresh: a planted value names nothing
         data = {"app": app, "next": next_url, "lang": lang, **(extra or {})}
         code = codes.issue(email, nonce=nonce, data=data if usable else {"decoy": 1})
         if usable:
