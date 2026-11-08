@@ -1,0 +1,16 @@
+enlace\_auth.signup.texts
+=========================
+
+.. automodule:: enlace_auth.signup.texts
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      code_email
+      delete_email
+      pick_lang
+      refused_email
+      t
+   

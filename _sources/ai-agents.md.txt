@@ -13,7 +13,7 @@ Skills are folders holding a `SKILL.md` (the [Agent Skills](https://agentskills.
 
 ### `enlace-auth-usage`
 
-How to add sign-in, sessions, CSRF protection, admin accounts, per-app access levels, runtime grants and per-user storage to an enlace multi-app platform with the enlace_auth plugin. Use when the user mentions enlace_auth, the enlace-auth CLI, protected:user or protected:shared apps, ENLACE_SIGNING_KEY, ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user, reset-link, grant, or share; or wants to put login in front of apps served by enlace.
+How to add sign-in, sessions, CSRF protection, admin accounts, per-app access levels, runtime grants and per-user storage to an enlace multi-app platform with the enlace_auth plugin. Use when the user mentions enlace_auth, the enlace-auth CLI, protected:user or protected:shared apps, ENLACE_SIGNING_KEY, ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user, reset-link, grant, share, invite, [auth.signup], sign-up, "continue with email" or account deletion; or wants to put login or self-service sign-up in front of apps served by enlace.
 
 ```bash
 gh skill install i2mint/enlace_auth enlace-auth-usage --agent claude-code

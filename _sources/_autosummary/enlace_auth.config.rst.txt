@@ -4,6 +4,12 @@ enlace\_auth.config
 .. automodule:: enlace_auth.config
 
    
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      SignupMode
+   
    .. rubric:: Functions
 
    .. autosummary::
@@ -18,5 +24,7 @@ enlace\_auth.config
       AuthConfig
       OAuthProviderConfig
       OAuthServerConfig
+      SignupConfig
+      SignupLimitsConfig
       StoreBackendConfig
    

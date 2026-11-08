@@ -41,7 +41,7 @@ changes platform behavior unless the operator opts in.
 | [`EnlaceAuthConfigError`](#enlace_auth.EnlaceAuthConfigError)   | Raised when auth configuration is unusable at startup.   |
 |--------------------------------------------------------------------------|----------------------------------------------------------|
 
-### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST')
+### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>)
 
 Bases: `_StrictModel`
 
@@ -50,6 +50,13 @@ Platform-wide authentication configuration.
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+#### signup_default()
+
+The effective platform-wide sign-up policy.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### *exception* enlace_auth.EnlaceAuthConfigError
 
@@ -104,5 +111,7 @@ Plugin entry point. Safe to call when auth is disabled — does nothing.
 | [`config`](enlace_auth.config.html.md#module-enlace_auth.config)                   | Auth-side configuration models.                                             |
 | [`diagnostics`](enlace_auth.diagnostics.html.md#module-enlace_auth.diagnostics)         | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`.      |
 | [`emails`](enlace_auth.emails.html.md#module-enlace_auth.emails)                   | One normal form for an email address, wherever one is compared.             |
+| [`ratelimit`](enlace_auth.ratelimit.html.md#module-enlace_auth.ratelimit)             | A sliding-window rate limiter over any `MutableMapping`.                    |
 | [`resource_policy`](enlace_auth.resource_policy.html.md#module-enlace_auth.resource_policy) | The OAuth per-connector allowlist: its shape, its parsing and its one rule. |
+| [`signup`](enlace_auth.signup.html.md#module-enlace_auth.signup)                   | Self-service sign-up and email-code sign-in.                                |
 | [`stores`](enlace_auth.stores.html.md#module-enlace_auth.stores)                   | Per-user stores for enlace.                                                 |

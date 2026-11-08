@@ -1,0 +1,13 @@
+enlace\_auth.signup.botcheck
+============================
+
+.. automodule:: enlace_auth.signup.botcheck
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      BotCheck
+      TimedHoneypot
+   

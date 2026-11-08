@@ -37,5 +37,7 @@
    config
    diagnostics
    emails
+   ratelimit
    resource_policy
+   signup
    stores

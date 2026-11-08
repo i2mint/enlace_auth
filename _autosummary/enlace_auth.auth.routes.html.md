@@ -1,6 +1,6 @@
 # enlace_auth.auth.routes
 
-Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.
+Auth HTTP routes: login, logout, shared-login, csrf, recovery.
 
 This router serves both the JSON API (`POST /auth/login` etc., consumed by
 app frontends) and the browser-facing HTML pages (`GET /auth/login`,
@@ -18,14 +18,16 @@ forgot-password page says so plainly instead of promising an email that is only
 written to the log.
 
 OAuth routes live in `enlace.auth.oauth` and are attached separately so the
-Authlib dependency stays lazy.
+Authlib dependency stays lazy. Sign-up (`/auth/register` and the email-code
+flow) lives in [`enlace_auth.signup.routes`](enlace_auth.signup.routes.html.md#module-enlace_auth.signup.routes), which verifies an address before
+it creates the account.
 
 ### Functions
 
 | [`make_auth_router`](#enlace_auth.auth.routes.make_auth_router)(\*, session_store, ...[, ...])   | Build a FastAPI router exposing `/auth/*` endpoints.   |
 |----------------------------------------------------------------------------------------------------|--------------------------------------------------------|
 
-### enlace_auth.auth.routes.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, can_register=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None)
+### enlace_auth.auth.routes.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None, reset_allowed=<function <lambda>>, login_page_extras=None, account_page_extras=None)
 
 Build a FastAPI router exposing `/auth/*` endpoints.
 
@@ -34,7 +36,6 @@ Build a FastAPI router exposing `/auth/*` endpoints.
   * **signing_key** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – HMAC key for session, CSRF, shared, and reset tokens.
   * **secure_cookies** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – session-cookie policy.
   * **shared_password_for** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – maps an app id to its shared-password hash.
-  * **can_register** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]) – predicate gating self-registration by email.
   * **send_email** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`EmailSender`](enlace_auth.auth.email.html.md#enlace_auth.auth.email.EmailSender)]) – delivers password-reset emails. `None` means no delivery
     channel is configured: the flow falls back to the console sender
     (which logs the link) *and* the forgot-password page says so, rather
@@ -53,5 +54,10 @@ Build a FastAPI router exposing `/auth/*` endpoints.
     browser sessions only; the plugin injects one that also revokes the
     account’s OAuth connector refresh families (see
     `enlace_auth.auth.revocation`).
+  * **reset_allowed** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), `Request`], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]) – `allowed(email, request)`, the rate limit on
+    password-reset mail; False answers 429.
+  * **account_page_extras** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`Request`, [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]]) – `(request, next_url or
+    email) -> kwargs` added to the sign-in and account pages (the
+    sign-up router’s “continue with email” step and deletion card).
 * **Return type:**
   `APIRouter`

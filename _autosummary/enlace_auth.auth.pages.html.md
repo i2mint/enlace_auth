@@ -18,7 +18,7 @@ page that redirect lands on, and it threads `next` back through after sign-in.
 
 | [`fill_template`](#enlace_auth.auth.pages.fill_template)(template, /, \*\*values)             | Fill `{name}` placeholders in *template* with HTML-escaped *values*.   |
 |-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| [`render_account_page`](#enlace_auth.auth.pages.render_account_page)(\*, email[, error])            | Render the signed-in user's "change my password" form.                 |
+| [`render_account_page`](#enlace_auth.auth.pages.render_account_page)(\*, email[, error, ...])       | Render the signed-in user's "change my password" form.                 |
 | [`render_forbidden_page`](#enlace_auth.auth.pages.render_forbidden_page)(\*, email, switch_url)       | The 403 a signed-in user sees for a page their account may not open.   |
 | [`render_forgot_page`](#enlace_auth.auth.pages.render_forgot_page)(\*[, error, ...])               | Render the "request a password-reset link" form.                       |
 | [`render_login_page`](#enlace_auth.auth.pages.render_login_page)(\*[, next_url, error, ...])      | Render the sign-in form.                                               |
@@ -62,9 +62,12 @@ Only *values* are escaped; the template’s own markup passes through as-is:
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.pages.render_account_page(, email, error=None)
+### enlace_auth.auth.pages.render_account_page(, email, error=None, extra_section='')
 
 Render the signed-in user’s “change my password” form.
+
+*extra_section* is trusted markup appended as a second card (the account
+deletion step from [`enlace_auth.signup.pages`](enlace_auth.signup.pages.html.md#module-enlace_auth.signup.pages)).
 
 Posts to `/auth/me/password`, which requires the *current* password —
 so this page is safe to leave reachable on a shared machine: possession of
@@ -99,7 +102,7 @@ Render the “request a password-reset link” form.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.pages.render_login_page(, next_url='/', error=None, show_register_hint=True)
+### enlace_auth.auth.pages.render_login_page(, next_url='/', error=None, show_register_hint=True, email_section='', password_summary='Sign in with a password instead', lang='en')
 
 Render the sign-in form.
 
@@ -108,6 +111,11 @@ Render the sign-in form.
     sanitized by the caller via [`safe_next()`](#enlace_auth.auth.pages.safe_next).
   * **error** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – optional error banner (e.g. a stale-session note).
   * **show_register_hint** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – whether to show the “ask an admin” footnote.
+  * **email_section** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – trusted markup shown above the password form (the
+    “continue with email” step from [`enlace_auth.signup.pages`](enlace_auth.signup.pages.html.md#module-enlace_auth.signup.pages)).
+    When given, the password form folds under *password_summary* and
+    the section carries its own sign-up note instead of the hint.
+  * **lang** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – the page’s `lang` attribute.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 

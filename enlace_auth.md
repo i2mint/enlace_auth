@@ -1,4 +1,4 @@
-> built 2026-11-02 08:47 UTC from 1a8fcbd (main) · enlace_auth 0.1.51. Details: build_info.json
+> built 2026-11-08 19:15 UTC from 65cd580 (main) · enlace_auth 0.1.52. Details: build_info.json
 
 # index.html.md
 
@@ -66,7 +66,6 @@ config = PlatformConfig(
     auth={
         "enabled": True,
         "secure_cookies": False,  # plain http in this demo
-        "registration_open": True,
         "stores": {"backend": "file", "path": str(root / "platform")},
     },
     stores={"user_data": {"backend": "file", "path": str(root / "user_data")}},
@@ -77,18 +76,26 @@ assert client.get("/api/hello/ping").status_code == 200  # public: open, no cook
 assert "enlace_csrf" not in client.cookies
 assert client.get("/api/vault/ping").status_code == 401  # protected: denied
 
+# An account, made the way `enlace-auth add-user` makes one.
+from enlace_auth.auth import hash_password
+from enlace_auth.stores import make_file_store_factory
+
+users = make_file_store_factory(str(root / "platform"))("users")
+users["ada@example.com"] = {"password_hash": hash_password("correct horse battery")}
+
 token = client.get("/auth/csrf").json()["csrf"]  # every POST echoes this token
 headers = {"X-CSRF-Token": token}
 body = {"email": "ada@example.com", "password": "correct horse battery"}
-assert client.post("/auth/register", json=body, headers=headers).status_code == 200
+assert client.post("/auth/login", json=body, headers=headers).status_code == 200
 assert client.get("/api/vault/ping").status_code == 200  # now signed in
 print(client.get("/auth/whoami").json())
 ```
 
 ## What it adds
 
-- `/auth/login`, `/auth/logout`, `/auth/register`, `/auth/whoami`, `/auth/csrf`, `/auth/me/password`, `/auth/shared-login`
-- `/auth/account`: the signed-in user changes their own password
+- `/auth/login`, `/auth/logout`, `/auth/whoami`, `/auth/csrf`, `/auth/me/password`, `/auth/shared-login`
+- self-service sign-up and sign-in by emailed code (`/auth/email/*`, the verify-first `/auth/register`), with a per-app sign-up policy; see [Self-service sign-up]()
+- `/auth/account`: the signed-in user changes their own password, or deletes their account
 - `/auth/forgot-password`: self-service reset by emailed link
 - `/_admin/api/*`: list, create and delete users, mint a password-reset link, set a password directly, view app policy, and **grant or revoke per-app access at runtime** (optional expiry). Gated by an admin allowlist.
 - per-user data injection via `request.state.store`
@@ -133,6 +140,27 @@ path = "~/.enlace/platform_store"
 backend = "file"
 path = "~/.enlace/user_data"
 ```
+
+### Self-service sign-up
+
+“Continue with email” signs a person in with a 6-digit code mailed to them, and creates their account only once the code checks out, so nobody can claim an address they do not receive mail at, and the answer never says whether an address has an account. Where an account may be created is a policy per app:
+
+```toml
+[auth.signup]
+default = "closed"               # closed | allowlist | invite | open
+apps = { game = "open", studio = "invite" }
+allowlist = ["friend@example.com"]
+privacy_url = "https://example.com/privacy"
+terms_url = "https://example.com/terms"
+terms_version = "2026-11"
+```
+
+- `open` admits anyone, and the page says sign-up is for people aged 15 and over. `invite` admits invited addresses (`enlace-auth invite friend@example.com --apps studio`) and allowlisted ones. `allowlist` admits only the allowlist. An admin address is never created this way.
+- The account is platform-wide; which apps it opens is still each app’s `access` and `allowed_users`. A `protected:user` app with no `allowed_users` opens to every account, so give it one before opening sign-up anywhere: `enlace doctor` fails until you do.
+- The mail goes through `ENLACE_SMTP_*` (SMTP). Without it the sign-in page does not offer the email step, and the code only reaches the server log. Set SPF, DKIM and DMARC for the sending domain.
+- Mail and code checks are rate-limited per address, per IP and overall (`[auth.signup.limits]`), and the form carries a honeypot plus a time-to-submit check. Behind a proxy, run uvicorn with `--forwarded-allow-ips` set to the proxy so the per-IP limit sees real clients.
+- A signed-in user deletes their own account from `/auth/account`, confirmed by a mailed code; that removes its sessions, connector sessions, shares, grants and per-user data.
+- `registration_open = true` still works and means `default = "open"`. `/auth/register` (email plus a password of at least 15 characters) now mails a code too, and creates the account at verify.
 
 ### OAuth 2.1 authorization server (MCP connectors)
 
@@ -636,11 +664,12 @@ it in its own mapping (`sign_ins`).
 
 ### Functions
 
-| [`is_disabled`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.is_disabled)(record)                            | True when *record* is a user record marked disabled.                     |
-|-------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
-| [`make_account_records`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.make_account_records)(store_factory)            | The platform's user records: `users` plus the `disabled_accounts` marks. |
-| [`open_session`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.open_session)(session_store, user_store, email) | Create a session for *email* and return its id, unless it is disabled.   |
-| [`set_disabled`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.set_disabled)(user_store, email, disabled, \*)  | Mark *email*'s record disabled (or not); return the new record.          |
+| [`is_disabled`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.is_disabled)(record)                              | True when *record* is a user record marked disabled.                     |
+|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| [`make_account_deleter`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.make_account_deleter)(\*, user_store, ...[, ...]) | Return `delete(email)`: remove an account and what hangs off it.         |
+| [`make_account_records`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.make_account_records)(store_factory)              | The platform's user records: `users` plus the `disabled_accounts` marks. |
+| [`open_session`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.open_session)(session_store, user_store, email)   | Create a session for *email* and return its id, unless it is disabled.   |
+| [`set_disabled`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.set_disabled)(user_store, email, disabled, \*)    | Mark *email*'s record disabled (or not); return the new record.          |
 
 ### Classes
 
@@ -709,6 +738,33 @@ True when *record* is a user record marked disabled.
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### enlace_auth.auth.accounts.make_account_deleter(, user_store, credentials_changed, share_store=None, grant_store=None, user_data=None, sign_ins=None)
+
+Return `delete(email)`: remove an account and what hangs off it.
+
+The record goes first, then its sessions and connector refresh families
+(`credentials_changed`), so a failure later cannot leave a deleted account
+signed in. Then, each optional and each failing alone: the shares naming it,
+its runtime grants (stored under exactly its key: the other spelling of the
+address may be another account), its per-user data (every key under
+`{email}/` in the base store), and its last-sign-in time. Raises
+`KeyError` when there is no such account; a damaged grant or data key is
+logged and skipped.
+
+```pycon
+>>> users, ended = {"a@x.io": {}, "b@x.io": {}}, []
+>>> data = {"a@x.io/game/progress": 1, "b@x.io/game/progress": 2}
+>>> delete = make_account_deleter(
+...     user_store=users, credentials_changed=ended.append, user_data=data
+... )
+>>> delete("a@x.io")
+>>> sorted(users), ended, sorted(data)
+(['b@x.io'], ['a@x.io'], ['b@x.io/game/progress'])
+```
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
 ### enlace_auth.auth.accounts.make_account_records(store_factory)
 
@@ -948,6 +1004,16 @@ All grant records across all apps. Admin-only / infrequent.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
+#### remove_exact(app_id, email)
+
+Remove the grant stored under exactly *email*; True if there was one.
+
+Unlike [`revoke()`](_autosummary/enlace_auth.auth.grants.html.md#enlace_auth.auth.grants.GrantStore.revoke), the other spelling of the address is left alone:
+it may be a distinct account (account deletion uses this).
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
 #### revoke(app_id, email)
 
 Remove the grant to *email* in both spellings; return the emails removed.
@@ -1093,6 +1159,16 @@ All grant records across all apps. Admin-only / infrequent.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### remove_exact(app_id, email)
+
+Remove the grant stored under exactly *email*; True if there was one.
+
+Unlike [`revoke()`](_autosummary/enlace_auth.auth.html.md#enlace_auth.auth.GrantStore.revoke), the other spelling of the address is left alone:
+it may be a distinct account (account deletion uses this).
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 #### revoke(app_id, email)
 
@@ -1251,7 +1327,7 @@ Return an argon2id hash string for `password`.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, can_register=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None)
+### enlace_auth.auth.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None, reset_allowed=<function <lambda>>, login_page_extras=None, account_page_extras=None)
 
 Build a FastAPI router exposing `/auth/*` endpoints.
 
@@ -1260,7 +1336,6 @@ Build a FastAPI router exposing `/auth/*` endpoints.
   * **signing_key** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – HMAC key for session, CSRF, shared, and reset tokens.
   * **secure_cookies** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – session-cookie policy.
   * **shared_password_for** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – maps an app id to its shared-password hash.
-  * **can_register** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]) – predicate gating self-registration by email.
   * **send_email** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`EmailSender`](_autosummary/enlace_auth.auth.email.html.md#enlace_auth.auth.email.EmailSender)]) – delivers password-reset emails. `None` means no delivery
     channel is configured: the flow falls back to the console sender
     (which logs the link) *and* the forgot-password page says so, rather
@@ -1279,6 +1354,11 @@ Build a FastAPI router exposing `/auth/*` endpoints.
     browser sessions only; the plugin injects one that also revokes the
     account’s OAuth connector refresh families (see
     `enlace_auth.auth.revocation`).
+  * **reset_allowed** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), `Request`], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]) – `allowed(email, request)`, the rate limit on
+    password-reset mail; False answers 429.
+  * **account_page_extras** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`Request`, [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]]) – `(request, next_url or
+    email) -> kwargs` added to the sign-in and account pages (the
+    sign-up router’s “continue with email” step and deletion card).
 * **Return type:**
   `APIRouter`
 
@@ -1336,7 +1416,7 @@ Return True iff `password` matches the stored `hashed` value.
 | [`passwords`](_autosummary/enlace_auth.auth.passwords.html.md#module-enlace_auth.auth.passwords)       | Password hashing via argon2id.                                                      |
 | [`reset_tokens`](_autosummary/enlace_auth.auth.reset_tokens.html.md#module-enlace_auth.auth.reset_tokens) | Password-reset tokens — minting, verification, and the link they live in.           |
 | [`revocation`](_autosummary/enlace_auth.auth.revocation.html.md#module-enlace_auth.auth.revocation)     | Credential revocation: end everything an account holds when its credentials change. |
-| [`routes`](_autosummary/enlace_auth.auth.routes.html.md#module-enlace_auth.auth.routes)             | Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.            |
+| [`routes`](_autosummary/enlace_auth.auth.routes.html.md#module-enlace_auth.auth.routes)             | Auth HTTP routes: login, logout, shared-login, csrf, recovery.                      |
 | [`sessions`](_autosummary/enlace_auth.auth.sessions.html.md#module-enlace_auth.auth.sessions)         | Session storage backed by a MutableMapping.                                         |
 | [`share_routes`](_autosummary/enlace_auth.auth.share_routes.html.md#module-enlace_auth.auth.share_routes) | `/auth/shares/*` — the signed-in user manages the shares of their own data.         |
 | [`shares`](_autosummary/enlace_auth.auth.shares.html.md#module-enlace_auth.auth.shares)             | Owner-granted data shares: let named users at one user's per-user data in one app.  |
@@ -1654,7 +1734,7 @@ page that redirect lands on, and it threads `next` back through after sign-in.
 
 | [`fill_template`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.fill_template)(template, /, \*\*values)             | Fill `{name}` placeholders in *template* with HTML-escaped *values*.   |
 |-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| [`render_account_page`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.render_account_page)(\*, email[, error])            | Render the signed-in user's "change my password" form.                 |
+| [`render_account_page`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.render_account_page)(\*, email[, error, ...])       | Render the signed-in user's "change my password" form.                 |
 | [`render_forbidden_page`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.render_forbidden_page)(\*, email, switch_url)       | The 403 a signed-in user sees for a page their account may not open.   |
 | [`render_forgot_page`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.render_forgot_page)(\*[, error, ...])               | Render the "request a password-reset link" form.                       |
 | [`render_login_page`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.render_login_page)(\*[, next_url, error, ...])      | Render the sign-in form.                                               |
@@ -1698,9 +1778,12 @@ Only *values* are escaped; the template’s own markup passes through as-is:
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.pages.render_account_page(, email, error=None)
+### enlace_auth.auth.pages.render_account_page(, email, error=None, extra_section='')
 
 Render the signed-in user’s “change my password” form.
+
+*extra_section* is trusted markup appended as a second card (the account
+deletion step from [`enlace_auth.signup.pages`](_autosummary/enlace_auth.signup.pages.html.md#module-enlace_auth.signup.pages)).
 
 Posts to `/auth/me/password`, which requires the *current* password —
 so this page is safe to leave reachable on a shared machine: possession of
@@ -1735,7 +1818,7 @@ Render the “request a password-reset link” form.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.pages.render_login_page(, next_url='/', error=None, show_register_hint=True)
+### enlace_auth.auth.pages.render_login_page(, next_url='/', error=None, show_register_hint=True, email_section='', password_summary='Sign in with a password instead', lang='en')
 
 Render the sign-in form.
 
@@ -1744,6 +1827,11 @@ Render the sign-in form.
     sanitized by the caller via [`safe_next()`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.safe_next).
   * **error** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – optional error banner (e.g. a stale-session note).
   * **show_register_hint** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – whether to show the “ask an admin” footnote.
+  * **email_section** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – trusted markup shown above the password form (the
+    “continue with email” step from [`enlace_auth.signup.pages`](_autosummary/enlace_auth.signup.pages.html.md#module-enlace_auth.signup.pages)).
+    When given, the password form folds under *password_summary* and
+    the section carries its own sign-up note instead of the hint.
+  * **lang** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – the page’s `lang` attribute.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
@@ -1815,10 +1903,10 @@ from parameter tuning.
 
 ### Functions
 
-| [`hash_password`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.hash_password)(password)           | Return an argon2id hash string for `password`.                |
-|------------------------------------------------------------------------------------|---------------------------------------------------------------|
-| [`password_problem`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.password_problem)(password)        | Why *password* may not be set, or `None` if it may.           |
-| [`verify_password`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.verify_password)(hashed, password) | Return True iff `password` matches the stored `hashed` value. |
+| [`hash_password`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.hash_password)(password)                      | Return an argon2id hash string for `password`.                |
+|-----------------------------------------------------------------------------------------------|---------------------------------------------------------------|
+| [`password_problem`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.password_problem)(password, \*[, min_length]) | Why *password* may not be set, or `None` if it may.           |
+| [`verify_password`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.verify_password)(hashed, password)            | Return True iff `password` matches the stored `hashed` value. |
 
 ### enlace_auth.auth.passwords.MIN_PASSWORD_LEN *= 8*
 
@@ -1835,17 +1923,20 @@ Return an argon2id hash string for `password`.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.passwords.password_problem(password)
+### enlace_auth.auth.passwords.password_problem(password, , min_length=8)
 
 Why *password* may not be set, or `None` if it may.
 
 The one rule every way of setting a password applies (see
-[`MIN_PASSWORD_LEN`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.MIN_PASSWORD_LEN)), so they cannot drift apart.
+[`MIN_PASSWORD_LEN`](_autosummary/enlace_auth.auth.passwords.html.md#enlace_auth.auth.passwords.MIN_PASSWORD_LEN)), so they cannot drift apart. Self-service sign-up
+asks for more (*min_length* 15, NIST SP 800-63B-4 for a sole factor).
 
 ```pycon
 >>> password_problem("long-enough")
 >>> password_problem("short")
 'Password must be at least 8 characters.'
+>>> password_problem("long-enough", min_length=15)
+'Password must be at least 15 characters.'
 ```
 
 * **Return type:**
@@ -2111,7 +2202,7 @@ before it.
 
 # enlace_auth.auth.routes
 
-Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.
+Auth HTTP routes: login, logout, shared-login, csrf, recovery.
 
 This router serves both the JSON API (`POST /auth/login` etc., consumed by
 app frontends) and the browser-facing HTML pages (`GET /auth/login`,
@@ -2129,14 +2220,16 @@ forgot-password page says so plainly instead of promising an email that is only
 written to the log.
 
 OAuth routes live in `enlace.auth.oauth` and are attached separately so the
-Authlib dependency stays lazy.
+Authlib dependency stays lazy. Sign-up (`/auth/register` and the email-code
+flow) lives in [`enlace_auth.signup.routes`](_autosummary/enlace_auth.signup.routes.html.md#module-enlace_auth.signup.routes), which verifies an address before
+it creates the account.
 
 ### Functions
 
 | [`make_auth_router`](_autosummary/enlace_auth.auth.routes.html.md#enlace_auth.auth.routes.make_auth_router)(\*, session_store, ...[, ...])   | Build a FastAPI router exposing `/auth/*` endpoints.   |
 |----------------------------------------------------------------------------------------------------|--------------------------------------------------------|
 
-### enlace_auth.auth.routes.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, can_register=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None)
+### enlace_auth.auth.routes.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None, reset_allowed=<function <lambda>>, login_page_extras=None, account_page_extras=None)
 
 Build a FastAPI router exposing `/auth/*` endpoints.
 
@@ -2145,7 +2238,6 @@ Build a FastAPI router exposing `/auth/*` endpoints.
   * **signing_key** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – HMAC key for session, CSRF, shared, and reset tokens.
   * **secure_cookies** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – session-cookie policy.
   * **shared_password_for** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – maps an app id to its shared-password hash.
-  * **can_register** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]) – predicate gating self-registration by email.
   * **send_email** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`EmailSender`](_autosummary/enlace_auth.auth.email.html.md#enlace_auth.auth.email.EmailSender)]) – delivers password-reset emails. `None` means no delivery
     channel is configured: the flow falls back to the console sender
     (which logs the link) *and* the forgot-password page says so, rather
@@ -2164,6 +2256,11 @@ Build a FastAPI router exposing `/auth/*` endpoints.
     browser sessions only; the plugin injects one that also revokes the
     account’s OAuth connector refresh families (see
     `enlace_auth.auth.revocation`).
+  * **reset_allowed** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), `Request`], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]) – `allowed(email, request)`, the rate limit on
+    password-reset mail; False answers 429.
+  * **account_page_extras** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`Request`, [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]]) – `(request, next_url or
+    email) -> kwargs` added to the sign-in and account pages (the
+    sign-up router’s “continue with email” step and deletion card).
 * **Return type:**
   `APIRouter`
 
@@ -2438,6 +2535,11 @@ The TOML loader in `enlace.base.PlatformConfig.from_toml` accepts
 `[auth.*]` and `[stores.*]` tables and forwards them through the model;
 we just deserialize them into typed objects here when the plugin runs.
 
+### Module Attributes
+
+| [`SignupMode`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.SignupMode)   | nobody, the listed addresses, the invited addresses (an allowlisted address counts as invited), or anyone.   |
+|---------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
+
 ### Functions
 
 | [`coerce_auth_config`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.coerce_auth_config)(raw)   | Accept dict / AuthConfig / None and return an AuthConfig.      |
@@ -2446,13 +2548,15 @@ we just deserialize them into typed objects here when the plugin runs.
 
 ### Classes
 
-| [`AuthConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.AuthConfig)(\*[, enabled, ...])                     | Platform-wide authentication configuration.                   |
-|-----------------------------------------------------------------------------------------------------|---------------------------------------------------------------|
-| [`OAuthProviderConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthProviderConfig)(\*, client_id_env, ...[, ...]) | Configuration for a single OAuth2/OIDC provider.              |
-| [`OAuthServerConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthServerConfig)(\*[, enabled, issuer, ...])      | OAuth 2.1 authorization-server settings (for MCP connectors). |
-| [`StoreBackendConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.      |
+| [`AuthConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.AuthConfig)(\*[, enabled, ...])                     | Platform-wide authentication configuration.                    |
+|-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| [`OAuthProviderConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthProviderConfig)(\*, client_id_env, ...[, ...]) | Configuration for a single OAuth2/OIDC provider.               |
+| [`OAuthServerConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthServerConfig)(\*[, enabled, issuer, ...])      | OAuth 2.1 authorization-server settings (for MCP connectors).  |
+| [`SignupConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.SignupConfig)(\*[, default, apps, allowlist, ...])  | Self-service sign-up and email-code sign-in (`[auth.signup]`). |
+| [`SignupLimitsConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.SignupLimitsConfig)(\*[, window_seconds, ...])      | Rate limits on the endpoints that send mail or check a code.   |
+| [`StoreBackendConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.       |
 
-### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST')
+### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>)
 
 Bases: `_StrictModel`
 
@@ -2461,6 +2565,13 @@ Platform-wide authentication configuration.
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+#### signup_default()
+
+The effective platform-wide sign-up policy.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### *class* enlace_auth.config.OAuthProviderConfig(\*, client_id_env, client_secret_env, scopes=<factory>, authorize_url=None, token_url=None, userinfo_url=None, server_metadata_url=None, trust_unverified_email=False)
 
@@ -2485,6 +2596,48 @@ session login. See [`enlace_auth.auth.oauth_server`](_autosummary/enlace_auth.au
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* enlace_auth.config.SignupConfig(\*, default=None, apps=<factory>, allowlist=<factory>, email_code=None, code_ttl_seconds=600, max_attempts=3, bot_min_seconds=2.0, privacy_url=None, terms_url=None, terms_version=None, limits=<factory>)
+
+Bases: `_StrictModel`
+
+Self-service sign-up and email-code sign-in (`[auth.signup]`).
+
+The account is platform-wide; *where* it may be created is per app. Which
+apps an account may open is still decided by each app’s `access` and
+`allowed_users`, never by this table. Note what that means: a
+`protected:user` app with an empty `allowed_users` opens to *every*
+account, so any non-closed policy opens it to whoever signs up. Give such an
+app an `allowed_users` list (`["@admins"]` at least) before opening
+sign-up anywhere; `enlace doctor` fails until you do.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* enlace_auth.config.SignupLimitsConfig(, window_seconds=3600, mail_per_address=5, mail_per_ip=20, mail_global=500, verify_per_address=10, verify_per_ip=50, verify_global=300)
+
+Bases: `_StrictModel`
+
+Rate limits on the endpoints that send mail or check a code.
+
+Each is a count per `window_seconds`. “address” is the target email, “ip”
+the client address the ASGI server reports (uvicorn rewrites it from the
+proxy’s `X-Forwarded-For` when the proxy is in `forwarded_allow_ips`).
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### enlace_auth.config.SignupMode
+
+nobody, the listed addresses, the
+invited addresses (an allowlisted address counts as invited), or anyone.
+
+* **Type:**
+  Who may create an account from an app
+
+alias of [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[‘closed’, ‘allowlist’, ‘invite’, ‘open’]
 
 ### *class* enlace_auth.config.StoreBackendConfig(, backend='file', path='~/.enlace/platform_store')
 
@@ -2548,7 +2701,9 @@ moved here when auth was extracted from enlace.
 | [`check_oauth_server_advertises_refresh`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_oauth_server_advertises_refresh)(...) | The live server must offer refresh_token in its discovery metadata.        |
 | `check_shared_passwords`(config)                                                            |                                                                            |
 | `check_signing_key`(config)                                                                 |                                                                            |
+| [`check_signup`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_signup)(config)                       | Report a sign-up policy that is unsafe or cannot work.                     |
 | [`check_widened_spellings`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_widened_spellings)(config)            | Warn about accounts a written list admits only through the other spelling. |
+| [`open_to_every_account`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.open_to_every_account)(config)              | The `protected:user` apps with no `allowed_users`: any account opens them. |
 
 ### enlace_auth.diagnostics.check_admin_accounts(config)
 
@@ -2611,6 +2766,22 @@ requests). This asks the running server what it actually advertises.
 * **Return type:**
   [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
 
+### enlace_auth.diagnostics.check_signup(config)
+
+Report a sign-up policy that is unsafe or cannot work.
+
+- an `[auth.signup] apps` entry naming no app (a typo leaves that app on
+  the default): FAIL;
+- an `open` policy anywhere while a `protected:user` app has no
+  `allowed_users` (anyone could sign up and open it): FAIL; under an
+  `invite` or a non-empty `allowlist` policy the same app opens to
+  every invited address: WARN;
+- an `open` policy with no SMTP sender (codes would reach only the log):
+  FAIL; and with no `privacy_url`: WARN.
+
+* **Return type:**
+  [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
+
 ### enlace_auth.diagnostics.check_widened_spellings(config)
 
 Warn about accounts a written list admits only through the other spelling.
@@ -2628,11 +2799,21 @@ address. Two cases follow (#52):
   either spelling: anyone can register its Unicode spelling (which is how
   registration keys it) and be admitted.
 
-The admin list and the registration allowlist compare as written, so they
-are not read here.
+The admin list compares as written, and the registration allowlist admits
+an entry’s mailbox only through a verified sign-up, so neither is read here.
 
 * **Return type:**
   [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
+
+### enlace_auth.diagnostics.open_to_every_account(config)
+
+The `protected:user` apps with no `allowed_users`: any account opens them.
+
+`enlace.access.is_user_allowed` treats an empty allowlist as “every signed-in
+user”, so once anyone can create an account, anyone can open these.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 
 # _autosummary/enlace_auth.emails.html.md
@@ -2877,7 +3058,7 @@ changes platform behavior unless the operator opts in.
 | [`EnlaceAuthConfigError`](_autosummary/enlace_auth.html.md#enlace_auth.EnlaceAuthConfigError)   | Raised when auth configuration is unusable at startup.   |
 |--------------------------------------------------------------------------|----------------------------------------------------------|
 
-### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST')
+### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>)
 
 Bases: `_StrictModel`
 
@@ -2886,6 +3067,13 @@ Platform-wide authentication configuration.
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+#### signup_default()
+
+The effective platform-wide sign-up policy.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### *exception* enlace_auth.EnlaceAuthConfigError
 
@@ -2940,8 +3128,66 @@ Plugin entry point. Safe to call when auth is disabled — does nothing.
 | [`config`](_autosummary/enlace_auth.config.html.md#module-enlace_auth.config)                   | Auth-side configuration models.                                             |
 | [`diagnostics`](_autosummary/enlace_auth.diagnostics.html.md#module-enlace_auth.diagnostics)         | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`.      |
 | [`emails`](_autosummary/enlace_auth.emails.html.md#module-enlace_auth.emails)                   | One normal form for an email address, wherever one is compared.             |
+| [`ratelimit`](_autosummary/enlace_auth.ratelimit.html.md#module-enlace_auth.ratelimit)             | A sliding-window rate limiter over any `MutableMapping`.                    |
 | [`resource_policy`](_autosummary/enlace_auth.resource_policy.html.md#module-enlace_auth.resource_policy) | The OAuth per-connector allowlist: its shape, its parsing and its one rule. |
+| [`signup`](_autosummary/enlace_auth.signup.html.md#module-enlace_auth.signup)                   | Self-service sign-up and email-code sign-in.                                |
 | [`stores`](_autosummary/enlace_auth.stores.html.md#module-enlace_auth.stores)                   | Per-user stores for enlace.                                                 |
+
+
+# _autosummary/enlace_auth.ratelimit.html.md
+
+# enlace_auth.ratelimit
+
+A sliding-window rate limiter over any `MutableMapping`.
+
+Host-free on purpose: this module imports nothing from `enlace_auth`, so it can
+move unchanged (extraction candidate: i2mint/enlace#111, a limiter of
+`enlace.ratelimit` over a `MutableMapping`, whose `RedisLimiter` is then
+the shared replacement). enlace’s own in-memory limiters count per worker
+process; the limits here must hold across workers, hence a store.
+
+A limiter is a callable `allow(key, *, limit, window) -> bool`. It records the
+hit and answers whether it stays within *limit* hits per *window* seconds. The
+store maps a hashed key to the list of hit times, so a plain `dict` serves one
+process and a file-backed mapping serves several worker processes sharing one
+disk. With a file store the read-modify-write is not atomic, so concurrent hits
+can each see the same count: the limit is approximate by a few hits, which is
+what a rate limit needs, and is why a hard cap (an attempt counter) must not be
+built from this alone.
+
+```pycon
+>>> now = [0.0]
+>>> allow = SlidingWindowLimiter({}, clock=lambda: now[0])
+>>> [allow("ip:1", limit=2, window=60) for _ in range(3)]
+[True, True, False]
+>>> now[0] = 61.0
+>>> allow("ip:1", limit=2, window=60)
+True
+```
+
+### Classes
+
+| [`RateLimiter`](_autosummary/enlace_auth.ratelimit.html.md#enlace_auth.ratelimit.RateLimiter)(\*args, \*\*kwargs)           | Records one hit on *key*; True while it is within the limit.   |
+|--------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| [`SlidingWindowLimiter`](_autosummary/enlace_auth.ratelimit.html.md#enlace_auth.ratelimit.SlidingWindowLimiter)([store, clock, ...]) | Allow at most *limit* hits per *window* seconds for each key.  |
+
+### *class* enlace_auth.ratelimit.RateLimiter(\*args, \*\*kwargs)
+
+Bases: [`Protocol`](https://docs.python.org/3/library/typing.html#typing.Protocol)
+
+Records one hit on *key*; True while it is within the limit.
+
+### *class* enlace_auth.ratelimit.SlidingWindowLimiter(store=None, \*, clock=<built-in function time>, sweep_every=200, sweep_limit=500, max_hits_kept=1000)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Allow at most *limit* hits per *window* seconds for each key.
+
+A refused hit is still recorded, so a client that keeps hammering stays
+refused instead of getting one more through every time an old hit ages out.
+Every *sweep_every* hits, up to *sweep_limit* keys whose newest hit is older
+than the longest window seen are deleted, so one-off keys do not pile up.
+A damaged entry counts as empty rather than raising.
 
 
 # _autosummary/enlace_auth.resource_policy.html.md
@@ -3039,6 +3285,693 @@ a resource is reported rather than silently showing generic consent copy.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+
+# _autosummary/enlace_auth.signup.botcheck.html.md
+
+# enlace_auth.signup.botcheck
+
+A cheap check that a sign-up form was sent by a person.
+
+[`TimedHoneypot`](_autosummary/enlace_auth.signup.botcheck.html.md#enlace_auth.signup.botcheck.TimedHoneypot) combines a honeypot field (`website`, hidden from
+people, filled in by naive bots) with a signed time-to-submit challenge: the
+form carries a token minted when it was rendered, and a submission sent sooner
+than *min_seconds* after it, or with no valid token, fails. The page script
+waits out the remainder before sending, so a person never sees the delay.
+
+It is a seam: anything with `challenge() -> str` and `verify(fields) -> bool`
+replaces it, such as a self-hosted proof-of-work challenge (ALTCHA) or
+Cloudflare Turnstile. A failed check is answered exactly like a passed one, and
+no mail is sent, so a bot learns nothing.
+
+```pycon
+>>> now = [100.0]
+>>> check = TimedHoneypot("k" * 32, min_seconds=2, clock=lambda: now[0])
+>>> token = check.challenge()
+>>> check.verify({"challenge": token})
+False
+>>> now[0] = 103.0
+>>> check.verify({"challenge": token})
+True
+>>> check.verify({"challenge": token, "website": "x"})
+False
+```
+
+### Classes
+
+| [`BotCheck`](_autosummary/enlace_auth.signup.botcheck.html.md#enlace_auth.signup.botcheck.BotCheck)(\*args, \*\*kwargs)                       | Mints a challenge for a form and checks the submitted fields.   |
+|-----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------|
+| [`TimedHoneypot`](_autosummary/enlace_auth.signup.botcheck.html.md#enlace_auth.signup.botcheck.TimedHoneypot)(signing_key, \*[, min_seconds, ...]) | Honeypot field plus a signed time-to-submit token.              |
+
+### *class* enlace_auth.signup.botcheck.BotCheck(\*args, \*\*kwargs)
+
+Bases: [`Protocol`](https://docs.python.org/3/library/typing.html#typing.Protocol)
+
+Mints a challenge for a form and checks the submitted fields.
+
+#### challenge()
+
+A token the form sends back.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### verify(fields)
+
+True when the submission looks like a person’s.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### *class* enlace_auth.signup.botcheck.TimedHoneypot(signing_key, \*, min_seconds=2.0, max_seconds=3600, clock=<built-in function time>)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Honeypot field plus a signed time-to-submit token. See the module docstring.
+
+#### challenge(, issued_at=None)
+
+A token recording when the form was rendered (*issued_at*: now).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### verify(fields)
+
+True when the honeypot is empty and the token is old enough, not stale.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+
+# _autosummary/enlace_auth.signup.codes.html.md
+
+# enlace_auth.signup.codes
+
+One-time codes mailed for sign-in, sign-up and account deletion.
+
+A pending code is stored as an HMAC, never in clear, in a `MutableMapping`
+keyed by a hash of `(purpose, address, nonce)`. The *nonce* names the browser
+that asked (an HttpOnly cookie the sign-up router sets), so a code can be spent
+only from that browser: someone else cannot finish a sign-up they did not start
+(which would let them choose the password of a victim’s account), nor sign a
+victim’s browser into their own account by sending them a link. It also means a
+stranger asking for codes for an address replaces only their own pending code,
+never its owner’s.
+
+A code is spent by the first check that matches it, expires after *ttl*
+seconds, and is destroyed after *max_attempts* wrong guesses. Wrong guesses are
+counted under their own key, so a late write of the counter (from another worker
+process) can never bring a spent code back; under such races the counter can
+undercount, so callers also rate-limit the check.
+
+The emailed link carries the same code in a signed token (`link_token()`)
+put in the URL *fragment*, which browsers never send to the server, so the code
+does not land in access logs, and the page it opens spends it only by a POST.
+
+```pycon
+>>> now = [0.0]
+>>> codes = PendingCodes({}, signing_key="k" * 32, clock=lambda: now[0])
+>>> code = codes.issue("a@x.io", data={"next": "/game/"})
+>>> codes.check("a@x.io", "000000" if code != "000000" else "111111")
+>>> codes.check("a@x.io", code)
+{'next': '/game/'}
+>>> codes.check("a@x.io", code) is None  # spent
+True
+```
+
+### Functions
+
+| [`normalize_code`](_autosummary/enlace_auth.signup.codes.html.md#enlace_auth.signup.codes.normalize_code)(code)   | Digits only, so `"123 456"` and `"123-456"` are the code `"123456"`.   |
+|-------------------------------------------------------------------------|------------------------------------------------------------------------|
+
+### Classes
+
+| [`PendingCodes`](_autosummary/enlace_auth.signup.codes.html.md#enlace_auth.signup.codes.PendingCodes)(store, \*, signing_key[, ttl, ...])   | Issue and check one-time codes.   |
+|-----------------------------------------------------------------------------------------------------|-----------------------------------|
+
+### *class* enlace_auth.signup.codes.PendingCodes(store, \*, signing_key, ttl=600, max_attempts=3, clock=<built-in function time>)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Issue and check one-time codes. See the module docstring.
+
+#### check(email, code, , purpose='signin', nonce='')
+
+Spend *code* for *email* and *nonce*; return its data, else `None`.
+
+`None` covers every failure alike (no pending code, another browser’s,
+expired, wrong, too many attempts, already spent).
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### discard(email, , purpose='signin', nonce='')
+
+Forget any pending code for *email* and *nonce*.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### issue(email, , purpose='signin', nonce='', data=None)
+
+Store a fresh code for *email* and *nonce* (replacing theirs); return it.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### link_token(email, code, , purpose='signin')
+
+A signed token carrying *email* and *code*, for the emailed link.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### open_link_token(token)
+
+`(email, code, purpose)` from a valid, unexpired token, else `None`.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
+
+### enlace_auth.signup.codes.normalize_code(code)
+
+Digits only, so `"123 456"` and `"123-456"` are the code `"123456"`.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+
+# _autosummary/enlace_auth.signup.html.md
+
+# enlace_auth.signup
+
+Self-service sign-up and email-code sign-in.
+
+`make_signup_router` mounts `/auth/email/*` (a one-time code mailed to the
+address, verify-before-create), the verify-first `/auth/register`, and
+self-service deletion (`/auth/account/delete`). The pieces are seams the
+plugin wires from `[auth.signup]`: [`SignupPolicy`](_autosummary/enlace_auth.signup.policy.html.md#enlace_auth.signup.policy.SignupPolicy)
+(who may create an account from which app), a rate limiter
+([`enlace_auth.ratelimit`](_autosummary/enlace_auth.ratelimit.html.md#module-enlace_auth.ratelimit)), and a bot check
+([`TimedHoneypot`](_autosummary/enlace_auth.signup.botcheck.html.md#enlace_auth.signup.botcheck.TimedHoneypot)). The design and its
+research: `misc/docs/research/self-signup-synthesis.md`.
+
+### Functions
+
+| [`consume_invite`](_autosummary/enlace_auth.signup.html.md#enlace_auth.signup.consume_invite)(invites, email)          | Drop *email*'s invitation once its account exists (a missing one is fine).   |
+|------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| [`invite`](_autosummary/enlace_auth.signup.html.md#enlace_auth.signup.invite)(invites, email, \*[, apps, ...]) | Invite *email* to sign up from *apps* (merged with any earlier invitation).  |
+
+### Classes
+
+| [`PendingCodes`](_autosummary/enlace_auth.signup.html.md#enlace_auth.signup.PendingCodes)(store, \*, signing_key[, ttl, ...])   | Issue and check one-time codes.                    |
+|-----------------------------------------------------------------------------------------------------|----------------------------------------------------|
+| [`SignupPolicy`](_autosummary/enlace_auth.signup.html.md#enlace_auth.signup.SignupPolicy)(\*[, default, apps, allowlist, ...])  | The per-app sign-up policy of `[auth.signup]`.     |
+| [`TimedHoneypot`](_autosummary/enlace_auth.signup.html.md#enlace_auth.signup.TimedHoneypot)(signing_key, \*[, min_seconds, ...]) | Honeypot field plus a signed time-to-submit token. |
+
+### *class* enlace_auth.signup.PendingCodes(store, \*, signing_key, ttl=600, max_attempts=3, clock=<built-in function time>)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Issue and check one-time codes. See the module docstring.
+
+#### check(email, code, , purpose='signin', nonce='')
+
+Spend *code* for *email* and *nonce*; return its data, else `None`.
+
+`None` covers every failure alike (no pending code, another browser’s,
+expired, wrong, too many attempts, already spent).
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### discard(email, , purpose='signin', nonce='')
+
+Forget any pending code for *email* and *nonce*.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### issue(email, , purpose='signin', nonce='', data=None)
+
+Store a fresh code for *email* and *nonce* (replacing theirs); return it.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### link_token(email, code, , purpose='signin')
+
+A signed token carrying *email* and *code*, for the emailed link.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### open_link_token(token)
+
+`(email, code, purpose)` from a valid, unexpired token, else `None`.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
+
+### *class* enlace_auth.signup.SignupPolicy(, default='closed', apps=None, allowlist=(), invites=None, admin_emails=())
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+The per-app sign-up policy of `[auth.signup]`. See the module docstring.
+
+#### allows(email, app)
+
+May *email* create an account by signing up from *app*?
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+#### is_admin(email)
+
+True for an admin address, in either spelling.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+#### is_invited(email, app)
+
+True when *email* holds an invitation for *app*, or is allowlisted.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+#### mode(app)
+
+The mode that applies to a sign-up from *app* (`None`: the default).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### on_created(email)
+
+Called once an account for *email* exists: its invitation is used up.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### *class* enlace_auth.signup.TimedHoneypot(signing_key, \*, min_seconds=2.0, max_seconds=3600, clock=<built-in function time>)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Honeypot field plus a signed time-to-submit token. See the module docstring.
+
+#### challenge(, issued_at=None)
+
+A token recording when the form was rendered (*issued_at*: now).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### verify(fields)
+
+True when the honeypot is empty and the token is old enough, not stale.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### enlace_auth.signup.consume_invite(invites, email)
+
+Drop *email*’s invitation once its account exists (a missing one is fine).
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### enlace_auth.signup.invite(invites, email, , apps=('\*',), invited_by=None, now=None)
+
+Invite *email* to sign up from *apps* (merged with any earlier invitation).
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+### Modules
+
+| [`botcheck`](_autosummary/enlace_auth.signup.botcheck.html.md#module-enlace_auth.signup.botcheck)   | A cheap check that a sign-up form was sent by a person.                                                    |
+|------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| [`codes`](_autosummary/enlace_auth.signup.codes.html.md#module-enlace_auth.signup.codes)         | One-time codes mailed for sign-in, sign-up and account deletion.                                           |
+| [`pages`](_autosummary/enlace_auth.signup.pages.html.md#module-enlace_auth.signup.pages)         | Markup for the sign-up flow: the "continue with email" step, the link page, and the account-deletion card. |
+| [`policy`](_autosummary/enlace_auth.signup.policy.html.md#module-enlace_auth.signup.policy)       | Who may create an account, from which app.                                                                 |
+| [`routes`](_autosummary/enlace_auth.signup.routes.html.md#module-enlace_auth.signup.routes)       | `/auth/email/*`, the verify-first `/auth/register`, and self-service deletion.                             |
+| [`texts`](_autosummary/enlace_auth.signup.texts.html.md#module-enlace_auth.signup.texts)         | What the sign-up flow says, in English and French: page text and emails.                                   |
+
+
+# _autosummary/enlace_auth.signup.pages.html.md
+
+# enlace_auth.signup.pages
+
+Markup for the sign-up flow: the “continue with email” step, the link page,
+and the account-deletion card.
+
+Every dynamic value reaches the markup through
+[`enlace_auth.auth.pages.fill_template()`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.fill_template) (HTML) or `_js_string` (inline
+script), the same escaping boundary as the rest of the auth pages. The step is
+handed to [`render_login_page()`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.render_login_page) as its
+`email_section`; it carries its own script, which reuses the page’s
+`postJSON` CSRF helper.
+
+### Functions
+
+| [`render_delete_section`](_autosummary/enlace_auth.signup.pages.html.md#enlace_auth.signup.pages.render_delete_section)(\*, lang, email)             | The account page's "delete my account" card: send a code, then confirm.   |
+|-----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| [`render_email_section`](_autosummary/enlace_auth.signup.pages.html.md#enlace_auth.signup.pages.render_email_section)(\*, lang, next_url, app, ...) | The "continue with email" step: address, then the 6-digit code.           |
+| [`render_link_page`](_autosummary/enlace_auth.signup.pages.html.md#enlace_auth.signup.pages.render_link_page)(\*, lang)                         | The page an emailed link opens: one button that spends the token by POST. |
+
+### enlace_auth.signup.pages.render_delete_section(, lang, email)
+
+The account page’s “delete my account” card: send a code, then confirm.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.signup.pages.render_email_section(, lang, next_url, app, challenge, min_seconds, mode, code_minutes, terms_url=None, privacy_url=None, providers=())
+
+The “continue with email” step: address, then the 6-digit code.
+
+*mode* (the sign-up policy of *app*) picks the note under the form: an open
+policy says who may sign up (15 and over), an invite or allowlist policy
+says sign-up is by invitation, a closed one says accounts come from the
+admin. *providers* are `(label, href)` pairs for external sign-in.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.signup.pages.render_link_page(, lang)
+
+The page an emailed link opens: one button that spends the token by POST.
+
+The token is in the URL fragment, which the browser never sends, so a GET of
+this page (a mail scanner’s preview) spends nothing.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+
+# _autosummary/enlace_auth.signup.policy.html.md
+
+# enlace_auth.signup.policy
+
+Who may create an account, from which app.
+
+A [`SignupPolicy`](_autosummary/enlace_auth.signup.policy.html.md#enlace_auth.signup.policy.SignupPolicy) answers two questions: `allows(email, app)` (may this
+address create an account when it signs up from *app*) and `mode(app)` (which
+of `closed`, `allowlist`, `invite` or `open` applies, for the page copy).
+It decides account *creation* only. Whether an account may open an app stays
+with `enlace.access.is_user_allowed`.
+
+An admin address is refused under every mode: a self-service sign-up must never
+be the way an admin account comes into being (i2mint/enlace_auth#35, #38).
+
+Invitations are a `MutableMapping` keyed by the normalized address, whose
+value is `{"apps": [...], "invited_by": ..., "created_at": ...}`; `"*"` in
+`apps` invites to every app. An allowlisted address counts as invited.
+
+```pycon
+>>> p = SignupPolicy(
+...     default="closed",
+...     apps={"game": "open", "beta": "invite"},
+...     invites={"a@x.io": {"apps": ["beta"]}},
+...     admin_emails=("boss@x.io",),
+... )
+>>> p.allows("anyone@x.io", "game"), p.allows("anyone@x.io", None)
+(True, False)
+>>> p.allows("a@x.io", "beta"), p.allows("b@x.io", "beta")
+(True, False)
+>>> p.allows("boss@x.io", "game")
+False
+```
+
+### Functions
+
+| [`app_from_next`](_autosummary/enlace_auth.signup.policy.html.md#enlace_auth.signup.policy.app_from_next)(next_url, known_apps)     | The app a `next` path belongs to (`/<app>/...` or `/api/<app>/...`).        |
+|------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| [`consume_invite`](_autosummary/enlace_auth.signup.policy.html.md#enlace_auth.signup.policy.consume_invite)(invites, email)          | Drop *email*'s invitation once its account exists (a missing one is fine).  |
+| [`invite`](_autosummary/enlace_auth.signup.policy.html.md#enlace_auth.signup.policy.invite)(invites, email, \*[, apps, ...]) | Invite *email* to sign up from *apps* (merged with any earlier invitation). |
+
+### Classes
+
+| [`SignupPolicy`](_autosummary/enlace_auth.signup.policy.html.md#enlace_auth.signup.policy.SignupPolicy)(\*[, default, apps, allowlist, ...])   | The per-app sign-up policy of `[auth.signup]`.   |
+|------------------------------------------------------------------------------------------------------|--------------------------------------------------|
+
+### *class* enlace_auth.signup.policy.SignupPolicy(, default='closed', apps=None, allowlist=(), invites=None, admin_emails=())
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+The per-app sign-up policy of `[auth.signup]`. See the module docstring.
+
+#### allows(email, app)
+
+May *email* create an account by signing up from *app*?
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+#### is_admin(email)
+
+True for an admin address, in either spelling.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+#### is_invited(email, app)
+
+True when *email* holds an invitation for *app*, or is allowlisted.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+#### mode(app)
+
+The mode that applies to a sign-up from *app* (`None`: the default).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### on_created(email)
+
+Called once an account for *email* exists: its invitation is used up.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### enlace_auth.signup.policy.app_from_next(next_url, known_apps)
+
+The app a `next` path belongs to (`/<app>/...` or `/api/<app>/...`).
+
+```pycon
+>>> app_from_next("/api/game/state?x=1", {"game"})
+'game'
+>>> app_from_next("/nope/", {"game"}) is None
+True
+```
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.signup.policy.consume_invite(invites, email)
+
+Drop *email*’s invitation once its account exists (a missing one is fine).
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### enlace_auth.signup.policy.invite(invites, email, , apps=('\*',), invited_by=None, now=None)
+
+Invite *email* to sign up from *apps* (merged with any earlier invitation).
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+
+# _autosummary/enlace_auth.signup.routes.html.md
+
+# enlace_auth.signup.routes
+
+`/auth/email/*`, the verify-first `/auth/register`, and self-service deletion.
+
+Verify before create. No user record is written until the address has proved
+it receives mail: `start` mails a one-time code, `verify` spends it and then
+signs in an existing account or creates the new one. That closes the two gaps
+of a register-then-verify flow: answering whether an address has an account
+(enumeration), and an attacker creating an account for a victim’s address
+before the victim does (pre-hijacking).
+
+The code is bound to the browser that asked for it. `start` sets an HttpOnly
+cookie holding a fresh random nonce, the pending code is stored under it, and
+`verify` finds the code only through that cookie (refused when the request
+carries it twice). Only the newest code of a browser works. So a sign-up is finished by
+the browser that began it: nobody can register a victim’s address with their
+own password and wait for the victim to verify it, and nobody can sign a
+victim’s browser into an account of theirs by sending a link. A stranger asking
+for codes for an address replaces only their own pending code, never the
+owner’s.
+
+`start` answers every address the same way, byte for byte, and does the same
+work for each: it always stores a pending code (a decoy that can never verify
+for an address the policy refuses, or for an admin account) and always mails in
+the background. Only the mail differs: a code, or a short “sign-up here is by
+invitation” notice. A submission failing the bot check gets the same answer and
+no mail. Rate limits answer 429; they count hits, not accounts.
+
+Endpoints, all CSRF-checked like every other `/auth` POST:
+
+- `GET  /auth/email/challenge`     a bot-check token for an API client’s form
+- `POST /auth/email/start`         `{email, app?, next?, lang?, challenge, website}`
+- `POST /auth/email/verify`        `{email, code}` or `{token}` (the emailed link)
+- `GET  /auth/email/link`          the link’s landing page (token in the fragment)
+- `POST /auth/register`            `{email, password, ...}`: `start` that also
+  sets a password on the account it creates
+- `POST /auth/account/delete/start`  mails the signed-in account a confirmation code
+- `POST /auth/account/delete`      `{code}`: deletes it
+
+### Module Attributes
+
+| [`SIGNUP_MIN_PASSWORD_LEN`](_autosummary/enlace_auth.signup.routes.html.md#enlace_auth.signup.routes.SIGNUP_MIN_PASSWORD_LEN)   | a password that is the only factor needs at least 15.                         |
+|----------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| [`SIGNUP_MAX_PASSWORD_LEN`](_autosummary/enlace_auth.signup.routes.html.md#enlace_auth.signup.routes.SIGNUP_MAX_PASSWORD_LEN)   | Longer than any passphrase, short enough that hashing it costs nothing extra. |
+| [`NONCE_COOKIE`](_autosummary/enlace_auth.signup.routes.html.md#enlace_auth.signup.routes.NONCE_COOKIE)              | The cookie naming the browser a pending code belongs to.                      |
+| [`ACCEPTED`](_autosummary/enlace_auth.signup.routes.html.md#enlace_auth.signup.routes.ACCEPTED)                  | The one answer `start` and `register` give to every address.                  |
+
+### Functions
+
+| [`make_limit_gates`](_autosummary/enlace_auth.signup.routes.html.md#enlace_auth.signup.routes.make_limit_gates)(rate_limiter[, limits])       | `(mail_allowed, verify_allowed)`, each `(email, client_ip) -> bool`.   |
+|-------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| [`make_signup_router`](_autosummary/enlace_auth.signup.routes.html.md#enlace_auth.signup.routes.make_signup_router)(\*, user_store, ...[, ...]) | Build the sign-up router.                                              |
+
+### enlace_auth.signup.routes.ACCEPTED *= {'detail': 'If this address can sign in here, a code is on its way.', 'ok': True}*
+
+The one answer `start` and `register` give to every address.
+
+### enlace_auth.signup.routes.NONCE_COOKIE *= 'enlace_signup'*
+
+The cookie naming the browser a pending code belongs to.
+
+### enlace_auth.signup.routes.SIGNUP_MAX_PASSWORD_LEN *= 1024*
+
+Longer than any passphrase, short enough that hashing it costs nothing extra.
+
+### enlace_auth.signup.routes.SIGNUP_MIN_PASSWORD_LEN *= 15*
+
+a password that is the only factor needs at least 15.
+
+* **Type:**
+  NIST SP 800-63B-4
+
+### enlace_auth.signup.routes.make_limit_gates(rate_limiter, limits=None)
+
+`(mail_allowed, verify_allowed)`, each `(email, client_ip) -> bool`.
+
+*mail_allowed* (`kind=` `signin`, `reset` or `delete`) charges the
+address, the IP and the overall budget of that kind of mail, so flooding one
+kind cannot stop the others. *verify_allowed* charges the address-and-IP pair,
+the IP, and the overall budget of code checks: keyed on the pair, so a
+stranger’s wrong guesses do not lock the owner out, and the overall budget
+bounds how many guesses all clients together get. Every key is charged even
+after one is over, or a client at one cap would stop counting against the
+others.
+
+```pycon
+>>> mail, _ = make_limit_gates(SlidingWindowLimiter({}), {"mail_per_address": 1})
+>>> mail("a@x.io", "1.2.3.4"), mail("a@x.io", "5.6.7.8"), mail("b@x.io", "5.6.7.8")
+(True, False, True)
+>>> mail("a@x.io", "1.2.3.4", kind="reset")
+True
+```
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis), [`bool`](https://docs.python.org/3/builtins/functions.html#bool)], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]]
+
+### enlace_auth.signup.routes.make_signup_router(\*, user_store, session_store, signing_key, send_email, policy=None, codes=None, rate_limiter=None, bot_check=None, limits=None, client_ip=<function \_peer_host>, known_apps=(), delete_account=None, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, public_base_url=None, terms_version=None)
+
+Build the sign-up router. See the module docstring for the endpoints.
+
+* **Parameters:**
+  * **session_store** (*user_store /*) – the platform’s account records and sessions.
+  * **signing_key** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – HMAC key for codes, link tokens, challenges and cookies.
+  * **send_email** ([`EmailSender`](_autosummary/enlace_auth.auth.email.html.md#enlace_auth.auth.email.EmailSender)) – delivers the mails (`to=, subject=, body=`; never raises).
+  * **policy** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`SignupPolicy`](_autosummary/enlace_auth.signup.policy.html.md#enlace_auth.signup.policy.SignupPolicy)]) – who may create an account from which app (default: nobody); its
+    admin addresses are never created and get no sign-in codes.
+  * **codes** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`PendingCodes`](_autosummary/enlace_auth.signup.codes.html.md#enlace_auth.signup.codes.PendingCodes)]) – the pending-code store (default: in memory, 10 minutes, 5 tries).
+  * **rate_limiter** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`RateLimiter`](_autosummary/enlace_auth.ratelimit.html.md#enlace_auth.ratelimit.RateLimiter)]) – `allow(key, *, limit, window)` (default: in memory).
+  * **bot_check** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`BotCheck`](_autosummary/enlace_auth.signup.botcheck.html.md#enlace_auth.signup.botcheck.BotCheck)]) – `challenge()` / `verify(fields)` (default: honeypot plus
+    a 2-second time-to-submit).
+  * **limits** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]) – the counts of `SignupLimitsConfig` as a dict.
+  * **client_ip** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`Request`], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – `(request) -> str`, the client a rate limit counts (the
+    plugin reads `X-Forwarded-For` only from a trusted proxy).
+  * **known_apps** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – app names a sign-up may name, directly or through `next`.
+  * **delete_account** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]]) – `delete(email)`, removing an account and its data;
+    `None` leaves the deletion endpoints unmounted.
+  * **public_base_url** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – the origin put in mailed links. Without it the link is
+    built from the request’s `Host`, which the requester controls.
+  * **terms_version** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – stored on each account created, as the terms accepted.
+* **Return type:**
+  `APIRouter`
+
+
+# _autosummary/enlace_auth.signup.texts.html.md
+
+# enlace_auth.signup.texts
+
+What the sign-up flow says, in English and French: page text and emails.
+
+Plain dictionaries, one per language, so a translation is a reviewable diff and
+a missing key falls back to English rather than raising. [`pick_lang()`](_autosummary/enlace_auth.signup.texts.html.md#enlace_auth.signup.texts.pick_lang)
+chooses from the request’s `Accept-Language` (or an explicit `lang`).
+
+```pycon
+>>> pick_lang("fr-FR,fr;q=0.9,en;q=0.8"), pick_lang("de, en;q=0.5"), pick_lang(None)
+('fr', 'en', 'en')
+>>> t("fr", "continue")
+'Continuer avec mon e-mail'
+```
+
+### Functions
+
+| [`code_email`](_autosummary/enlace_auth.signup.texts.html.md#enlace_auth.signup.texts.code_email)(lang, \*, code, link, site, minutes)   | `(subject, body)` of the mail carrying a sign-in code.                      |
+|----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| [`delete_email`](_autosummary/enlace_auth.signup.texts.html.md#enlace_auth.signup.texts.delete_email)(lang, \*, code, site, minutes)       | `(subject, body)` of the mail confirming an account deletion.               |
+| [`pick_lang`](_autosummary/enlace_auth.signup.texts.html.md#enlace_auth.signup.texts.pick_lang)(accept_language, \*[, explicit])        | The first supported language in *explicit*, else in `Accept-Language`.      |
+| [`refused_email`](_autosummary/enlace_auth.signup.texts.html.md#enlace_auth.signup.texts.refused_email)(lang, \*, site)                     | `(subject, body)` of the mail to an address the policy does not admit.      |
+| [`t`](_autosummary/enlace_auth.signup.texts.html.md#enlace_auth.signup.texts.t)(lang, key, \*\*values)                          | The *key* string in *lang* (English when missing), formatted with *values*. |
+
+### enlace_auth.signup.texts.code_email(lang, , code, link, site, minutes)
+
+`(subject, body)` of the mail carrying a sign-in code.
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.signup.texts.delete_email(lang, , code, site, minutes)
+
+`(subject, body)` of the mail confirming an account deletion.
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.signup.texts.pick_lang(accept_language, , explicit=None)
+
+The first supported language in *explicit*, else in `Accept-Language`.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.signup.texts.refused_email(lang, , site)
+
+`(subject, body)` of the mail to an address the policy does not admit.
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.signup.texts.t(lang, key, \*\*values)
+
+The *key* string in *lang* (English when missing), formatted with *values*.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 
 # _autosummary/enlace_auth.stores.backends.html.md
@@ -3347,18 +4280,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-11-02 08:47 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/1a8fcbd1f3e6de44877349a9a1a56fbaa7255d50"><code>1a8fcbd</code></a> on branch <code>main</code>, for **enlace_auth 0.1.51** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-08 19:15 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b"><code>65cd580</code></a> on branch <code>main</code>, for **enlace_auth 0.1.52** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.51) is behind the latest release on PyPI (0.1.52): `pip install enlace_auth` gives newer code than these docs describe.
+- The documented version (0.1.52) is behind the latest release on PyPI (0.1.53): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/1a8fcbd1f3e6de44877349a9a1a56fbaa7255d50"><code>1a8fcbd1f3e6de44877349a9a1a56fbaa7255d50</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b"><code>65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -3369,9 +4302,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/41415175371">41415175371</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/42513940746">42513940746</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>1a8fcbd1f3e6de44877349a9a1a56fbaa7255d50</code> (in the history of the built commit) |
+| Event commit | <code>65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -3380,7 +4313,7 @@ The documentation and the package may be misaligned:
 | epythet  | 0.2.22  |
 | Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
-| Python   | 3.12.15 |
+| Python   | 3.12.16 |
 
 ## Configuration as resolved
 
@@ -3396,13 +4329,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.52/">0.1.52</a>, newer than the documented version (0.1.51).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.53/">0.1.53</a>, newer than the documented version (0.1.52).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 1a8fcbd1f3e6de44877349a9a1a56fbaa7255d50
+git checkout 65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
@@ -3426,7 +4359,7 @@ Skills are folders holding a `SKILL.md` (the [Agent Skills](https://agentskills.
 
 ### `enlace-auth-usage`
 
-How to add sign-in, sessions, CSRF protection, admin accounts, per-app access levels, runtime grants and per-user storage to an enlace multi-app platform with the enlace_auth plugin. Use when the user mentions enlace_auth, the enlace-auth CLI, protected:user or protected:shared apps, ENLACE_SIGNING_KEY, ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user, reset-link, grant, or share; or wants to put login in front of apps served by enlace.
+How to add sign-in, sessions, CSRF protection, admin accounts, per-app access levels, runtime grants and per-user storage to an enlace multi-app platform with the enlace_auth plugin. Use when the user mentions enlace_auth, the enlace-auth CLI, protected:user or protected:shared apps, ENLACE_SIGNING_KEY, ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user, reset-link, grant, share, invite, [auth.signup], sign-up, “continue with email” or account deletion; or wants to put login or self-service sign-up in front of apps served by enlace.
 
 ```bash
 gh skill install i2mint/enlace_auth enlace-auth-usage --agent claude-code

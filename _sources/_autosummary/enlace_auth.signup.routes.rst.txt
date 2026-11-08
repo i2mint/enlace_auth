@@ -1,0 +1,22 @@
+enlace\_auth.signup.routes
+==========================
+
+.. automodule:: enlace_auth.signup.routes
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      SIGNUP_MIN_PASSWORD_LEN
+      SIGNUP_MAX_PASSWORD_LEN
+      NONCE_COOKIE
+      ACCEPTED
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_limit_gates
+      make_signup_router
+   

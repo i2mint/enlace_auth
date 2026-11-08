@@ -1,0 +1,14 @@
+enlace\_auth.signup.pages
+=========================
+
+.. automodule:: enlace_auth.signup.pages
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      render_delete_section
+      render_email_section
+      render_link_page
+   

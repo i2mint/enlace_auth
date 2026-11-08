@@ -1,0 +1,33 @@
+enlace\_auth.signup
+===================
+
+.. automodule:: enlace_auth.signup
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      consume_invite
+      invite
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      PendingCodes
+      SignupPolicy
+      TimedHoneypot
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   botcheck
+   codes
+   pages
+   policy
+   routes
+   texts

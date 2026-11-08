@@ -30,8 +30,8 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
-<link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+  <link href="../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
@@ -39,12 +39,12 @@
     <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=d146b16c" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
+  <script defer src="../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
-<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=56cc1d78"></script>
+    <script src="../_static/documentation_options.js?v=61349712"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.51" />
+  <meta name="docsearch:version" content="0.1.52" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -106,7 +106,7 @@
   
     <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
 <div class="bd-header__inner bd-page-width">
-  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
     <span class="fa-solid fa-bars"></span>
   </button>
   
@@ -176,14 +176,14 @@
 
 <div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
   <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
-    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
-    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
-    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
   </button>
   <ul class="dropdown-menu dropdown-menu-end">
-    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
-    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
-    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
   </ul>
 </div></div>
       
@@ -218,7 +218,7 @@
   
 
   
-    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
       <span class="fa-solid fa-outdent"></span>
     </button>
   
@@ -232,7 +232,7 @@
       
       
       
-      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
       <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
         
 
@@ -275,14 +275,14 @@
 
 <div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
   <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
-    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
-    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
-    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
   </button>
   <ul class="dropdown-menu dropdown-menu-end">
-    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
-    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
-    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
   </ul>
 </div></div>
         
@@ -346,7 +346,17 @@
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.config.html">enlace_auth.config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.diagnostics.html">enlace_auth.diagnostics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.emails.html">enlace_auth.emails</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_auth.ratelimit.html">enlace_auth.ratelimit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.resource_policy.html">enlace_auth.resource_policy</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.signup.html">enlace_auth.signup</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.signup.botcheck.html">enlace_auth.signup.botcheck</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.signup.codes.html">enlace_auth.signup.codes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.signup.pages.html">enlace_auth.signup.pages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.signup.policy.html">enlace_auth.signup.policy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.signup.routes.html">enlace_auth.signup.routes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.signup.texts.html">enlace_auth.signup.texts</a></li>
+</ul>
+</details></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.stores.html">enlace_auth.stores</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.stores.backends.html">enlace_auth.stores.backends</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.stores.middleware.html">enlace_auth.stores.middleware</a></li>
@@ -393,7 +403,7 @@
     
     <li class="breadcrumb-item breadcrumb-home">
       <a href="../index.html" class="nav-link" aria-label="Home">
-        <i class="fa-solid fa-home"></i>
+        <i class="fa-solid fa-house"></i>
       </a>
     </li>
     
@@ -457,13 +467,16 @@ it in its own mapping (<code class="docutils literal notranslate"><span class="p
 <tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.is_disabled" title="enlace_auth.auth.accounts.is_disabled"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_disabled</span></code></a>(record)</p></td>
 <td><p>True when <em>record</em> is a user record marked disabled.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.make_account_records" title="enlace_auth.auth.accounts.make_account_records"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_account_records</span></code></a>(store_factory)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.make_account_deleter" title="enlace_auth.auth.accounts.make_account_deleter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_account_deleter</span></code></a>(*, user_store, ...[, ...])</p></td>
+<td><p>Return <code class="docutils literal notranslate"><span class="pre">delete(email)</span></code>: remove an account and what hangs off it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.make_account_records" title="enlace_auth.auth.accounts.make_account_records"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_account_records</span></code></a>(store_factory)</p></td>
 <td><p>The platform's user records: <code class="docutils literal notranslate"><span class="pre">users</span></code> plus the <code class="docutils literal notranslate"><span class="pre">disabled_accounts</span></code> marks.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.open_session" title="enlace_auth.auth.accounts.open_session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_session</span></code></a>(session_store, user_store, email)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.open_session" title="enlace_auth.auth.accounts.open_session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_session</span></code></a>(session_store, user_store, email)</p></td>
 <td><p>Create a session for <em>email</em> and return its id, unless it is disabled.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.set_disabled" title="enlace_auth.auth.accounts.set_disabled"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_disabled</span></code></a>(user_store, email, disabled, *)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.set_disabled" title="enlace_auth.auth.accounts.set_disabled"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_disabled</span></code></a>(user_store, email, disabled, *)</p></td>
 <td><p>Mark <em>email</em>'s record disabled (or not); return the new record.</p></td>
 </tr>
 </tbody>
@@ -548,6 +561,35 @@ the record stays disabled (rewrites keep it) until an enable clears it.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.auth.accounts.make_account_deleter">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.accounts.</span></span><span class="sig-name descname"><span class="pre">make_account_deleter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">credentials_changed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">share_store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grant_store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sign_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/accounts.html#make_account_deleter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.accounts.make_account_deleter" title="Link to this definition">#</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">delete(email)</span></code>: remove an account and what hangs off it.</p>
+<p>The record goes first, then its sessions and connector refresh families
+(<code class="docutils literal notranslate"><span class="pre">credentials_changed</span></code>), so a failure later cannot leave a deleted account
+signed in. Then, each optional and each failing alone: the shares naming it,
+its runtime grants (stored under exactly its key: the other spelling of the
+address may be another account), its per-user data (every key under
+<code class="docutils literal notranslate"><span class="pre">{email}/</span></code> in the base store), and its last-sign-in time. Raises
+<code class="docutils literal notranslate"><span class="pre">KeyError</span></code> when there is no such account; a damaged grant or data key is
+logged and skipped.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">users</span><span class="p">,</span> <span class="n">ended</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"a@x.io"</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">"b@x.io"</span><span class="p">:</span> <span class="p">{}},</span> <span class="p">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"a@x.io/game/progress"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"b@x.io/game/progress"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">delete</span> <span class="o">=</span> <span class="n">make_account_deleter</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">user_store</span><span class="o">=</span><span class="n">users</span><span class="p">,</span> <span class="n">credentials_changed</span><span class="o">=</span><span class="n">ended</span><span class="o">.</span><span class="n">append</span><span class="p">,</span> <span class="n">user_data</span><span class="o">=</span><span class="n">data</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">delete</span><span class="p">(</span><span class="s2">"a@x.io"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">sorted</span><span class="p">(</span><span class="n">users</span><span class="p">),</span> <span class="n">ended</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="go">(['b@x.io'], ['a@x.io'], ['b@x.io/game/progress'])</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -643,7 +685,7 @@ from the record; on a plain mapping it is written into the record.</p>
             
             
               
-                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
                 <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
 
@@ -662,6 +704,7 @@ from the record; on a plain mapping it is written into the record.</p>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.accounts.DISABLED_DETAIL"><code class="docutils literal notranslate"><span class="pre">DISABLED_DETAIL</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.accounts.is_disabled"><code class="docutils literal notranslate"><span class="pre">is_disabled()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.accounts.make_account_deleter"><code class="docutils literal notranslate"><span class="pre">make_account_deleter()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.accounts.make_account_records"><code class="docutils literal notranslate"><span class="pre">make_account_records()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.accounts.open_session"><code class="docutils literal notranslate"><span class="pre">open_session()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.accounts.set_disabled"><code class="docutils literal notranslate"><span class="pre">set_disabled()</span></code></a></li>
@@ -690,8 +733,8 @@ from the record; on a plain mapping it is written into the record.</p>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
-<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
+  <script defer src="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -703,7 +746,7 @@ from the record; on a plain mapping it is written into the record.</p>
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
 </p></div>
       
     </div>

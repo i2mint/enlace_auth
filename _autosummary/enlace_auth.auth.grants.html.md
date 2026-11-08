@@ -90,6 +90,16 @@ All grant records across all apps. Admin-only / infrequent.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
+#### remove_exact(app_id, email)
+
+Remove the grant stored under exactly *email*; True if there was one.
+
+Unlike [`revoke()`](#enlace_auth.auth.grants.GrantStore.revoke), the other spelling of the address is left alone:
+it may be a distinct account (account deletion uses this).
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
 #### revoke(app_id, email)
 
 Remove the grant to *email* in both spellings; return the emails removed.

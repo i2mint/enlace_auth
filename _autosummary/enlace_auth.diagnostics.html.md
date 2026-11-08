@@ -30,7 +30,9 @@ moved here when auth was extracted from enlace.
 | [`check_oauth_server_advertises_refresh`](#enlace_auth.diagnostics.check_oauth_server_advertises_refresh)(...) | The live server must offer refresh_token in its discovery metadata.        |
 | `check_shared_passwords`(config)                                                            |                                                                            |
 | `check_signing_key`(config)                                                                 |                                                                            |
+| [`check_signup`](#enlace_auth.diagnostics.check_signup)(config)                       | Report a sign-up policy that is unsafe or cannot work.                     |
 | [`check_widened_spellings`](#enlace_auth.diagnostics.check_widened_spellings)(config)            | Warn about accounts a written list admits only through the other spelling. |
+| [`open_to_every_account`](#enlace_auth.diagnostics.open_to_every_account)(config)              | The `protected:user` apps with no `allowed_users`: any account opens them. |
 
 ### enlace_auth.diagnostics.check_admin_accounts(config)
 
@@ -93,6 +95,22 @@ requests). This asks the running server what it actually advertises.
 * **Return type:**
   [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
 
+### enlace_auth.diagnostics.check_signup(config)
+
+Report a sign-up policy that is unsafe or cannot work.
+
+- an `[auth.signup] apps` entry naming no app (a typo leaves that app on
+  the default): FAIL;
+- an `open` policy anywhere while a `protected:user` app has no
+  `allowed_users` (anyone could sign up and open it): FAIL; under an
+  `invite` or a non-empty `allowlist` policy the same app opens to
+  every invited address: WARN;
+- an `open` policy with no SMTP sender (codes would reach only the log):
+  FAIL; and with no `privacy_url`: WARN.
+
+* **Return type:**
+  [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
+
 ### enlace_auth.diagnostics.check_widened_spellings(config)
 
 Warn about accounts a written list admits only through the other spelling.
@@ -110,8 +128,18 @@ address. Two cases follow (#52):
   either spelling: anyone can register its Unicode spelling (which is how
   registration keys it) and be admitted.
 
-The admin list and the registration allowlist compare as written, so they
-are not read here.
+The admin list compares as written, and the registration allowlist admits
+an entry’s mailbox only through a verified sign-up, so neither is read here.
 
 * **Return type:**
   [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
+
+### enlace_auth.diagnostics.open_to_every_account(config)
+
+The `protected:user` apps with no `allowed_users`: any account opens them.
+
+`enlace.access.is_user_allowed` treats an empty allowlist as “every signed-in
+user”, so once anyone can create an account, anyone can open these.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]

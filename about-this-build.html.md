@@ -2,18 +2,18 @@
 
 # About this build
 
-This documentation was built on **2026-11-02 08:47 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/1a8fcbd1f3e6de44877349a9a1a56fbaa7255d50"><code>1a8fcbd</code></a> on branch <code>main</code>, for **enlace_auth 0.1.51** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-08 19:15 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b"><code>65cd580</code></a> on branch <code>main</code>, for **enlace_auth 0.1.52** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.51) is behind the latest release on PyPI (0.1.52): `pip install enlace_auth` gives newer code than these docs describe.
+- The documented version (0.1.52) is behind the latest release on PyPI (0.1.53): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/1a8fcbd1f3e6de44877349a9a1a56fbaa7255d50"><code>1a8fcbd1f3e6de44877349a9a1a56fbaa7255d50</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b"><code>65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -24,9 +24,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/41415175371">41415175371</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/42513940746">42513940746</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>1a8fcbd1f3e6de44877349a9a1a56fbaa7255d50</code> (in the history of the built commit) |
+| Event commit | <code>65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -35,7 +35,7 @@ The documentation and the package may be misaligned:
 | epythet  | 0.2.22  |
 | Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
-| Python   | 3.12.15 |
+| Python   | 3.12.16 |
 
 ## Configuration as resolved
 
@@ -51,13 +51,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.52/">0.1.52</a>, newer than the documented version (0.1.51).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.53/">0.1.53</a>, newer than the documented version (0.1.52).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 1a8fcbd1f3e6de44877349a9a1a56fbaa7255d50
+git checkout 65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

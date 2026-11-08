@@ -30,11 +30,12 @@ it in its own mapping (`sign_ins`).
 
 ### Functions
 
-| [`is_disabled`](#enlace_auth.auth.accounts.is_disabled)(record)                            | True when *record* is a user record marked disabled.                     |
-|-------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
-| [`make_account_records`](#enlace_auth.auth.accounts.make_account_records)(store_factory)            | The platform's user records: `users` plus the `disabled_accounts` marks. |
-| [`open_session`](#enlace_auth.auth.accounts.open_session)(session_store, user_store, email) | Create a session for *email* and return its id, unless it is disabled.   |
-| [`set_disabled`](#enlace_auth.auth.accounts.set_disabled)(user_store, email, disabled, \*)  | Mark *email*'s record disabled (or not); return the new record.          |
+| [`is_disabled`](#enlace_auth.auth.accounts.is_disabled)(record)                              | True when *record* is a user record marked disabled.                     |
+|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| [`make_account_deleter`](#enlace_auth.auth.accounts.make_account_deleter)(\*, user_store, ...[, ...]) | Return `delete(email)`: remove an account and what hangs off it.         |
+| [`make_account_records`](#enlace_auth.auth.accounts.make_account_records)(store_factory)              | The platform's user records: `users` plus the `disabled_accounts` marks. |
+| [`open_session`](#enlace_auth.auth.accounts.open_session)(session_store, user_store, email)   | Create a session for *email* and return its id, unless it is disabled.   |
+| [`set_disabled`](#enlace_auth.auth.accounts.set_disabled)(user_store, email, disabled, \*)    | Mark *email*'s record disabled (or not); return the new record.          |
 
 ### Classes
 
@@ -103,6 +104,33 @@ True when *record* is a user record marked disabled.
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### enlace_auth.auth.accounts.make_account_deleter(, user_store, credentials_changed, share_store=None, grant_store=None, user_data=None, sign_ins=None)
+
+Return `delete(email)`: remove an account and what hangs off it.
+
+The record goes first, then its sessions and connector refresh families
+(`credentials_changed`), so a failure later cannot leave a deleted account
+signed in. Then, each optional and each failing alone: the shares naming it,
+its runtime grants (stored under exactly its key: the other spelling of the
+address may be another account), its per-user data (every key under
+`{email}/` in the base store), and its last-sign-in time. Raises
+`KeyError` when there is no such account; a damaged grant or data key is
+logged and skipped.
+
+```pycon
+>>> users, ended = {"a@x.io": {}, "b@x.io": {}}, []
+>>> data = {"a@x.io/game/progress": 1, "b@x.io/game/progress": 2}
+>>> delete = make_account_deleter(
+...     user_store=users, credentials_changed=ended.append, user_data=data
+... )
+>>> delete("a@x.io")
+>>> sorted(users), ended, sorted(data)
+(['b@x.io'], ['a@x.io'], ['b@x.io/game/progress'])
+```
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
 ### enlace_auth.auth.accounts.make_account_records(store_factory)
 

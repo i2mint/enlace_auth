@@ -12,6 +12,11 @@ The TOML loader in `enlace.base.PlatformConfig.from_toml` accepts
 `[auth.*]` and `[stores.*]` tables and forwards them through the model;
 we just deserialize them into typed objects here when the plugin runs.
 
+### Module Attributes
+
+| [`SignupMode`](#enlace_auth.config.SignupMode)   | nobody, the listed addresses, the invited addresses (an allowlisted address counts as invited), or anyone.   |
+|---------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
+
 ### Functions
 
 | [`coerce_auth_config`](#enlace_auth.config.coerce_auth_config)(raw)   | Accept dict / AuthConfig / None and return an AuthConfig.      |
@@ -20,13 +25,15 @@ we just deserialize them into typed objects here when the plugin runs.
 
 ### Classes
 
-| [`AuthConfig`](#enlace_auth.config.AuthConfig)(\*[, enabled, ...])                     | Platform-wide authentication configuration.                   |
-|-----------------------------------------------------------------------------------------------------|---------------------------------------------------------------|
-| [`OAuthProviderConfig`](#enlace_auth.config.OAuthProviderConfig)(\*, client_id_env, ...[, ...]) | Configuration for a single OAuth2/OIDC provider.              |
-| [`OAuthServerConfig`](#enlace_auth.config.OAuthServerConfig)(\*[, enabled, issuer, ...])      | OAuth 2.1 authorization-server settings (for MCP connectors). |
-| [`StoreBackendConfig`](#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.      |
+| [`AuthConfig`](#enlace_auth.config.AuthConfig)(\*[, enabled, ...])                     | Platform-wide authentication configuration.                    |
+|-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| [`OAuthProviderConfig`](#enlace_auth.config.OAuthProviderConfig)(\*, client_id_env, ...[, ...]) | Configuration for a single OAuth2/OIDC provider.               |
+| [`OAuthServerConfig`](#enlace_auth.config.OAuthServerConfig)(\*[, enabled, issuer, ...])      | OAuth 2.1 authorization-server settings (for MCP connectors).  |
+| [`SignupConfig`](#enlace_auth.config.SignupConfig)(\*[, default, apps, allowlist, ...])  | Self-service sign-up and email-code sign-in (`[auth.signup]`). |
+| [`SignupLimitsConfig`](#enlace_auth.config.SignupLimitsConfig)(\*[, window_seconds, ...])      | Rate limits on the endpoints that send mail or check a code.   |
+| [`StoreBackendConfig`](#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.       |
 
-### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST')
+### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>)
 
 Bases: `_StrictModel`
 
@@ -35,6 +42,13 @@ Platform-wide authentication configuration.
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+#### signup_default()
+
+The effective platform-wide sign-up policy.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### *class* enlace_auth.config.OAuthProviderConfig(\*, client_id_env, client_secret_env, scopes=<factory>, authorize_url=None, token_url=None, userinfo_url=None, server_metadata_url=None, trust_unverified_email=False)
 
@@ -59,6 +73,48 @@ session login. See [`enlace_auth.auth.oauth_server`](enlace_auth.auth.oauth_serv
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* enlace_auth.config.SignupConfig(\*, default=None, apps=<factory>, allowlist=<factory>, email_code=None, code_ttl_seconds=600, max_attempts=3, bot_min_seconds=2.0, privacy_url=None, terms_url=None, terms_version=None, limits=<factory>)
+
+Bases: `_StrictModel`
+
+Self-service sign-up and email-code sign-in (`[auth.signup]`).
+
+The account is platform-wide; *where* it may be created is per app. Which
+apps an account may open is still decided by each app’s `access` and
+`allowed_users`, never by this table. Note what that means: a
+`protected:user` app with an empty `allowed_users` opens to *every*
+account, so any non-closed policy opens it to whoever signs up. Give such an
+app an `allowed_users` list (`["@admins"]` at least) before opening
+sign-up anywhere; `enlace doctor` fails until you do.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* enlace_auth.config.SignupLimitsConfig(, window_seconds=3600, mail_per_address=5, mail_per_ip=20, mail_global=500, verify_per_address=10, verify_per_ip=50, verify_global=300)
+
+Bases: `_StrictModel`
+
+Rate limits on the endpoints that send mail or check a code.
+
+Each is a count per `window_seconds`. “address” is the target email, “ip”
+the client address the ASGI server reports (uvicorn rewrites it from the
+proxy’s `X-Forwarded-For` when the proxy is in `forwarded_allow_ips`).
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### enlace_auth.config.SignupMode
+
+nobody, the listed addresses, the
+invited addresses (an allowlisted address counts as invited), or anyone.
+
+* **Type:**
+  Who may create an account from an app
+
+alias of [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[‘closed’, ‘allowlist’, ‘invite’, ‘open’]
 
 ### *class* enlace_auth.config.StoreBackendConfig(, backend='file', path='~/.enlace/platform_store')
 

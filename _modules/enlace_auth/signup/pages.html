@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="alternate" type="text/markdown" href="pages.html.md">
+<link rel="describedby" href="../../../llms.txt" type="text/markdown">
+    <title>enlace_auth.signup.pages &#8212; enlace_auth</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx_autodoc_typehints.css?v=057ac668" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/epythet.css?v=d146b16c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../_static/documentation_options.js?v=61349712"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=fd10adb8"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = "pre.mermaid {\n    /* Same as .mermaid-container > pre */\n    display: block;\n    width: 100%;\n}\n\npre.mermaid > svg {\n    /* Same as .mermaid-container > pre > svg */\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}";
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = ".mermaid-container {\n    position: relative;\n    display: flex;\n    flex-direction: row;\n    width: 100%;\n}\n\n.mermaid-container > pre {\n    display: block;\n    width: 100%;\n}\n\n.mermaid-container > pre > svg {\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}\n\n.mermaid-fullscreen-btn {\n    position: absolute;\n    width: 28px;\n    height: 28px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.3);\n    border-radius: 4px;\n    cursor: pointer;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    transition: all 0.2s;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);\n    font-size: 14px;\n    line-height: 1;\n    padding: 0;\n    color: #333;\n}\n\n.mermaid-fullscreen-btn:hover {\n    opacity: 100% !important;\n    background: rgba(255, 255, 255, 1);\n    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-btn.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.3);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-btn.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal {\n    display: none;\n    position: fixed !important;\n    top: 0 !important;\n    left: 0 !important;\n    width: 95vw;\n    height: 100vh;\n    background: rgba(255, 255, 255, 0.98);\n    z-index: 9999;\n    padding: 20px;\n    overflow: auto;\n}\n\n.mermaid-fullscreen-modal.dark-theme {\n    background: rgba(0, 0, 0, 0.98);\n}\n\n.mermaid-fullscreen-modal.active {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen {\n    position: relative;\n    width: 95vw;\n    height: 90vh;\n    max-width: 95vw;\n    max-height: 90vh;\n    background: white;\n    border-radius: 8px;\n    padding: 20px;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);\n    overflow: auto;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen.dark-theme {\n    background: #1a1a1a;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);\n}\n\n.mermaid-container-fullscreen pre.mermaid {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen .mermaid svg {\n    height: 100% !important;\n    width: 100% !important;\n    cursor: grab;\n}\n\n.mermaid-fullscreen-close {\n    position: fixed !important;\n    top: 20px !important;\n    right: 20px !important;\n    width: 40px;\n    height: 40px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.2);\n    border-radius: 50%;\n    cursor: pointer;\n    z-index: 10000;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);\n    transition: all 0.2s;\n    font-size: 24px;\n    line-height: 1;\n    color: #333;\n}\n\n.mermaid-fullscreen-close:hover {\n    background: white;\n    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-close.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.2);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-close.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal .mermaid-fullscreen-btn {\n    display: none !important;\n}";
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+let _lazyObserver = null;
+let _renderQueue = Promise.resolve();
+let closeModal = () => {};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal?.classList.contains('active')) {
+        closeModal();
+    }
+});
+
+// Apply d3 zoom to each SVG. Idempotent: an SVG already wrapped is skipped,
+// so this is safe to call both for the initial batch and for diagrams that
+// render lazily once they become visible.
+const addZoomToSvgs = (svgs) => {
+    svgs.each(function() {
+        if (this.getAttribute('data-zoom-applied') === 'true') return;
+        var svg = d3.select(this);
+        svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+        var inner = svg.select("g");
+        var zoom = d3.zoom().on("zoom", function(event) {
+            inner.attr("transform", event.transform);
+        });
+        svg.call(zoom);
+        this.setAttribute('data-zoom-applied', 'true');
+    });
+};
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        // Disconnect any previous lazy rendering observer
+        if (_lazyObserver) {
+            _lazyObserver.disconnect();
+            _lazyObserver = null;
+        }
+
+        all_mermaids.forEach((el) => {
+            el.removeAttribute('data-mermaid-deferred');
+            el.removeAttribute('data-mermaid-render-failed');
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+
+        // Separate visible and hidden elements. Mermaid's layout engine measures
+        // text dimensions via the DOM, which fails for elements hidden by a parent
+        // (e.g., Reveal.js non-active slides, sphinx-design unopened tabs),
+        // producing broken SVGs. Render visible elements now, defer hidden ones.
+        const visible = [];
+        const hidden = [];
+        all_mermaids.forEach((el) => {
+            // offsetParent is null for display:none ancestors.
+            // getClientRects().length > 0 catches position:fixed elements
+            // (which also have null offsetParent but are still visible).
+            if (el.offsetParent !== null || el.getClientRects().length > 0) {
+                visible.push(el);
+            } else {
+                hidden.push(el);
+                el.setAttribute('data-mermaid-deferred', 'true');
+            }
+        });
+
+        if (visible.length > 0) {
+            try {
+                await mermaid.run({ nodes: visible });
+            } catch (e) {
+                console.error("Mermaid rendering failed:", e);
+            }
+        }
+
+        // Lazily render hidden elements when they become visible.
+        // Uses a promise chain (_renderQueue) to serialize rendering,
+        // since IntersectionObserver may report multiple entries at once
+        // and mermaid.run() is not safe to call concurrently.
+        if (hidden.length > 0) {
+            if (typeof IntersectionObserver === 'undefined') {
+                console.warn("IntersectionObserver not available; hidden mermaid diagrams will not render.");
+            } else {
+                _renderQueue = Promise.resolve();
+                _lazyObserver = new IntersectionObserver((entries) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting && entry.target.getAttribute("data-processed") !== "true") {
+                            _lazyObserver.unobserve(entry.target);
+                            const el = entry.target;
+                            _renderQueue = _renderQueue.then(async () => {
+                                try {
+                                    await mermaid.run({ nodes: [el] });
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    // Apply zoom to the now-rendered diagram, matching
+                                    // the decoration visible diagrams receive.
+                                    if (false) {
+                                        addZoomToSvgs(d3.selectAll("").select(function() {
+                                            return this.querySelector("svg");
+                                        }));
+                                    }
+                                } catch (e) {
+                                    console.error("Mermaid deferred rendering failed:", e);
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    el.setAttribute('data-mermaid-render-failed', 'true');
+                                }
+                            });
+                        }
+                    }
+                });
+                hidden.forEach((el) => _lazyObserver.observe(el));
+            }
+        }
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    // Exclude deferred (hidden) and render-failed elements from completion checks
+    const mermaids_active = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])");
+    const mermaids_processed = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])[data-processed='true']");
+
+    if (false) {
+        const mermaids_to_add_zoom = 0 === -1 ? mermaids_active.length : 0;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("").select(function() {
+                return this.querySelector("svg");
+            });
+            // Wait until every active (visible) diagram has rendered. Deferred
+            // diagrams are excluded, so a fixed d3_node_count that counts a
+            // hidden diagram no longer loops forever waiting for its SVG.
+            if(mermaids_active.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            }
+            addZoomToSvgs(svgs);
+        }
+    } else if(mermaids_active.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if (!true) return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = "\u26f6";
+        fullscreenBtn.style.opacity = "50%";
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scrollX, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.display = 'block';
+
+                if (false) {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+
+
+const load = async () => {
+    initStyles();
+
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...{"startOnLoad": false},
+                ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...{"startOnLoad": false},
+    ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/enlace_auth/signup/pages';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.52" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">enlace_auth</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../ai-agents.html">
+    For AI agents
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_auth" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../ai-agents.html">
+    For AI agents
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_auth" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">enlace_auth.signup.pages</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for enlace_auth.signup.pages</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Markup for the sign-up flow: the "continue with email" step, the link page,</span>
+<span class="sd">and the account-deletion card.</span>
+
+<span class="sd">Every dynamic value reaches the markup through</span>
+<span class="sd">:func:`enlace_auth.auth.pages.fill_template` (HTML) or ``_js_string`` (inline</span>
+<span class="sd">script), the same escaping boundary as the rest of the auth pages. The step is</span>
+<span class="sd">handed to :func:`~enlace_auth.auth.pages.render_login_page` as its</span>
+<span class="sd">``email_section``; it carries its own script, which reuses the page's</span>
+<span class="sd">``postJSON`` CSRF helper.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">html</span><span class="w"> </span><span class="kn">import</span> <span class="n">escape</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.pages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_CSRF_JS</span><span class="p">,</span>
+    <span class="n">_js_string</span><span class="p">,</span>
+    <span class="n">_page</span><span class="p">,</span>
+    <span class="n">fill_template</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.signup.botcheck</span><span class="w"> </span><span class="kn">import</span> <span class="n">HONEYPOT_FIELD</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.signup.texts</span><span class="w"> </span><span class="kn">import</span> <span class="n">t</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_link</span><span class="p">(</span><span class="n">href</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">fill_template</span><span class="p">(</span>
+        <span class="s1">'&lt;a href="</span><span class="si">{href}</span><span class="s1">" target="_blank" rel="noopener"&gt;</span><span class="si">{label}</span><span class="s1">&lt;/a&gt;'</span><span class="p">,</span>
+        <span class="n">href</span><span class="o">=</span><span class="n">href</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_legal_line</span><span class="p">(</span><span class="n">lang</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">terms_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">privacy_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">"""'By continuing you accept the terms and the privacy notice', as available."""</span>
+    <span class="n">terms</span> <span class="o">=</span> <span class="n">_link</span><span class="p">(</span><span class="n">terms_url</span><span class="p">,</span> <span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"terms"</span><span class="p">))</span> <span class="k">if</span> <span class="n">terms_url</span> <span class="k">else</span> <span class="s2">""</span>
+    <span class="n">privacy</span> <span class="o">=</span> <span class="n">_link</span><span class="p">(</span><span class="n">privacy_url</span><span class="p">,</span> <span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"privacy"</span><span class="p">))</span> <span class="k">if</span> <span class="n">privacy_url</span> <span class="k">else</span> <span class="s2">""</span>
+    <span class="c1"># The translated sentence is trusted; only the escaped links are inserted.</span>
+    <span class="k">if</span> <span class="n">terms</span> <span class="ow">and</span> <span class="n">privacy</span><span class="p">:</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"accept"</span><span class="p">,</span> <span class="n">terms</span><span class="o">=</span><span class="s2">"</span><span class="si">{terms}</span><span class="s2">"</span><span class="p">,</span> <span class="n">privacy</span><span class="o">=</span><span class="s2">"</span><span class="si">{privacy}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">terms</span><span class="p">:</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"accept_terms"</span><span class="p">,</span> <span class="n">terms</span><span class="o">=</span><span class="s2">"</span><span class="si">{terms}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">privacy</span><span class="p">:</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"accept_privacy"</span><span class="p">,</span> <span class="n">privacy</span><span class="o">=</span><span class="s2">"</span><span class="si">{privacy}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">""</span>
+    <span class="n">html</span> <span class="o">=</span> <span class="n">escape</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"</span><span class="si">{terms}</span><span class="s2">"</span><span class="p">,</span> <span class="n">terms</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"</span><span class="si">{privacy}</span><span class="s2">"</span><span class="p">,</span> <span class="n">privacy</span><span class="p">)</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s1">'&lt;p class="muted"&gt;</span><span class="si">{</span><span class="n">html</span><span class="si">}</span><span class="s1">&lt;/p&gt;'</span>
+
+
+<div class="viewcode-block" id="render_email_section">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.signup.pages.html#enlace_auth.signup.pages.render_email_section">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">render_email_section</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">lang</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">next_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">app</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">challenge</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">min_seconds</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">code_minutes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">terms_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">privacy_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">providers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(),</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The "continue with email" step: address, then the 6-digit code.</span>
+
+<span class="sd">    *mode* (the sign-up policy of *app*) picks the note under the form: an open</span>
+<span class="sd">    policy says who may sign up (15 and over), an invite or allowlist policy</span>
+<span class="sd">    says sign-up is by invitation, a closed one says accounts come from the</span>
+<span class="sd">    admin. *providers* are ``(label, href)`` pairs for external sign-in.</span>
+<span class="sd">    """</span>
+    <span class="n">note_key</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"open"</span><span class="p">:</span> <span class="s2">"note_open"</span><span class="p">,</span> <span class="s2">"closed"</span><span class="p">:</span> <span class="s2">"note_closed"</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="s2">"note_invite"</span><span class="p">)</span>
+    <span class="n">legal</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">_legal_line</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="n">terms_url</span><span class="o">=</span><span class="n">terms_url</span><span class="p">,</span> <span class="n">privacy_url</span><span class="o">=</span><span class="n">privacy_url</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">!=</span> <span class="s2">"closed"</span>
+        <span class="k">else</span> <span class="s2">""</span>
+    <span class="p">)</span>
+    <span class="n">provider_links</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">fill_template</span><span class="p">(</span>
+            <span class="s1">'&lt;a class="alt" href="</span><span class="si">{href}</span><span class="s1">"&gt;</span><span class="si">{label}</span><span class="s1">&lt;/a&gt;'</span><span class="p">,</span>
+            <span class="n">href</span><span class="o">=</span><span class="n">href</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"provider"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">label</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">href</span> <span class="ow">in</span> <span class="n">providers</span>
+    <span class="p">)</span>
+    <span class="n">form</span> <span class="o">=</span> <span class="n">fill_template</span><span class="p">(</span>
+<span class="w">        </span><span class="sd">"""&lt;form id="ef" autocomplete="on"&gt;</span>
+<span class="sd">  &lt;label for="e-email"&gt;{email_label}&lt;/label&gt;</span>
+<span class="sd">  &lt;input id="e-email" name="email" type="email" required</span>
+<span class="sd">         autocomplete="username email" autofocus&gt;</span>
+<span class="sd">  &lt;div class="hp" aria-hidden="true"&gt;&lt;label&gt;Website</span>
+<span class="sd">    &lt;input id="e-hp" name="{hp}" tabindex="-1" autocomplete="off"&gt;&lt;/label&gt;&lt;/div&gt;</span>
+<span class="sd">  &lt;button id="e-submit" type="submit"&gt;{continue_label}&lt;/button&gt;</span>
+<span class="sd">&lt;/form&gt;</span>
+<span class="sd">&lt;form id="cf" hidden&gt;</span>
+<span class="sd">  &lt;p id="e-sent"&gt;&lt;/p&gt;</span>
+<span class="sd">  &lt;label for="e-code"&gt;{code_label}&lt;/label&gt;</span>
+<span class="sd">  &lt;input id="e-code" name="code" inputmode="numeric" pattern="[0-9 -]*"</span>
+<span class="sd">         autocomplete="one-time-code" maxlength="9" required&gt;</span>
+<span class="sd">  &lt;button id="c-submit" type="submit"&gt;{verify_label}&lt;/button&gt;</span>
+<span class="sd">  &lt;p class="muted"&gt;&lt;a href="#" id="e-restart"&gt;{other_label}&lt;/a&gt;&lt;/p&gt;</span>
+<span class="sd">&lt;/form&gt;</span>
+<span class="sd">&lt;div id="emsg" class="msg"&gt;&lt;/div&gt;</span>
+<span class="sd">&lt;p class="muted"&gt;{note}&lt;/p&gt;"""</span><span class="p">,</span>
+        <span class="n">email_label</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">),</span>
+        <span class="n">hp</span><span class="o">=</span><span class="n">HONEYPOT_FIELD</span><span class="p">,</span>
+        <span class="n">continue_label</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"continue"</span><span class="p">),</span>
+        <span class="n">code_label</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"code"</span><span class="p">),</span>
+        <span class="n">verify_label</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"verify"</span><span class="p">),</span>
+        <span class="n">other_label</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"other_address"</span><span class="p">),</span>
+        <span class="n">note</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="n">note_key</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">strings</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">k</span><span class="p">:</span> <span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="n">code_minutes</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"code_sent"</span><span class="p">,</span> <span class="s2">"sending"</span><span class="p">,</span> <span class="s2">"checking"</span><span class="p">,</span> <span class="s2">"continue"</span><span class="p">,</span> <span class="s2">"verify"</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="n">strings</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"wrong_code"</span><span class="p">,</span> <span class="s2">"too_many"</span><span class="p">,</span> <span class="s2">"signup_closed"</span><span class="p">)})</span>
+    <span class="n">script</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""&lt;script&gt;</span>
+<span class="s2">(function()</span><span class="se">{{</span>
+<span class="si">{</span><span class="n">_CSRF_JS</span><span class="si">}</span>
+<span class="s2">const S = </span><span class="si">{</span><span class="n">_js_string</span><span class="p">(</span><span class="n">_json</span><span class="p">(</span><span class="n">strings</span><span class="p">))</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">const T = JSON.parse(S);</span>
+<span class="s2">const NEXT = </span><span class="si">{</span><span class="n">_js_string</span><span class="p">(</span><span class="n">next_url</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">const APP = </span><span class="si">{</span><span class="n">_js_string</span><span class="p">(</span><span class="n">app</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s2">""</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">const LANG = </span><span class="si">{</span><span class="n">_js_string</span><span class="p">(</span><span class="n">lang</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">let CH = </span><span class="si">{</span><span class="n">_js_string</span><span class="p">(</span><span class="n">challenge</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">let ISSUED = Date.now();</span>
+<span class="s2">const MIN_MS = </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">min_seconds</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1000</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">const ef = document.getElementById('ef'), cf = document.getElementById('cf');</span>
+<span class="s2">const emsg = document.getElementById('emsg');</span>
+<span class="s2">const es = document.getElementById('e-submit'), cs = document.getElementById('c-submit');</span>
+<span class="s2">let EMAIL = '';</span>
+<span class="s2">function say(text, cls)</span><span class="se">{{</span><span class="s2"> emsg.textContent = text; emsg.className = 'msg ' + (cls || ''); </span><span class="se">}}</span>
+<span class="s2">async function freshChallenge()</span><span class="se">{{</span>
+<span class="s2">  if (Date.now() - ISSUED &lt; 30 * 60 * 1000) return;</span>
+<span class="s2">  const r = await fetch('/auth/email/challenge', </span><span class="se">{{</span><span class="s2">credentials:'include'</span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">  if (r.ok) </span><span class="se">{{</span><span class="s2"> CH = (await r.json()).challenge; ISSUED = Date.now(); </span><span class="se">}}</span>
+<span class="se">}}</span>
+<span class="s2">ef.addEventListener('submit', async (e) =&gt; </span><span class="se">{{</span>
+<span class="s2">  e.preventDefault();</span>
+<span class="s2">  say(''); es.disabled = true; es.textContent = T.sending;</span>
+<span class="s2">  try </span><span class="se">{{</span>
+<span class="s2">    await freshChallenge();</span>
+<span class="s2">    const wait = MIN_MS - (Date.now() - ISSUED);</span>
+<span class="s2">    if (wait &gt; 0) await new Promise(r =&gt; setTimeout(r, wait));</span>
+<span class="s2">    EMAIL = document.getElementById('e-email').value.trim();</span>
+<span class="s2">    const res = await postJSON('/auth/email/start', </span><span class="se">{{</span>
+<span class="s2">      email: EMAIL, app: APP || null, next: NEXT, lang: LANG, challenge: CH,</span>
+<span class="s2">      </span><span class="si">{</span><span class="n">HONEYPOT_FIELD</span><span class="si">}</span><span class="s2">: document.getElementById('e-hp').value,</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    if (res.ok) </span><span class="se">{{</span>
+<span class="s2">      document.getElementById('e-sent').textContent = T.code_sent;</span>
+<span class="s2">      ef.hidden = true; cf.hidden = false; document.getElementById('e-code').focus();</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2"> else </span><span class="se">{{</span>
+<span class="s2">      say(res.status === 429 ? T.too_many : (res.detail || ('Error ' + res.status)), 'err');</span>
+<span class="s2">    </span><span class="se">}}</span>
+<span class="s2">  </span><span class="se">}}</span><span class="s2"> catch (err) </span><span class="se">{{</span><span class="s2"> say(err.message || 'Error', 'err'); </span><span class="se">}}</span>
+<span class="s2">  es.disabled = false; es.textContent = T.continue;</span>
+<span class="se">}}</span><span class="s2">);</span>
+<span class="s2">cf.addEventListener('submit', async (e) =&gt; </span><span class="se">{{</span>
+<span class="s2">  e.preventDefault();</span>
+<span class="s2">  say(''); cs.disabled = true; cs.textContent = T.checking;</span>
+<span class="s2">  try </span><span class="se">{{</span>
+<span class="s2">    const res = await postJSON('/auth/email/verify', </span><span class="se">{{</span>
+<span class="s2">      email: EMAIL, code: document.getElementById('e-code').value,</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    if (res.ok) </span><span class="se">{{</span><span class="s2"> window.location.assign(NEXT || '/'); return; </span><span class="se">}}</span>
+<span class="s2">    say(res.status === 429 ? T.too_many : res.status === 403 ? (res.detail || T.signup_closed) : T.wrong_code, 'err');</span>
+<span class="s2">  </span><span class="se">}}</span><span class="s2"> catch (err) </span><span class="se">{{</span><span class="s2"> say(err.message || 'Error', 'err'); </span><span class="se">}}</span>
+<span class="s2">  cs.disabled = false; cs.textContent = T.verify;</span>
+<span class="se">}}</span><span class="s2">);</span>
+<span class="s2">document.getElementById('e-restart').addEventListener('click', (e) =&gt; </span><span class="se">{{</span>
+<span class="s2">  e.preventDefault(); cf.hidden = true; ef.hidden = false; say('');</span>
+<span class="s2">  document.getElementById('e-email').focus();</span>
+<span class="se">}}</span><span class="s2">);</span>
+<span class="se">}}</span><span class="s2">)();</span>
+<span class="s2">&lt;/script&gt;"""</span>
+    <span class="k">return</span> <span class="n">form</span> <span class="o">+</span> <span class="n">legal</span> <span class="o">+</span> <span class="n">provider_links</span> <span class="o">+</span> <span class="n">script</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_json</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="render_link_page">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.signup.pages.html#enlace_auth.signup.pages.render_link_page">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">render_link_page</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">lang</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The page an emailed link opens: one button that spends the token by POST.</span>
+
+<span class="sd">    The token is in the URL fragment, which the browser never sends, so a GET of</span>
+<span class="sd">    this page (a mail scanner's preview) spends nothing.</span>
+<span class="sd">    """</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="n">fill_template</span><span class="p">(</span>
+<span class="w">        </span><span class="sd">"""&lt;div class="card"&gt;</span>
+<span class="sd">&lt;h1&gt;{title}&lt;/h1&gt;</span>
+<span class="sd">&lt;p style="text-align:center"&gt;{text}&lt;/p&gt;</span>
+<span class="sd">&lt;button id="go" type="button"&gt;{verify}&lt;/button&gt;</span>
+<span class="sd">&lt;div id="msg" class="msg"&gt;&lt;/div&gt;</span>
+<span class="sd">&lt;div class="nav"&gt;&lt;a href="/auth/login"&gt;{back}&lt;/a&gt;&lt;/div&gt;</span>
+<span class="sd">&lt;/div&gt;"""</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"link_title"</span><span class="p">),</span>
+        <span class="n">text</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"link_body"</span><span class="p">),</span>
+        <span class="n">verify</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"verify"</span><span class="p">),</span>
+        <span class="n">back</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"back"</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">bad</span> <span class="o">=</span> <span class="n">_js_string</span><span class="p">(</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"link_bad"</span><span class="p">))</span>
+    <span class="n">script</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""&lt;script&gt;</span>
+<span class="si">{</span><span class="n">_CSRF_JS</span><span class="si">}</span>
+<span class="s2">const token = new URLSearchParams(location.hash.slice(1)).get('t') || '';</span>
+<span class="s2">history.replaceState(null, '', location.pathname);</span>
+<span class="s2">const go = document.getElementById('go'), msg = document.getElementById('msg');</span>
+<span class="s2">if (!token) </span><span class="se">{{</span><span class="s2"> go.disabled = true; msg.textContent = </span><span class="si">{</span><span class="n">bad</span><span class="si">}</span><span class="s2">; msg.className = 'msg err'; </span><span class="se">}}</span>
+<span class="s2">go.addEventListener('click', async () =&gt; </span><span class="se">{{</span>
+<span class="s2">  go.disabled = true;</span>
+<span class="s2">  try </span><span class="se">{{</span>
+<span class="s2">    const t = await csrfToken();</span>
+<span class="s2">    const r = await fetch('/auth/email/verify', </span><span class="se">{{</span>
+<span class="s2">      method:'POST', credentials:'include',</span>
+<span class="s2">      headers:</span><span class="se">{{</span><span class="s2">'Content-Type':'application/json','X-CSRF-Token':t</span><span class="se">}}</span><span class="s2">,</span>
+<span class="s2">      body: JSON.stringify(</span><span class="se">{{</span><span class="s2">token</span><span class="se">}}</span><span class="s2">),</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    const b = await r.json().catch(() =&gt; (</span><span class="se">{{}}</span><span class="s2">));</span>
+<span class="s2">    if (r.ok) </span><span class="se">{{</span><span class="s2"> window.location.assign(b.next || '/'); return; </span><span class="se">}}</span>
+<span class="s2">    msg.textContent = r.status === 403 &amp;&amp; b.detail ? b.detail : </span><span class="si">{</span><span class="n">bad</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">    msg.className = 'msg err';</span>
+<span class="s2">  </span><span class="se">}}</span><span class="s2"> catch (err) </span><span class="se">{{</span><span class="s2"> msg.textContent = err.message || 'Error'; msg.className = 'msg err'; </span><span class="se">}}</span>
+<span class="se">}}</span><span class="s2">);</span>
+<span class="s2">&lt;/script&gt;"""</span>
+    <span class="k">return</span> <span class="n">_page</span><span class="p">(</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"link_title"</span><span class="p">),</span> <span class="n">body</span> <span class="o">+</span> <span class="n">script</span><span class="p">,</span> <span class="n">lang</span><span class="o">=</span><span class="n">lang</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="render_delete_section">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.signup.pages.html#enlace_auth.signup.pages.render_delete_section">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">render_delete_section</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">lang</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The account page's "delete my account" card: send a code, then confirm."""</span>
+    <span class="n">card</span> <span class="o">=</span> <span class="n">fill_template</span><span class="p">(</span>
+<span class="w">        </span><span class="sd">"""&lt;div class="card"&gt;</span>
+<span class="sd">&lt;h1&gt;{title}&lt;/h1&gt;</span>
+<span class="sd">&lt;p&gt;{text}&lt;/p&gt;</span>
+<span class="sd">&lt;button id="d-send" class="danger" type="button"&gt;{send}&lt;/button&gt;</span>
+<span class="sd">&lt;form id="df" hidden&gt;</span>
+<span class="sd">  &lt;p&gt;{sent}&lt;/p&gt;</span>
+<span class="sd">  &lt;label for="d-code"&gt;{code_label}&lt;/label&gt;</span>
+<span class="sd">  &lt;input id="d-code" inputmode="numeric" autocomplete="one-time-code" maxlength="9" required&gt;</span>
+<span class="sd">  &lt;button id="d-confirm" class="danger" type="submit"&gt;{confirm}&lt;/button&gt;</span>
+<span class="sd">&lt;/form&gt;</span>
+<span class="sd">&lt;div id="dmsg" class="msg"&gt;&lt;/div&gt;</span>
+<span class="sd">&lt;/div&gt;"""</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"delete_title"</span><span class="p">),</span>
+        <span class="n">text</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"delete_body"</span><span class="p">),</span>
+        <span class="n">send</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"delete_send"</span><span class="p">),</span>
+        <span class="n">sent</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"delete_sent"</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">),</span>
+        <span class="n">code_label</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"code"</span><span class="p">),</span>
+        <span class="n">confirm</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"delete_confirm"</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">texts</span> <span class="o">=</span> <span class="n">_js_string</span><span class="p">(</span>
+        <span class="n">_json</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"wrong_code"</span><span class="p">,</span> <span class="s2">"too_many"</span><span class="p">,</span> <span class="s2">"deleted"</span><span class="p">)})</span>
+    <span class="p">)</span>
+    <span class="n">script</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""&lt;script&gt;</span>
+<span class="s2">(function()</span><span class="se">{{</span>
+<span class="s2">const T = JSON.parse(</span><span class="si">{</span><span class="n">texts</span><span class="si">}</span><span class="s2">);</span>
+<span class="s2">const send = document.getElementById('d-send'), df = document.getElementById('df');</span>
+<span class="s2">const dmsg = document.getElementById('dmsg');</span>
+<span class="s2">function say(text, cls)</span><span class="se">{{</span><span class="s2"> dmsg.textContent = text; dmsg.className = 'msg ' + (cls || ''); </span><span class="se">}}</span>
+<span class="s2">send.addEventListener('click', async () =&gt; </span><span class="se">{{</span>
+<span class="s2">  send.disabled = true; say('');</span>
+<span class="s2">  const res = await postJSON('/auth/account/delete/start', </span><span class="se">{{}}</span><span class="s2">);</span>
+<span class="s2">  if (res.ok) </span><span class="se">{{</span><span class="s2"> send.hidden = true; df.hidden = false; document.getElementById('d-code').focus(); </span><span class="se">}}</span>
+<span class="s2">  else </span><span class="se">{{</span><span class="s2"> say(res.status === 429 ? T.too_many : (res.detail || ('Error ' + res.status)), 'err'); send.disabled = false; </span><span class="se">}}</span>
+<span class="se">}}</span><span class="s2">);</span>
+<span class="s2">df.addEventListener('submit', async (e) =&gt; </span><span class="se">{{</span>
+<span class="s2">  e.preventDefault(); say('');</span>
+<span class="s2">  const res = await postJSON('/auth/account/delete', </span><span class="se">{{</span><span class="s2">code: document.getElementById('d-code').value</span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">  if (res.ok) </span><span class="se">{{</span><span class="s2"> df.hidden = true; say(T.deleted, 'ok'); setTimeout(() =&gt; window.location.assign('/'), 1500); return; </span><span class="se">}}</span>
+<span class="s2">  say(res.status === 429 ? T.too_many : res.status === 400 ? T.wrong_code : (res.detail || ('Error ' + res.status)), 'err');</span>
+<span class="se">}}</span><span class="s2">);</span>
+<span class="se">}}</span><span class="s2">)();</span>
+<span class="s2">&lt;/script&gt;"""</span>
+    <span class="k">return</span> <span class="n">card</span> <span class="o">+</span> <span class="n">script</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

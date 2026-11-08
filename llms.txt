@@ -23,21 +23,29 @@
 - [enlace_auth.auth.passwords](_autosummary/enlace_auth.auth.passwords.html.md): Password hashing via argon2id.
 - [enlace_auth.auth.reset_tokens](_autosummary/enlace_auth.auth.reset_tokens.html.md): Password-reset tokens — minting, verification, and the link they live in.
 - [enlace_auth.auth.revocation](_autosummary/enlace_auth.auth.revocation.html.md): Credential revocation: end everything an account holds when its credentials change.
-- [enlace_auth.auth.routes](_autosummary/enlace_auth.auth.routes.html.md): Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.
+- [enlace_auth.auth.routes](_autosummary/enlace_auth.auth.routes.html.md): Auth HTTP routes: login, logout, shared-login, csrf, recovery.
 - [enlace_auth.auth.sessions](_autosummary/enlace_auth.auth.sessions.html.md): Session storage backed by a MutableMapping.
 - [enlace_auth.auth.share_routes](_autosummary/enlace_auth.auth.share_routes.html.md): &#96;/auth/shares/&#42;&#96; — the signed-in user manages the shares of their own data.
 - [enlace_auth.auth.shares](_autosummary/enlace_auth.auth.shares.html.md): Owner-granted data shares: let named users at one user’s per-user data in one app.
 - [enlace_auth.config](_autosummary/enlace_auth.config.html.md): Auth-side configuration models.
 - [enlace_auth.diagnostics](_autosummary/enlace_auth.diagnostics.html.md): Auth-specific doctor checks that plug into &#96;enlace.doctor.run_doctor&#96;.
 - [enlace_auth.emails](_autosummary/enlace_auth.emails.html.md): One normal form for an email address, wherever one is compared.
+- [enlace_auth.ratelimit](_autosummary/enlace_auth.ratelimit.html.md): A sliding-window rate limiter over any &#96;MutableMapping&#96;.
 - [enlace_auth.resource_policy](_autosummary/enlace_auth.resource_policy.html.md): The OAuth per-connector allowlist: its shape, its parsing and its one rule.
+- [enlace_auth.signup](_autosummary/enlace_auth.signup.html.md): Self-service sign-up and email-code sign-in.
+- [enlace_auth.signup.botcheck](_autosummary/enlace_auth.signup.botcheck.html.md): A cheap check that a sign-up form was sent by a person.
+- [enlace_auth.signup.codes](_autosummary/enlace_auth.signup.codes.html.md): One-time codes mailed for sign-in, sign-up and account deletion.
+- [enlace_auth.signup.pages](_autosummary/enlace_auth.signup.pages.html.md): Markup for the sign-up flow: the “continue with email” step, the link page,
+- [enlace_auth.signup.policy](_autosummary/enlace_auth.signup.policy.html.md): Who may create an account, from which app.
+- [enlace_auth.signup.routes](_autosummary/enlace_auth.signup.routes.html.md): &#96;/auth/email/&#42;&#96;, the verify-first &#96;/auth/register&#96;, and self-service deletion.
+- [enlace_auth.signup.texts](_autosummary/enlace_auth.signup.texts.html.md): What the sign-up flow says, in English and French: page text and emails.
 - [enlace_auth.stores](_autosummary/enlace_auth.stores.html.md): Per-user stores for enlace.
 - [enlace_auth.stores.backends](_autosummary/enlace_auth.stores.backends.html.md): MutableMapping-backed store factories for enlace.
 - [enlace_auth.stores.middleware](_autosummary/enlace_auth.stores.middleware.html.md): Store injection middleware and per-app store router.
 - [enlace_auth.stores.prefixed](_autosummary/enlace_auth.stores.prefixed.html.md): PrefixedStore — MutableMapping wrapper that scopes keys under a prefix.
 - [enlace_auth.stores.validation](_autosummary/enlace_auth.stores.validation.html.md): Key sanitization for user-supplied store keys.
 - [For AI agents](ai-agents.html.md): &#96;enlace_auth&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-02 08:47 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-08 19:15 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
 
 ## Optional
 

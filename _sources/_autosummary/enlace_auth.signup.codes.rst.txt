@@ -1,0 +1,18 @@
+enlace\_auth.signup.codes
+=========================
+
+.. automodule:: enlace_auth.signup.codes
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      normalize_code
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      PendingCodes
+   

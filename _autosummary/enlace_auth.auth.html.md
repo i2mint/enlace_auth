@@ -111,6 +111,16 @@ All grant records across all apps. Admin-only / infrequent.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
+#### remove_exact(app_id, email)
+
+Remove the grant stored under exactly *email*; True if there was one.
+
+Unlike [`revoke()`](#enlace_auth.auth.GrantStore.revoke), the other spelling of the address is left alone:
+it may be a distinct account (account deletion uses this).
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
 #### revoke(app_id, email)
 
 Remove the grant to *email* in both spellings; return the emails removed.
@@ -268,7 +278,7 @@ Return an argon2id hash string for `password`.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, can_register=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None)
+### enlace_auth.auth.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None, reset_allowed=<function <lambda>>, login_page_extras=None, account_page_extras=None)
 
 Build a FastAPI router exposing `/auth/*` endpoints.
 
@@ -277,7 +287,6 @@ Build a FastAPI router exposing `/auth/*` endpoints.
   * **signing_key** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – HMAC key for session, CSRF, shared, and reset tokens.
   * **secure_cookies** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – session-cookie policy.
   * **shared_password_for** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – maps an app id to its shared-password hash.
-  * **can_register** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]) – predicate gating self-registration by email.
   * **send_email** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`EmailSender`](enlace_auth.auth.email.html.md#enlace_auth.auth.email.EmailSender)]) – delivers password-reset emails. `None` means no delivery
     channel is configured: the flow falls back to the console sender
     (which logs the link) *and* the forgot-password page says so, rather
@@ -296,6 +305,11 @@ Build a FastAPI router exposing `/auth/*` endpoints.
     browser sessions only; the plugin injects one that also revokes the
     account’s OAuth connector refresh families (see
     `enlace_auth.auth.revocation`).
+  * **reset_allowed** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), `Request`], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]) – `allowed(email, request)`, the rate limit on
+    password-reset mail; False answers 429.
+  * **account_page_extras** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`Request`, [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]]) – `(request, next_url or
+    email) -> kwargs` added to the sign-in and account pages (the
+    sign-up router’s “continue with email” step and deletion card).
 * **Return type:**
   `APIRouter`
 
@@ -353,7 +367,7 @@ Return True iff `password` matches the stored `hashed` value.
 | [`passwords`](enlace_auth.auth.passwords.html.md#module-enlace_auth.auth.passwords)       | Password hashing via argon2id.                                                      |
 | [`reset_tokens`](enlace_auth.auth.reset_tokens.html.md#module-enlace_auth.auth.reset_tokens) | Password-reset tokens — minting, verification, and the link they live in.           |
 | [`revocation`](enlace_auth.auth.revocation.html.md#module-enlace_auth.auth.revocation)     | Credential revocation: end everything an account holds when its credentials change. |
-| [`routes`](enlace_auth.auth.routes.html.md#module-enlace_auth.auth.routes)             | Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.            |
+| [`routes`](enlace_auth.auth.routes.html.md#module-enlace_auth.auth.routes)             | Auth HTTP routes: login, logout, shared-login, csrf, recovery.                      |
 | [`sessions`](enlace_auth.auth.sessions.html.md#module-enlace_auth.auth.sessions)         | Session storage backed by a MutableMapping.                                         |
 | [`share_routes`](enlace_auth.auth.share_routes.html.md#module-enlace_auth.auth.share_routes) | `/auth/shares/*` — the signed-in user manages the shares of their own data.         |
 | [`shares`](enlace_auth.auth.shares.html.md#module-enlace_auth.auth.shares)             | Owner-granted data shares: let named users at one user's per-user data in one app.  |
