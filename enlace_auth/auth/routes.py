@@ -23,9 +23,10 @@ it creates the account.
 
 from __future__ import annotations
 
+import functools
 from typing import Any, Callable, Optional
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, EmailStr
 
@@ -51,6 +52,12 @@ from enlace_auth.auth.revocation import (
     shared_password_fingerprint,
 )
 from enlace_auth.auth.sessions import SessionStore
+
+
+@functools.lru_cache(maxsize=1)
+def _dummy_hash() -> str:
+    """A hash to check a password against when the account has none."""
+    return hash_password("no account has this password")
 
 
 class _LoginBody(BaseModel):
@@ -90,7 +97,7 @@ def make_auth_router(
     reset_token_max_age: int = DEFAULT_EMAIL_TTL,
     public_base_url: Optional[str] = None,
     on_credentials_changed: Optional[CredentialsChanged] = None,
-    mail_allowed: Callable[[str, str], bool] = lambda _email, _ip: True,
+    reset_allowed: Callable[[str, Request], bool] = lambda _email, _request: True,
     login_page_extras: Optional[Callable[[Request, str], dict]] = None,
     account_page_extras: Optional[Callable[[Request, str], dict]] = None,
 ) -> APIRouter:
@@ -119,8 +126,8 @@ def make_auth_router(
             browser sessions only; the plugin injects one that also revokes the
             account's OAuth connector refresh families (see
             ``enlace_auth.auth.revocation``).
-        mail_allowed: ``allowed(email, client_ip)``, the rate limit on mail
-            this router sends (password reset); False answers 429.
+        reset_allowed: ``allowed(email, request)``, the rate limit on
+            password-reset mail; False answers 429.
         login_page_extras / account_page_extras: ``(request, next_url or
             email) -> kwargs`` added to the sign-in and account pages (the
             sign-up router's "continue with email" step and deletion card).
@@ -171,10 +178,11 @@ def make_auth_router(
         try:
             record = user_store[email]
         except KeyError:
-            raise HTTPException(status_code=401, detail="Invalid credentials")
-        if not isinstance(record, dict) or "password_hash" not in record:
-            raise HTTPException(status_code=401, detail="Invalid credentials")
-        if not verify_password(record["password_hash"], body.password):
+            record = None
+        stored = record.get("password_hash") if isinstance(record, dict) else None
+        # An address with no password is checked against a dummy hash, so the
+        # time taken does not say whether the account exists.
+        if not verify_password(stored or _dummy_hash(), body.password) or not stored:
             raise HTTPException(status_code=401, detail="Invalid credentials")
         # Only after the password checks out, so "disabled" reveals nothing
         # to someone who does not already hold the credentials.
@@ -371,17 +379,18 @@ def make_auth_router(
 
     @router.post("/password-reset/request")
     async def password_reset_request(
-        body: _ResetRequestBody, request: Request
+        body: _ResetRequestBody, request: Request, background: BackgroundTasks
     ) -> dict[str, Any]:
         """Email a password-reset link.
 
         Always returns ``{"ok": true}`` whether or not the address has an
         account — otherwise the response would leak which emails are
-        registered.
+        registered. The mail is sent after the response, so its time does
+        not say so either.
         """
         email = body.email.lower()
         # Counts hits, not accounts, so a 429 says nothing about the address.
-        if not mail_allowed(email, request.client.host if request.client else ""):
+        if not reset_allowed(email, request):
             raise HTTPException(
                 status_code=429,
                 detail="Too many requests. Wait a while, then try again.",
@@ -400,7 +409,8 @@ def make_auth_router(
             base = (public_base_url or str(request.base_url)).rstrip("/")
             link = reset_url(base, token)
             minutes = max(1, reset_token_max_age // 60)
-            email_sender(
+            background.add_task(
+                email_sender,
                 to=email,
                 subject="Reset your password",
                 body=(

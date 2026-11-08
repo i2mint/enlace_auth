@@ -232,14 +232,16 @@ def make_account_deleter(
     share_store: Any = None,
     grant_store: Any = None,
     user_data: Any = None,
+    sign_ins: Any = None,
 ) -> Callable[[str], None]:
     """Return ``delete(email)``: remove an account and what hangs off it.
 
     The record goes first, then its sessions and connector refresh families
     (``credentials_changed``), so a failure later cannot leave a deleted account
     signed in. Then, each optional and each failing alone: the shares naming it,
-    its runtime grants, and its per-user data (every key under
-    ``{email}/`` in the base store). Raises ``KeyError`` when there is no such
+    its runtime grants (stored under exactly its key: the other spelling of the
+    address may be another account), its per-user data (every key under
+    ``{email}/`` in the base store), and its last-sign-in time. Raises ``KeyError`` when there is no such
     account; a damaged grant or data key is logged and skipped.
 
     >>> users, ended = {"a@x.io": {}, "b@x.io": {}}, []
@@ -255,7 +257,7 @@ def make_account_deleter(
     def _remove_grants(email: str) -> None:
         for rec in grant_store.list_all():
             if rec.get("email") == email and rec.get("app_id"):
-                grant_store.revoke(rec["app_id"], email)
+                grant_store.remove_exact(rec["app_id"], email)
 
     def _remove_user_data(email: str) -> None:
         from enlace_auth.stores.validation import sanitize_key
@@ -268,6 +270,10 @@ def make_account_deleter(
                 with contextlib.suppress(KeyError):
                     del user_data[key]
 
+    def _forget_sign_in(email: str) -> None:
+        with contextlib.suppress(KeyError):
+            del sign_ins[email.lower()]
+
     def delete(email: str) -> None:
         del user_store[email]
         credentials_changed(email)
@@ -275,6 +281,7 @@ def make_account_deleter(
             ("shares", share_store is not None and share_store.remove_account),
             ("grants", grant_store is not None and _remove_grants),
             ("user data", user_data is not None and _remove_user_data),
+            ("last sign-in", sign_ins is not None and _forget_sign_in),
         ]
         for what, step in steps:
             if not step:

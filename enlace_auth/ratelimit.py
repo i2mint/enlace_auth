@@ -1,8 +1,10 @@
 """A sliding-window rate limiter over any ``MutableMapping``.
 
 Host-free on purpose: this module imports nothing from ``enlace_auth``, so it can
-move to a metering package unchanged (extraction candidate:
-i2mint/enlace_metering#9, a rolling-window call-count policy).
+move unchanged (extraction candidate: i2mint/enlace#111, a limiter of
+``enlace.ratelimit`` over a ``MutableMapping``, whose ``RedisLimiter`` is then
+the shared replacement). enlace's own in-memory limiters count per worker
+process; the limits here must hold across workers, hence a store.
 
 A limiter is a callable ``allow(key, *, limit, window) -> bool``. It records the
 hit and answers whether it stays within *limit* hits per *window* seconds. The

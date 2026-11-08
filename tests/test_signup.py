@@ -293,6 +293,7 @@ def test_policy_closing_between_start_and_verify_creates_nothing(platform, outbo
     _start(open_client, "a@example.com")
     code = outbox.code_for("a@example.com")
     closed_client = platform(default="closed")  # same stores, policy changed
+    closed_client.cookies.update(open_client.cookies)  # the same browser
     r = _verify(closed_client, "a@example.com", code)
     assert r.status_code == 403
     assert "a@example.com" not in _users(platform)
@@ -423,7 +424,10 @@ def test_register_never_changes_an_existing_password(platform, outbox):
 
 def test_register_answers_known_and_unknown_alike(platform, outbox):
     client = platform(default="closed", apps={"game": "open"})
-    _register(client, "a@example.com", "the-original-password").status_code
+    _start(client, "a@example.com", app="game")
+    _verify(client, "a@example.com", outbox.code_for("a@example.com"))
+    client.post("/auth/logout", headers=_csrf(client))
+    assert "a@example.com" in _users(platform)  # really known
     known = _register(client, "a@example.com", "another-long-password")
     refused = _register(client, "b@example.com", "another-long-password")
     assert (known.status_code, known.content) == (refused.status_code, refused.content)
@@ -621,3 +625,131 @@ def test_cli_invite_admits_the_address_through_the_platform(
     outbox.clear()
     _start(client, "guest@example.com", app="beta")
     assert re.search(r"\d{6}", outbox.to("guest@example.com")[-1][1]) is None
+
+
+# --------------------------------------------------------------------------
+# Adversarial review of #81: the code belongs to the browser that asked
+# --------------------------------------------------------------------------
+
+
+def test_a_stranger_cannot_choose_the_password_of_a_victims_account(platform, outbox):
+    """Pre-hijacking through register: the stranger's pending sign-up, with
+    the stranger's password, cannot be finished by the victim's code."""
+    mallory, victim = platform(default="open"), platform(default="open")
+    _register(mallory, "vic@example.com", "mallorys-own-password")
+    _start(victim, "vic@example.com")
+    r = _verify(victim, "vic@example.com", outbox.code_for("vic@example.com"))
+    assert r.status_code == 200 and r.json()["created"] is True
+    login = mallory.post(
+        "/auth/login",
+        json={"email": "vic@example.com", "password": "mallorys-own-password"},
+        headers=_csrf(mallory),
+    )
+    assert login.status_code == 401
+
+
+def test_a_code_mailed_to_a_stranger_request_cannot_be_used_from_elsewhere(
+    platform, outbox
+):
+    mallory, victim = platform(default="open"), platform(default="open")
+    _register(mallory, "vic@example.com", "mallorys-own-password")
+    code = outbox.code_for("vic@example.com")  # the victim types what they got
+    r = _verify(victim, "vic@example.com", code)
+    assert r.status_code == 400 and "vic@example.com" not in _users(platform)
+
+
+def test_a_link_opened_in_another_browser_signs_nobody_in(platform, outbox):
+    """Login CSRF: Mallory's own link, opened by the victim, does not sign the
+    victim's browser into Mallory's account."""
+    mallory, victim = platform(default="open"), platform(default="open")
+    _start(mallory, "mal@example.com")
+    token = outbox.link_token_for("mal@example.com")
+    r = victim.post("/auth/email/verify", json={"token": token}, headers=_csrf(victim))
+    assert r.status_code == 400
+    assert victim.get("/auth/whoami").json()["email"] is None
+
+
+def test_a_strangers_start_does_not_cancel_the_owners_code(platform, outbox):
+    owner, stranger = platform(default="open"), platform(default="open")
+    _start(owner, "a@example.com")
+    code = outbox.code_for("a@example.com")
+    _start(stranger, "a@example.com")
+    assert _verify(owner, "a@example.com", code).status_code == 200
+
+
+def test_a_strangers_wrong_guesses_do_not_destroy_the_owners_code(platform, outbox):
+    owner, stranger = platform(default="open"), platform(default="open")
+    _start(owner, "a@example.com")
+    code = outbox.code_for("a@example.com")
+    for _ in range(8):  # more than max_attempts, from another browser
+        _verify(stranger, "a@example.com", "999999")
+    assert _verify(owner, "a@example.com", code).status_code == 200
+
+
+def test_the_verify_budget_is_per_address_and_ip():
+    from enlace_auth.ratelimit import SlidingWindowLimiter
+    from enlace_auth.signup.routes import make_limit_gates
+
+    _, verify = make_limit_gates(SlidingWindowLimiter({}), {"verify_per_address": 2})
+    assert [verify("a@x.io", "6.6.6.6") for _ in range(3)] == [True, True, False]
+    assert verify("a@x.io", "1.2.3.4")  # the owner, elsewhere, is not locked out
+
+
+def test_an_admin_account_gets_no_sign_in_code(platform, outbox):
+    from enlace_auth.stores import make_file_store_factory
+
+    client = platform(default="open")
+    users = make_file_store_factory(str(platform.users_dir.parent))("users")
+    users[ADMIN] = {"password_hash": "x", "created_via": "add-user"}
+    _start(client, ADMIN)
+    assert re.search(r"\d{6}", outbox.to(ADMIN)[-1][1]) is None
+
+
+def test_a_punycode_allowlist_entry_admits_its_mailbox(platform, outbox):
+    client = platform(default="allowlist", allowlist=["ann@xn--bcher-kva.example"])
+    _start(client, "ann@xn--bcher-kva.example")
+    assert re.search(r"\d{6}", outbox[-1][1])
+
+
+def test_deleting_an_account_leaves_everyone_elses_data_shares_and_grants(
+    platform, outbox
+):
+    from enlace_auth.auth.grants import GrantStore
+    from enlace_auth.stores import make_file_store_factory
+
+    root = platform.users_dir.parent
+    bob = _signed_in(platform, outbox, "bob@example.com")
+    bob.put("/api/game/store/progress", json={"level": 9}, headers=_csrf(bob))
+    ann = platform(default="open")
+    _start(ann, "ann@example.com")
+    _verify(ann, "ann@example.com", outbox.code_for("ann@example.com"))
+    headers = _csrf(ann)
+    ann.put("/api/game/store/progress", json={"level": 3}, headers=headers)
+    grants = GrantStore(make_file_store_factory(str(root))("grants"))
+    grants.grant("priv", "ann@example.com")
+    grants.grant("priv", "bob@example.com")
+    shared = ann.put(
+        "/auth/shares/game/bob@example.com", json={"access": "ro"}, headers=headers
+    )
+    assert shared.status_code == 200, shared.text
+    ann.post("/auth/account/delete/start", headers=headers)
+    code = re.search(r"\b(\d{6})\b", outbox.to("ann@example.com")[-1][1]).group(1)
+    assert (
+        ann.post(
+            "/auth/account/delete", json={"code": code}, headers=headers
+        ).status_code
+        == 200
+    )
+    assert grants.get("priv", "ann@example.com") is None
+    assert grants.get("priv", "bob@example.com") is not None
+    assert bob.get("/api/game/store/progress").status_code == 200
+    data_files = {
+        p.relative_to(platform.data_dir).parts[0]
+        for p in platform.data_dir.rglob("*")
+        if p.is_file()
+    }
+    assert data_files == {"bob@example.com"}
+    shares_dir = root / "shares"
+    assert not any(
+        "ann@example.com" in str(p) for p in shares_dir.rglob("*") if p.is_file()
+    )

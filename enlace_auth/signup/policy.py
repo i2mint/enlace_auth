@@ -33,10 +33,18 @@ import time
 from collections.abc import Iterable, Mapping, MutableMapping
 from typing import Optional
 
-from enlace_auth.emails import account_spellings
+from enlace_auth.emails import account_spellings, normalize_email
 
 SIGNUP_MODES = ("closed", "allowlist", "invite", "open")
 ALL_APPS = "*"
+
+
+def _normal(email: str) -> str:
+    """The spelling sign-up keys an address under (punycode domain as Unicode)."""
+    try:
+        return normalize_email(email)
+    except ValueError:
+        return email.strip().lower()
 
 
 class SignupPolicy:
@@ -56,8 +64,15 @@ class SignupPolicy:
                 raise ValueError(f"unknown sign-up mode {mode!r}; use {SIGNUP_MODES}")
         self.default = default
         self.apps = dict(apps or {})
-        # As written, lowercased: an entry admits exactly the spelling written.
-        self.allowlist = frozenset(e.strip().lower() for e in allowlist if e.strip())
+        # Both spellings of the entry's one mailbox (punycode and Unicode
+        # domain): sign-up proves the address by a mailed code (and OAuth by
+        # the provider), so the other spelling is the same, proven mailbox.
+        self.allowlist = frozenset(
+            s
+            for e in allowlist
+            if e.strip()
+            for s in account_spellings(e.strip().lower())
+        )
         self.invites = {} if invites is None else invites
         self._admins = frozenset(s for e in admin_emails for s in account_spellings(e))
 
@@ -67,7 +82,9 @@ class SignupPolicy:
 
     def is_invited(self, email: str, app: Optional[str]) -> bool:
         """True when *email* holds an invitation for *app*, or is allowlisted."""
-        e = email.strip().lower()
+        if email.strip().lower() in self.allowlist:
+            return True
+        e = _normal(email)
         if e in self.allowlist:
             return True
         try:
@@ -81,17 +98,25 @@ class SignupPolicy:
 
     def allows(self, email: str, app: Optional[str]) -> bool:
         """May *email* create an account by signing up from *app*?"""
-        e = email.strip().lower()
-        if e in self._admins:
+        e = _normal(email)
+        if e in self._admins or email.strip().lower() in self._admins:
             return False
         mode = self.mode(app)
         if mode == "open":
             return True
         if mode == "allowlist":
-            return e in self.allowlist
+            return email.strip().lower() in self.allowlist
         if mode == "invite":
             return self.is_invited(e, app)
         return False
+
+    def is_admin(self, email: str) -> bool:
+        """True for an admin address, in either spelling."""
+        return _normal(email) in self._admins or email.strip().lower() in self._admins
+
+    def on_created(self, email: str) -> None:
+        """Called once an account for *email* exists: its invitation is used up."""
+        consume_invite(self.invites, email)
 
     def __call__(self, email: str, app: Optional[str] = None) -> bool:
         """Alias of :meth:`allows`, so a policy is also a ``can_register``."""
@@ -121,7 +146,7 @@ def invite(
     now: Optional[float] = None,
 ) -> dict:
     """Invite *email* to sign up from *apps* (merged with any earlier invitation)."""
-    e = email.strip().lower()
+    e = _normal(email)
     try:
         earlier = invites.get(e)
     except Exception:  # noqa: BLE001 - replace a damaged record
@@ -140,6 +165,6 @@ def invite(
 def consume_invite(invites: MutableMapping, email: str) -> None:
     """Drop *email*'s invitation once its account exists (a missing one is fine)."""
     try:
-        del invites[email.strip().lower()]
+        del invites[_normal(email)]
     except Exception:  # noqa: BLE001 - absent, raced or unreadable: nothing to do
         pass

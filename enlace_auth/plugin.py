@@ -479,9 +479,10 @@ def _build_signup_policy(auth_cfg, admin_emails: tuple[str, ...], *, invites=Non
 
     An admin address is refused in both canonical spellings
     (:func:`~enlace_auth.emails.account_spellings`): refusing only the spelling
-    written would let registration claim the other one (#45 review). The
-    allowlist is NOT widened: an entry admits exactly the spelling written, and
-    the other spelling can only arrive through a provider that verified it.
+    written would let registration claim the other one (#45 review). An
+    allowlist entry admits both spellings of its one mailbox: every sign-up path
+    now proves the address (a mailed code, or the provider) before it creates an
+    account (#81), which is what made widening unsafe before.
     """
     from enlace_auth.signup.policy import SignupPolicy
 
@@ -546,6 +547,31 @@ def _build_email_sender():
     )
 
 
+def _make_client_ip(config):
+    """``client_ip(request)``: the client a rate limit counts.
+
+    enlace's own rule (:func:`enlace.ratelimit.client_address`): ``X-Forwarded-For``
+    is read only from a peer in ``[platform] trusted_proxies`` (or over a unix
+    socket with ``trust_unix_socket``), right to left; IPv6 clients share a /64.
+    """
+    from enlace.ratelimit import bucket_key, client_address, parse_networks
+
+    trusted = parse_networks(getattr(config, "trusted_proxies", None) or [])
+    unix = bool(getattr(config, "trust_unix_socket", False))
+
+    def client_ip(request) -> str:
+        peer = request.client.host if request.client else None
+        address = client_address(
+            peer,
+            request.headers.get("x-forwarded-for"),
+            trusted=trusted,
+            trust_unix_socket=unix,
+        )
+        return bucket_key(address)
+
+    return client_ip
+
+
 def _wire_signup(
     config,
     auth_cfg,
@@ -561,7 +587,7 @@ def _wire_signup(
 ) -> dict:
     """Build the sign-up router and the hooks it adds to the auth pages.
 
-    Returns ``{"router", "mail_allowed", "login_page_extras",
+    Returns ``{"router", "reset_allowed", "login_page_extras",
     "account_page_extras"}``. ``[auth.signup] email_code = false`` mounts no
     router (and so no ``/auth/register``); unset, the endpoints are mounted and
     the sign-in page offers "continue with email" only when an SMTP sender is
@@ -581,6 +607,11 @@ def _wire_signup(
     # On the platform's disk, so every worker process counts against one budget.
     limiter = SlidingWindowLimiter(platform_factory("rate_limits"))
     mail_allowed, _ = make_limit_gates(limiter, limits)
+    client_ip = _make_client_ip(config)
+
+    def reset_allowed(email: str, request) -> bool:
+        return mail_allowed(email, client_ip(request), kind="reset")
+
     known_apps = [app.name for app in getattr(config, "apps", [])]
     for name in sorted(set(cfg.apps) - set(known_apps)):
         _logger.warning(
@@ -601,7 +632,7 @@ def _wire_signup(
             )
     hooks = {
         "router": None,
-        "mail_allowed": mail_allowed,
+        "reset_allowed": reset_allowed,
         "login_page_extras": None,
         "account_page_extras": None,
     }
@@ -627,8 +658,8 @@ def _wire_signup(
         rate_limiter=limiter,
         bot_check=bot_check,
         limits=limits,
+        client_ip=client_ip,
         known_apps=known_apps,
-        admin_emails=admin_emails,
         delete_account=delete_account,
         cookie_name=auth_cfg.session_cookie_name,
         session_max_age=auth_cfg.session_max_age_seconds,
@@ -641,7 +672,6 @@ def _wire_signup(
         (_PROVIDER_LABELS.get(name, name.capitalize()), f"/auth/login/{name}")
         for name in sorted(auth_cfg.oauth)
     ]
-    admins = frozenset(s for e in admin_emails for s in account_spellings(e))
 
     def login_page_extras(request, next_url: str) -> dict:
         if not offered:
@@ -666,7 +696,7 @@ def _wire_signup(
         }
 
     def account_page_extras(request, email: str) -> dict:
-        if not offered or email.strip().lower() in admins:
+        if not offered or policy.is_admin(email):
             return {}
         lang = pick_lang(request.headers.get("accept-language"))
         return {"extra_section": render_delete_section(lang=lang, email=email)}
@@ -867,6 +897,7 @@ def wire(parent: "FastAPI", config) -> None:
             share_store=share_store,
             grant_store=grant_store,
             user_data=user_data_backend,
+            sign_ins=platform_factory("sign_ins"),
         ),
     )
 
@@ -881,7 +912,7 @@ def wire(parent: "FastAPI", config) -> None:
         send_email=email_sender,
         public_base_url=_public_base_url(config, auth_cfg),
         on_credentials_changed=on_credentials_changed,
-        mail_allowed=signup["mail_allowed"],
+        reset_allowed=signup["reset_allowed"],
         login_page_extras=signup["login_page_extras"],
         account_page_extras=signup["account_page_extras"],
     )

@@ -220,8 +220,11 @@ def test_registration_refuses_every_spelling_of_an_admin_address():
     assert can_register("someone@example.com")
 
 
-def test_registration_allowlist_admits_only_the_spelling_written(monkeypatch):
-    """Widening it would let an unverified register claim the other spelling."""
+def test_registration_allowlist_admits_both_spellings_of_one_mailbox(monkeypatch):
+    """A punycode domain and its Unicode form are one mailbox, and sign-up now
+    proves the mailbox (a mailed code, or the provider) before it creates the
+    account (#81), so the entry admits both. A look-alike (fullwidth letters)
+    is another address and is not admitted."""
     from types import SimpleNamespace
 
     from enlace_auth.plugin import _build_can_register
@@ -231,8 +234,8 @@ def test_registration_allowlist_admits_only_the_spelling_written(monkeypatch):
         registration_open=False, registration_allowlist_env="TEST_REG_ALLOW"
     )
     can_register = _build_can_register(cfg, ())
-    assert can_register(PUNY)
-    assert not can_register(UNI) and not can_register(FULLWIDTH)
+    assert can_register(PUNY) and can_register(UNI)
+    assert not can_register(FULLWIDTH)
 
 
 def test_the_admin_default_editor_list_is_not_widened():

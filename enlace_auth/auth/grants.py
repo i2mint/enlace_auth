@@ -217,6 +217,18 @@ class GrantStore:
             removed.append(key[len(app_id) + 1 :])
         return removed
 
+    def remove_exact(self, app_id: str, email: str) -> bool:
+        """Remove the grant stored under exactly *email*; True if there was one.
+
+        Unlike :meth:`revoke`, the other spelling of the address is left alone:
+        it may be a distinct account (account deletion uses this).
+        """
+        try:
+            del self._store[self._key(_validate_app_id(app_id), email)]
+        except (KeyError, GrantError):
+            return False
+        return True
+
     def list_for_app(self, app_id: str) -> list[dict]:
         app_id = _validate_app_id(app_id)
         out: list[dict] = []

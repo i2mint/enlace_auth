@@ -229,6 +229,14 @@ class SignupLimitsConfig(_StrictModel):
     mail_global: int = Field(default=500, ge=1)
     verify_per_address: int = Field(default=10, ge=1)
     verify_per_ip: int = Field(default=50, ge=1)
+    verify_global: int = Field(
+        default=300,
+        ge=1,
+        description=(
+            "Code checks by all clients together: what bounds the guesses an "
+            "attacker spread over many addresses and IPs gets."
+        ),
+    )
 
 
 class SignupConfig(_StrictModel):
@@ -257,7 +265,7 @@ class SignupConfig(_StrictModel):
         description=(
             "Addresses admitted by the 'allowlist' and 'invite' policies, "
             "together with those in registration_allowlist_env. An entry admits "
-            "exactly the spelling written."
+            "both the punycode and the Unicode spelling of its domain."
         ),
     )
     email_code: Optional[bool] = Field(
@@ -268,8 +276,8 @@ class SignupConfig(_StrictModel):
             "platform cannot send."
         ),
     )
-    code_ttl_seconds: int = Field(default=600, gt=0)
-    max_attempts: int = Field(default=5, ge=1)
+    code_ttl_seconds: int = Field(default=600, gt=0, le=3600)
+    max_attempts: int = Field(default=5, ge=1, le=10)
     bot_min_seconds: float = Field(
         default=2.0,
         ge=0,

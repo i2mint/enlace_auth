@@ -285,8 +285,8 @@ def check_widened_spellings(config: PlatformConfig) -> Iterable[Check]:
       either spelling: anyone can register its Unicode spelling (which is how
       registration keys it) and be admitted.
 
-    The admin list and the registration allowlist compare as written, so they
-    are not read here.
+    The admin list compares as written, and the registration allowlist admits
+    an entry's mailbox only through a verified sign-up, so neither is read here.
     """
     from pathlib import Path
 
@@ -562,9 +562,6 @@ def check_signup(config: PlatformConfig) -> Iterable[Check]:
                 "those entries apply to nothing",
             )
         )
-    if cfg.email_code is False:
-        out.append(Check("signup", PASS, "email sign-up is switched off"))
-        return out
     default = auth.signup_default()
     modes = {default} | {m for a, m in cfg.apps.items() if a in names}
     from enlace_auth.plugin import read_email_list
@@ -593,7 +590,9 @@ def check_signup(config: PlatformConfig) -> Iterable[Check]:
                 f"protected:user apps {exposed}, which have no allowed_users",
             )
         )
-    if "open" in modes:
+    # The exposure check above holds even with email_code off: an OAuth first
+    # sign-in still follows the default policy.
+    if "open" in modes and cfg.email_code is not False:
         if not os.environ.get("ENLACE_SMTP_HOST", "").strip():
             out.append(
                 Check(

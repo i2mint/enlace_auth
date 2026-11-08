@@ -1,11 +1,19 @@
 """One-time codes mailed for sign-in, sign-up and account deletion.
 
 A pending code is stored as an HMAC, never in clear, in a ``MutableMapping``
-keyed by a hash of ``(purpose, address)``, so one address has at most one
-pending code per purpose and a new one replaces the old. A code is spent by the
-first check that matches it, expires after *ttl* seconds, and is destroyed after
-*max_attempts* wrong guesses. Under concurrent checks against a file store the
-attempt counter can undercount, so callers also rate-limit the check per address.
+keyed by a hash of ``(purpose, address, nonce)``. The *nonce* names the browser
+that asked (an HttpOnly cookie the sign-up router sets), so a code can be spent
+only from that browser: someone else cannot finish a sign-up they did not start
+(which would let them choose the password of a victim's account), nor sign a
+victim's browser into their own account by sending them a link. It also means a
+stranger asking for codes for an address replaces only their own pending code,
+never its owner's.
+
+A code is spent by the first check that matches it, expires after *ttl*
+seconds, and is destroyed after *max_attempts* wrong guesses. Wrong guesses are
+counted under their own key, so a late write of the counter (from another worker
+process) can never bring a spent code back; under such races the counter can
+undercount, so callers also rate-limit the check.
 
 The emailed link carries the same code in a signed token (:meth:`link_token`)
 put in the URL *fragment*, which browsers never send to the server, so the code
@@ -37,8 +45,8 @@ CODE_DIGITS = 6
 _LINK_SALT = "email-code-link"
 
 
-def _key(purpose: str, email: str) -> str:
-    return hashlib.sha256(f"{purpose}\0{email}".encode()).hexdigest()
+def _key(purpose: str, email: str, nonce: str) -> str:
+    return hashlib.sha256(f"{purpose}\0{email}\0{nonce}".encode()).hexdigest()
 
 
 def normalize_code(code: Any) -> str:
@@ -69,27 +77,33 @@ class PendingCodes:
         return hmac.new(self._signing_key.encode(), msg, hashlib.sha256).hexdigest()
 
     def issue(
-        self, email: str, *, purpose: str = "signin", data: Optional[dict] = None
+        self,
+        email: str,
+        *,
+        purpose: str = "signin",
+        nonce: str = "",
+        data: Optional[dict] = None,
     ) -> str:
-        """Store a fresh code for *email* (replacing any pending one); return it."""
+        """Store a fresh code for *email* and *nonce* (replacing theirs); return it."""
         code = f"{secrets.randbelow(10**CODE_DIGITS):0{CODE_DIGITS}d}"
-        self.store[_key(purpose, email)] = {
+        key = _key(purpose, email, nonce)
+        self._drop(key + "-n")
+        self.store[key] = {
             "mac": self._mac(purpose, email, code),
             "expires": self._clock() + self.ttl,
-            "attempts": 0,
             "data": dict(data or {}),
         }
         return code
 
     def check(
-        self, email: str, code: Any, *, purpose: str = "signin"
+        self, email: str, code: Any, *, purpose: str = "signin", nonce: str = ""
     ) -> Optional[dict]:
-        """Spend *code* for *email*; return the data issued with it, else ``None``.
+        """Spend *code* for *email* and *nonce*; return its data, else ``None``.
 
-        ``None`` covers every failure alike (no pending code, expired, wrong,
-        too many attempts, already spent), so a caller cannot tell them apart.
+        ``None`` covers every failure alike (no pending code, another browser's,
+        expired, wrong, too many attempts, already spent).
         """
-        key = _key(purpose, email)
+        key = _key(purpose, email, nonce)
         try:
             record = self.store[key]
         except KeyError:
@@ -110,21 +124,27 @@ class PendingCodes:
                 del self.store[key]
             except KeyError:
                 return None
+            self._drop(key + "-n")
             data = record.get("data")
             return dict(data) if isinstance(data, dict) else {}
-        attempts = int(record.get("attempts") or 0) + 1
+        try:
+            attempts = int(self.store.get(key + "-n") or 0) + 1
+        except Exception:  # noqa: BLE001 - a damaged counter: assume the worst
+            attempts = self.max_attempts
         if attempts >= self.max_attempts:
             self._drop(key)
+            self._drop(key + "-n")
         else:
             try:
-                self.store[key] = {**record, "attempts": attempts}
-            except Exception:  # noqa: BLE001 - an unwritable store: fail closed below
+                self.store[key + "-n"] = attempts
+            except Exception:  # noqa: BLE001 - an unwritable store: fail closed
                 self._drop(key)
         return None
 
-    def discard(self, email: str, *, purpose: str = "signin") -> None:
-        """Forget any pending code for *email*."""
-        self._drop(_key(purpose, email))
+    def discard(self, email: str, *, purpose: str = "signin", nonce: str = "") -> None:
+        """Forget any pending code for *email* and *nonce*."""
+        self._drop(_key(purpose, email, nonce))
+        self._drop(_key(purpose, email, nonce) + "-n")
 
     def _drop(self, key: str) -> None:
         try:
