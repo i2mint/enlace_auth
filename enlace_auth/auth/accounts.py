@@ -241,8 +241,9 @@ def make_account_deleter(
     signed in. Then, each optional and each failing alone: the shares naming it,
     its runtime grants (stored under exactly its key: the other spelling of the
     address may be another account), its per-user data (every key under
-    ``{email}/`` in the base store), and its last-sign-in time. Raises ``KeyError`` when there is no such
-    account; a damaged grant or data key is logged and skipped.
+    ``{email}/`` in the base store), and its last-sign-in time. Raises
+    ``KeyError`` when there is no such account; a damaged grant or data key is
+    logged and skipped.
 
     >>> users, ended = {"a@x.io": {}, "b@x.io": {}}, []
     >>> data = {"a@x.io/game/progress": 1, "b@x.io/game/progress": 2}
