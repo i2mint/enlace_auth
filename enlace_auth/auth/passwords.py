@@ -12,18 +12,23 @@ from __future__ import annotations
 MIN_PASSWORD_LEN = 8
 
 
-def password_problem(password: str) -> str | None:
+def password_problem(
+    password: str, *, min_length: int = MIN_PASSWORD_LEN
+) -> str | None:
     """Why *password* may not be set, or ``None`` if it may.
 
     The one rule every way of setting a password applies (see
-    :data:`MIN_PASSWORD_LEN`), so they cannot drift apart.
+    :data:`MIN_PASSWORD_LEN`), so they cannot drift apart. Self-service sign-up
+    asks for more (*min_length* 15, NIST SP 800-63B-4 for a sole factor).
 
     >>> password_problem("long-enough")
     >>> password_problem("short")
     'Password must be at least 8 characters.'
+    >>> password_problem("long-enough", min_length=15)
+    'Password must be at least 15 characters.'
     """
-    if len(password) < MIN_PASSWORD_LEN:
-        return f"Password must be at least {MIN_PASSWORD_LEN} characters."
+    if len(password) < min_length:
+        return f"Password must be at least {min_length} characters."
     return None
 
 

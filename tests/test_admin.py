@@ -15,6 +15,7 @@ from enlace.compose import build_backend
 from enlace.discover import discover_apps
 from starlette.testclient import TestClient
 
+from tests.signup_helpers import sign_up
 from enlace_auth import plugin as auth_plugin
 from enlace_auth.auth.accounts import is_disabled
 from enlace_auth.auth.passwords import hash_password
@@ -140,19 +141,15 @@ def _register(client: TestClient, email: str, password: str, csrf):
     Registration refuses admin addresses (i2mint/enlace_auth#38), so for one of
     those this creates the account the way an operator does (``add-user``) and
     signs in, when the client says where its user store is
-    (``client.user_store_root``). A second call gets registration's 403: it
-    refuses an admin address before looking whether the account exists (#41).
+    (``client.user_store_root``). Everyone else goes through the verify-first
+    sign-up (:func:`tests.signup_helpers.sign_up`).
     """
     root = getattr(client, "user_store_root", None)
     if root is not None and email.lower() in read_email_list("ENLACE_ADMIN_EMAILS"):
         if email.lower() not in make_file_store_factory(str(root))("users"):
             _seed_account(root, email, password)
             return _login(client, email, password, csrf)
-    return client.post(
-        "/auth/register",
-        json={"email": email, "password": password},
-        headers=csrf,
-    )
+    return sign_up(client, email, password, csrf=csrf)
 
 
 def test_admin_blocked_for_anonymous(admin_client):
@@ -162,7 +159,7 @@ def test_admin_blocked_for_anonymous(admin_client):
 
 def test_admin_blocked_for_non_admin_user(admin_client):
     csrf = _csrf(admin_client)
-    _register(admin_client, "alice@example.com", "secretpw1", csrf)
+    _register(admin_client, "alice@example.com", "secretpw1-long-enough", csrf)
     r = admin_client.get("/_admin/api/users")
     # Signed in, not an admin: 403 ("not for you"), not 401 ("sign in").
     assert r.status_code == 403
@@ -270,18 +267,18 @@ def test_admin_resets_password(admin_client):
 
 def test_change_own_password_via_auth_me(admin_client):
     csrf = _csrf(admin_client)
-    _register(admin_client, "edith@example.com", "starting-pw", csrf)
+    _register(admin_client, "edith@example.com", "starting-pw-long-enough", csrf)
 
     r = admin_client.post(
         "/auth/me/password",
-        json={"old_password": "starting-pw", "new_password": "rotated-pw"},
+        json={"old_password": "starting-pw-long-enough", "new_password": "rotated-pw"},
         headers=csrf,
     )
     assert r.status_code == 200, r.text
 
     admin_client.post("/auth/logout", headers=csrf)
     csrf2 = _csrf(admin_client)
-    bad = _login(admin_client, "edith@example.com", "starting-pw", csrf2)
+    bad = _login(admin_client, "edith@example.com", "starting-pw-long-enough", csrf2)
     assert bad.status_code == 401
     good = _login(admin_client, "edith@example.com", "rotated-pw", csrf2)
     assert good.status_code == 200
@@ -289,7 +286,7 @@ def test_change_own_password_via_auth_me(admin_client):
 
 def test_change_own_password_rejects_wrong_old(admin_client):
     csrf = _csrf(admin_client)
-    _register(admin_client, "frank@example.com", "the-real-pw", csrf)
+    _register(admin_client, "frank@example.com", "the-real-pw-long-enough", csrf)
     r = admin_client.post(
         "/auth/me/password",
         json={"old_password": "wrong-pw", "new_password": "doesnt-matter"},
@@ -334,7 +331,7 @@ def test_admin_dashboard_blocked_for_anonymous_browser(admin_client):
 
 def test_admin_dashboard_blocked_for_non_admin(admin_client):
     csrf = _csrf(admin_client)
-    _register(admin_client, "alice@example.com", "secretpw1", csrf)
+    _register(admin_client, "alice@example.com", "secretpw1-long-enough", csrf)
     # Logged in as alice (not in admin_emails) — should NOT see the dashboard.
     r = admin_client.get(
         "/_admin/", headers={"Accept": "text/html"}, follow_redirects=False
@@ -379,7 +376,9 @@ def _grant(client, app_id, email, csrf, **extra):
 
 def test_grant_requires_admin(admin_client):
     csrf = _csrf(admin_client)
-    _register(admin_client, "alice@example.com", "secretpw1", csrf)  # non-admin
+    _register(
+        admin_client, "alice@example.com", "secretpw1-long-enough", csrf
+    )  # non-admin
     r = _grant(admin_client, "vault", "carl@example.com", csrf)
     assert r.status_code == 403  # signed in, not an admin
 
@@ -586,10 +585,10 @@ def test_reset_link_is_admin_only(admin_client):
 def test_change_own_password_enforces_minimum_length(admin_client):
     """Same floor as the reset flow — the two ways to set a password agree."""
     csrf = _csrf(admin_client)
-    _register(admin_client, "jo@example.com", "starting-pw", csrf)
+    _register(admin_client, "jo@example.com", "starting-pw-long-enough", csrf)
     r = admin_client.post(
         "/auth/me/password",
-        json={"old_password": "starting-pw", "new_password": "short"},
+        json={"old_password": "starting-pw-long-enough", "new_password": "short"},
         headers=csrf,
     )
     assert r.status_code == 400
@@ -597,7 +596,10 @@ def test_change_own_password_enforces_minimum_length(admin_client):
     admin_client.post("/auth/logout", headers=csrf)
     csrf2 = _csrf(admin_client)
     assert (
-        _login(admin_client, "jo@example.com", "starting-pw", csrf2).status_code == 200
+        _login(
+            admin_client, "jo@example.com", "starting-pw-long-enough", csrf2
+        ).status_code
+        == 200
     )
 
 
@@ -1068,7 +1070,7 @@ def test_declared_and_env_admins_are_unioned(monkeypatch):
 def test_a_non_admin_gets_403_from_an_app_too(admin_client):
     """A signed-in user outside allowed_users gets 403 from apps too (#72)."""
     csrf = _csrf(admin_client)
-    _register(admin_client, "alice@example.com", "secretpw1", csrf)
+    _register(admin_client, "alice@example.com", "secretpw1-long-enough", csrf)
     assert admin_client.get("/api/vault/thing").status_code == 403
 
 
@@ -1084,7 +1086,7 @@ def test_declared_admin_entries_must_be_single_addresses(bad):
 
 def test_the_admin_403_page_cannot_be_framed(admin_client):
     csrf = _csrf(admin_client)
-    _register(admin_client, "alice@example.com", "secretpw1", csrf)
+    _register(admin_client, "alice@example.com", "secretpw1-long-enough", csrf)
     r = admin_client.get("/_admin/", headers={"Accept": "text/html"})
     assert r.status_code == 403
     assert r.headers["x-frame-options"] == "DENY"

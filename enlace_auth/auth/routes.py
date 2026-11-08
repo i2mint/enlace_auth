@@ -1,4 +1,4 @@
-"""Auth HTTP routes: register, login, logout, shared-login, csrf, recovery.
+"""Auth HTTP routes: login, logout, shared-login, csrf, recovery.
 
 This router serves both the JSON API (``POST /auth/login`` etc., consumed by
 app frontends) and the browser-facing HTML pages (``GET /auth/login``,
@@ -16,12 +16,13 @@ forgot-password page says so plainly instead of promising an email that is only
 written to the log.
 
 OAuth routes live in ``enlace.auth.oauth`` and are attached separately so the
-Authlib dependency stays lazy.
+Authlib dependency stays lazy. Sign-up (``/auth/register`` and the email-code
+flow) lives in :mod:`enlace_auth.signup.routes`, which verifies an address before
+it creates the account.
 """
 
 from __future__ import annotations
 
-import time
 from typing import Any, Callable, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -50,18 +51,10 @@ from enlace_auth.auth.revocation import (
     shared_password_fingerprint,
 )
 from enlace_auth.auth.sessions import SessionStore
-from enlace_auth.emails import normalize_email, resolve_account
 
 
 class _LoginBody(BaseModel):
     email: EmailStr
-    password: str
-
-
-class _RegisterBody(BaseModel):
-    # A plain str: the handler keys it with normalize_email, which refuses what
-    # EmailStr would silently fold (a decomposed local part, #51).
-    email: str
     password: str
 
 
@@ -93,11 +86,13 @@ def make_auth_router(
     session_max_age: int = 86400,
     secure_cookies: bool = True,
     shared_password_for: Callable[[str], Optional[str]] = lambda _: None,
-    can_register: Callable[[str], bool] = lambda _: False,
     send_email: Optional[EmailSender] = None,
     reset_token_max_age: int = DEFAULT_EMAIL_TTL,
     public_base_url: Optional[str] = None,
     on_credentials_changed: Optional[CredentialsChanged] = None,
+    mail_allowed: Callable[[str, str], bool] = lambda _email, _ip: True,
+    login_page_extras: Optional[Callable[[Request, str], dict]] = None,
+    account_page_extras: Optional[Callable[[Request, str], dict]] = None,
 ) -> APIRouter:
     """Build a FastAPI router exposing ``/auth/*`` endpoints.
 
@@ -106,7 +101,6 @@ def make_auth_router(
         signing_key: HMAC key for session, CSRF, shared, and reset tokens.
         cookie_name / session_max_age / secure_cookies: session-cookie policy.
         shared_password_for: maps an app id to its shared-password hash.
-        can_register: predicate gating self-registration by email.
         send_email: delivers password-reset emails. ``None`` means no delivery
             channel is configured: the flow falls back to the console sender
             (which logs the link) *and* the forgot-password page says so, rather
@@ -125,6 +119,11 @@ def make_auth_router(
             browser sessions only; the plugin injects one that also revokes the
             account's OAuth connector refresh families (see
             ``enlace_auth.auth.revocation``).
+        mail_allowed: ``allowed(email, client_ip)``, the rate limit on mail
+            this router sends (password reset); False answers 429.
+        login_page_extras / account_page_extras: ``(request, next_url or
+            email) -> kwargs`` added to the sign-in and account pages (the
+            sign-up router's "continue with email" step and deletion card).
     """
     router = APIRouter(prefix="/auth")
     credentials_changed: CredentialsChanged = (
@@ -165,47 +164,6 @@ def make_auth_router(
         return verify_cookie(
             token, signing_key, max_age=session_max_age, salt="session"
         )
-
-    @router.post("/register")
-    async def register(body: _RegisterBody, response: Response) -> dict[str, Any]:
-        try:
-            email = normalize_email(body.email)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e)) from None
-        # Permission before existence: answering 409 first would tell anyone
-        # whether an address registration refuses (an admin's, say) has an
-        # account.
-        if not can_register(email):
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    "Registration is closed. Ask the platform admin to create "
-                    "an account, or to add your email to the registration "
-                    "allowlist."
-                ),
-            )
-        # One mailbox, one self-registered account: a punycode domain and its
-        # Unicode form are the same address, and lists name it in either
-        # spelling (#45). Registration proves nothing about who owns the
-        # address, so it must not claim the spelling an existing account lacks.
-        if resolve_account(email, user_store.__contains__) is not None:
-            raise HTTPException(status_code=409, detail="Email already registered")
-        if problem := password_problem(body.password):
-            raise HTTPException(status_code=400, detail=problem)
-        user_store[email] = {
-            "password_hash": hash_password(body.password),
-            "created_at": time.time(),
-            "created_via": "register",
-        }
-        session_id = open_session(session_store, user_store, email)
-        _set_session_cookie(
-            response,
-            session_id,
-            max_age=session_max_age,
-            salt="session",
-            name=cookie_name,
-        )
-        return {"ok": True, "email": email}
 
     @router.post("/login")
     async def login(body: _LoginBody, response: Response) -> dict[str, Any]:
@@ -351,7 +309,8 @@ def make_auth_router(
         next_url = pages.safe_next(request.query_params.get("next"))
         if getattr(request.state, "user_id", None):
             return RedirectResponse(next_url, status_code=303)
-        return HTMLResponse(pages.render_login_page(next_url=next_url))
+        extras = login_page_extras(request, next_url) if login_page_extras else {}
+        return HTMLResponse(pages.render_login_page(next_url=next_url, **extras))
 
     @router.get("/account", response_class=HTMLResponse, include_in_schema=False)
     async def account_page(request: Request):
@@ -367,7 +326,8 @@ def make_auth_router(
             return RedirectResponse(
                 "/auth/login?next=%2Fauth%2Faccount", status_code=303
             )
-        return HTMLResponse(pages.render_account_page(email=email))
+        extras = account_page_extras(request, email) if account_page_extras else {}
+        return HTMLResponse(pages.render_account_page(email=email, **extras))
 
     @router.get(
         "/forgot-password", response_class=HTMLResponse, include_in_schema=False
@@ -420,6 +380,12 @@ def make_auth_router(
         registered.
         """
         email = body.email.lower()
+        # Counts hits, not accounts, so a 429 says nothing about the address.
+        if not mail_allowed(email, request.client.host if request.client else ""):
+            raise HTTPException(
+                status_code=429,
+                detail="Too many requests. Wait a while, then try again.",
+            )
         try:
             record = user_store[email]
         except KeyError:

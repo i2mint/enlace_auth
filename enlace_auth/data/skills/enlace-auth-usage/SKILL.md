@@ -6,8 +6,9 @@ description: >-
   with the enlace_auth plugin. Use when the user mentions enlace_auth, the
   enlace-auth CLI, protected:user or protected:shared apps, ENLACE_SIGNING_KEY,
   ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user,
-  reset-link, grant, or share; or wants to put login in front of apps served by
-  enlace.
+  reset-link, grant, share, invite, [auth.signup], sign-up, "continue with
+  email" or account deletion; or wants to put login or self-service sign-up in
+  front of apps served by enlace.
 metadata:
   audience: users
 ---
@@ -44,9 +45,18 @@ All commands take `--toml platform.toml`.
 | Give someone a one-time password link | `enlace-auth reset-link EMAIL` |
 | Grant an app to a user at runtime | `enlace-auth grant APP EMAIL --expires 2026-12-31` |
 | Share one user's data in an app | `enlace-auth share APP OWNER GRANTEE --access ro` |
+| Invite an address to sign up | `enlace-auth invite EMAIL --apps APP` (`uninvite`, `list-invites`) |
+| See who may sign up where | `enlace-auth signup-policy` |
 | List what exists | `list-users`, `list-sessions`, `list-grants`, `list-shares` |
 
-Self-registration is off by default. `registration_open = true` in `[auth]` or `ENLACE_REGISTRATION_ALLOWLIST` opens it. An admin address can never self-register.
+## 3b. Self-service sign-up
+
+Off by default. `[auth.signup]` sets a policy per app: `default = "closed"` plus `apps = { game = "open", studio = "invite" }`; the modes are `closed`, `allowlist` (`allowlist = [...]` or `ENLACE_REGISTRATION_ALLOWLIST`), `invite` (`enlace-auth invite`) and `open` (shown as "for people aged 15 and over"). `registration_open = true` is the old spelling of `default = "open"`. An admin address can never self-register.
+
+- The sign-in page offers "Continue with email" when `ENLACE_SMTP_HOST` is set: a 6-digit code is mailed, and the account is created only when it checks out. From an app, link to `/auth/login?next=/<app>/`; the app's policy is taken from `next`.
+- A non-browser client calls `GET /auth/email/challenge`, waits `min_seconds`, then `POST /auth/email/start {email, app, next, challenge}` (always the same 202, or 429), then `POST /auth/email/verify {email, code}`.
+- **The account is platform-wide, and access is unchanged: a `protected:user` app with no `allowed_users` opens to every account.** Give it `allowed_users = ["@admins"]` (or a list) before opening sign-up anywhere; `enlace doctor` fails until you do.
+- Set `privacy_url`, `terms_url` and `terms_version`. Signed-in users delete their own account from `/auth/account`, confirmed by a mailed code. Children under 15 must not sign up themselves; managed profiles held by an adult are planned (i2mint/enlace_auth#81).
 
 ## 4. Calling the HTTP API correctly
 
@@ -68,5 +78,5 @@ For `protected:user` apps (and public apps with `user_store = true`), read `requ
 ## Gotchas
 
 - Changing a password, deleting a user or rotating a shared password ends the affected sessions (and connector refresh tokens). That is intended.
-- `enlace doctor` runs this package's checks (signing key, admin accounts, OAuth refresh) when enlace is new enough to discover plugin checks.
+- `enlace doctor` runs this package's checks (signing key, admin accounts, OAuth refresh, sign-up policy) when enlace is new enough to discover plugin checks.
 - To test an app behind the plugin, build a platform in a temp directory and use Starlette's `TestClient`; `README.md` has a complete runnable example.

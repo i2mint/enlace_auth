@@ -463,18 +463,16 @@ def _public_base_url(config, auth_cfg) -> Optional[str]:
     return None
 
 
-def _build_can_register(
-    auth_cfg, admin_emails: tuple[str, ...]
-) -> Callable[[str], bool]:
-    """Build the predicate deciding whether an email may self-register.
+def _build_signup_policy(auth_cfg, admin_emails: tuple[str, ...], *, invites=None):
+    """The :class:`~enlace_auth.signup.policy.SignupPolicy` of ``[auth.signup]``.
 
-    Open registration admits every address; otherwise only emails listed in
-    ``registration_allowlist_env`` may sign up (via ``/auth/register`` or an
-    OAuth first-login), and everyone else is refused with 403.
+    The platform-wide default is ``[auth.signup] default``, else the legacy
+    ``registration_open`` (``open``) or ``allowlist``. The allowlist is
+    ``[auth.signup] allowlist`` plus ``registration_allowlist_env``.
 
-    An admin address is refused in **both** cases: self-registration proves
-    nothing about who owns the address, so an admin address with no account yet
-    would go to whoever registers it first (i2mint/enlace_auth#35, #38). Admin
+    An admin address is refused under every mode: self-registration proves
+    nothing about who owns the address until it verifies, and an admin account
+    must never come into being that way (i2mint/enlace_auth#35, #38). Admin
     accounts are made with ``enlace-auth add-user``, or by a first sign-in
     through an OAuth provider that verifies the address (``make_oauth_router``'s
     *admin_emails*). ``doctor`` flags any admin address that has no account.
@@ -482,15 +480,44 @@ def _build_can_register(
     An admin address is refused in both canonical spellings
     (:func:`~enlace_auth.emails.account_spellings`): refusing only the spelling
     written would let registration claim the other one (#45 review). The
-    registration allowlist is NOT widened: registration proves nothing about who
-    owns an address, so an entry admits exactly the spelling written, and the
-    other spelling can only arrive through a provider that verified it.
+    allowlist is NOT widened: an entry admits exactly the spelling written, and
+    the other spelling can only arrive through a provider that verified it.
     """
-    admins = frozenset(s for e in admin_emails for s in account_spellings(e))
-    if getattr(auth_cfg, "registration_open", False):
-        return lambda email: email.strip().lower() not in admins
-    allow = set(read_email_list(getattr(auth_cfg, "registration_allowlist_env", "")))
-    return lambda email: (e := email.strip().lower()) in allow and e not in admins
+    from enlace_auth.signup.policy import SignupPolicy
+
+    signup = getattr(auth_cfg, "signup", None)
+    if getattr(signup, "default", None) is not None:
+        default = signup.default
+    else:
+        default = (
+            "open" if getattr(auth_cfg, "registration_open", False) else "allowlist"
+        )
+    allowlist = [
+        *read_email_list(getattr(auth_cfg, "registration_allowlist_env", "")),
+        *getattr(signup, "allowlist", ()),
+    ]
+    return SignupPolicy(
+        default=default,
+        apps=dict(getattr(signup, "apps", {}) or {}),
+        allowlist=allowlist,
+        invites=invites,
+        admin_emails=admin_emails,
+    )
+
+
+def _build_can_register(
+    auth_cfg, admin_emails: tuple[str, ...], *, invites=None
+) -> Callable[[str], bool]:
+    """``can_register(email)``: the platform-wide policy, for an OAuth first sign-in.
+
+    See :func:`_build_signup_policy`; an OAuth sign-in names no app, so the
+    platform default applies.
+    """
+    policy = _build_signup_policy(auth_cfg, admin_emails, invites=invites)
+    return lambda email: policy.allows(email, None)
+
+
+_PROVIDER_LABELS = {"github": "GitHub", "gitlab": "GitLab", "microsoft": "Microsoft"}
 
 
 def _build_email_sender():
@@ -519,6 +546,136 @@ def _build_email_sender():
     )
 
 
+def _wire_signup(
+    config,
+    auth_cfg,
+    *,
+    platform_factory,
+    user_backend,
+    session_store,
+    signing_key: str,
+    email_sender,
+    policy,
+    admin_emails: tuple[str, ...],
+    delete_account,
+) -> dict:
+    """Build the sign-up router and the hooks it adds to the auth pages.
+
+    Returns ``{"router", "mail_allowed", "login_page_extras",
+    "account_page_extras"}``. ``[auth.signup] email_code = false`` mounts no
+    router (and so no ``/auth/register``); unset, the endpoints are mounted and
+    the sign-in page offers "continue with email" only when an SMTP sender is
+    configured, so it never promises a mail that only reaches the log.
+    """
+    from enlace_auth.auth.email import make_console_sender
+    from enlace_auth.ratelimit import SlidingWindowLimiter
+    from enlace_auth.signup.botcheck import TimedHoneypot
+    from enlace_auth.signup.codes import PendingCodes
+    from enlace_auth.signup.pages import render_delete_section, render_email_section
+    from enlace_auth.signup.policy import app_from_next
+    from enlace_auth.signup.routes import make_limit_gates, make_signup_router
+    from enlace_auth.signup.texts import pick_lang, t
+
+    cfg = auth_cfg.signup
+    limits = cfg.limits.model_dump()
+    # On the platform's disk, so every worker process counts against one budget.
+    limiter = SlidingWindowLimiter(platform_factory("rate_limits"))
+    mail_allowed, _ = make_limit_gates(limiter, limits)
+    known_apps = [app.name for app in getattr(config, "apps", [])]
+    for name in sorted(set(cfg.apps) - set(known_apps)):
+        _logger.warning(
+            "enlace_auth: [auth.signup] apps names %r, which is not an app; "
+            "its policy applies to nothing",
+            name,
+        )
+    default = auth_cfg.signup_default()
+    if "open" in {default, *cfg.apps.values()}:
+        from enlace_auth.diagnostics import open_to_every_account
+
+        if exposed := open_to_every_account(config):
+            _logger.error(
+                "enlace_auth: sign-up is open and protected:user apps %s have no "
+                "allowed_users, so anyone who signs up can open them. Give each "
+                'an allowed_users list (["@admins"] at least).',
+                exposed,
+            )
+    hooks = {
+        "router": None,
+        "mail_allowed": mail_allowed,
+        "login_page_extras": None,
+        "account_page_extras": None,
+    }
+    if cfg.email_code is False:
+        return hooks
+
+    bot_check = TimedHoneypot(signing_key, min_seconds=cfg.bot_min_seconds)
+    codes = PendingCodes(
+        platform_factory("signin_codes"),
+        signing_key=signing_key,
+        ttl=cfg.code_ttl_seconds,
+        max_attempts=cfg.max_attempts,
+    )
+    hooks["router"] = make_signup_router(
+        user_store=user_backend,
+        session_store=session_store,
+        signing_key=signing_key,
+        send_email=(
+            email_sender if email_sender is not None else make_console_sender()
+        ),
+        policy=policy,
+        codes=codes,
+        rate_limiter=limiter,
+        bot_check=bot_check,
+        limits=limits,
+        known_apps=known_apps,
+        admin_emails=admin_emails,
+        delete_account=delete_account,
+        cookie_name=auth_cfg.session_cookie_name,
+        session_max_age=auth_cfg.session_max_age_seconds,
+        secure_cookies=auth_cfg.secure_cookies,
+        public_base_url=_public_base_url(config, auth_cfg),
+        terms_version=cfg.terms_version,
+    )
+    offered = cfg.email_code is True or email_sender is not None
+    providers = [
+        (_PROVIDER_LABELS.get(name, name.capitalize()), f"/auth/login/{name}")
+        for name in sorted(auth_cfg.oauth)
+    ]
+    admins = frozenset(s for e in admin_emails for s in account_spellings(e))
+
+    def login_page_extras(request, next_url: str) -> dict:
+        if not offered:
+            return {}
+        lang = pick_lang(request.headers.get("accept-language"))
+        app = app_from_next(next_url, known_apps)
+        return {
+            "lang": lang,
+            "password_summary": t(lang, "or_password"),
+            "email_section": render_email_section(
+                lang=lang,
+                next_url=next_url,
+                app=app,
+                challenge=bot_check.challenge(),
+                min_seconds=cfg.bot_min_seconds,
+                mode=policy.mode(app),
+                code_minutes=max(1, cfg.code_ttl_seconds // 60),
+                terms_url=cfg.terms_url,
+                privacy_url=cfg.privacy_url,
+                providers=providers,
+            ),
+        }
+
+    def account_page_extras(request, email: str) -> dict:
+        if not offered or email.strip().lower() in admins:
+            return {}
+        lang = pick_lang(request.headers.get("accept-language"))
+        return {"extra_section": render_delete_section(lang=lang, email=email)}
+
+    hooks["login_page_extras"] = login_page_extras
+    hooks["account_page_extras"] = account_page_extras
+    return hooks
+
+
 def wire(parent: "FastAPI", config) -> None:
     """Mount /auth/*, /_admin/*, store routes, and middleware on ``parent``.
 
@@ -540,7 +697,7 @@ def wire(parent: "FastAPI", config) -> None:
         SessionStore,
         make_auth_router,
     )
-    from enlace_auth.auth.accounts import make_account_records
+    from enlace_auth.auth.accounts import make_account_deleter, make_account_records
     from enlace_auth.auth.middleware import AccessRule
     from enlace_auth.auth.share_routes import make_share_router
     from enlace_auth.auth.shares import ShareStore
@@ -584,7 +741,12 @@ def wire(parent: "FastAPI", config) -> None:
         user_data_backend = user_data_factory("user_data")
 
     admin_emails = platform_admin_emails(auth_cfg)
-    can_register = _build_can_register(auth_cfg, admin_emails)
+    invites = platform_factory("invites")
+    signup_policy = _build_signup_policy(auth_cfg, admin_emails, invites=invites)
+
+    def can_register(email: str) -> bool:
+        return signup_policy.allows(email, None)
+
     email_sender = _build_email_sender()
 
     # Build access rules and shared-password lookup.
@@ -689,6 +851,25 @@ def wire(parent: "FastAPI", config) -> None:
         session_store, **_connector_revocation
     )
 
+    signup = _wire_signup(
+        config,
+        auth_cfg,
+        platform_factory=platform_factory,
+        user_backend=user_backend,
+        session_store=session_store,
+        signing_key=signing_key,
+        email_sender=email_sender,
+        policy=signup_policy,
+        admin_emails=admin_emails,
+        delete_account=make_account_deleter(
+            user_store=user_backend,
+            credentials_changed=on_credentials_changed,
+            share_store=share_store,
+            grant_store=grant_store,
+            user_data=user_data_backend,
+        ),
+    )
+
     auth_router = make_auth_router(
         session_store=session_store,
         user_store=user_backend,
@@ -697,12 +878,16 @@ def wire(parent: "FastAPI", config) -> None:
         session_max_age=auth_cfg.session_max_age_seconds,
         secure_cookies=auth_cfg.secure_cookies,
         shared_password_for=shared_hashes.get,
-        can_register=can_register,
         send_email=email_sender,
         public_base_url=_public_base_url(config, auth_cfg),
         on_credentials_changed=on_credentials_changed,
+        mail_allowed=signup["mail_allowed"],
+        login_page_extras=signup["login_page_extras"],
+        account_page_extras=signup["account_page_extras"],
     )
     parent.include_router(auth_router)
+    if signup["router"] is not None:
+        parent.include_router(signup["router"])
 
     # Optional OAuth router (lazy import of Authlib).
     if auth_cfg.oauth:

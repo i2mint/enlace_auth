@@ -210,6 +210,103 @@ class OAuthServerConfig(_StrictModel):
         return self
 
 
+#: Who may create an account from an app: nobody, the listed addresses, the
+#: invited addresses (an allowlisted address counts as invited), or anyone.
+SignupMode = Literal["closed", "allowlist", "invite", "open"]
+
+
+class SignupLimitsConfig(_StrictModel):
+    """Rate limits on the endpoints that send mail or check a code.
+
+    Each is a count per ``window_seconds``. "address" is the target email, "ip"
+    the client address the ASGI server reports (uvicorn rewrites it from the
+    proxy's ``X-Forwarded-For`` when the proxy is in ``forwarded_allow_ips``).
+    """
+
+    window_seconds: int = Field(default=3600, gt=0)
+    mail_per_address: int = Field(default=5, ge=1)
+    mail_per_ip: int = Field(default=20, ge=1)
+    mail_global: int = Field(default=500, ge=1)
+    verify_per_address: int = Field(default=10, ge=1)
+    verify_per_ip: int = Field(default=50, ge=1)
+
+
+class SignupConfig(_StrictModel):
+    """Self-service sign-up and email-code sign-in (``[auth.signup]``).
+
+    The account is platform-wide; *where* it may be created is per app. Which
+    apps an account may open is still decided by each app's ``access`` and
+    ``allowed_users``, never by this table. Note what that means: a
+    ``protected:user`` app with an empty ``allowed_users`` opens to *every*
+    account, so any non-closed policy opens it to whoever signs up. Give such an
+    app an ``allowed_users`` list (``["@admins"]`` at least) before opening
+    sign-up anywhere; ``enlace doctor`` fails until you do.
+    """
+
+    default: Optional[SignupMode] = Field(
+        default=None,
+        description=(
+            "The policy for an app with no entry in `apps`, and for a sign-up "
+            "that names no app. Unset: 'open' when the legacy "
+            "registration_open is true, else 'allowlist'."
+        ),
+    )
+    apps: dict[str, SignupMode] = Field(default_factory=dict)
+    allowlist: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Addresses admitted by the 'allowlist' and 'invite' policies, "
+            "together with those in registration_allowlist_env. An entry admits "
+            "exactly the spelling written."
+        ),
+    )
+    email_code: Optional[bool] = Field(
+        default=None,
+        description=(
+            "Offer 'continue with email' (a one-time code). Unset: on when an "
+            "SMTP sender is configured, so a page never promises a mail the "
+            "platform cannot send."
+        ),
+    )
+    code_ttl_seconds: int = Field(default=600, gt=0)
+    max_attempts: int = Field(default=5, ge=1)
+    bot_min_seconds: float = Field(
+        default=2.0,
+        ge=0,
+        description="How long a sign-up form must have been open before it is sent.",
+    )
+    privacy_url: Optional[str] = None
+    terms_url: Optional[str] = None
+    terms_version: Optional[str] = Field(
+        default=None,
+        description="Stored on each account created, as the terms it accepted.",
+    )
+    limits: SignupLimitsConfig = Field(default_factory=SignupLimitsConfig)
+
+    @field_validator("allowlist")
+    @classmethod
+    def _check_allowlist(cls, emails: list[str]) -> list[str]:
+        for entry in emails:
+            e = entry.strip()
+            if e.count("@") != 1 or "," in e or any(c.isspace() for c in e):
+                raise ValueError(
+                    f"[auth.signup] allowlist: {entry!r} is not a single email "
+                    "address (write one address per list entry)"
+                )
+        return emails
+
+    @field_validator("privacy_url", "terms_url")
+    @classmethod
+    def _check_url(cls, url: Optional[str]) -> Optional[str]:
+        if url is not None and not (
+            url.startswith("https://")
+            or url.startswith("http://")
+            or url.startswith("/")
+        ):
+            raise ValueError(f"{url!r} must be an http(s) URL or a site path")
+        return url
+
+
 class AuthConfig(_StrictModel):
     """Platform-wide authentication configuration."""
 
@@ -271,6 +368,31 @@ class AuthConfig(_StrictModel):
             "address with no account would go to whoever claims it first."
         ),
     )
+
+    signup: SignupConfig = Field(default_factory=SignupConfig)
+
+    @model_validator(mode="after")
+    def _check_signup_alias(self) -> "AuthConfig":
+        """``registration_open`` is the old name for ``[auth.signup] default = "open"``.
+
+        Both written and disagreeing is refused rather than one silently winning.
+        """
+        if (
+            self.registration_open
+            and self.signup.default is not None
+            and self.signup.default != "open"
+        ):
+            raise ValueError(
+                "[auth] registration_open = true conflicts with [auth.signup] "
+                f"default = {self.signup.default!r}; remove registration_open"
+            )
+        return self
+
+    def signup_default(self) -> str:
+        """The effective platform-wide sign-up policy."""
+        if self.signup.default is not None:
+            return self.signup.default
+        return "open" if self.registration_open else "allowlist"
 
 
 def coerce_auth_config(raw: Any) -> AuthConfig:

@@ -58,7 +58,7 @@ def _client(
 
 def _signed_in(client, email):
     csrf = _csrf(client)
-    assert _register(client, email, "password-123", csrf).status_code == 200
+    assert _register(client, email, "password-123-long-enough", csrf).status_code == 200
     return client
 
 

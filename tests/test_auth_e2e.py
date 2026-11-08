@@ -15,6 +15,7 @@ from enlace.compose import build_backend
 from enlace.discover import discover_apps
 from starlette.testclient import TestClient
 
+from tests.signup_helpers import sign_up
 from enlace_auth import plugin as auth_plugin
 from enlace_auth.auth import hash_password
 
@@ -150,10 +151,8 @@ def test_register_login_access_store_logout(e2e_client):
     raw, _ = _csrf_pair(e2e_client)
     headers = {"X-CSRF-Token": raw}
 
-    r = e2e_client.post(
-        "/auth/register",
-        json={"email": "alice@example.com", "password": "secretpw123"},
-        headers=headers,
+    r = sign_up(
+        e2e_client, "alice@example.com", "secretpw123-long-enough", csrf=headers
     )
     assert r.status_code == 200, r.text
 
@@ -186,11 +185,7 @@ def test_register_login_access_store_logout(e2e_client):
 def test_login_wrong_password_rejected(e2e_client):
     raw, _ = _csrf_pair(e2e_client)
     headers = {"X-CSRF-Token": raw}
-    r = e2e_client.post(
-        "/auth/register",
-        json={"email": "bob@example.com", "password": "correct-pw"},
-        headers=headers,
-    )
+    r = sign_up(e2e_client, "bob@example.com", "correct-pw-long-enough", csrf=headers)
     assert r.status_code == 200
     e2e_client.cookies.clear()
     raw, _ = _csrf_pair(e2e_client)
@@ -229,10 +224,11 @@ def test_signed_in_browser_reaches_shared_form_without_a_redirect_loop(e2e_clien
     loop fails here instead of hanging.
     """
     raw, _ = _csrf_pair(e2e_client)
-    r = e2e_client.post(
-        "/auth/register",
-        json={"email": "carol@example.com", "password": "secretpw123"},
-        headers={"X-CSRF-Token": raw},
+    r = sign_up(
+        e2e_client,
+        "carol@example.com",
+        "secretpw123-long-enough",
+        csrf={"X-CSRF-Token": raw},
     )
     assert r.status_code == 200, r.text
 
@@ -268,10 +264,8 @@ def test_password_recovery_end_to_end(e2e_client, caplog):
     raw, _ = _csrf_pair(e2e_client)
     headers = {"X-CSRF-Token": raw}
 
-    reg = e2e_client.post(
-        "/auth/register",
-        json={"email": "recover@example.com", "password": "original-pw"},
-        headers=headers,
+    reg = sign_up(
+        e2e_client, "recover@example.com", "original-pw-long-enough", csrf=headers
     )
     assert reg.status_code == 200
 
@@ -303,7 +297,7 @@ def test_password_recovery_end_to_end(e2e_client, caplog):
     e2e_client.post("/auth/logout", headers=headers)
     bad = e2e_client.post(
         "/auth/login",
-        json={"email": "recover@example.com", "password": "original-pw"},
+        json={"email": "recover@example.com", "password": "original-pw-long-enough"},
         headers=headers,
     )
     assert bad.status_code == 401

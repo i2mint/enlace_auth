@@ -70,6 +70,9 @@ ignore = ["D203"]
 [tool.ruff.lint.per-file-ignores]
 "tests/test_auth_e2e.py" = ["E501"]
 "tests/test_doctor.py" = ["E501"]
+# One translated sentence per line, and inline page markup: wrapping them hurts review.
+"enlace_auth/signup/texts.py" = ["E501"]
+"enlace_auth/signup/pages.py" = ["E501"]
 
 [tool.wads.ci]
 installer = "uv"

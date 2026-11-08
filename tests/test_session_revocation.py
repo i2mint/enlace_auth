@@ -34,7 +34,9 @@ def _second_client(admin_client: TestClient) -> TestClient:
     return client
 
 
-def _setup_admin_and_user(admin_client, email="vic@example.com", pw="victim-pw1"):
+def _setup_admin_and_user(
+    admin_client, email="vic@example.com", pw="victim-pw1-long-enough"
+):
     csrf = _csrf(admin_client)
     _register(admin_client, "boss@example.com", "bosspw1!", csrf)
     r = admin_client.post(
@@ -72,13 +74,16 @@ def test_changing_own_password_ends_other_sessions_but_keeps_this_one(admin_clie
     other_browser = _second_client(admin_client)
     assert (
         _login(
-            other_browser, "vic@example.com", "victim-pw1", _csrf(other_browser)
+            other_browser,
+            "vic@example.com",
+            "victim-pw1-long-enough",
+            _csrf(other_browser),
         ).status_code
         == 200
     )
     r = holder.post(
         "/auth/me/password",
-        json={"old_password": "victim-pw1", "new_password": "rotated-pw1"},
+        json={"old_password": "victim-pw1-long-enough", "new_password": "rotated-pw1"},
         headers=_csrf(holder),
     )
     assert r.status_code == 200, r.text
@@ -111,7 +116,7 @@ def test_reset_link_ends_existing_sessions(admin_client):
 def test_other_users_sessions_survive(admin_client):
     csrf, holder = _setup_admin_and_user(admin_client)
     bystander = _second_client(admin_client)
-    _register(bystander, "bea@example.com", "bystander1", _csrf(bystander))
+    _register(bystander, "bea@example.com", "bystander1-long-enough", _csrf(bystander))
     admin_client.delete("/_admin/api/users/vic@example.com", headers=csrf)
     assert bystander.get("/auth/whoami").json()["email"] == "bea@example.com"
     assert admin_client.get("/auth/whoami").json()["email"] == "boss@example.com"

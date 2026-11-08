@@ -33,7 +33,6 @@ def _make(users=None):
         user_store=users,
         signing_key=KEY,
         secure_cookies=False,
-        can_register=lambda _email: True,
         send_email=sender,
         reset_token_max_age=1800,
     )

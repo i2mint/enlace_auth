@@ -70,7 +70,7 @@ def test_add_user_refuses_and_says_why(capsys):
 def test_register_refuses(env, tmp_path):  # noqa: F811
     env.setenv("ENLACE_REGISTRATION_ALLOWLIST", DOTTED_I)
     client = _client(tmp_path)
-    r = _register(client, DOTTED_I, "dotted-i-pw-1", _csrf(client))
+    r = _register(client, DOTTED_I, "dotted-i-pw-1-long-enough", _csrf(client))
     assert r.status_code == 400, r.text
     assert "U+0130" in r.json()["detail"]
 
@@ -186,7 +186,7 @@ def test_admin_create_user_refuses(admin_client):  # noqa: F811
     _register(admin_client, "boss@example.com", "bosspw1!", csrf)
     r = admin_client.post(
         "/_admin/api/users",
-        json={"email": DOTTED_I, "password": "dotted-i-pw-1"},
+        json={"email": DOTTED_I, "password": "dotted-i-pw-1-long-enough"},
         headers=csrf,
     )
     assert r.status_code == 400, r.text
