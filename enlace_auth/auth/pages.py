@@ -90,6 +90,15 @@ code{background:#0f1115;padding:1px 6px;border-radius:4px;
            width:auto;margin:0;background:transparent;color:#8a90a0;border:0;
            font-size:13px;font-weight:500;padding:4px 8px;cursor:pointer}
 .pw-toggle:hover{background:transparent;color:#7cc4ff;text-decoration:underline}
+details.pw-alt{margin-top:18px;border-top:1px solid #2a2e38;padding-top:12px}
+details.pw-alt summary{cursor:pointer;color:#8a90a0;font-size:14px;text-align:center}
+.hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.card+.card{margin-top:16px}
+a.alt{display:block;text-align:center;margin-top:12px;padding:10px;
+      border:1px solid #2a2e38;border-radius:8px;color:#e6e8eb}
+a.alt:hover{border-color:#7cc4ff;text-decoration:none}
+button.danger{background:#ff8a8a}
+button.danger:hover{background:#ffb0b0}
 """.strip()
 
 _SHELL = (
@@ -192,7 +201,7 @@ def fill_template(template: str, /, **values: object) -> str:
     return template.format(**{k: escape(str(v), quote=True) for k, v in values.items()})
 
 
-def _page(title: str, body: str) -> str:
+def _page(title: str, body: str, *, lang: str = "en") -> str:
     """Wrap ``body`` HTML in the shared shell with ``title``.
 
     ``body`` is inserted **verbatim** — it is expected to be markup the caller
@@ -200,7 +209,8 @@ def _page(title: str, body: str) -> str:
     :func:`fill_template`.
     """
     return (
-        _SHELL.replace("__TITLE__", escape(title))
+        _SHELL.replace('<html lang="en">', f'<html lang="{escape(lang)}">')
+        .replace("__TITLE__", escape(title))
         .replace("__CSS__", _CSS)
         .replace("__BODY__", body)
     )
@@ -261,6 +271,9 @@ def render_login_page(
     next_url: str = "/",
     error: Optional[str] = None,
     show_register_hint: bool = True,
+    email_section: str = "",
+    password_summary: str = "Sign in with a password instead",
+    lang: str = "en",
 ) -> str:
     """Render the sign-in form.
 
@@ -269,24 +282,36 @@ def render_login_page(
             sanitized by the caller via :func:`safe_next`.
         error: optional error banner (e.g. a stale-session note).
         show_register_hint: whether to show the "ask an admin" footnote.
+        email_section: trusted markup shown above the password form (the
+            "continue with email" step from :mod:`enlace_auth.signup.pages`).
+            When given, the password form folds under *password_summary* and
+            the section carries its own sign-up note instead of the hint.
+        lang: the page's ``lang`` attribute.
     """
     next_js = _js_string(next_url)
     hint = (
         '<p class="muted">No account? Accounts are created by the platform admin.</p>'
-        if show_register_hint
+        if show_register_hint and not email_section
         else ""
     )
-    body = f"""<div class="card">
-<h1>Sign in</h1>
-<p class="sub">Access your apps on this platform.</p>
-<form id="f" autocomplete="on">
+    password_form = f"""<form id="f" autocomplete="on">
   <label for="email">Email</label>
   <input id="email" name="email" type="email" required autocomplete="username"
-         autofocus>
+         {"" if email_section else "autofocus"}>
   <label for="password">Password</label>
   {_password_input(id="password", autocomplete="current-password")}
   <button id="submit" type="submit">Sign in</button>
-</form>
+</form>"""
+    if email_section:
+        password_form = (
+            f'<details class="pw-alt"><summary>{escape(password_summary)}</summary>'
+            f"{password_form}</details>"
+        )
+    body = f"""<div class="card">
+<h1>Sign in</h1>
+<p class="sub">Access your apps on this platform.</p>
+{email_section}
+{password_form}
 {_msg_div(error)}
 <div class="nav">
   <a href="/auth/forgot-password">Forgot password?</a>
@@ -319,7 +344,7 @@ f.addEventListener('submit', async (e) => {{
   submit.disabled = false; submit.textContent = 'Sign in';
 }});
 </script>"""
-    return _page("Sign in", body)
+    return _page("Sign in", body, lang=lang)
 
 
 # --------------------------------------------------------------------------
@@ -547,8 +572,13 @@ f.addEventListener('submit', async (e) => {{
 # --------------------------------------------------------------------------
 
 
-def render_account_page(*, email: str, error: Optional[str] = None) -> str:
+def render_account_page(
+    *, email: str, error: Optional[str] = None, extra_section: str = ""
+) -> str:
     """Render the signed-in user's "change my password" form.
+
+    *extra_section* is trusted markup appended as a second card (the account
+    deletion step from :mod:`enlace_auth.signup.pages`).
 
     Posts to ``/auth/me/password``, which requires the *current* password —
     so this page is safe to leave reachable on a shared machine: possession of
@@ -582,6 +612,7 @@ def render_account_page(*, email: str, error: Optional[str] = None) -> str:
   <a href="/">Back to apps</a>
 </div>
 </div>
+{extra_section}
 <script>
 {_CSRF_JS}
 {_PW_TOGGLE_JS}

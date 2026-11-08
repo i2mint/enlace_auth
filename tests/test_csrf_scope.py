@@ -17,6 +17,7 @@ from enlace.compose import build_backend
 from enlace.discover import discover_apps
 from starlette.testclient import TestClient
 
+from tests.signup_helpers import sign_up
 from enlace_auth import plugin as auth_plugin
 from enlace_auth.auth import hash_password
 from enlace_auth.auth.cookies import verify_cookie
@@ -129,8 +130,8 @@ def test_register_and_login_flow_works_from_auth_csrf_alone(app_factory):
     """The documented flow: GET /auth/csrf, echo it, POST. Nothing else first."""
     client = app_factory()
     token = client.get("/auth/csrf").json()["csrf"]
-    body = {"email": "kid@example.com", "password": "secretpw123"}
-    r = client.post("/auth/register", json=body, headers={"X-CSRF-Token": token})
+    body = {"email": "kid@example.com", "password": "secretpw123-long-enough"}
+    r = sign_up(client, body["email"], body["password"], csrf={"X-CSRF-Token": token})
     assert r.status_code == 200, r.text
     assert (
         client.post("/auth/logout", headers={"X-CSRF-Token": token}).status_code == 200
@@ -144,7 +145,8 @@ def test_post_without_the_pair_is_still_refused(app_factory):
     client = app_factory()
     client.get("/pub/")  # no cookie comes back from here any more
     r = client.post(
-        "/auth/register", json={"email": "a@b.co", "password": "secretpw123"}
+        "/auth/register",
+        json={"email": "a@b.co", "password": "secretpw123-long-enough"},
     )
     assert r.status_code == 403
     assert r.json() == {"detail": "CSRF check failed"}
@@ -153,10 +155,10 @@ def test_post_without_the_pair_is_still_refused(app_factory):
 def test_protected_user_app_signed_in_gets_the_cookie(app_factory):
     client = app_factory()
     token = client.get("/auth/csrf").json()["csrf"]
-    body = {"email": "kid@example.com", "password": "secretpw123"}
+    body = {"email": "kid@example.com", "password": "secretpw123-long-enough"}
     assert (
-        client.post(
-            "/auth/register", json=body, headers={"X-CSRF-Token": token}
+        sign_up(
+            client, body["email"], body["password"], csrf={"X-CSRF-Token": token}
         ).status_code
         == 200
     )
@@ -170,8 +172,8 @@ def test_admin_page_gets_the_cookie(app_factory, tmp_path):
     client = app_factory()
     token = client.get("/auth/csrf").json()["csrf"]
     # Registration refuses admin addresses; an operator seeds the account.
-    _seed_account(tmp_path / "platform", ADMIN, "secretpw123")
-    body = {"email": ADMIN, "password": "secretpw123"}
+    _seed_account(tmp_path / "platform", ADMIN, "secretpw123-long-enough")
+    body = {"email": ADMIN, "password": "secretpw123-long-enough"}
     r = client.post("/auth/login", json=body, headers={"X-CSRF-Token": token})
     assert r.status_code == 200, r.text
     client.cookies.delete("enlace_csrf")

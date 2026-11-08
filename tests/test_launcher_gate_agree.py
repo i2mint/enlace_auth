@@ -79,7 +79,10 @@ def _platform(tmp_path, monkeypatch):
 
 def _signed_in(backend, email):
     client = TestClient(backend)
-    assert _register(client, email, "password-123", _csrf(client)).status_code == 200
+    assert (
+        _register(client, email, "password-123-long-enough", _csrf(client)).status_code
+        == 200
+    )
     return client
 
 

@@ -285,8 +285,8 @@ def check_widened_spellings(config: PlatformConfig) -> Iterable[Check]:
       either spelling: anyone can register its Unicode spelling (which is how
       registration keys it) and be admitted.
 
-    The admin list and the registration allowlist compare as written, so they
-    are not read here.
+    The admin list compares as written, and the registration allowlist admits
+    an entry's mailbox only through a verified sign-up, so neither is read here.
     """
     from pathlib import Path
 
@@ -521,6 +521,101 @@ def check_oauth_server_advertises_refresh(
     ]
 
 
+def open_to_every_account(config) -> list[str]:
+    """The ``protected:user`` apps with no ``allowed_users``: any account opens them.
+
+    ``enlace.access.is_user_allowed`` treats an empty allowlist as "every signed-in
+    user", so once anyone can create an account, anyone can open these.
+    """
+    return sorted(
+        app.name
+        for app in getattr(config, "apps", [])
+        if app.access == "protected:user" and not list(app.allowed_users or [])
+    )
+
+
+def check_signup(config: PlatformConfig) -> Iterable[Check]:
+    """Report a sign-up policy that is unsafe or cannot work.
+
+    - an ``[auth.signup] apps`` entry naming no app (a typo leaves that app on
+      the default): FAIL;
+    - an ``open`` policy anywhere while a ``protected:user`` app has no
+      ``allowed_users`` (anyone could sign up and open it): FAIL; under an
+      ``invite`` or a non-empty ``allowlist`` policy the same app opens to
+      every invited address: WARN;
+    - an ``open`` policy with no SMTP sender (codes would reach only the log):
+      FAIL; and with no ``privacy_url``: WARN.
+    """
+    auth = coerce_auth_config(getattr(config, "auth", None))
+    if not auth.enabled:
+        return [Check("signup", SKIP, "auth.enabled=false")]
+    cfg = auth.signup
+    names = {app.name for app in getattr(config, "apps", [])}
+    out: list[Check] = []
+    unknown = sorted(set(cfg.apps) - names)
+    if unknown:
+        out.append(
+            Check(
+                "signup_apps",
+                FAIL,
+                f"[auth.signup] apps names {unknown}, which are not apps; "
+                "those entries apply to nothing",
+            )
+        )
+    default = auth.signup_default()
+    modes = {default} | {m for a, m in cfg.apps.items() if a in names}
+    from enlace_auth.plugin import read_email_list
+
+    has_list = bool(cfg.allowlist) or bool(
+        read_email_list(auth.registration_allowlist_env)
+    )
+    admits_some = "invite" in modes or ("allowlist" in modes and has_list)
+    exposed = open_to_every_account(config)
+    if exposed and "open" in modes:
+        out.append(
+            Check(
+                "signup_exposes_apps",
+                FAIL,
+                f"sign-up is open, and protected:user apps {exposed} have no "
+                "allowed_users, so anyone who signs up can open them. Give each "
+                'an allowed_users list (["@admins"] at least)',
+            )
+        )
+    elif exposed and admits_some:
+        out.append(
+            Check(
+                "signup_exposes_apps",
+                WARN,
+                f"every invited or allowlisted address that signs up can open "
+                f"protected:user apps {exposed}, which have no allowed_users",
+            )
+        )
+    # The exposure check above holds even with email_code off: an OAuth first
+    # sign-in still follows the default policy.
+    if "open" in modes and cfg.email_code is not False:
+        if not os.environ.get("ENLACE_SMTP_HOST", "").strip():
+            out.append(
+                Check(
+                    "signup_sender",
+                    FAIL,
+                    "sign-up is open but ENLACE_SMTP_HOST is unset: sign-in codes "
+                    "would only reach the server log",
+                )
+            )
+        if not cfg.privacy_url:
+            out.append(
+                Check(
+                    "signup_privacy",
+                    WARN,
+                    "sign-up is open but [auth.signup] privacy_url is unset: the "
+                    "sign-up step links no privacy notice",
+                )
+            )
+    if not out:
+        out.append(Check("signup", PASS, f"sign-up policy: default {default!r}"))
+    return out
+
+
 # Convenience tuples for `extra_static_checks=` / `extra_http_checks=`.
 static_checks = (
     check_auth_config,
@@ -533,6 +628,7 @@ static_checks = (
             check_connector_session_longevity,
             check_admin_accounts,
             check_widened_spellings,
+            check_signup,
         ),
     ),
 )

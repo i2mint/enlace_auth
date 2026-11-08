@@ -1,9 +1,9 @@
 """Admin addresses must not be claimable by self-registration (i2mint/enlace_auth#35).
 
-``/auth/register`` checks only "no account yet" plus the registration predicate,
-with no proof that the registrant owns the address. So an admin address with no
-account must not be in the self-registration allow-set: whoever registers it
-first would pass every ``@admins`` gate. Admin accounts are made with the CLI
+Self-registration (``/auth/register``, ``/auth/email/start``) now creates an
+account only after the address proves it gets mail (#81), but an admin address
+with no account still must not be in the self-registration allow-set: an admin
+account is made on purpose, never by whoever signs up first. Admin accounts are made with the CLI
 (``enlace-auth add-user``), and ``doctor`` warns about admin addresses that have
 no account yet.
 """
@@ -67,9 +67,14 @@ def test_admin_address_is_not_in_the_allow_set(env):
 def test_unclaimed_admin_address_cannot_be_self_registered(env, tmp_path):
     client = _client(tmp_path)
     csrf = _csrf(client)
-    assert _register(client, _ADMIN, "attacker-pw1", csrf).status_code == 403
+    r = _register(client, _ADMIN, "attacker-pw1-long-enough", csrf)
+    assert r.status_code == 202  # the one answer every address gets...
+    users = make_file_store_factory(str(tmp_path / "platform"))("users")
+    assert _ADMIN not in users  # ...and no code was mailed, so nothing exists
     # The allowlist itself still works.
-    assert _register(client, _INVITED, "guest-pw-123", csrf).status_code == 200
+    assert (
+        _register(client, _INVITED, "guest-pw-123-long-enough", csrf).status_code == 200
+    )
 
 
 def _admin_check(tmp_path, single_app_dir, *, registration_open=False):
@@ -113,16 +118,27 @@ def test_doctor_skips_when_no_admins_are_configured(env, tmp_path, single_app_di
     assert check.status == doctor_mod.SKIP
 
 
-def test_register_checks_permission_then_existence_then_password(env, tmp_path):
-    """An allowed address that already has an account gets 409; a short
-    password gets 400 and creates nothing."""
+def test_register_never_reveals_or_rewrites_an_existing_account(env, tmp_path):
+    """A short password gets 400 and creates nothing. Registering an address
+    that already has an account gets the same answer as a new one, and leaves
+    its password as it was (verifying the code only signs that account in)."""
+    from tests.test_admin import _login
+
     client = _client(tmp_path)
     csrf = _csrf(client)
     assert _register(client, _INVITED, "short", csrf).status_code == 400
-    assert _register(client, _INVITED, "guest-pw-123", csrf).status_code == 200
+    assert (
+        _register(client, _INVITED, "guest-pw-123-long-enough", csrf).status_code == 200
+    )
     client.post("/auth/logout", headers=csrf)
     csrf = _csrf(client)
-    assert _register(client, _INVITED, "guest-pw-456", csrf).status_code == 409
+    assert (
+        _register(client, _INVITED, "guest-pw-456-long-enough", csrf).status_code == 200
+    )
+    client.post("/auth/logout", headers=csrf)
+    csrf = _csrf(client)
+    assert _login(client, _INVITED, "guest-pw-456-long-enough", csrf).status_code == 401
+    assert _login(client, _INVITED, "guest-pw-123-long-enough", csrf).status_code == 200
 
 
 def test_doctor_says_an_unacceptable_admin_entry_needs_oauth(

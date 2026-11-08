@@ -192,7 +192,7 @@ def test_admin_password_set_revokes_connector_families(platform):
     _register(client, "boss@example.com", "bosspw1!", csrf)
     r = client.post(
         "/_admin/api/users",
-        json={"email": "vic@example.com", "password": "victim-pw1"},
+        json={"email": "vic@example.com", "password": "victim-pw1-long-enough"},
         headers=csrf,
     )
     assert r.status_code == 200, r.text
@@ -214,7 +214,7 @@ def test_admin_delete_revokes_connector_families(platform):
     _register(client, "boss@example.com", "bosspw1!", csrf)
     client.post(
         "/_admin/api/users",
-        json={"email": "vic@example.com", "password": "victim-pw1"},
+        json={"email": "vic@example.com", "password": "victim-pw1-long-enough"},
         headers=csrf,
     )
     _seed(refresh, codes)
@@ -226,12 +226,18 @@ def test_admin_delete_revokes_connector_families(platform):
 def test_self_service_password_change_revokes_connector_families(platform):
     client, refresh, codes = platform
     csrf = _csrf(client)
-    _register(client, "vic@example.com", "victim-pw1", csrf)
-    assert _login(client, "vic@example.com", "victim-pw1", csrf).status_code == 200
+    _register(client, "vic@example.com", "victim-pw1-long-enough", csrf)
+    assert (
+        _login(client, "vic@example.com", "victim-pw1-long-enough", csrf).status_code
+        == 200
+    )
     _seed(refresh, codes)
     r = client.post(
         "/auth/me/password",
-        json={"old_password": "victim-pw1", "new_password": "brand-new-pw1"},
+        json={
+            "old_password": "victim-pw1-long-enough",
+            "new_password": "brand-new-pw1",
+        },
         headers=_csrf(client),
     )
     assert r.status_code == 200, r.text
@@ -307,7 +313,7 @@ def _revoke_vic_via_admin(client):
     _register(client, "boss@example.com", "bosspw1!", csrf)
     client.post(
         "/_admin/api/users",
-        json={"email": "vic@example.com", "password": "victim-pw1"},
+        json={"email": "vic@example.com", "password": "victim-pw1-long-enough"},
         headers=csrf,
     )
     r = client.post(

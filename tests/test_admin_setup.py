@@ -70,9 +70,14 @@ def test_open_registration_refuses_an_admin_address_end_to_end(env, tmp_path):
     )
     client = TestClient(build_backend(discover_apps(config), plugins=[auth_plugin]))
     csrf = _csrf(client)
-    assert _register(client, _ADMIN.upper(), "attacker-pw1", csrf).status_code == 403
+    r = _register(client, _ADMIN.upper(), "attacker-pw1-long-enough", csrf)
+    assert r.status_code == 202  # the one answer; no code was mailed
+    users = make_file_store_factory(str(tmp_path / "platform"))("users")
+    assert not any(k.lower() == _ADMIN for k in users)
     assert (
-        _register(client, "someone@example.com", "guest-pw-123", csrf).status_code
+        _register(
+            client, "someone@example.com", "guest-pw-123-long-enough", csrf
+        ).status_code
         == 200
     )
 
@@ -85,7 +90,12 @@ def test_registration_enforces_the_password_minimum(env, tmp_path):
 
 def test_a_registered_account_records_how_it_was_made(env, tmp_path):
     client = _client(tmp_path)
-    assert _register(client, _INVITED, "guest-pw-123", _csrf(client)).status_code == 200
+    assert (
+        _register(
+            client, _INVITED, "guest-pw-123-long-enough", _csrf(client)
+        ).status_code
+        == 200
+    )
     users = make_file_store_factory(str(tmp_path / "platform"))("users")
     assert users[_INVITED]["created_via"] == "register"
 
@@ -361,15 +371,22 @@ def test_doctor_keeps_the_provenance_note_when_another_warning_fires(
 
 
 def test_register_does_not_reveal_whether_an_admin_account_exists(env, tmp_path):
-    """#41 item 4: 403 for an admin address whether or not it has an account."""
+    """#41 item 4: the same answer for an admin address with or without an account."""
+    from tests.signup_helpers import challenge
+
     client = _client(tmp_path)
     csrf = _csrf(client)
-    body = {"email": _ADMIN, "password": "attacker-pw1"}
-    before = client.post("/auth/register", json=body, headers=csrf).status_code
+    body = {
+        "email": _ADMIN,
+        "password": "attacker-pw1-long-enough",
+        "challenge": challenge(),
+    }
+    before = client.post("/auth/register", json=body, headers=csrf)
     users = make_file_store_factory(str(tmp_path / "platform"))("users")
     users[_ADMIN] = {"password_hash": "x", "created_via": "add-user"}
-    after = client.post("/auth/register", json=body, headers=csrf).status_code
-    assert before == after == 403
+    after = client.post("/auth/register", json=body, headers=csrf)
+    assert (before.status_code, before.content) == (after.status_code, after.content)
+    assert before.status_code == 202
 
 
 def test_doctor_says_how_to_spell_an_admin_entry_add_user_keyed_otherwise(

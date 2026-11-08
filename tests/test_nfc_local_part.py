@@ -52,17 +52,22 @@ def test_register_refuses_a_decomposed_local_part(env, tmp_path):  # noqa: F811
     env.setenv("ENLACE_REGISTRATION_ALLOWLIST", f"{COMPOSED},{DECOMPOSED}")
     client = _client(tmp_path)
     csrf = _csrf(client)
-    r = _register(client, DECOMPOSED, "decomposed-pw1", csrf)
+    r = _register(client, DECOMPOSED, "decomposed-pw1-long-enough", csrf)
     assert r.status_code == 400, r.text
     assert "NFC" in r.json()["detail"]
-    assert _register(client, COMPOSED, "composed-pw-1", csrf).status_code == 200
+    assert (
+        _register(client, COMPOSED, "composed-pw-1-long-enough", csrf).status_code
+        == 200
+    )
 
 
 def test_register_refuses_the_display_name_form(env, tmp_path):  # noqa: F811
     """EmailStr would key ``ann <x@y>`` as ``x@y``; the account key refuses it."""
     env.setenv("ENLACE_REGISTRATION_ALLOWLIST", "guest@example.com")
     client = _client(tmp_path)
-    r = _register(client, "ann <guest@example.com>", "guest-pw-123", _csrf(client))
+    r = _register(
+        client, "ann <guest@example.com>", "guest-pw-123-long-enough", _csrf(client)
+    )
     assert r.status_code == 400, r.text
 
 
@@ -71,14 +76,14 @@ def test_admin_create_user_refuses_a_decomposed_local_part(admin_client):  # noq
     _register(admin_client, "boss@example.com", "bosspw1!", csrf)
     r = admin_client.post(
         "/_admin/api/users",
-        json={"email": DECOMPOSED, "password": "decomposed-pw1"},
+        json={"email": DECOMPOSED, "password": "decomposed-pw1-long-enough"},
         headers=csrf,
     )
     assert r.status_code == 400, r.text
     assert "NFC" in r.json()["detail"]
     ok = admin_client.post(
         "/_admin/api/users",
-        json={"email": COMPOSED, "password": "composed-pw-1"},
+        json={"email": COMPOSED, "password": "composed-pw-1-long-enough"},
         headers=csrf,
     )
     assert ok.status_code == 200, ok.text

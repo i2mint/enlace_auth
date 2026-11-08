@@ -12,6 +12,7 @@ from enlace.discover import discover_apps
 from fastapi import FastAPI
 from starlette.testclient import TestClient
 
+from tests.signup_helpers import sign_up
 from enlace_auth import plugin as auth_plugin
 from enlace_auth.auth import ShareError, ShareStore, hash_password
 from enlace_auth.auth.cookies import verify_cookie
@@ -341,8 +342,12 @@ def _signed_in(app, email):
     client.get("/auth/csrf")
     raw = verify_cookie(client.cookies.get("enlace_csrf"), KEY, salt="csrf")
     client.headers["X-CSRF-Token"] = raw
-    verb = "login" if email == DAD else "register"
-    r = client.post(f"/auth/{verb}", json={"email": email, "password": "secretpw123"})
+    if email == DAD:
+        r = client.post("/auth/login", json={"email": email, "password": "secretpw123"})
+    else:
+        r = sign_up(
+            client, email, "secretpw123-long-enough", csrf={"X-CSRF-Token": raw}
+        )
     assert r.status_code == 200, r.text
     return client
 

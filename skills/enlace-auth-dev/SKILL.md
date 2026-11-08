@@ -38,6 +38,7 @@ About 700 tests, roughly 70 seconds. For one area, `python -m pytest tests/test_
 - **One predicate for access.** The gate and the launcher both use `enlace.access.is_user_allowed`. A new rule goes there, not in a second copy.
 - **One normal form for addresses.** Go through `enlace_auth/emails.py`. A written allowlist entry is widened with `account_spellings`; a stored account key is compared exactly.
 - **CSRF is checked everywhere it was; minting is narrow.** `CSRFMiddleware(mint_prefixes=...)` limits where the cookie is set, never where the check runs. A new client of the double-submit check gets its token from `GET /auth/csrf`.
+- **Verify before create.** No self-service path writes a user record before the address has spent a mailed code (`enlace_auth/signup/`). `/auth/email/start` and `/auth/register` answer every address with the same bytes; only the mail differs. A test of a new sign-up path asserts both (`tests/test_signup.py`), and a test that needs a self-registered account uses `tests/signup_helpers.sign_up`.
 - **Credential changes revoke.** Anything that changes a password or deletes an account calls `on_credentials_changed` so sessions and connector refresh families end together.
 - **Damaged records must not crash a sweep.** Stores are hand-editable files; a loop over records (`ShareStore.list_all`, account deletion, doctor checks) skips or reports a malformed one instead of raising.
 

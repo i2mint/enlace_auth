@@ -60,7 +60,6 @@ config = PlatformConfig(
     auth={
         "enabled": True,
         "secure_cookies": False,  # plain http in this demo
-        "registration_open": True,
         "stores": {"backend": "file", "path": str(root / "platform")},
     },
     stores={"user_data": {"backend": "file", "path": str(root / "user_data")}},
@@ -71,18 +70,26 @@ assert client.get("/api/hello/ping").status_code == 200  # public: open, no cook
 assert "enlace_csrf" not in client.cookies
 assert client.get("/api/vault/ping").status_code == 401  # protected: denied
 
+# An account, made the way `enlace-auth add-user` makes one.
+from enlace_auth.auth import hash_password
+from enlace_auth.stores import make_file_store_factory
+
+users = make_file_store_factory(str(root / "platform"))("users")
+users["ada@example.com"] = {"password_hash": hash_password("correct horse battery")}
+
 token = client.get("/auth/csrf").json()["csrf"]  # every POST echoes this token
 headers = {"X-CSRF-Token": token}
 body = {"email": "ada@example.com", "password": "correct horse battery"}
-assert client.post("/auth/register", json=body, headers=headers).status_code == 200
+assert client.post("/auth/login", json=body, headers=headers).status_code == 200
 assert client.get("/api/vault/ping").status_code == 200  # now signed in
 print(client.get("/auth/whoami").json())
 ```
 
 ## What it adds
 
-- `/auth/login`, `/auth/logout`, `/auth/register`, `/auth/whoami`, `/auth/csrf`, `/auth/me/password`, `/auth/shared-login`
-- `/auth/account`: the signed-in user changes their own password
+- `/auth/login`, `/auth/logout`, `/auth/whoami`, `/auth/csrf`, `/auth/me/password`, `/auth/shared-login`
+- self-service sign-up and sign-in by emailed code (`/auth/email/*`, the verify-first `/auth/register`), with a per-app sign-up policy; see [Self-service sign-up](#self-service-sign-up)
+- `/auth/account`: the signed-in user changes their own password, or deletes their account
 - `/auth/forgot-password`: self-service reset by emailed link
 - `/_admin/api/*`: list, create and delete users, mint a password-reset link, set a password directly, view app policy, and **grant or revoke per-app access at runtime** (optional expiry). Gated by an admin allowlist.
 - per-user data injection via `request.state.store`
@@ -127,6 +134,27 @@ path = "~/.enlace/platform_store"
 backend = "file"
 path = "~/.enlace/user_data"
 ```
+
+### Self-service sign-up
+
+"Continue with email" signs a person in with a 6-digit code mailed to them, and creates their account only once the code checks out, so nobody can claim an address they do not receive mail at, and the answer never says whether an address has an account. Where an account may be created is a policy per app:
+
+```toml
+[auth.signup]
+default = "closed"               # closed | allowlist | invite | open
+apps = { game = "open", studio = "invite" }
+allowlist = ["friend@example.com"]
+privacy_url = "https://example.com/privacy"
+terms_url = "https://example.com/terms"
+terms_version = "2026-11"
+```
+
+- `open` admits anyone, and the page says sign-up is for people aged 15 and over. `invite` admits invited addresses (`enlace-auth invite friend@example.com --apps studio`) and allowlisted ones. `allowlist` admits only the allowlist. An admin address is never created this way.
+- The account is platform-wide; which apps it opens is still each app's `access` and `allowed_users`. A `protected:user` app with no `allowed_users` opens to every account, so give it one before opening sign-up anywhere: `enlace doctor` fails until you do.
+- The mail goes through `ENLACE_SMTP_*` (SMTP). Without it the sign-in page does not offer the email step, and the code only reaches the server log. Set SPF, DKIM and DMARC for the sending domain.
+- Mail and code checks are rate-limited per address, per IP and overall (`[auth.signup.limits]`), and the form carries a honeypot plus a time-to-submit check. Behind a proxy, run uvicorn with `--forwarded-allow-ips` set to the proxy so the per-IP limit sees real clients.
+- A signed-in user deletes their own account from `/auth/account`, confirmed by a mailed code; that removes its sessions, connector sessions, shares, grants and per-user data.
+- `registration_open = true` still works and means `default = "open"`. `/auth/register` (email plus a password of at least 15 characters) now mails a code too, and creates the account at verify.
 
 ### OAuth 2.1 authorization server (MCP connectors)
 

@@ -223,3 +223,75 @@ def open_session(session_store, user_store: MutableMapping, email: str) -> str:
         session_store.delete(session_id)
         raise HTTPException(status_code=403, detail=DISABLED_DETAIL)
     return session_id
+
+
+def make_account_deleter(
+    *,
+    user_store: MutableMapping,
+    credentials_changed: Callable[..., Any],
+    share_store: Any = None,
+    grant_store: Any = None,
+    user_data: Any = None,
+    sign_ins: Any = None,
+) -> Callable[[str], None]:
+    """Return ``delete(email)``: remove an account and what hangs off it.
+
+    The record goes first, then its sessions and connector refresh families
+    (``credentials_changed``), so a failure later cannot leave a deleted account
+    signed in. Then, each optional and each failing alone: the shares naming it,
+    its runtime grants (stored under exactly its key: the other spelling of the
+    address may be another account), its per-user data (every key under
+    ``{email}/`` in the base store), and its last-sign-in time. Raises
+    ``KeyError`` when there is no such account; a damaged grant or data key is
+    logged and skipped.
+
+    >>> users, ended = {"a@x.io": {}, "b@x.io": {}}, []
+    >>> data = {"a@x.io/game/progress": 1, "b@x.io/game/progress": 2}
+    >>> delete = make_account_deleter(
+    ...     user_store=users, credentials_changed=ended.append, user_data=data
+    ... )
+    >>> delete("a@x.io")
+    >>> sorted(users), ended, sorted(data)
+    (['b@x.io'], ['a@x.io'], ['b@x.io/game/progress'])
+    """
+
+    def _remove_grants(email: str) -> None:
+        for rec in grant_store.list_all():
+            if rec.get("email") == email and rec.get("app_id"):
+                grant_store.remove_exact(rec["app_id"], email)
+
+    def _remove_user_data(email: str) -> None:
+        from enlace_auth.stores.validation import sanitize_key
+
+        prefix = f"{sanitize_key(email)}/"
+        under = getattr(user_data, "keys_under", None)
+        keys = list(under(prefix)) if callable(under) else list(user_data)
+        for key in keys:
+            if isinstance(key, str) and key.startswith(prefix):
+                with contextlib.suppress(KeyError):
+                    del user_data[key]
+
+    def _forget_sign_in(email: str) -> None:
+        with contextlib.suppress(KeyError):
+            del sign_ins[email.lower()]
+
+    def delete(email: str) -> None:
+        del user_store[email]
+        credentials_changed(email)
+        steps = [
+            ("shares", share_store is not None and share_store.remove_account),
+            ("grants", grant_store is not None and _remove_grants),
+            ("user data", user_data is not None and _remove_user_data),
+            ("last sign-in", sign_ins is not None and _forget_sign_in),
+        ]
+        for what, step in steps:
+            if not step:
+                continue
+            try:
+                step(email)
+            except Exception:  # noqa: BLE001 - the account is gone; report the rest
+                _logger.exception(
+                    "enlace_auth: deleting %r: could not remove its %s", email, what
+                )
+
+    return delete

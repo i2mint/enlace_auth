@@ -669,6 +669,112 @@ def revoke_connector_session(
     print(f"Revoked {removed} refresh token(s) for {target}.")
 
 
+def _load_invites(toml_path: Path = Path("platform.toml")):
+    """Open the platform's sign-up invitations (email -> {apps, ...})."""
+    from enlace_auth.stores import make_file_store_factory
+
+    config = PlatformConfig.from_toml(toml_path)
+    auth = coerce_auth_config(config.auth)
+    return make_file_store_factory(auth.stores.path)("invites")
+
+
+def invite(email: str, *, apps: str = "*", toml: str = "platform.toml"):
+    """Invite an address to sign up from apps whose sign-up policy is 'invite'.
+
+    The invitation is used up when the account is created. It decides only
+    whether the address may create an account; which apps the account opens is
+    still each app's access and allowed_users (grant with ``enlace-auth grant``).
+
+    Args:
+        email: The address to invite.
+        apps: Comma-separated app names, or ``*`` (default) for every app.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    from enlace_auth.signup.policy import invite as _invite
+
+    names = [a.strip() for a in apps.split(",") if a.strip()] or ["*"]
+    record = _invite(
+        _load_invites(Path(toml)),
+        _normalized_email(email),
+        apps=names,
+        invited_by="cli",
+    )
+    print(
+        f"Invited {_normalized_email(email)} to sign up from "
+        f"{', '.join(record['apps'])}."
+    )
+
+
+def uninvite(email: str, *, toml: str = "platform.toml"):
+    """Withdraw an address's sign-up invitation.
+
+    Args:
+        email: The invited address.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    invites = _load_invites(Path(toml))
+    key = _normalized_email(email)
+    try:
+        del invites[key]
+    except KeyError:
+        print(f"No invitation for {key}.", file=sys.stderr)
+        sys.exit(1)
+    print(f"Withdrew the invitation of {key}.")
+
+
+def list_invites(*, json: bool = False, toml: str = "platform.toml"):
+    """List pending sign-up invitations.
+
+    Args:
+        json: Print JSON instead of a table.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    import json as _json
+
+    invites = _load_invites(Path(toml))
+    rows = []
+    for email in sorted(invites):
+        try:
+            record = invites[email]
+        except KeyError:
+            continue
+        if isinstance(record, dict):
+            rows.append({"email": email, "apps": record.get("apps") or []})
+    if json:
+        print(_json.dumps(rows, indent=2))
+        return
+    if not rows:
+        print("(no invitations)")
+    for row in rows:
+        print(f"{row['email']}\t{', '.join(row['apps'])}")
+
+
+def signup_policy(*, json: bool = False, toml: str = "platform.toml"):
+    """Show who may create an account from each app ([auth.signup]).
+
+    Args:
+        json: Print JSON instead of a table.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    import json as _json
+
+    from enlace.discover import discover_apps
+
+    config = discover_apps(PlatformConfig.from_toml(Path(toml)))
+    auth = coerce_auth_config(config.auth)
+    default = auth.signup_default()
+    rows = {
+        app.name: auth.signup.apps.get(app.name, default)
+        for app in sorted(config.apps, key=lambda a: a.name)
+    }
+    if json:
+        print(_json.dumps({"default": default, "apps": rows}, indent=2))
+        return
+    print(f"default\t{default}")
+    for name, mode in rows.items():
+        print(f"{name}\t{mode}")
+
+
 #: The SSOT for the CLI surface: a verb that is not in this list does not exist.
 COMMANDS = [
     init,
@@ -688,6 +794,10 @@ COMMANDS = [
     list_shares,
     list_connector_sessions,
     revoke_connector_session,
+    invite,
+    uninvite,
+    list_invites,
+    signup_policy,
 ]
 
 
