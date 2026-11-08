@@ -39,8 +39,8 @@ _EN = {
     "privacy": "privacy notice",
     "provider": "Continue with {name}",
     "link_title": "Finish signing in",
-    "link_body": "Press the button to finish signing in on this device.",
-    "link_bad": "This link is invalid or has expired. Ask for a new code from the sign-in page.",
+    "link_body": "Press the button to finish signing in in this browser.",
+    "link_bad": "This link is invalid, has expired, or was opened in another browser than the one that asked for it. Open it there, or type the code there.",
     "back": "Back to sign in",
     "delete_title": "Delete my account",
     "delete_body": "This deletes your account, your saved data in every app, and every share you are part of. It cannot be undone.",
@@ -52,8 +52,8 @@ _EN = {
     "mail_code_subject": "{code} is your sign-in code",
     "mail_code_body": (
         "Your code to sign in to {site}:\n\n    {code}\n\n"
-        "It works for {minutes} minutes. You can also open this link on the "
-        "device you want to sign in on:\n\n    {link}\n\n"
+        "It works for {minutes} minutes, in the browser where you asked for "
+        "it. You can also open this link in that browser:\n\n    {link}\n\n"
         "If you did not ask for this, ignore this email: nothing happens "
         "without the code."
     ),
@@ -96,8 +96,8 @@ _FR = {
     "privacy": "politique de confidentialité",
     "provider": "Continuer avec {name}",
     "link_title": "Terminer la connexion",
-    "link_body": "Appuyez sur le bouton pour terminer la connexion sur cet appareil.",
-    "link_bad": "Ce lien est invalide ou a expiré. Demandez un nouveau code depuis la page de connexion.",
+    "link_body": "Appuyez sur le bouton pour terminer la connexion dans ce navigateur.",
+    "link_bad": "Ce lien est invalide, a expiré, ou a été ouvert dans un autre navigateur que celui qui l'a demandé. Ouvrez-le dans ce navigateur, ou saisissez-y le code.",
     "back": "Retour à la connexion",
     "delete_title": "Supprimer mon compte",
     "delete_body": "Cela supprime votre compte, vos données enregistrées dans chaque application et tous les partages dont vous faites partie. C'est définitif.",
@@ -108,8 +108,9 @@ _FR = {
     "mail_code_subject": "{code} est votre code de connexion",
     "mail_code_body": (
         "Votre code pour vous connecter à {site} :\n\n    {code}\n\n"
-        "Il est valable {minutes} minutes. Vous pouvez aussi ouvrir ce lien "
-        "sur l'appareil où vous voulez vous connecter :\n\n    {link}\n\n"
+        "Il est valable {minutes} minutes, dans le navigateur où vous l'avez "
+        "demandé. Vous pouvez aussi ouvrir ce lien dans ce navigateur :\n\n"
+        "    {link}\n\n"
         "Si vous n'avez rien demandé, ignorez cet e-mail : rien ne se passe "
         "sans le code."
     ),
