@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=61349712"></script>
+    <script src="../_static/documentation_options.js?v=c54c130b"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.52" />
+  <meta name="docsearch:version" content="0.1.53" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -467,19 +467,22 @@ moved here when auth was extracted from enlace.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_oauth_server_advertises_refresh" title="enlace_auth.diagnostics.check_oauth_server_advertises_refresh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_oauth_server_advertises_refresh</span></code></a>(...)</p></td>
 <td><p>The live server must offer refresh_token in its discovery metadata.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_shared_passwords</span></code>(config)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_open_to_every_account" title="enlace_auth.diagnostics.check_open_to_every_account"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_open_to_every_account</span></code></a>(config)</p></td>
+<td><p>Warn about every <code class="docutils literal notranslate"><span class="pre">protected:user</span></code> app whose <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code> is empty.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_shared_passwords</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_signing_key</span></code>(config)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_signing_key</span></code>(config)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_signup" title="enlace_auth.diagnostics.check_signup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_signup</span></code></a>(config)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_signup" title="enlace_auth.diagnostics.check_signup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_signup</span></code></a>(config)</p></td>
 <td><p>Report a sign-up policy that is unsafe or cannot work.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_widened_spellings" title="enlace_auth.diagnostics.check_widened_spellings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_widened_spellings</span></code></a>(config)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.check_widened_spellings" title="enlace_auth.diagnostics.check_widened_spellings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_widened_spellings</span></code></a>(config)</p></td>
 <td><p>Warn about accounts a written list admits only through the other spelling.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.open_to_every_account" title="enlace_auth.diagnostics.open_to_every_account"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_to_every_account</span></code></a>(config)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.diagnostics.open_to_every_account" title="enlace_auth.diagnostics.open_to_every_account"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_to_every_account</span></code></a>(config)</p></td>
 <td><p>The <code class="docutils literal notranslate"><span class="pre">protected:user</span></code> apps with no <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code>: any account opens them.</p></td>
 </tr>
 </tbody>
@@ -554,6 +557,21 @@ instead of JSON.</p>
 has no refresh support at all — exactly the drift that caused the outage
 (config and code were fine locally; the installed wheel was what served
 requests). This asks the running server what it actually advertises.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.diagnostics.check_open_to_every_account">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.diagnostics.</span></span><span class="sig-name descname"><span class="pre">check_open_to_every_account</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/diagnostics.html#check_open_to_every_account"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.diagnostics.check_open_to_every_account" title="Link to this definition">#</a></dt>
+<dd><p>Warn about every <code class="docutils literal notranslate"><span class="pre">protected:user</span></code> app whose <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code> is empty.</p>
+<p>The empty list means “every signed-in account” (documented, and relied on by
+existing deployments, so it is not changed), but it is also what a half-filled
+private-app scaffold looks like (i2mint/enlace_auth#88). <code class="docutils literal notranslate"><span class="pre">check_signup</span></code> only
+speaks up when sign-up is open; this one does not depend on the sign-up policy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code>]</span></p>
@@ -675,6 +693,7 @@ user”, so once anyone can create an account, anyone can open these.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_connector_session_longevity"><code class="docutils literal notranslate"><span class="pre">check_connector_session_longevity()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_csrf"><code class="docutils literal notranslate"><span class="pre">check_csrf()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_oauth_server_advertises_refresh"><code class="docutils literal notranslate"><span class="pre">check_oauth_server_advertises_refresh()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_open_to_every_account"><code class="docutils literal notranslate"><span class="pre">check_open_to_every_account()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_signup"><code class="docutils literal notranslate"><span class="pre">check_signup()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.check_widened_spellings"><code class="docutils literal notranslate"><span class="pre">check_widened_spellings()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.diagnostics.open_to_every_account"><code class="docutils literal notranslate"><span class="pre">open_to_every_account()</span></code></a></li>

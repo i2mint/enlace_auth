@@ -1,4 +1,4 @@
-> built 2026-11-08 19:15 UTC from 65cd580 (main) · enlace_auth 0.1.52. Details: build_info.json
+> built 2026-11-13 12:21 UTC from ff70d68 (main) · enlace_auth 0.1.53. Details: build_info.json
 
 # index.html.md
 
@@ -156,7 +156,7 @@ terms_version = "2026-11"
 ```
 
 - `open` admits anyone, and the page says sign-up is for people aged 15 and over. `invite` admits invited addresses (`enlace-auth invite friend@example.com --apps studio`) and allowlisted ones. `allowlist` admits only the allowlist. An admin address is never created this way.
-- The account is platform-wide; which apps it opens is still each app’s `access` and `allowed_users`. A `protected:user` app with no `allowed_users` opens to every account, so give it one before opening sign-up anywhere: `enlace doctor` fails until you do.
+- The account is platform-wide; which apps it opens is still each app’s `access` and `allowed_users`. A `protected:user` app with no `allowed_users` opens to every account, so give it one before opening sign-up anywhere: `enlace doctor` fails until you do, and warns about the app whatever the sign-up policy.
 - The mail goes through `ENLACE_SMTP_*` (SMTP). Without it the sign-in page does not offer the email step, and the code only reaches the server log. Set SPF, DKIM and DMARC for the sending domain.
 - Mail and code checks are rate-limited per address, per IP and overall (`[auth.signup.limits]`), and the form carries a honeypot plus a time-to-submit check. Behind a proxy, run uvicorn with `--forwarded-allow-ips` set to the proxy so the per-IP limit sees real clients.
 - A signed-in user deletes their own account from `/auth/account`, confirmed by a mailed code; that removes its sessions, connector sessions, shares, grants and per-user data.
@@ -2699,6 +2699,7 @@ moved here when auth was extracted from enlace.
 | [`check_csrf`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_csrf)(config, base_url, timeout)      | GET /auth/csrf must return JSON with a 'csrf' key.                         |
 | `check_oauth_importable`(config)                                                            |                                                                            |
 | [`check_oauth_server_advertises_refresh`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_oauth_server_advertises_refresh)(...) | The live server must offer refresh_token in its discovery metadata.        |
+| [`check_open_to_every_account`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_open_to_every_account)(config)        | Warn about every `protected:user` app whose `allowed_users` is empty.      |
 | `check_shared_passwords`(config)                                                            |                                                                            |
 | `check_signing_key`(config)                                                                 |                                                                            |
 | [`check_signup`](_autosummary/enlace_auth.diagnostics.html.md#enlace_auth.diagnostics.check_signup)(config)                       | Report a sign-up policy that is unsafe or cannot work.                     |
@@ -2762,6 +2763,18 @@ Static config can be right while the deployed build is an older release that
 has no refresh support at all — exactly the drift that caused the outage
 (config and code were fine locally; the installed wheel was what served
 requests). This asks the running server what it actually advertises.
+
+* **Return type:**
+  [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
+
+### enlace_auth.diagnostics.check_open_to_every_account(config)
+
+Warn about every `protected:user` app whose `allowed_users` is empty.
+
+The empty list means “every signed-in account” (documented, and relied on by
+existing deployments, so it is not changed), but it is also what a half-filled
+private-app scaffold looks like (i2mint/enlace_auth#88). `check_signup` only
+speaks up when sign-up is open; this one does not depend on the sign-up policy.
 
 * **Return type:**
   [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[`Check`]
@@ -4280,18 +4293,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-11-08 19:15 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b"><code>65cd580</code></a> on branch <code>main</code>, for **enlace_auth 0.1.52** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-13 12:21 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/ff70d687cfd05550a333b57e932b4c1013686efb"><code>ff70d68</code></a> on branch <code>main</code>, for **enlace_auth 0.1.53** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.52) is behind the latest release on PyPI (0.1.53): `pip install enlace_auth` gives newer code than these docs describe.
+- The documented version (0.1.53) is behind the latest release on PyPI (0.1.54): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b"><code>65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/ff70d687cfd05550a333b57e932b4c1013686efb"><code>ff70d687cfd05550a333b57e932b4c1013686efb</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -4302,9 +4315,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/42513940746">42513940746</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/43424130807">43424130807</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b</code> (in the history of the built commit) |
+| Event commit | <code>ff70d687cfd05550a333b57e932b4c1013686efb</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -4329,13 +4342,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.53/">0.1.53</a>, newer than the documented version (0.1.52).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.54/">0.1.54</a>, newer than the documented version (0.1.53).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 65cd580215b32d53de4f56ba4e8e70dc4e2e9a7b
+git checkout ff70d687cfd05550a333b57e932b4c1013686efb
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

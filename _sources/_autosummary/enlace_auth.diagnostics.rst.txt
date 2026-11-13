@@ -14,6 +14,7 @@ enlace\_auth.diagnostics
       check_csrf
       check_oauth_importable
       check_oauth_server_advertises_refresh
+      check_open_to_every_account
       check_shared_passwords
       check_signing_key
       check_signup

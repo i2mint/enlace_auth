@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=61349712"></script>
+    <script src="../../_static/documentation_options.js?v=c54c130b"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.52" />
+  <meta name="docsearch:version" content="0.1.53" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1269,6 +1269,35 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<div class="viewcode-block" id="check_open_to_every_account">
+<a class="viewcode-back" href="../../_autosummary/enlace_auth.diagnostics.html#enlace_auth.diagnostics.check_open_to_every_account">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_open_to_every_account</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">PlatformConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Check</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Warn about every ``protected:user`` app whose ``allowed_users`` is empty.</span>
+
+<span class="sd">    The empty list means "every signed-in account" (documented, and relied on by</span>
+<span class="sd">    existing deployments, so it is not changed), but it is also what a half-filled</span>
+<span class="sd">    private-app scaffold looks like (i2mint/enlace_auth#88). ``check_signup`` only</span>
+<span class="sd">    speaks up when sign-up is open; this one does not depend on the sign-up policy.</span>
+<span class="sd">    """</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">"open_to_every_account"</span>
+    <span class="n">auth</span> <span class="o">=</span> <span class="n">coerce_auth_config</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">"auth"</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">auth</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">Check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">SKIP</span><span class="p">,</span> <span class="s2">"auth.enabled=false"</span><span class="p">)]</span>
+    <span class="n">exposed</span> <span class="o">=</span> <span class="n">open_to_every_account</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">exposed</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">Check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">PASS</span><span class="p">,</span> <span class="s2">"every protected:user app lists allowed_users"</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">Check</span><span class="p">(</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="n">WARN</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">"protected:user apps </span><span class="si">{</span><span class="n">exposed</span><span class="si">}</span><span class="s2"> have an empty allowed_users, which "</span>
+            <span class="s2">"opens them to every account on the platform. For an owner-only app "</span>
+            <span class="s1">'write allowed_users = ["@admins"] (or name the address).'</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">]</span></div>
+
+
+
 <div class="viewcode-block" id="check_signup">
 <a class="viewcode-back" href="../../_autosummary/enlace_auth.diagnostics.html#enlace_auth.diagnostics.check_signup">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">check_signup</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">PlatformConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Check</span><span class="p">]:</span>
@@ -1366,6 +1395,7 @@ window.runMermaid = runMermaid;</script>
             <span class="n">check_connector_session_longevity</span><span class="p">,</span>
             <span class="n">check_admin_accounts</span><span class="p">,</span>
             <span class="n">check_widened_spellings</span><span class="p">,</span>
+            <span class="n">check_open_to_every_account</span><span class="p">,</span>
             <span class="n">check_signup</span><span class="p">,</span>
         <span class="p">),</span>
     <span class="p">),</span>
