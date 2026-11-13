@@ -534,6 +534,32 @@ def open_to_every_account(config) -> list[str]:
     )
 
 
+def check_open_to_every_account(config: PlatformConfig) -> Iterable[Check]:
+    """Warn about every ``protected:user`` app whose ``allowed_users`` is empty.
+
+    The empty list means "every signed-in account" (documented, and relied on by
+    existing deployments, so it is not changed), but it is also what a half-filled
+    private-app scaffold looks like (i2mint/enlace_auth#88). ``check_signup`` only
+    speaks up when sign-up is open; this one does not depend on the sign-up policy.
+    """
+    name = "open_to_every_account"
+    auth = coerce_auth_config(getattr(config, "auth", None))
+    if not auth.enabled:
+        return [Check(name, SKIP, "auth.enabled=false")]
+    exposed = open_to_every_account(config)
+    if not exposed:
+        return [Check(name, PASS, "every protected:user app lists allowed_users")]
+    return [
+        Check(
+            name,
+            WARN,
+            f"protected:user apps {exposed} have an empty allowed_users, which "
+            "opens them to every account on the platform. For an owner-only app "
+            'write allowed_users = ["@admins"] (or name the address).',
+        )
+    ]
+
+
 def check_signup(config: PlatformConfig) -> Iterable[Check]:
     """Report a sign-up policy that is unsafe or cannot work.
 
@@ -628,6 +654,7 @@ static_checks = (
             check_connector_session_longevity,
             check_admin_accounts,
             check_widened_spellings,
+            check_open_to_every_account,
             check_signup,
         ),
     ),

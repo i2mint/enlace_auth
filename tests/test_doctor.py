@@ -358,3 +358,30 @@ def test_a_valid_auth_table_passes_the_config_check(clean_env, single_app_dir):
     assert _check(_auth_enabled_config(single_app_dir), "auth_config").status == (
         doctor_mod.PASS
     )
+
+
+def _app_with_empty_allowed_users(tmp_path, *, allowed_users: str = ""):
+    app = tmp_path / "apps" / "priv"
+    app.mkdir(parents=True)
+    (app / "server.py").write_text("from fastapi import FastAPI\napp = FastAPI()\n")
+    (app / "app.toml").write_text(
+        f'access = "protected:user"\nallowed_users = [{allowed_users}]\n'
+    )
+    return tmp_path / "apps"
+
+
+def test_empty_allowed_users_warns_even_with_closed_signup(clean_env, tmp_path):
+    """#88: an empty list opens the app to every account; say so at deploy."""
+    clean_env.setenv(_KEY_ENV, _GOOD_KEY)
+    cfg = _auth_enabled_config(_app_with_empty_allowed_users(tmp_path))
+    (check,) = [c for c in _doctor(cfg).checks if c.name == "open_to_every_account"]
+    assert check.status == doctor_mod.WARN
+    assert "priv" in check.detail and "@admins" in check.detail
+
+
+def test_listed_allowed_users_does_not_warn(clean_env, tmp_path):
+    clean_env.setenv(_KEY_ENV, _GOOD_KEY)
+    apps = _app_with_empty_allowed_users(tmp_path, allowed_users='"@admins"')
+    cfg = _auth_enabled_config(apps)
+    (check,) = [c for c in _doctor(cfg).checks if c.name == "open_to_every_account"]
+    assert check.status == doctor_mod.PASS

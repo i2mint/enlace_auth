@@ -150,7 +150,7 @@ terms_version = "2026-11"
 ```
 
 - `open` admits anyone, and the page says sign-up is for people aged 15 and over. `invite` admits invited addresses (`enlace-auth invite friend@example.com --apps studio`) and allowlisted ones. `allowlist` admits only the allowlist. An admin address is never created this way.
-- The account is platform-wide; which apps it opens is still each app's `access` and `allowed_users`. A `protected:user` app with no `allowed_users` opens to every account, so give it one before opening sign-up anywhere: `enlace doctor` fails until you do.
+- The account is platform-wide; which apps it opens is still each app's `access` and `allowed_users`. A `protected:user` app with no `allowed_users` opens to every account, so give it one before opening sign-up anywhere: `enlace doctor` fails until you do, and warns about the app whatever the sign-up policy.
 - The mail goes through `ENLACE_SMTP_*` (SMTP). Without it the sign-in page does not offer the email step, and the code only reaches the server log. Set SPF, DKIM and DMARC for the sending domain.
 - Mail and code checks are rate-limited per address, per IP and overall (`[auth.signup.limits]`), and the form carries a honeypot plus a time-to-submit check. Behind a proxy, run uvicorn with `--forwarded-allow-ips` set to the proxy so the per-IP limit sees real clients.
 - A signed-in user deletes their own account from `/auth/account`, confirmed by a mailed code; that removes its sessions, connector sessions, shares, grants and per-user data.
