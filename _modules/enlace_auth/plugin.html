@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../../_static/documentation_options.js?v=0ec583c6"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.53" />
+  <meta name="docsearch:version" content="0.1.54" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -754,6 +754,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">coerce_auth_config</span><span class="p">,</span> <span class="n">coerce_stores_map</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.emails</span><span class="w"> </span><span class="kn">import</span> <span class="n">account_spellings</span><span class="p">,</span> <span class="n">lowercase_changes_letter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.groups</span><span class="w"> </span><span class="kn">import</span> <span class="n">expand_groups</span><span class="p">,</span> <span class="n">is_group_ref</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastAPI</span>
@@ -1089,12 +1090,17 @@ window.runMermaid = runMermaid;</script>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_expand_allowed_users</span><span class="p">(</span>
-    <span class="n">allowed</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">admin_emails</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">app_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="n">allowed</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">admin_emails</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">app_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+    <span class="n">groups</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Replace :data:`ADMINS_ALIAS` in *allowed* by the admin emails, and widen</span>
-<span class="sd">    every other entry to both canonical spellings of its address</span>
-<span class="sd">    (:func:`~enlace_auth.emails.account_spellings`), so an entry with a punycode</span>
-<span class="sd">    domain admits the account ``add-user`` keyed in Unicode, and vice versa.</span>
+<span class="w">    </span><span class="sd">"""Replace each ``@name`` of *groups* (``[auth.groups]``, see</span>
+<span class="sd">    :mod:`enlace_auth.groups`) by its emails, then :data:`ADMINS_ALIAS` in *allowed*</span>
+<span class="sd">    by the admin emails, and widen every other entry to both canonical spellings of</span>
+<span class="sd">    its address (:func:`~enlace_auth.emails.account_spellings`), so an entry with a</span>
+<span class="sd">    punycode domain admits the account ``add-user`` keyed in Unicode, and vice versa.</span>
 
 <span class="sd">    The admin emails are NOT widened: ``@admins`` means exactly the accounts the</span>
 <span class="sd">    admin check admits (that check compares as written), so it cannot hand an</span>
@@ -1104,9 +1110,25 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Fails CLOSED: with no admins configured the alias is kept verbatim. It can</span>
 <span class="sd">    never equal a real (validated) email, so the list stays non-empty and the</span>
 <span class="sd">    app admits nobody -- dropping it would empty the list, and an empty</span>
-<span class="sd">    ``allowed_users`` means "any signed-in user".</span>
+<span class="sd">    ``allowed_users`` means "any signed-in user". An unknown ``@name`` is kept the same</span>
+<span class="sd">    way, so it admits nobody.</span>
 <span class="sd">    """</span>
     <span class="n">allowed</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">allowed</span><span class="p">)</span>
+    <span class="n">unknown</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">e</span>
+        <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">allowed</span>
+        <span class="k">if</span> <span class="n">is_group_ref</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="ow">and</span> <span class="n">e</span> <span class="o">!=</span> <span class="n">ADMINS_ALIAS</span> <span class="ow">and</span> <span class="n">e</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">groups</span> <span class="ow">or</span> <span class="p">{})</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="n">unknown</span><span class="p">:</span>
+        <span class="n">_logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">"enlace_auth: app </span><span class="si">%r</span><span class="s2"> allows </span><span class="si">%s</span><span class="s2">, which [auth.groups] does not define; "</span>
+            <span class="s2">"those entries admit nobody."</span><span class="p">,</span>
+            <span class="n">app_name</span><span class="p">,</span>
+            <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="n">unknown</span><span class="p">)),</span>
+        <span class="p">)</span>
+    <span class="n">allowed</span> <span class="o">=</span> <span class="n">expand_groups</span><span class="p">(</span>
+        <span class="n">allowed</span><span class="p">,</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">groups</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="nb">list</span><span class="p">(</span><span class="n">v</span><span class="p">)},</span> <span class="n">unknown</span><span class="o">=</span><span class="s2">"keep"</span>
+    <span class="p">)</span>  <span class="c1"># an empty group (refused by the config, but not by a hand-built call) stays put</span>
     <span class="k">if</span> <span class="n">ADMINS_ALIAS</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_with_all_spellings</span><span class="p">(</span><span class="n">allowed</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">admin_emails</span><span class="p">:</span>
@@ -1140,7 +1162,7 @@ window.runMermaid = runMermaid;</script>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_require_user_gate_for_admins_alias</span><span class="p">(</span><span class="n">app</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Make an app that names :data:`ADMINS_ALIAS` a ``protected:user`` app.</span>
+<span class="w">    </span><span class="sd">"""Make an app that names :data:`ADMINS_ALIAS` (or any ``@group``) protected:user.</span>
 
 <span class="sd">    ``allowed_users`` is only enforced at the ``protected:user`` level; on a</span>
 <span class="sd">    ``public``/``local`` (the default!) or ``protected:shared`` app it is</span>
@@ -1149,7 +1171,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    -- failing closed -- rather than silently served to everyone. Refusing to</span>
 <span class="sd">    start would take every other app down with it.</span>
 <span class="sd">    """</span>
-    <span class="k">if</span> <span class="n">ADMINS_ALIAS</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">"allowed_users"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">()):</span>
+    <span class="n">refs</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">"allowed_users"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">()</span> <span class="k">if</span> <span class="n">is_group_ref</span><span class="p">(</span><span class="n">e</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">refs</span><span class="p">:</span>
         <span class="k">return</span>
     <span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">access</span> <span class="o">!=</span> <span class="s2">"protected:user"</span><span class="p">:</span>
         <span class="n">_logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
@@ -1157,7 +1180,7 @@ window.runMermaid = runMermaid;</script>
             <span class="s2">"where allowed_users is not enforced; treating it as "</span>
             <span class="s2">"access='protected:user'. Set that in its app.toml."</span><span class="p">,</span>
             <span class="n">app</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">ADMINS_ALIAS</span><span class="p">,</span>
+            <span class="n">refs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
             <span class="n">app</span><span class="o">.</span><span class="n">access</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">app</span><span class="o">.</span><span class="n">access</span> <span class="o">=</span> <span class="s2">"protected:user"</span>
@@ -1523,7 +1546,10 @@ window.runMermaid = runMermaid;</script>
             <span class="n">store_apps</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="n">allowed</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
             <span class="n">_expand_allowed_users</span><span class="p">(</span>
-                <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">"allowed_users"</span><span class="p">,</span> <span class="p">()),</span> <span class="n">admin_emails</span><span class="p">,</span> <span class="n">app_name</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">name</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">"allowed_users"</span><span class="p">,</span> <span class="p">()),</span>
+                <span class="n">admin_emails</span><span class="p">,</span>
+                <span class="n">app_name</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">groups</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="nb">list</span><span class="p">(</span><span class="n">allowed</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">"allowed_users"</span><span class="p">,</span> <span class="p">())):</span>

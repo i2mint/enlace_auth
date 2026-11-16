@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="_static/documentation_options.js?v=c54c130b"></script>
+    <script src="_static/documentation_options.js?v=0ec583c6"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.53" />
+  <meta name="docsearch:version" content="0.1.54" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -652,6 +652,7 @@ an address: <code class="docutils literal notranslate"><span class="pre">allowed
 app admits nobody. Because <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code> is only enforced for
 <code class="docutils literal notranslate"><span class="pre">protected:user</span></code>, an app using the alias is treated as <code class="docutils literal notranslate"><span class="pre">protected:user</span></code> even if
 its <code class="docutils literal notranslate"><span class="pre">access</span></code> says otherwise (an error is logged) — it never falls open.</p>
+<p>A team listed once in <code class="docutils literal notranslate"><span class="pre">platform.toml</span></code> (<code class="docutils literal notranslate"><span class="pre">[auth.groups]</span> <span class="pre">acme</span> <span class="pre">=</span> <span class="pre">[&quot;ann&#64;acme.com&quot;,</span> <span class="pre">&quot;bob&#64;acme.com&quot;]</span></code>) is written <code class="docutils literal notranslate"><span class="pre">&quot;&#64;acme&quot;</span></code> in any app’s <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code> and in any <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server.resource_allowlist]</span></code> entry, so adding or removing a person is one edit. An undefined group admits nobody in <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code> and stops the config from loading in an allowlist; an empty group is refused (an empty <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code> would admit everyone); <code class="docutils literal notranslate"><span class="pre">admins</span></code> is reserved, and <code class="docutils literal notranslate"><span class="pre">&#64;admins</span></code> is not expanded in an allowlist. A host that decides from <code class="docutils literal notranslate"><span class="pre">app.toml</span></code> alone whether an app is public (a deploy writing an edge config) must treat any <code class="docutils literal notranslate"><span class="pre">&#64;name</span></code> entry as <code class="docutils literal notranslate"><span class="pre">protected:user</span></code>, as enlace_auth does.</p>
 <p>A signed-in user who is not on <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code> (or an active grant) gets a <strong>403</strong> (a 403 page in a browser, JSON <code class="docutils literal notranslate"><span class="pre">{&quot;auth&quot;:</span> <span class="pre">&quot;forbidden&quot;}</span></code> otherwise), not the sign-in redirect or a 401; a signed-out request still gets the redirect or 401. This is <code class="docutils literal notranslate"><span class="pre">AccessRule.deny_signed_in</span></code>, now <code class="docutils literal notranslate"><span class="pre">True</span></code> by default for every rule (it was admin-only). Upgrade note: a frontend that treats any 401 as “go sign in” will now see a 403 for a signed-in user who lacks access, and should show a “not allowed for this account” message instead.</p>
 <p>On top of that baseline you can grant access <strong>at runtime — no redeploy</strong> — from
 the admin dashboard or the CLI. Runtime grants are <em>additive</em> (effective access =
@@ -717,7 +718,7 @@ python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> <
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-13 12:21 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/ff70d687cfd05550a333b57e932b4c1013686efb">ff70d68</a> (main) · enlace_auth 0.1.53 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-16 14:43 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/83c7e0288f7eda57e158949766211b4e8ab521fc">83c7e02</a> (main) · enlace_auth 0.1.54 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               

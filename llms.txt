@@ -30,6 +30,7 @@
 - [enlace_auth.config](_autosummary/enlace_auth.config.html.md): Auth-side configuration models.
 - [enlace_auth.diagnostics](_autosummary/enlace_auth.diagnostics.html.md): Auth-specific doctor checks that plug into &#96;enlace.doctor.run_doctor&#96;.
 - [enlace_auth.emails](_autosummary/enlace_auth.emails.html.md): One normal form for an email address, wherever one is compared.
+- [enlace_auth.groups](_autosummary/enlace_auth.groups.html.md): Named groups of accounts: one list of emails, referenced as &#96;@name&#96; wherever an
 - [enlace_auth.ratelimit](_autosummary/enlace_auth.ratelimit.html.md): A sliding-window rate limiter over any &#96;MutableMapping&#96;.
 - [enlace_auth.resource_policy](_autosummary/enlace_auth.resource_policy.html.md): The OAuth per-connector allowlist: its shape, its parsing and its one rule.
 - [enlace_auth.signup](_autosummary/enlace_auth.signup.html.md): Self-service sign-up and email-code sign-in.
@@ -45,7 +46,7 @@
 - [enlace_auth.stores.prefixed](_autosummary/enlace_auth.stores.prefixed.html.md): PrefixedStore — MutableMapping wrapper that scopes keys under a prefix.
 - [enlace_auth.stores.validation](_autosummary/enlace_auth.stores.validation.html.md): Key sanitization for user-supplied store keys.
 - [For AI agents](ai-agents.html.md): &#96;enlace_auth&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-13 12:21 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-16 14:43 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
 
 ## Optional
 

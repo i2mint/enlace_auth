@@ -37,6 +37,7 @@
    config
    diagnostics
    emails
+   groups
    ratelimit
    resource_policy
    signup

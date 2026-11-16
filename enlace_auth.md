@@ -1,4 +1,4 @@
-> built 2026-11-13 12:21 UTC from ff70d68 (main) · enlace_auth 0.1.53. Details: build_info.json
+> built 2026-11-16 14:43 UTC from 83c7e02 (main) · enlace_auth 0.1.54. Details: build_info.json
 
 # index.html.md
 
@@ -320,6 +320,8 @@ an address: `allowed_users = ["@admins"]`. If no admins are configured, such an
 app admits nobody. Because `allowed_users` is only enforced for
 `protected:user`, an app using the alias is treated as `protected:user` even if
 its `access` says otherwise (an error is logged) — it never falls open.
+
+A team listed once in `platform.toml` (`[auth.groups] acme = ["ann@acme.com", "bob@acme.com"]`) is written `"@acme"` in any app’s `allowed_users` and in any `[auth.oauth_server.resource_allowlist]` entry, so adding or removing a person is one edit. An undefined group admits nobody in `allowed_users` and stops the config from loading in an allowlist; an empty group is refused (an empty `allowed_users` would admit everyone); `admins` is reserved, and `@admins` is not expanded in an allowlist. A host that decides from `app.toml` alone whether an app is public (a deploy writing an edge config) must treat any `@name` entry as `protected:user`, as enlace_auth does.
 
 A signed-in user who is not on `allowed_users` (or an active grant) gets a **403** (a 403 page in a browser, JSON `{"auth": "forbidden"}` otherwise), not the sign-in redirect or a 401; a signed-out request still gets the redirect or 401. This is `AccessRule.deny_signed_in`, now `True` by default for every rule (it was admin-only). Upgrade note: a frontend that treats any 401 as “go sign in” will now see a 403 for a signed-in user who lacks access, and should show a “not allowed for this account” message instead.
 
@@ -2556,7 +2558,7 @@ we just deserialize them into typed objects here when the plugin runs.
 | [`SignupLimitsConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.SignupLimitsConfig)(\*[, window_seconds, ...])      | Rate limits on the endpoints that send mail or check a code.   |
 | [`StoreBackendConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.       |
 
-### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>)
+### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, groups=<factory>)
 
 Bases: `_StrictModel`
 
@@ -3026,6 +3028,110 @@ True
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 
+# _autosummary/enlace_auth.groups.html.md
+
+# enlace_auth.groups
+
+Named groups of accounts: one list of emails, referenced as `@name` wherever an
+email list is.
+
+`[auth.groups]` in `platform.toml` names lists of emails:
+
+```default
+[auth.groups]
+acme = ["ann@acme.com", "bob@acme.com"]
+```
+
+and `@acme` then stands for that list in an app’s `allowed_users` and in a
+connector’s `[auth.oauth_server.resource_allowlist]` entry. A client team that may
+reach two connectors and a document room is listed once; adding or removing a person
+is one edit.
+
+`@admins` is the built-in group (the platform admins, see
+`enlace_auth.plugin.ADMINS_ALIAS`), so `admins` cannot be declared here.
+
+Unknown references fail closed in both places, differently because the cost differs:
+in a connector allowlist (validated when the config loads) an unknown `@name` is an
+error, as every malformed allowlist entry is; in an app’s `allowed_users` it is kept
+as written, so it matches no account and the app admits nobody, since refusing to
+start would take every other app down with it (the same rule as `@admins` with no
+admins configured).
+
+Pure functions, no web imports, so the config model can use them.
+
+### Module Attributes
+
+| [`GROUP_PREFIX`](_autosummary/enlace_auth.groups.html.md#enlace_auth.groups.GROUP_PREFIX)    | `@name`                                                                        |
+|------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| [`RESERVED_GROUPS`](_autosummary/enlace_auth.groups.html.md#enlace_auth.groups.RESERVED_GROUPS) | names enlace_auth defines itself (`@admins`), not redefinable in [auth.groups] |
+
+### Functions
+
+| [`expand_groups`](_autosummary/enlace_auth.groups.html.md#enlace_auth.groups.expand_groups)(entries, groups, \*[, where, ...])   | *entries* with every `@name` of *groups* replaced by its emails, in order, deduplicated.   |
+|-----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| [`is_group_ref`](_autosummary/enlace_auth.groups.html.md#enlace_auth.groups.is_group_ref)(entry)                                | Whether *entry* names a group (`@name`) rather than an email.                              |
+| [`parse_groups`](_autosummary/enlace_auth.groups.html.md#enlace_auth.groups.parse_groups)(raw)                                  | Validate `[auth.groups]`: `{name: (email, ...)}`, or `ValueError` naming the entry.        |
+
+### enlace_auth.groups.GROUP_PREFIX *= '@'*
+
+`@name`
+
+* **Type:**
+  how an email list refers to a group
+
+### enlace_auth.groups.RESERVED_GROUPS *= frozenset({'admins'})*
+
+names enlace_auth defines itself (`@admins`), not redefinable in [auth.groups]
+
+### enlace_auth.groups.expand_groups(entries, groups, , where='', unknown='raise')
+
+*entries* with every `@name` of *groups* replaced by its emails, in order,
+deduplicated.
+
+Entries that are not group references pass through (emails, `*`, and the built-in
+`@admins`, which its own expansion handles). An unknown `@name` raises
+`ValueError` (`unknown="raise"`) or is kept as written (`unknown="keep"`),
+where it matches no account.
+
+```pycon
+>>> acme = {"acme": ["ann@acme.com", "bob@acme.com"]}
+>>> expand_groups(["@acme", "cy@x.com", "ann@acme.com"], acme)
+['ann@acme.com', 'bob@acme.com', 'cy@x.com']
+```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)
+
+### enlace_auth.groups.is_group_ref(entry)
+
+Whether *entry* names a group (`@name`) rather than an email.
+
+```pycon
+>>> is_group_ref("@acme"), is_group_ref("ann@acme.com"), is_group_ref("*")
+(True, False, False)
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### enlace_auth.groups.parse_groups(raw)
+
+Validate `[auth.groups]`: `{name: (email, ...)}`, or `ValueError` naming
+the entry.
+
+A name is lowercase letters, digits, `-` and `_`; `admins` is reserved; each
+member is one bare address (no `@group` inside a group, no `*`); a group is
+never empty, since an `allowed_users` that expanded to nothing admits everyone.
+
+```pycon
+>>> parse_groups({"acme": ["Ann@acme.com"]})
+{'acme': ('Ann@acme.com',)}
+```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]
+
+
 # _autosummary/enlace_auth.html.md
 
 # enlace_auth
@@ -3071,7 +3177,7 @@ changes platform behavior unless the operator opts in.
 | [`EnlaceAuthConfigError`](_autosummary/enlace_auth.html.md#enlace_auth.EnlaceAuthConfigError)   | Raised when auth configuration is unusable at startup.   |
 |--------------------------------------------------------------------------|----------------------------------------------------------|
 
-### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>)
+### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, groups=<factory>)
 
 Bases: `_StrictModel`
 
@@ -3134,17 +3240,18 @@ Plugin entry point. Safe to call when auth is disabled — does nothing.
 
 ### Modules
 
-| [`admin`](_autosummary/enlace_auth.admin.html.md#module-enlace_auth.admin)                     | Admin subsystem for enlace_auth.                                            |
-|-----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| [`appmeta`](_autosummary/enlace_auth.appmeta.html.md#module-enlace_auth.appmeta)                 | Editable app-metadata overlay: the write surface for the launcher.          |
-| [`auth`](_autosummary/enlace_auth.auth.html.md#module-enlace_auth.auth)                       | Authentication subsystem for enlace.                                        |
-| [`config`](_autosummary/enlace_auth.config.html.md#module-enlace_auth.config)                   | Auth-side configuration models.                                             |
-| [`diagnostics`](_autosummary/enlace_auth.diagnostics.html.md#module-enlace_auth.diagnostics)         | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`.      |
-| [`emails`](_autosummary/enlace_auth.emails.html.md#module-enlace_auth.emails)                   | One normal form for an email address, wherever one is compared.             |
-| [`ratelimit`](_autosummary/enlace_auth.ratelimit.html.md#module-enlace_auth.ratelimit)             | A sliding-window rate limiter over any `MutableMapping`.                    |
-| [`resource_policy`](_autosummary/enlace_auth.resource_policy.html.md#module-enlace_auth.resource_policy) | The OAuth per-connector allowlist: its shape, its parsing and its one rule. |
-| [`signup`](_autosummary/enlace_auth.signup.html.md#module-enlace_auth.signup)                   | Self-service sign-up and email-code sign-in.                                |
-| [`stores`](_autosummary/enlace_auth.stores.html.md#module-enlace_auth.stores)                   | Per-user stores for enlace.                                                 |
+| [`admin`](_autosummary/enlace_auth.admin.html.md#module-enlace_auth.admin)                     | Admin subsystem for enlace_auth.                                                               |
+|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| [`appmeta`](_autosummary/enlace_auth.appmeta.html.md#module-enlace_auth.appmeta)                 | Editable app-metadata overlay: the write surface for the launcher.                             |
+| [`auth`](_autosummary/enlace_auth.auth.html.md#module-enlace_auth.auth)                       | Authentication subsystem for enlace.                                                           |
+| [`config`](_autosummary/enlace_auth.config.html.md#module-enlace_auth.config)                   | Auth-side configuration models.                                                                |
+| [`diagnostics`](_autosummary/enlace_auth.diagnostics.html.md#module-enlace_auth.diagnostics)         | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`.                         |
+| [`emails`](_autosummary/enlace_auth.emails.html.md#module-enlace_auth.emails)                   | One normal form for an email address, wherever one is compared.                                |
+| [`groups`](_autosummary/enlace_auth.groups.html.md#module-enlace_auth.groups)                   | Named groups of accounts: one list of emails, referenced as `@name` wherever an email list is. |
+| [`ratelimit`](_autosummary/enlace_auth.ratelimit.html.md#module-enlace_auth.ratelimit)             | A sliding-window rate limiter over any `MutableMapping`.                                       |
+| [`resource_policy`](_autosummary/enlace_auth.resource_policy.html.md#module-enlace_auth.resource_policy) | The OAuth per-connector allowlist: its shape, its parsing and its one rule.                    |
+| [`signup`](_autosummary/enlace_auth.signup.html.md#module-enlace_auth.signup)                   | Self-service sign-up and email-code sign-in.                                                   |
+| [`stores`](_autosummary/enlace_auth.stores.html.md#module-enlace_auth.stores)                   | Per-user stores for enlace.                                                                    |
 
 
 # _autosummary/enlace_auth.ratelimit.html.md
@@ -4293,18 +4400,16 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-11-13 12:21 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/ff70d687cfd05550a333b57e932b4c1013686efb"><code>ff70d68</code></a> on branch <code>main</code>, for **enlace_auth 0.1.53** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-16 14:43 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/83c7e0288f7eda57e158949766211b4e8ab521fc"><code>83c7e02</code></a> on branch <code>main</code>, for **enlace_auth 0.1.54** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.1.53) is behind the latest release on PyPI (0.1.54): `pip install enlace_auth` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/ff70d687cfd05550a333b57e932b4c1013686efb"><code>ff70d687cfd05550a333b57e932b4c1013686efb</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/83c7e0288f7eda57e158949766211b4e8ab521fc"><code>83c7e0288f7eda57e158949766211b4e8ab521fc</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -4315,9 +4420,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/43424130807">43424130807</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/43888295847">43888295847</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>ff70d687cfd05550a333b57e932b4c1013686efb</code> (in the history of the built commit) |
+| Event commit | <code>83c7e0288f7eda57e158949766211b4e8ab521fc</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -4342,13 +4447,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.54/">0.1.54</a>, newer than the documented version (0.1.53).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.54/">0.1.54</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout ff70d687cfd05550a333b57e932b4c1013686efb
+git checkout 83c7e0288f7eda57e158949766211b4e8ab521fc
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

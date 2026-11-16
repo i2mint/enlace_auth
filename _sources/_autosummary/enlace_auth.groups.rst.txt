@@ -1,0 +1,21 @@
+enlace\_auth.groups
+===================
+
+.. automodule:: enlace_auth.groups
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      GROUP_PREFIX
+      RESERVED_GROUPS
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      expand_groups
+      is_group_ref
+      parse_groups
+   
