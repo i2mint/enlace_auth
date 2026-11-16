@@ -24,6 +24,7 @@ from pydantic import (
     model_validator,
 )
 
+from enlace_auth.groups import expand_groups, parse_groups
 from enlace_auth.resource_policy import (
     check_require_consent,
     parse_resource_allowlist,
@@ -378,6 +379,49 @@ class AuthConfig(_StrictModel):
     )
 
     signup: SignupConfig = Field(default_factory=SignupConfig)
+    groups: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description=(
+            "Named lists of emails ([auth.groups] acme = [...]), referenced as "
+            "'@acme' in an app's allowed_users and in a connector's "
+            "resource_allowlist entry, so one audience is listed once. 'admins' "
+            "is built in. See enlace_auth.groups."
+        ),
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _expand_group_refs(cls, data: Any) -> Any:
+        """Replace ``@name`` in each connector allowlist entry by its group's emails.
+
+        Done before the allowlist is validated, so the authorization server, the admin
+        dashboard and the doctor all read plain emails. An unknown group is an error,
+        like every malformed allowlist entry. App ``allowed_users`` are expanded by the
+        plugin (an unknown group there admits nobody rather than stopping every app).
+        """
+        if not isinstance(data, dict):
+            return data
+        groups = parse_groups(data.get("groups"))
+        osc = data.get("oauth_server")
+        if isinstance(osc, BaseModel):
+            osc = osc.model_dump()
+        if not isinstance(osc, dict) or not isinstance(
+            osc.get("resource_allowlist"), dict
+        ):
+            return data
+        allowlist = {
+            resource: (
+                expand_groups(
+                    entries,
+                    groups,
+                    where=f"resource_allowlist[{resource!r}]",
+                )
+                if isinstance(entries, (list, tuple))
+                else entries
+            )
+            for resource, entries in osc["resource_allowlist"].items()
+        }
+        return {**data, "oauth_server": {**osc, "resource_allowlist": allowlist}}
 
     @model_validator(mode="after")
     def _check_signup_alias(self) -> "AuthConfig":
