@@ -28,7 +28,8 @@ def test_expand_keeps_order_and_dedupes():
 
 
 def test_admins_and_wildcard_pass_through():
-    assert expand_groups(["@admins", "*"], ACME) == ["@admins", "*"]
+    assert expand_groups(["@admins", "*"], ACME, unknown="keep") == ["@admins", "*"]
+    assert expand_groups(["*"], ACME) == ["*"]
 
 
 def test_unknown_group_raises_or_is_kept():
@@ -152,3 +153,17 @@ def test_an_undefined_group_admits_nobody(tmp_path, monkeypatch):
 def test_a_group_forces_the_user_gate(tmp_path, monkeypatch):
     c = _client(tmp_path, monkeypatch, groups=ACME, access_line='access = "public"\n')
     assert c.get("/api/room/x").status_code == 401
+
+
+def test_an_empty_group_is_refused():
+    with pytest.raises(ValueError, match="empty"):
+        parse_groups({"acme": []})
+
+
+def test_an_empty_group_never_opens_an_app():
+    assert _expand_allowed_users(["@acme"], (), groups={"acme": []}) == ["@acme"]
+
+
+def test_admins_in_an_allowlist_says_what_to_do():
+    with pytest.raises(ValueError, match="@admins"):
+        expand_groups(["@admins"], ACME)

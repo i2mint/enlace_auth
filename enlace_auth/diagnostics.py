@@ -311,9 +311,9 @@ def check_widened_spellings(config: PlatformConfig) -> Iterable[Check]:
     written_in: dict[str, list[str]] = {}
 
     def note(entry, where: str) -> None:
-        if is_group_ref(
-            entry
-        ):  # @admins or an [auth.groups] name: no address of its own
+        if is_group_ref(entry):  # a group: check its members instead
+            for member in auth.groups.get(entry[1:], ()):
+                note(member, f"{where} (via {entry})")
             return
         if isinstance(entry, str) and entry.strip() not in ("", ADMINS_ALIAS):
             if entry.strip() != ANY_ACCOUNT:

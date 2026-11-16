@@ -409,7 +409,9 @@ def _expand_allowed_users(
             app_name,
             ", ".join(map(repr, unknown)),
         )
-    allowed = expand_groups(allowed, groups or {}, unknown="keep")
+    allowed = expand_groups(
+        allowed, {k: v for k, v in (groups or {}).items() if list(v)}, unknown="keep"
+    )  # an empty group (refused by the config, but not by a hand-built call) stays put
     if ADMINS_ALIAS not in allowed:
         return _with_all_spellings(allowed)
     if not admin_emails:

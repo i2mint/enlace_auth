@@ -64,7 +64,8 @@ def parse_groups(raw: Mapping[str, object] | None) -> dict[str, tuple[str, ...]]
     the entry.
 
     A name is lowercase letters, digits, ``-`` and ``_``; ``admins`` is reserved; each
-    member is one bare address (no ``@group`` inside a group, no ``*``).
+    member is one bare address (no ``@group`` inside a group, no ``*``); a group is
+    never empty, since an ``allowed_users`` that expanded to nothing admits everyone.
 
     >>> parse_groups({"acme": ["Ann@acme.com"]})
     {'acme': ('Ann@acme.com',)}
@@ -84,6 +85,11 @@ def parse_groups(raw: Mapping[str, object] | None) -> dict[str, tuple[str, ...]]
             raise ValueError(f"{where}: '@{name}' is built in and cannot be redefined")
         if isinstance(members, (str, bytes)) or not isinstance(members, (list, tuple)):
             raise ValueError(f"{where} must be a list of emails, got {members!r}")
+        if not members:
+            raise ValueError(
+                f"{where} is empty; an empty list in allowed_users admits every "
+                "signed-in account, so remove the group and its references instead"
+            )
         for entry in members:
             if not isinstance(entry, str):
                 raise ValueError(f"{where}: {entry!r} is not a string")
@@ -120,6 +126,11 @@ def expand_groups(
         raise ValueError(f"unknown must be 'raise' or 'keep', not {unknown!r}")
     out: list = []
     for entry in entries:
+        if unknown == "raise" and entry == GROUP_PREFIX + "admins":
+            raise ValueError(
+                f"{where + ': ' if where else ''}'@admins' is not expanded here; "
+                "list the emails, or name an [auth.groups] group"
+            )
         if is_group_ref(entry) and entry[1:] not in RESERVED_GROUPS:
             name = entry[1:]
             if name in groups:
