@@ -40,6 +40,7 @@ from enlace.access import GRANTS_STATE_ATTR
 
 from enlace_auth.config import coerce_auth_config, coerce_stores_map
 from enlace_auth.emails import account_spellings, lowercase_changes_letter
+from enlace_auth.groups import expand_groups, is_group_ref
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -372,12 +373,17 @@ ADMINS_ALIAS = "@admins"
 
 
 def _expand_allowed_users(
-    allowed: Iterable[str], admin_emails: tuple[str, ...], *, app_name: str = ""
+    allowed: Iterable[str],
+    admin_emails: tuple[str, ...],
+    *,
+    app_name: str = "",
+    groups: Mapping[str, Iterable[str]] | None = None,
 ) -> list[str]:
-    """Replace :data:`ADMINS_ALIAS` in *allowed* by the admin emails, and widen
-    every other entry to both canonical spellings of its address
-    (:func:`~enlace_auth.emails.account_spellings`), so an entry with a punycode
-    domain admits the account ``add-user`` keyed in Unicode, and vice versa.
+    """Replace each ``@name`` of *groups* (``[auth.groups]``, see
+    :mod:`enlace_auth.groups`) by its emails, then :data:`ADMINS_ALIAS` in *allowed*
+    by the admin emails, and widen every other entry to both canonical spellings of
+    its address (:func:`~enlace_auth.emails.account_spellings`), so an entry with a
+    punycode domain admits the account ``add-user`` keyed in Unicode, and vice versa.
 
     The admin emails are NOT widened: ``@admins`` means exactly the accounts the
     admin check admits (that check compares as written), so it cannot hand an
@@ -387,9 +393,25 @@ def _expand_allowed_users(
     Fails CLOSED: with no admins configured the alias is kept verbatim. It can
     never equal a real (validated) email, so the list stays non-empty and the
     app admits nobody -- dropping it would empty the list, and an empty
-    ``allowed_users`` means "any signed-in user".
+    ``allowed_users`` means "any signed-in user". An unknown ``@name`` is kept the same
+    way, so it admits nobody.
     """
     allowed = list(allowed)
+    unknown = [
+        e
+        for e in allowed
+        if is_group_ref(e) and e != ADMINS_ALIAS and e[1:] not in (groups or {})
+    ]
+    if unknown:
+        _logger.error(
+            "enlace_auth: app %r allows %s, which [auth.groups] does not define; "
+            "those entries admit nobody.",
+            app_name,
+            ", ".join(map(repr, unknown)),
+        )
+    allowed = expand_groups(
+        allowed, {k: v for k, v in (groups or {}).items() if list(v)}, unknown="keep"
+    )  # an empty group (refused by the config, but not by a hand-built call) stays put
     if ADMINS_ALIAS not in allowed:
         return _with_all_spellings(allowed)
     if not admin_emails:
@@ -423,7 +445,7 @@ def _with_all_spellings(entries: Iterable[str]) -> list[str]:
 
 
 def _require_user_gate_for_admins_alias(app) -> None:
-    """Make an app that names :data:`ADMINS_ALIAS` a ``protected:user`` app.
+    """Make an app that names :data:`ADMINS_ALIAS` (or any ``@group``) protected:user.
 
     ``allowed_users`` is only enforced at the ``protected:user`` level; on a
     ``public``/``local`` (the default!) or ``protected:shared`` app it is
@@ -432,7 +454,8 @@ def _require_user_gate_for_admins_alias(app) -> None:
     -- failing closed -- rather than silently served to everyone. Refusing to
     start would take every other app down with it.
     """
-    if ADMINS_ALIAS not in (getattr(app, "allowed_users", None) or ()):
+    refs = [e for e in getattr(app, "allowed_users", None) or () if is_group_ref(e)]
+    if not refs:
         return
     if app.access != "protected:user":
         _logger.error(
@@ -440,7 +463,7 @@ def _require_user_gate_for_admins_alias(app) -> None:
             "where allowed_users is not enforced; treating it as "
             "access='protected:user'. Set that in its app.toml.",
             app.name,
-            ADMINS_ALIAS,
+            refs[0],
             app.access,
         )
         app.access = "protected:user"
@@ -804,7 +827,10 @@ def wire(parent: "FastAPI", config) -> None:
             store_apps.add(app.name)
         allowed = tuple(
             _expand_allowed_users(
-                getattr(app, "allowed_users", ()), admin_emails, app_name=app.name
+                getattr(app, "allowed_users", ()),
+                admin_emails,
+                app_name=app.name,
+                groups=auth_cfg.groups,
             )
         )
         if list(allowed) != list(getattr(app, "allowed_users", ())):
