@@ -134,6 +134,23 @@ async function postJSON(url, data){
 """
 
 
+# Shared client helper: where to go after signing in. A protected page's fragment
+# (``/app/page/#state=abc``) never reaches the server, so the gate's redirect to the
+# sign-in page cannot put it in ``next``; the browser carries it onto the sign-in page
+# instead (a ``Location`` with no fragment keeps the request's). Re-attach it to
+# ``next`` unless ``next`` has a fragment of its own, so a signed-out visitor lands
+# where a signed-in one would. No ``next``: the platform root, without the fragment,
+# which belonged to a page we no longer know. The fragment stays in the browser: it
+# is never sent to the server (an emailed sign-in link, opened elsewhere, cannot
+# carry it for that reason).
+_NEXT_JS = """
+function nextUrl(next){
+  if(!next) return '/';
+  return next.indexOf('#') === -1 ? next + location.hash : next;
+}
+"""
+
+
 # Shared client helper: wire every ``.pw-toggle`` button to flip its target
 # input between ``password`` and ``text``. One handler covers all password
 # fields on a page (login has one; the reset page has two).
@@ -322,6 +339,7 @@ def render_login_page(
 <script>
 {_CSRF_JS}
 {_PW_TOGGLE_JS}
+{_NEXT_JS}
 const NEXT = {next_js};
 const f = document.getElementById('f');
 const msg = document.getElementById('msg');
@@ -334,7 +352,7 @@ f.addEventListener('submit', async (e) => {{
       email: document.getElementById('email').value.trim(),
       password: document.getElementById('password').value,
     }});
-    if (res.ok) {{ window.location.assign(NEXT || '/'); return; }}
+    if (res.ok) {{ window.location.assign(nextUrl(NEXT)); return; }}
     msg.textContent = res.detail || ('Sign in failed (' + res.status + ').');
     msg.className = 'msg err';
   }} catch (err) {{
@@ -391,6 +409,7 @@ def render_shared_login_page(
 </div>
 <script>
 {_CSRF_JS}
+{_NEXT_JS}
 const APP = "{app_js}";
 const NEXT = {next_js};
 const f = document.getElementById('f');
@@ -404,7 +423,7 @@ f.addEventListener('submit', async (e) => {{
       app: APP,
       password: document.getElementById('password').value,
     }});
-    if (res.ok) {{ window.location.assign(NEXT || '/'); return; }}
+    if (res.ok) {{ window.location.assign(nextUrl(NEXT)); return; }}
     msg.textContent = res.detail || ('Sign in failed (' + res.status + ').');
     msg.className = 'msg err';
   }} catch (err) {{
