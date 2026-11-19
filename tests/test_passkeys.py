@@ -148,16 +148,32 @@ def _age_session(platform, client, seconds: float) -> None:
     sessions[sid] = {**sessions[sid], "created_at": time.time() - seconds}
 
 
-def _enrolled(platform, devices=1, email=OWNER):
-    """A signed-in client for *email* with *devices* passkeys; returns both."""
+def _enrolled(platform, devices=1, email=OWNER, **soft):
+    """A signed-in client for *email* with *devices* passkeys; returns both.
+
+    The first passkey is added from a password sign-in; every later one needs a
+    sign-in with a passkey, so the client signs in again with the first (and
+    is left signed in that way).
+    """
     client = platform()
     assert _sign_in(client, email).status_code == 200
     made = []
     for i in range(devices):
-        device = SoftAuthenticator(ORIGIN)
+        if i == 1:
+            assert _passkey_sign_in(client, made[0]).status_code == 200
+        device = SoftAuthenticator(ORIGIN, **soft)
         assert _enrol(client, device, name=f"device {i}").status_code == 200
         made.append(device)
+    # End on a passkey sign-in, as an account with a passkey changes them.
+    assert _passkey_sign_in(client, made[0]).status_code == 200
     return client, made
+
+
+def _redeem(client, proof, action=None, email=OWNER):
+    return client.post(
+        "/auth/passkeys/step-up/redeem",
+        json={"proof": proof, "action": action or ACTION, "email": email},
+    )
 
 
 # ----- registration -------------------------------------------------------
@@ -312,29 +328,26 @@ def test_step_up_proof_is_redeemed_once_by_a_backend(platform):
     assert r.json()["expires_in"] > 0
 
     backend = platform()  # no cookie, no CSRF token: a connector backend
-    first = backend.post(
-        "/auth/passkeys/step-up/redeem", json={"proof": proof, "action": ACTION}
-    )
+    first = _redeem(backend, proof)
     assert first.status_code == 200, first.text
     assert first.json()["email"] == OWNER and first.json()["action"] == ACTION
-    again = backend.post(
-        "/auth/passkeys/step-up/redeem", json={"proof": proof, "action": ACTION}
-    )
+    assert first.json()["method"] == "passkey"
+    again = _redeem(backend, proof)
     assert again.status_code == 400
 
 
 def test_a_proof_is_only_good_for_its_action(platform):
     client, (device,) = _enrolled(platform)
     proof = _step_up(client, device, ACTION).json()["proof"]
-    r = platform().post(
-        "/auth/passkeys/step-up/redeem",
-        json={"proof": proof, "action": "start job: another repo"},
+    assert _redeem(platform(), proof, "start job: another repo").status_code == 400
+    assert _redeem(platform(), proof + "x").status_code == 400
+    # The backend names the account it expects: a proof by anyone else fails.
+    assert _redeem(platform(), proof, email=ALICE).status_code == 400
+    missing = platform().post(
+        "/auth/passkeys/step-up/redeem", json={"proof": proof, "action": ACTION}
     )
-    assert r.status_code == 400
-    forged = platform().post(
-        "/auth/passkeys/step-up/redeem", json={"proof": proof + "x", "action": ACTION}
-    )
-    assert forged.status_code == 400
+    assert missing.status_code == 422
+    assert _redeem(platform(), proof).status_code == 200  # still unspent until now
 
 
 def test_a_step_up_answer_is_bound_to_its_action(platform):
@@ -407,7 +420,7 @@ def test_an_expired_proof_is_refused():
     )["proof"]
     now[0] += 61
     with pytest.raises(PasskeyError, match="expired"):
-        service.redeem(proof, ACTION)
+        service.redeem(proof, ACTION, email=OWNER)
 
 
 def test_a_proof_dies_with_its_passkey(platform):
@@ -417,10 +430,7 @@ def test_a_proof_dies_with_its_passkey(platform):
     assert (
         client.delete(f"/auth/passkeys/{pid}", headers=_csrf(client)).status_code == 200
     )
-    r = platform().post(
-        "/auth/passkeys/step-up/redeem", json={"proof": proof, "action": ACTION}
-    )
-    assert r.status_code == 400
+    assert _redeem(platform(), proof).status_code == 400
 
 
 # ----- removal -----------------------------------------------------------------
@@ -491,9 +501,9 @@ def test_the_policy_leaves_other_accounts_alone(platform):
 
 
 def test_a_required_account_cannot_remove_its_last_passkey(platform):
-    client, _ = _enrolled(platform, devices=1)
+    _, (device,) = _enrolled(platform, devices=1)
     client = platform(required=[OWNER])
-    assert _sign_in(client).status_code == 200
+    assert _passkey_sign_in(client, device).status_code == 200
     pid = client.get("/auth/passkeys").json()["passkeys"][0]["id"]
     assert (
         client.delete(f"/auth/passkeys/{pid}", headers=_csrf(client)).status_code == 409
@@ -610,3 +620,92 @@ def test_the_cli_lists_and_removes_a_lost_devices_passkey(platform, tmp_path, ca
     remove_passkey(OWNER, all=True, toml=str(toml))
     list_passkeys(OWNER, toml=str(toml))
     assert capsys.readouterr().out.strip().endswith("revoked.")
+
+
+# ----- the adversarial review's findings ------------------------------------
+
+
+def test_a_password_sign_in_cannot_add_a_passkey_once_there_is_one(platform):
+    """Whoever holds the password must not plant a passkey and then step up."""
+    _enrolled(platform)
+    thief = platform()
+    assert _sign_in(thief).status_code == 200  # a fresh, password sign-in
+    r = thief.post("/auth/passkeys/register/options", json={}, headers=_csrf(thief))
+    assert r.status_code == 403 and r.headers.get("X-Enlace-Reauth") == "1"
+    pid = thief.get("/auth/passkeys").json()["passkeys"][0]["id"]
+    assert (
+        thief.delete(f"/auth/passkeys/{pid}", headers=_csrf(thief)).status_code == 403
+    )
+
+
+def test_a_synced_passkey_meets_the_threshold(platform):
+    """iPhone and Mac on one Apple ID share one passkey: it counts as enough."""
+    _, (device,) = _enrolled(platform, synced=True)
+    make = lambda: platform(required=["@admins"])  # noqa: E731
+    assert _sign_in(make()).status_code == 403
+    assert _passkey_sign_in(make(), device).status_code == 200
+
+
+def test_reaching_the_threshold_ends_password_sessions(platform):
+    client = platform(required=["@admins"])
+    assert _sign_in(client).status_code == 200
+    old = platform(required=["@admins"])
+    assert _sign_in(old).status_code == 200  # an earlier password session
+    first = SoftAuthenticator(ORIGIN)
+    assert _enrol(client, first).status_code == 200
+    assert old.get("/auth/whoami").json()["email"] == OWNER  # not enforced yet
+    assert _passkey_sign_in(client, first).status_code == 200
+    assert _enrol(client, SoftAuthenticator(ORIGIN), name="two").status_code == 200
+    assert old.get("/auth/whoami").json()["email"] is None  # enforced: it ends
+    assert client.get("/auth/whoami").json()["email"] == OWNER  # this one stays
+
+
+def test_an_enforced_account_cannot_drop_below_the_threshold(platform):
+    _, devices = _enrolled(platform, devices=2)
+    client = platform(required=["@admins"])
+    assert _passkey_sign_in(client, devices[0]).status_code == 200
+    pid = client.get("/auth/passkeys").json()["passkeys"][1]["id"]
+    assert (
+        client.delete(f"/auth/passkeys/{pid}", headers=_csrf(client)).status_code == 409
+    )
+
+
+def test_a_reset_for_an_enforced_account_changes_nothing(platform):
+    from enlace_auth.auth.accounts import make_account_records
+    from enlace_auth.auth.reset_tokens import mint_reset_token
+
+    owner, _ = _enrolled(platform, devices=2)
+    users = make_account_records(make_file_store_factory(str(platform.root)))
+    before = users[OWNER]["password_hash"]
+    token = mint_reset_token(record=users[OWNER], email=OWNER, signing_key=KEY)
+    client = platform(required=["@admins"])
+    r = client.post(
+        "/auth/password-reset/confirm",
+        json={"token": token, "new_password": "a brand new long password"},
+        headers=_csrf(client),
+    )
+    assert r.status_code == 403
+    assert users[OWNER]["password_hash"] == before
+    assert owner.get("/auth/whoami").json()["email"] == OWNER  # not logged out
+
+
+def test_passkeys_for_another_rp_id_do_not_count(platform):
+    """After an rp_id change, old passkeys cannot sign in, so they must not lock out."""
+    _enrolled(platform, devices=2)
+    moved = platform(
+        required=["@admins"],
+        rp_id="example.org",
+        origins=["https://example.org"],
+    )
+    assert _sign_in(moved).status_code == 200
+
+
+def test_a_misconfigured_relying_party_turns_the_policy_off(platform):
+    _enrolled(platform, devices=2)
+    broken = platform(required=["@admins"], rp_id="other.example")
+    assert _sign_in(broken).status_code == 200  # not locked out of every method
+
+
+def test_an_unknown_group_in_required_is_reported(platform, caplog):
+    platform(required=["@nosuchgroup"])
+    assert any("resolve to no account" in r.getMessage() for r in caplog.records)

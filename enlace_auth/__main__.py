@@ -801,7 +801,14 @@ def list_passkeys(email: str, *, json: bool = False, toml: str = "platform.toml"
         json: Print JSON instead of a table.
         toml: Path to platform.toml (default: ./platform.toml).
     """
-    rows = _load_passkeys(Path(toml)).list(_normalized_email(email))
+    from enlace_auth.emails import account_spellings
+
+    service = _load_passkeys(Path(toml))
+    rows = [
+        row
+        for key in account_spellings(_normalized_email(email))
+        for row in service.list(key)
+    ]
     if json:
         print(json_module.dumps(rows, indent=2))
         return
@@ -839,8 +846,13 @@ def remove_passkey(
         all: Remove every passkey of the account.
         toml: Path to platform.toml (default: ./platform.toml).
     """
-    key = _normalized_email(email)
+    from enlace_auth.emails import account_spellings
+
     service = _load_passkeys(Path(toml))
+    # The account may be keyed under either spelling of its address (an OAuth
+    # sign-up keeps the punycode one): try both.
+    spellings = account_spellings(_normalized_email(email))
+    key = next((k for k in spellings if service.count(k)), spellings[0])
     if all:
         removed = service.remove_account(key)
     elif passkey_id:

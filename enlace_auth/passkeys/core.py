@@ -247,9 +247,13 @@ class PasskeyService:
             self._key, b"enlace-passkey-user|" + email.encode("utf-8"), hashlib.sha256
         ).digest()
 
-    def records(self, email: Optional[str] = None) -> list[tuple[str, dict]]:
+    def records(
+        self, email: Optional[str] = None, *, rp_id: Optional[str] = None
+    ) -> list[tuple[str, dict]]:
         """``(key, record)`` of every readable credential (of *email*, if given).
 
+        With *rp_id*, only the credentials made for that relying party: a passkey
+        made for another RP ID can no longer sign in, so it must not count.
         A damaged record is skipped, never raised: the store is hand-editable.
         """
         out = []
@@ -260,13 +264,23 @@ class PasskeyService:
                 continue
             if not isinstance(record, dict) or not isinstance(record.get("email"), str):
                 continue
+            if rp_id is not None and record.get("rp_id", rp_id) != rp_id:
+                continue
             if email is None or record["email"] == email:
                 out.append((key, record))
         return out
 
-    def count(self, email: str) -> int:
-        """How many passkeys *email* has."""
-        return len(self.records(email))
+    def count(self, email: str, *, rp_id: Optional[str] = None) -> int:
+        """How many passkeys *email* has (for *rp_id*, if given)."""
+        return len(self.records(email, rp_id=rp_id))
+
+    def synced(self, email: str, *, rp_id: Optional[str] = None) -> bool:
+        """Whether one of *email*'s passkeys is synced (backed up by its provider).
+
+        A synced passkey lives on every device of its keychain (iCloud Keychain,
+        Google Password Manager), so losing one device does not lose it.
+        """
+        return any(r.get("backed_up") for _, r in self.records(email, rp_id=rp_id))
 
     def describe(self, key: str, record: dict) -> dict:
         """The public view of one passkey (no key material)."""
@@ -287,7 +301,12 @@ class PasskeyService:
     def list(self, email: str) -> list[dict]:
         """The passkeys of *email*, oldest first."""
         views = [self.describe(k, r) for k, r in self.records(email)]
-        return sorted(views, key=lambda v: v.get("created_at") or 0)
+
+        def _when(view):
+            at = view.get("created_at")
+            return at if isinstance(at, (int, float)) else 0
+
+        return sorted(views, key=_when)
 
     def remove(self, email: str, key: str) -> Optional[dict]:
         """Remove the passkey *key* of *email*; return its view, or None."""
@@ -441,6 +460,7 @@ class PasskeyService:
         response = credential.get("response") or {}
         record = {
             "email": email,
+            "rp_id": rp.id,
             "credential_id": b64url(verified.credential_id),
             "public_key": b64url(verified.credential_public_key),
             "user_handle": b64url(self.user_handle(email)),
@@ -586,12 +606,14 @@ class PasskeyService:
 
         return URLSafeSerializer(self._key, salt="enlace-passkey-step-up")
 
-    def redeem(self, proof: Any, action: Any) -> dict:
-        """Spend a step-up proof for *action*; return what it proves.
+    def redeem(self, proof: Any, action: Any, *, email: Any) -> dict:
+        """Spend a step-up proof for *action* by *email*; return what it proves.
 
-        ``{email, action, verified_at, passkey}``. Raises :class:`PasskeyError`
-        for a forged, expired, spent or other-action proof, or one whose passkey
-        has since been removed.
+        ``{email, action, verified_at, method, passkey}``. Raises
+        :class:`PasskeyError` for a forged, expired, spent, other-action or
+        other-account proof, or one whose passkey has since been removed. The
+        caller names the account it expects, so "someone confirmed" can never
+        pass for "the owner confirmed".
         """
         from itsdangerous import BadSignature
 
@@ -611,6 +633,10 @@ class PasskeyService:
             raise PasskeyError("This step-up proof has expired.")
         if not hmac.compare_digest(str(payload.get("a", "")), action):
             raise PasskeyError("This step-up proof is for another action.")
+        if not isinstance(email, str) or not hmac.compare_digest(
+            str(payload.get("e", "")).lower(), email.strip().lower()
+        ):
+            raise PasskeyError("This step-up proof is for another account.")
         key = payload.get("k")
         try:
             record = self.credentials[key] if isinstance(key, str) else None
@@ -626,6 +652,7 @@ class PasskeyService:
             "email": payload["e"],
             "action": action,
             "verified_at": at,
+            "method": "passkey",
             "passkey": record.get("name") or "Passkey",
         }
 
@@ -659,7 +686,8 @@ class PasskeyPolicy:
     """Which accounts must sign in with a passkey.
 
     *required* holds account keys (lower-case, every spelling already listed).
-    The rule applies to an account once it has *enforce_from* passkeys; below
+    The rule applies to an account once it has *enforce_from* passkeys, or one
+    synced passkey (*synced*: it is on every device of its keychain); below
     that it may still sign in by its other methods, so it can enrol (a lockout
     guard: one lost device must not lock an account out).
 
@@ -674,6 +702,7 @@ class PasskeyPolicy:
     required: frozenset
     count: Callable[[str], int]
     enforce_from: int = 2
+    synced: Callable[[str], bool] = lambda _email: False
 
     def requires(self, email: str) -> bool:
         return bool(email) and email.lower() in self.required
@@ -683,7 +712,8 @@ class PasskeyPolicy:
         if not self.requires(email):
             return False
         try:
-            return self.count(email) >= self.enforce_from
+            n = self.count(email)
+            return n >= self.enforce_from or (n >= 1 and bool(self.synced(email)))
         except Exception:  # noqa: BLE001 - an unreadable store fails closed
             return True
 

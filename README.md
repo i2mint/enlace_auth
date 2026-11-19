@@ -169,9 +169,9 @@ enabled = true
 # enforce_from = 2               # passkeys before the rule applies (lockout guard)
 ```
 
-- Any signed-in account adds passkeys from `/auth/account` (a sign-in from the last 15 minutes is needed to add or remove one; each change is mailed to the account, and a removal ends its other sessions). The sign-in page gets a passkey button and passkey autofill on its email field.
-- **Step-up**: a page calls `enlacePasskeys.stepUp("start job: repo, title")` (from `/auth/passkeys/passkeys.js`); the user confirms with Face ID or Touch ID and gets a proof, valid once for 120 seconds; the app or connector backend calls `POST /auth/passkeys/step-up/redeem {proof, action}` before acting. The answer the authenticator signs commits to the action text, so a proof for one action never redeems for another. Details in the consumer skill (`enlace_auth/data/skills/enlace-auth-usage`).
-- `required` accounts refuse every other sign-in method once they have `enforce_from` passkeys. A lost device is removed with `enlace-auth remove-passkey EMAIL --passkey-id ID`.
+- Any signed-in account adds passkeys from `/auth/account`. Adding or removing one needs a sign-in from the last 15 minutes, made with a passkey once the account has one; each change is mailed to the account, and a removal ends its other sessions. The sign-in page gets a passkey button and passkey autofill on its email field.
+- **Step-up**: a page prepares `enlacePasskeys.prepareStepUp("myapp: start job 42")` (from `/auth/passkeys/passkeys.js`), then on the tap calls `enlacePasskeys.stepUp(prepared)`; the user confirms with Face ID or Touch ID and gets a proof, valid once for 120 seconds; the app or connector backend calls `POST /auth/passkeys/step-up/redeem {proof, action, email}` before acting. The answer the authenticator signs commits to the action text, so a proof for one action never redeems for another. Details in the consumer skill (`enlace_auth/data/skills/enlace-auth-usage`).
+- `required` accounts refuse every other sign-in method once they have `enforce_from` passkeys (or one synced passkey). A lost device is removed with `enlace-auth remove-passkey EMAIL --passkey-id ID`.
 
 ### OAuth 2.1 authorization server (MCP connectors)
 

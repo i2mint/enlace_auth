@@ -735,12 +735,14 @@ def _build_passkeys(
     """The passkey service, policy and relying party of ``[auth.passkeys]``.
 
     ``None`` when passkeys are off. Built before the session store, which takes
-    the policy as its ``admit`` hook. When py_webauthn is missing (installed with
-    ``--no-deps``) or
-    the relying party is misconfigured, the error is logged and no router is
-    mounted, but the policy still applies (fail closed): a required account that
-    has its passkeys is not let back in by a password because a deploy dropped a
-    dependency.
+    the policy as its ``admit`` hook (``out["admit"]``).
+
+    The policy applies only while passkey sign-in works: when py_webauthn is
+    missing (installed with ``--no-deps``) or the relying party is misconfigured,
+    the error is logged, no router is mounted, and ``admit`` is ``None``. A
+    required account then signs in by its other methods instead of being locked
+    out of every one by a deploy mistake. Only passkeys made for the active RP ID
+    count toward the rule: one made for an older ``rp_id`` cannot sign in.
     """
     cfg = auth_cfg.passkeys
     if not cfg.enabled:
@@ -771,27 +773,28 @@ def _build_passkeys(
         app_name="[auth.passkeys] required",
         groups=auth_cfg.groups,
     )
-    policy = PasskeyPolicy(
-        required_accounts(e for e in required if not is_group_ref(e)),
-        count=service.count,
-        enforce_from=cfg.enforce_from,
-    )
-    out = {"service": service, "policy": policy, "relying_party": None}
+    if unresolved := [e for e in required if is_group_ref(e)]:
+        _logger.error(
+            "enlace_auth: [auth.passkeys] required names %s, which resolve to no "
+            "account: nobody is required by them. Define the group (or the admin "
+            "emails).",
+            ", ".join(map(repr, unresolved)),
+        )
+    out = {"service": service, "policy": None, "relying_party": None, "admit": None}
     if importlib.util.find_spec("webauthn") is None:
         _logger.error(
             "enlace_auth: [auth.passkeys] is enabled but py_webauthn is not "
-            "installed. Passkey endpoints will be MISSING (the passkey-required "
-            "policy still applies). Reinstall enlace_auth with its dependencies."
+            "installed. Passkey endpoints will be MISSING and the passkey-required "
+            "policy is OFF. Reinstall enlace_auth with its dependencies."
         )
         return out
     public = _public_base_url(config, auth_cfg)
     origins = list(cfg.origins) or ([public] if public else [])
+    rp_id = cfg.rp_id or (_host_of(origins[0]) if origins else None)
     try:
         if origins:
             fixed = RelyingParty(
-                cfg.rp_id or _host_of(origins[0]),
-                cfg.rp_name or cfg.rp_id or _host_of(origins[0]),
-                tuple(o.rstrip("/") for o in origins),
+                rp_id, cfg.rp_name or rp_id, tuple(o.rstrip("/") for o in origins)
             )
             out["relying_party"] = lambda _request: fixed
         else:  # a local dev server: the origin it is being served from
@@ -800,8 +803,18 @@ def _build_passkeys(
             )
     except ValueError as e:
         _logger.error(
-            "enlace_auth: [auth.passkeys] %s. Passkey endpoints will be MISSING.", e
+            "enlace_auth: [auth.passkeys] %s. Passkey endpoints will be MISSING "
+            "and the passkey-required policy is OFF.",
+            e,
         )
+        return out
+    policy = PasskeyPolicy(
+        required_accounts(e for e in required if not is_group_ref(e)),
+        count=lambda email: service.count(email, rp_id=rp_id),
+        synced=lambda email: service.synced(email, rp_id=rp_id),
+        enforce_from=cfg.enforce_from,
+    )
+    out.update(policy=policy, admit=policy.refusal)
     return out
 
 
@@ -894,7 +907,7 @@ def wire(parent: "FastAPI", config) -> None:
         max_age=auth_cfg.session_max_age_seconds,
         sign_ins=platform_factory("sign_ins"),
         # Every sign-in path asks this before opening a session (open_session).
-        admit=passkeys["policy"].refusal if passkeys else None,
+        admit=passkeys["admit"] if passkeys else None,
     )
 
     # Runtime per-app access grants (additive, optional UTC expiry). Lives beside

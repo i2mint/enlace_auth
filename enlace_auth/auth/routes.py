@@ -442,6 +442,12 @@ def make_auth_router(
         # its password is left as it was for when it is re-enabled.
         if is_disabled(record):
             raise HTTPException(status_code=403, detail=DISABLED_DETAIL)
+        # An account that signs in only by passkey is refused BEFORE anything
+        # changes: a mailbox holder must not log it out everywhere and plant a
+        # password that would work again if the policy were ever relaxed.
+        admit = getattr(session_store, "admit", None)
+        if callable(admit) and (refusal := admit(email, "password-reset")):
+            raise HTTPException(status_code=403, detail=refusal)
         record = dict(record)
         record["password_hash"] = hash_password(body.new_password)
         # A reset is account recovery: external sign-ins linked to the account

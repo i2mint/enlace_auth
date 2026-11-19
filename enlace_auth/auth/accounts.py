@@ -226,7 +226,7 @@ def open_session(
     refusal = admit(email, method) if callable(admit) else None
     if refusal:
         raise HTTPException(status_code=403, detail=refusal)
-    session_id = session_store.create(user_id=email, email=email)
+    session_id = session_store.create(user_id=email, email=email, method=method)
     try:
         disabled = is_disabled(user_store.get(email))
     except Exception:  # noqa: BLE001 - an unreadable store must not refuse a login

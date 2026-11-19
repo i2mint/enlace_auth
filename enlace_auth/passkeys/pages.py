@@ -29,7 +29,8 @@ def render_signin_section(*, lang: str, next_url: str) -> str:
 
     Hidden until the script finds a browser that can use passkeys. Autofill
     (conditional mediation) is armed on load; the button aborts it and opens
-    the system prompt instead.
+    the system prompt instead. The button's request is prepared on load, so the
+    prompt opens straight from the tap (Safari refuses it after a round trip).
     """
     texts = _js_string(json.dumps(texts_for(lang, ("cancelled",))))
     return f"""{_CSS}<div class="pk-signin">
@@ -44,7 +45,8 @@ const NEXT = {_js_string(next_url)};
 if (!P || !P.supported()) return;
 const btn = document.getElementById('pk-signin'), msg = document.getElementById('pk-msg');
 btn.hidden = false;
-let ctrl = null;
+let ctrl = null, prepared = null;
+function arm() {{ P.prepareSignIn().then((p) => {{ prepared = p; }}, () => {{ prepared = null; }}); }}
 function go(next) {{
   const n = next || NEXT || '/';
   window.location.assign(n.indexOf('#') < 0 && window.location.hash ? n + window.location.hash : n);
@@ -63,16 +65,23 @@ async function autofill() {{
 btn.addEventListener('click', async () => {{
   if (ctrl) ctrl.abort();
   say('');
-  try {{ const r = await P.signIn({{next: NEXT}}); go(r.next); }}
-  catch (e) {{ say(e.name === 'NotAllowedError' ? T.cancelled : e.message); autofill(); }}
+  const p = prepared; prepared = null;
+  try {{ const r = await P.signIn({{next: NEXT, prepared: p}}); go(r.next); }}
+  catch (e) {{ say(e.name === 'NotAllowedError' ? T.cancelled : e.message); arm(); autofill(); }}
 }});
+arm();
 autofill();
 }})();
 </script>"""
 
 
 def render_account_section(*, lang: str) -> str:
-    """The account page's passkey card: the list, add, remove, sign in again."""
+    """The account page's passkey card: the list, add, remove, sign in again.
+
+    The add request is prepared when the page loads (and again after each use),
+    so the system prompt opens straight from the tap, as Safari requires; a
+    refusal there (an old or password sign-in) shows "sign in again" at once.
+    """
     keys = (
         "none_yet",
         "added",
@@ -154,14 +163,22 @@ async function refresh() {{
     policy.textContent = T.required_note.replace('{{n}}', data.enforce_from); policy.hidden = false;
   }}
 }}
-if (!P || !P.supported()) {{ add.disabled = true; say(T.unsupported, 'err'); }}
+let prepared = null;
+async function arm() {{
+  try {{ prepared = await P.prepareRegister(); reauth.hidden = true; }}
+  catch (e) {{ prepared = null; if (e.reauth) {{ say(e.message, 'err'); reauth.hidden = false; }} }}
+}}
 nameInput.value = guessName();
 add.addEventListener('click', async () => {{
   add.disabled = true; say(T.adding);
-  try {{ await P.register(nameInput.value); say(T.added, 'ok'); refresh(); }}
+  const p = prepared; prepared = null;
+  try {{ await P.register(nameInput.value, p); say(T.added, 'ok'); refresh(); }}
   catch (e) {{ failed(e); }}
   add.disabled = false;
+  arm();
 }});
+if (!P || !P.supported()) {{ add.disabled = true; say(T.unsupported, 'err'); }}
+else arm();
 reauth.addEventListener('click', async () => {{
   try {{ await P.signOut(); }} catch (e) {{ /* signed out already */ }}
   window.location.assign('/auth/login?next=%2Fauth%2Faccount');

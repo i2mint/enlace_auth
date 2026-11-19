@@ -11,7 +11,7 @@ except ``step-up/redeem``, see below):
 - ``POST   /auth/passkeys/login/verify``      ``{credential, next?}``: opens a session
 - ``POST   /auth/passkeys/step-up/options``   ``{action}``: options bound to the action
 - ``POST   /auth/passkeys/step-up/verify``    ``{action, credential}``: ``{proof, ...}``
-- ``POST   /auth/passkeys/step-up/redeem``    ``{proof, action}``: spends the proof
+- ``POST   /auth/passkeys/step-up/redeem``    ``{proof, action, email}``: spends it
 - ``GET    /auth/passkeys/passkeys.js``       the browser helper, ``enlacePasskeys``
 
 Adding or removing a passkey needs a session opened within ``fresh_seconds``:
@@ -23,8 +23,9 @@ the account's other sessions and connector refresh families
 
 ``step-up/redeem`` is called by a backend, not a browser: no cookie
 authenticates it, the proof in the body is the credential, so it is exempt from
-the CSRF double-submit (the plugin lists it). It answers what the proof proves
-(``{email, action, verified_at, passkey}``), once.
+the CSRF double-submit (the plugin lists it). The caller names the action AND the
+account it expects; the answer (``{email, action, verified_at, method,
+passkey}``) comes once.
 """
 
 from __future__ import annotations
@@ -76,6 +77,7 @@ class _StepUpBody(BaseModel):
 class _RedeemBody(BaseModel):
     proof: str
     action: str
+    email: str
 
 
 def make_passkey_router(
@@ -129,11 +131,26 @@ def make_passkey_router(
             raise HTTPException(status_code=401, detail="Not authenticated")
         return email
 
+    def _rp(request: Request) -> RelyingParty:
+        try:
+            return relying_party(request)
+        except ValueError as e:  # e.g. a dev server reached over plain http
+            raise HTTPException(
+                status_code=503, detail=f"Passkeys are misconfigured here: {e}"
+            ) from None
+
     def _fresh(request: Request) -> tuple[str, Optional[str]]:
-        """``(email, session id)`` of a session opened within *fresh_seconds*."""
+        """``(email, session id)`` of a session fit to change the account's passkeys.
+
+        Opened within *fresh_seconds*, and, once the account has a passkey,
+        opened WITH a passkey: otherwise whoever holds the password (or the
+        mailbox, or a fresh cookie) could plant a passkey of their own and then
+        confirm step-ups as the owner.
+        """
         email = _signed_in(request)
         sid, record = _session(request)
-        created = record.get("created_at") if isinstance(record, dict) else None
+        record = record if isinstance(record, dict) else {}
+        created = record.get("created_at")
         if not isinstance(created, (int, float)) or (
             time.time() - created > fresh_seconds
         ):
@@ -142,6 +159,16 @@ def make_passkey_router(
                 detail=(
                     f"For your safety, sign in again (within {fresh_seconds // 60} "
                     "minutes) to add or remove a passkey."
+                ),
+                headers={REAUTH_HEADER: "1"},
+            )
+        if record.get("method") != "passkey" and service.count(email) > 0:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "This account has a passkey: sign in again with it to add or "
+                    "remove one. On a new device, sign in with the passkey on your "
+                    "phone (scan the code your browser shows)."
                 ),
                 headers={REAUTH_HEADER: "1"},
             )
@@ -202,19 +229,28 @@ def make_passkey_router(
     @router.post("/register/options")
     async def register_options(request: Request) -> dict[str, Any]:
         email, _ = _fresh(request)
-        return service.registration_options(email, relying_party(request))
+        return service.registration_options(email, _rp(request))
 
     @router.post("/register/verify")
     async def register_verify(
         body: _RegisterBody, request: Request, background: BackgroundTasks
     ) -> dict[str, Any]:
-        email, _ = _fresh(request)
+        email, sid = _fresh(request)
+        was_enforced = policy.enforced(email)
         try:
             view = service.register(
-                email, body.credential, relying_party(request), name=body.name
+                email, body.credential, _rp(request), name=body.name
             )
         except PasskeyError as e:
             raise _refused(e) from None
+        if (
+            not was_enforced
+            and policy.enforced(email)
+            and on_credentials_changed is not None
+        ):
+            # The account just became passkey-only: sessions and connector
+            # tokens opened by a password must not outlive that.
+            on_credentials_changed(email, keep=sid)
         _notify(request, background, email, "added", view["name"])
         return {"ok": True, "passkey": view}
 
@@ -223,11 +259,13 @@ def make_passkey_router(
         passkey_id: str, request: Request, background: BackgroundTasks
     ) -> dict[str, Any]:
         email, sid = _fresh(request)
-        if policy.requires(email) and service.count(email) <= 1:
+        if policy.requires(email) and service.count(email) <= policy.enforce_from:
+            # Removing one would let the password back in: only the admin's
+            # CLI (remove-passkey) may take a required account below the rule.
             raise HTTPException(
                 status_code=409,
                 detail=(
-                    "This account must keep a passkey. Add another one first, "
+                    "This account must keep its passkeys. Add another one first, "
                     "or ask the platform admin."
                 ),
             )
@@ -243,14 +281,14 @@ def make_passkey_router(
 
     @router.post("/login/options")
     async def login_options(request: Request) -> dict[str, Any]:
-        return service.login_options(relying_party(request))
+        return service.login_options(_rp(request))
 
     @router.post("/login/verify")
     async def login_verify(
         body: _LoginBody, request: Request, response: Response
     ) -> dict[str, Any]:
         try:
-            email = service.login(body.credential, relying_party(request))
+            email = service.login(body.credential, _rp(request))
         except PasskeyError as e:
             raise _refused(e) from None
         try:
@@ -271,7 +309,7 @@ def make_passkey_router(
     async def step_up_options(body: _ActionBody, request: Request) -> dict[str, Any]:
         email = _signed_in(request)
         try:
-            return service.step_up_options(email, body.action, relying_party(request))
+            return service.step_up_options(email, body.action, _rp(request))
         except PasskeyError as e:
             status = 409 if service.count(email) == 0 else 400
             raise HTTPException(status_code=status, detail=str(e)) from None
@@ -280,16 +318,14 @@ def make_passkey_router(
     async def step_up_verify(body: _StepUpBody, request: Request) -> dict[str, Any]:
         email = _signed_in(request)
         try:
-            return service.step_up(
-                email, body.action, body.credential, relying_party(request)
-            )
+            return service.step_up(email, body.action, body.credential, _rp(request))
         except PasskeyError as e:
             raise _refused(e) from None
 
     @router.post("/step-up/redeem")
     async def step_up_redeem(body: _RedeemBody) -> dict[str, Any]:
         try:
-            proven = service.redeem(body.proof, body.action)
+            proven = service.redeem(body.proof, body.action, email=body.email)
         except PasskeyError as e:
             raise _refused(e) from None
         try:

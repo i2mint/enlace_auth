@@ -29,13 +29,17 @@ def unb64(text: str) -> bytes:
 
 
 class SoftAuthenticator:
-    def __init__(self, origin: str = "https://testserver", *, uv: bool = True):
+    def __init__(
+        self, origin: str = "https://testserver", *, uv: bool = True, synced=False
+    ):
         self.origin = origin
         self.uv = uv
+        self.synced = synced  # backup eligible + backed up (an iCloud Keychain key)
         self.creds: list[dict] = []  # {id, key, rp_id, user_handle, count}
 
     def _flags(self, *, attested: bool) -> int:
         flags = 0x01 | (0x04 if self.uv else 0)  # UP, UV
+        flags |= 0x18 if self.synced else 0  # BE, BS
         return flags | (0x40 if attested else 0)
 
     def _client_data(self, kind: str, challenge: str, origin=None) -> bytes:

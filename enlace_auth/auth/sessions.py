@@ -1,6 +1,7 @@
 """Session storage backed by a MutableMapping.
 
-A session is ``{"user_id": str, "email": str | None, "created_at": float}``.
+A session is ``{"user_id": str, "email": str | None, "created_at": float}``,
+plus ``"method"`` (how the account signed in) when the caller names it.
 Session IDs are 32-byte urlsafe tokens. Revocation is a simple delete.
 
 Records are otherwise only deleted by logout, so given a *max_age* the store
@@ -72,7 +73,9 @@ class SessionStore:
                     removed += 1
         return removed
 
-    def create(self, user_id: str, email: Optional[str] = None) -> str:
+    def create(
+        self, user_id: str, email: Optional[str] = None, *, method: Optional[str] = None
+    ) -> str:
         # Throttled: on a file store, iterating to the cursor walks the
         # directory, which must not be paid on every login.
         now = time.time()
@@ -83,11 +86,10 @@ class SessionStore:
             except Exception:  # noqa: BLE001 - housekeeping must never block a login
                 pass
         session_id = secrets.token_urlsafe(32)
-        self._store[session_id] = {
-            "user_id": user_id,
-            "email": email,
-            "created_at": time.time(),
-        }
+        record = {"user_id": user_id, "email": email, "created_at": time.time()}
+        if method:  # how the account proved itself (``password``, ``passkey``...)
+            record["method"] = method
+        self._store[session_id] = record
         if self._sign_ins is not None and (email or user_id):
             try:
                 self._sign_ins[str(email or user_id).lower()] = time.time()

@@ -355,9 +355,10 @@ class PasskeysConfig(_StrictModel):
         default=2,
         ge=1,
         description=(
-            "How many passkeys a required account needs before the rule applies. "
-            "Below it, the account keeps its other sign-in methods so it can enrol: "
-            "one lost device must not lock an account out."
+            "How many passkeys a required account needs before the rule applies "
+            "(one synced passkey also counts). Below it, the account keeps its "
+            "other sign-in methods so it can enrol: one lost device must not lock "
+            "an account out."
         ),
     )
     fresh_seconds: int = Field(
