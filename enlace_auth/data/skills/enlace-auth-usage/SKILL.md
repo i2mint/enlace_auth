@@ -88,8 +88,10 @@ Off by default: set `[auth.passkeys] enabled = true` (py_webauthn comes with enl
 2. The backend, before acting, redeems it. No cookie and no CSRF token are needed. Name the action you are about to perform AND the account that must have confirmed it; the server compares both:
 
    ```python
-   r = httpx.post(f"{PLATFORM}/auth/passkeys/step-up/redeem",
-                  json={"proof": proof, "action": action, "email": owner_email})
+   r = httpx.post(
+       f"{PLATFORM}/auth/passkeys/step-up/redeem",
+       json={"proof": proof, "action": action, "email": owner_email},
+   )
    confirmed = r.status_code == 200
    # 200 -> {"ok": true, "email", "action", "verified_at", "method": "passkey", "passkey"}
    ```
