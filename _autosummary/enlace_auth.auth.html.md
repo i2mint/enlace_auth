@@ -138,7 +138,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Pure-ASGI auth middleware. See module docstring for behavior.
 
-### *class* enlace_auth.auth.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0, sign_ins=None)
+### *class* enlace_auth.auth.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0, sign_ins=None, admit=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 

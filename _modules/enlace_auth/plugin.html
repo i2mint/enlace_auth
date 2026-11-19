@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=0ec583c6"></script>
+    <script src="../../_static/documentation_options.js?v=aabd07df"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.54" />
+  <meta name="docsearch:version" content="0.1.55" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1446,6 +1446,139 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">hooks</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_passkeys</span><span class="p">(</span>
+    <span class="n">config</span><span class="p">,</span> <span class="n">auth_cfg</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">platform_factory</span><span class="p">,</span> <span class="n">admin_emails</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">signing_key</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The passkey service, policy and relying party of ``[auth.passkeys]``.</span>
+
+<span class="sd">    ``None`` when passkeys are off. Built before the session store, which takes</span>
+<span class="sd">    the policy as its ``admit`` hook (``out["admit"]``).</span>
+
+<span class="sd">    The policy applies only while passkey sign-in works: when py_webauthn is</span>
+<span class="sd">    missing (installed with ``--no-deps``) or the relying party is misconfigured,</span>
+<span class="sd">    the error is logged, no router is mounted, and ``admit`` is ``None``. A</span>
+<span class="sd">    required account then signs in by its other methods instead of being locked</span>
+<span class="sd">    out of every one by a deploy mistake. Only passkeys made for the active RP ID</span>
+<span class="sd">    count toward the rule: one made for an older ``rp_id`` cannot sign in.</span>
+<span class="sd">    """</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">auth_cfg</span><span class="o">.</span><span class="n">passkeys</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cfg</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">importlib.util</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.passkeys.core</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">PasskeyPolicy</span><span class="p">,</span>
+        <span class="n">PasskeyService</span><span class="p">,</span>
+        <span class="n">RelyingParty</span><span class="p">,</span>
+        <span class="n">required_accounts</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">service</span> <span class="o">=</span> <span class="n">PasskeyService</span><span class="p">(</span>
+        <span class="n">platform_factory</span><span class="p">(</span><span class="s2">"passkeys"</span><span class="p">),</span>
+        <span class="n">signing_key</span><span class="o">=</span><span class="n">signing_key</span><span class="p">,</span>
+        <span class="n">usage</span><span class="o">=</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">"passkey_usage"</span><span class="p">),</span>
+        <span class="n">claim_once</span><span class="o">=</span><span class="n">_make_file_claim</span><span class="p">(</span>
+            <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">stores</span><span class="o">.</span><span class="n">path</span><span class="p">))</span> <span class="o">/</span> <span class="s2">"passkey_claims"</span><span class="p">,</span>
+            <span class="n">keep_seconds</span><span class="o">=</span><span class="mi">2</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">challenge_ttl_seconds</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">step_up_ttl_seconds</span><span class="p">),</span>
+        <span class="p">),</span>
+        <span class="n">challenge_ttl</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">challenge_ttl_seconds</span><span class="p">,</span>
+        <span class="n">proof_ttl</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">step_up_ttl_seconds</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">required</span> <span class="o">=</span> <span class="n">_expand_allowed_users</span><span class="p">(</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">required</span><span class="p">,</span>
+        <span class="n">admin_emails</span><span class="p">,</span>
+        <span class="n">app_name</span><span class="o">=</span><span class="s2">"[auth.passkeys] required"</span><span class="p">,</span>
+        <span class="n">groups</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">unresolved</span> <span class="o">:=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">required</span> <span class="k">if</span> <span class="n">is_group_ref</span><span class="p">(</span><span class="n">e</span><span class="p">)]:</span>
+        <span class="n">_logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">"enlace_auth: [auth.passkeys] required names </span><span class="si">%s</span><span class="s2">, which resolve to no "</span>
+            <span class="s2">"account: nobody is required by them. Define the group (or the admin "</span>
+            <span class="s2">"emails)."</span><span class="p">,</span>
+            <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="n">unresolved</span><span class="p">)),</span>
+        <span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"service"</span><span class="p">:</span> <span class="n">service</span><span class="p">,</span> <span class="s2">"policy"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"relying_party"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"admit"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">importlib</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">find_spec</span><span class="p">(</span><span class="s2">"webauthn"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">"enlace_auth: [auth.passkeys] is enabled but py_webauthn is not "</span>
+            <span class="s2">"installed. Passkey endpoints will be MISSING and the passkey-required "</span>
+            <span class="s2">"policy is OFF. Reinstall enlace_auth with its dependencies."</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+    <span class="n">public</span> <span class="o">=</span> <span class="n">_public_base_url</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">auth_cfg</span><span class="p">)</span>
+    <span class="n">origins</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">origins</span><span class="p">)</span> <span class="ow">or</span> <span class="p">([</span><span class="n">public</span><span class="p">]</span> <span class="k">if</span> <span class="n">public</span> <span class="k">else</span> <span class="p">[])</span>
+    <span class="n">rp_id</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">rp_id</span> <span class="ow">or</span> <span class="p">(</span><span class="n">_host_of</span><span class="p">(</span><span class="n">origins</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="n">origins</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">origins</span><span class="p">:</span>
+            <span class="n">fixed</span> <span class="o">=</span> <span class="n">RelyingParty</span><span class="p">(</span>
+                <span class="n">rp_id</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">rp_name</span> <span class="ow">or</span> <span class="n">rp_id</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">origins</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">out</span><span class="p">[</span><span class="s2">"relying_party"</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">_request</span><span class="p">:</span> <span class="n">fixed</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># a local dev server: the origin it is being served from</span>
+            <span class="n">out</span><span class="p">[</span><span class="s2">"relying_party"</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">request</span><span class="p">:</span> <span class="n">RelyingParty</span><span class="o">.</span><span class="n">for_origin</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">base_url</span><span class="p">),</span> <span class="n">rp_id</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">rp_id</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">rp_name</span>
+            <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">_logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">"enlace_auth: [auth.passkeys] </span><span class="si">%s</span><span class="s2">. Passkey endpoints will be MISSING "</span>
+            <span class="s2">"and the passkey-required policy is OFF."</span><span class="p">,</span>
+            <span class="n">e</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+    <span class="n">policy</span> <span class="o">=</span> <span class="n">PasskeyPolicy</span><span class="p">(</span>
+        <span class="n">required_accounts</span><span class="p">(</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">required</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">is_group_ref</span><span class="p">(</span><span class="n">e</span><span class="p">)),</span>
+        <span class="n">count</span><span class="o">=</span><span class="k">lambda</span> <span class="n">email</span><span class="p">:</span> <span class="n">service</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">rp_id</span><span class="o">=</span><span class="n">rp_id</span><span class="p">),</span>
+        <span class="n">synced</span><span class="o">=</span><span class="k">lambda</span> <span class="n">email</span><span class="p">:</span> <span class="n">service</span><span class="o">.</span><span class="n">synced</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">rp_id</span><span class="o">=</span><span class="n">rp_id</span><span class="p">),</span>
+        <span class="n">enforce_from</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">enforce_from</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span> <span class="n">admit</span><span class="o">=</span><span class="n">policy</span><span class="o">.</span><span class="n">refusal</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_passkey_page_extras</span><span class="p">(</span><span class="n">passkeys</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span> <span class="n">signup</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The sign-in and account page hooks, with the passkey markup added.</span>
+
+<span class="sd">    Returns ``{"login_page_extras", "account_page_extras"}`` for</span>
+<span class="sd">    :func:`~enlace_auth.auth.routes.make_auth_router`: sign-up's hooks unchanged</span>
+<span class="sd">    when passkeys are off or not mounted, else wrapped so the sign-in page gets</span>
+<span class="sd">    the passkey button and autofill, and the account page a passkey card above</span>
+<span class="sd">    sign-up's deletion card.</span>
+<span class="sd">    """</span>
+    <span class="n">login</span><span class="p">,</span> <span class="n">account</span> <span class="o">=</span> <span class="n">signup</span><span class="p">[</span><span class="s2">"login_page_extras"</span><span class="p">],</span> <span class="n">signup</span><span class="p">[</span><span class="s2">"account_page_extras"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">passkeys</span> <span class="ow">or</span> <span class="n">passkeys</span><span class="p">[</span><span class="s2">"relying_party"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"login_page_extras"</span><span class="p">:</span> <span class="n">login</span><span class="p">,</span> <span class="s2">"account_page_extras"</span><span class="p">:</span> <span class="n">account</span><span class="p">}</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.passkeys.pages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">render_account_section</span><span class="p">,</span>
+        <span class="n">render_signin_section</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.signup.texts</span><span class="w"> </span><span class="kn">import</span> <span class="n">pick_lang</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">login_page_extras</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">next_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">extras</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">login</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">next_url</span><span class="p">)</span> <span class="k">if</span> <span class="n">login</span> <span class="k">else</span> <span class="p">{})</span>
+        <span class="n">lang</span> <span class="o">=</span> <span class="n">pick_lang</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"accept-language"</span><span class="p">))</span>
+        <span class="n">extras</span><span class="p">[</span><span class="s2">"passkey_section"</span><span class="p">]</span> <span class="o">=</span> <span class="n">render_signin_section</span><span class="p">(</span><span class="n">lang</span><span class="o">=</span><span class="n">lang</span><span class="p">,</span> <span class="n">next_url</span><span class="o">=</span><span class="n">next_url</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">extras</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">account_page_extras</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">extras</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">account</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">email</span><span class="p">)</span> <span class="k">if</span> <span class="n">account</span> <span class="k">else</span> <span class="p">{})</span>
+        <span class="n">lang</span> <span class="o">=</span> <span class="n">pick_lang</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"accept-language"</span><span class="p">))</span>
+        <span class="n">extras</span><span class="p">[</span><span class="s2">"extra_section"</span><span class="p">]</span> <span class="o">=</span> <span class="n">render_account_section</span><span class="p">(</span><span class="n">lang</span><span class="o">=</span><span class="n">lang</span><span class="p">)</span> <span class="o">+</span> <span class="n">extras</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s2">"extra_section"</span><span class="p">,</span> <span class="s2">""</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">extras</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"login_page_extras"</span><span class="p">:</span> <span class="n">login_page_extras</span><span class="p">,</span>
+        <span class="s2">"account_page_extras"</span><span class="p">:</span> <span class="n">account_page_extras</span><span class="p">,</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_host_of</span><span class="p">(</span><span class="n">origin</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlsplit</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">urlsplit</span><span class="p">(</span><span class="n">origin</span><span class="p">)</span><span class="o">.</span><span class="n">hostname</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+
 <div class="viewcode-block" id="wire">
 <a class="viewcode-back" href="../../_autosummary/enlace_auth.html#enlace_auth.wire">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">wire</span><span class="p">(</span><span class="n">parent</span><span class="p">:</span> <span class="s2">"FastAPI"</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1480,10 +1613,20 @@ window.runMermaid = runMermaid;</script>
     <span class="n">session_backend</span> <span class="o">=</span> <span class="n">platform_factory</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">)</span>
     <span class="c1"># Disabled marks are kept apart from the records they mark (#71).</span>
     <span class="n">user_backend</span> <span class="o">=</span> <span class="n">make_account_records</span><span class="p">(</span><span class="n">platform_factory</span><span class="p">)</span>
+    <span class="n">admin_emails</span> <span class="o">=</span> <span class="n">platform_admin_emails</span><span class="p">(</span><span class="n">auth_cfg</span><span class="p">)</span>
+    <span class="n">passkeys</span> <span class="o">=</span> <span class="n">_build_passkeys</span><span class="p">(</span>
+        <span class="n">config</span><span class="p">,</span>
+        <span class="n">auth_cfg</span><span class="p">,</span>
+        <span class="n">platform_factory</span><span class="o">=</span><span class="n">platform_factory</span><span class="p">,</span>
+        <span class="n">admin_emails</span><span class="o">=</span><span class="n">admin_emails</span><span class="p">,</span>
+        <span class="n">signing_key</span><span class="o">=</span><span class="n">signing_key</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">session_store</span> <span class="o">=</span> <span class="n">SessionStore</span><span class="p">(</span>
         <span class="n">session_backend</span><span class="p">,</span>
         <span class="n">max_age</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_max_age_seconds</span><span class="p">,</span>
         <span class="n">sign_ins</span><span class="o">=</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">"sign_ins"</span><span class="p">),</span>
+        <span class="c1"># Every sign-in path asks this before opening a session (open_session).</span>
+        <span class="n">admit</span><span class="o">=</span><span class="n">passkeys</span><span class="p">[</span><span class="s2">"admit"</span><span class="p">]</span> <span class="k">if</span> <span class="n">passkeys</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># Runtime per-app access grants (additive, optional UTC expiry). Lives beside</span>
@@ -1512,7 +1655,6 @@ window.runMermaid = runMermaid;</script>
         <span class="n">user_data_factory</span> <span class="o">=</span> <span class="n">make_file_store_factory</span><span class="p">(</span><span class="n">user_data_cfg</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
         <span class="n">user_data_backend</span> <span class="o">=</span> <span class="n">user_data_factory</span><span class="p">(</span><span class="s2">"user_data"</span><span class="p">)</span>
 
-    <span class="n">admin_emails</span> <span class="o">=</span> <span class="n">platform_admin_emails</span><span class="p">(</span><span class="n">auth_cfg</span><span class="p">)</span>
     <span class="n">invites</span> <span class="o">=</span> <span class="n">platform_factory</span><span class="p">(</span><span class="s2">"invites"</span><span class="p">)</span>
     <span class="n">signup_policy</span> <span class="o">=</span> <span class="n">_build_signup_policy</span><span class="p">(</span><span class="n">auth_cfg</span><span class="p">,</span> <span class="n">admin_emails</span><span class="p">,</span> <span class="n">invites</span><span class="o">=</span><span class="n">invites</span><span class="p">)</span>
 
@@ -1643,8 +1785,10 @@ window.runMermaid = runMermaid;</script>
             <span class="n">grant_store</span><span class="o">=</span><span class="n">grant_store</span><span class="p">,</span>
             <span class="n">user_data</span><span class="o">=</span><span class="n">user_data_backend</span><span class="p">,</span>
             <span class="n">sign_ins</span><span class="o">=</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">"sign_ins"</span><span class="p">),</span>
+            <span class="n">passkeys</span><span class="o">=</span><span class="n">passkeys</span><span class="p">[</span><span class="s2">"service"</span><span class="p">]</span> <span class="k">if</span> <span class="n">passkeys</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">),</span>
     <span class="p">)</span>
+    <span class="n">passkey_pages</span> <span class="o">=</span> <span class="n">_passkey_page_extras</span><span class="p">(</span><span class="n">passkeys</span><span class="p">,</span> <span class="n">signup</span><span class="p">)</span>
 
     <span class="n">auth_router</span> <span class="o">=</span> <span class="n">make_auth_router</span><span class="p">(</span>
         <span class="n">session_store</span><span class="o">=</span><span class="n">session_store</span><span class="p">,</span>
@@ -1658,12 +1802,36 @@ window.runMermaid = runMermaid;</script>
         <span class="n">public_base_url</span><span class="o">=</span><span class="n">_public_base_url</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">auth_cfg</span><span class="p">),</span>
         <span class="n">on_credentials_changed</span><span class="o">=</span><span class="n">on_credentials_changed</span><span class="p">,</span>
         <span class="n">reset_allowed</span><span class="o">=</span><span class="n">signup</span><span class="p">[</span><span class="s2">"reset_allowed"</span><span class="p">],</span>
-        <span class="n">login_page_extras</span><span class="o">=</span><span class="n">signup</span><span class="p">[</span><span class="s2">"login_page_extras"</span><span class="p">],</span>
-        <span class="n">account_page_extras</span><span class="o">=</span><span class="n">signup</span><span class="p">[</span><span class="s2">"account_page_extras"</span><span class="p">],</span>
+        <span class="n">login_page_extras</span><span class="o">=</span><span class="n">passkey_pages</span><span class="p">[</span><span class="s2">"login_page_extras"</span><span class="p">],</span>
+        <span class="n">account_page_extras</span><span class="o">=</span><span class="n">passkey_pages</span><span class="p">[</span><span class="s2">"account_page_extras"</span><span class="p">],</span>
     <span class="p">)</span>
     <span class="n">parent</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">auth_router</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">signup</span><span class="p">[</span><span class="s2">"router"</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">parent</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">signup</span><span class="p">[</span><span class="s2">"router"</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">passkeys</span> <span class="ow">and</span> <span class="n">passkeys</span><span class="p">[</span><span class="s2">"relying_party"</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.email</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_console_sender</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.passkeys.routes</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_passkey_router</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.signup.texts</span><span class="w"> </span><span class="kn">import</span> <span class="n">pick_lang</span>
+
+        <span class="n">parent</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span>
+            <span class="n">make_passkey_router</span><span class="p">(</span>
+                <span class="n">service</span><span class="o">=</span><span class="n">passkeys</span><span class="p">[</span><span class="s2">"service"</span><span class="p">],</span>
+                <span class="n">session_store</span><span class="o">=</span><span class="n">session_store</span><span class="p">,</span>
+                <span class="n">user_store</span><span class="o">=</span><span class="n">user_backend</span><span class="p">,</span>
+                <span class="n">signing_key</span><span class="o">=</span><span class="n">signing_key</span><span class="p">,</span>
+                <span class="n">relying_party</span><span class="o">=</span><span class="n">passkeys</span><span class="p">[</span><span class="s2">"relying_party"</span><span class="p">],</span>
+                <span class="n">policy</span><span class="o">=</span><span class="n">passkeys</span><span class="p">[</span><span class="s2">"policy"</span><span class="p">],</span>
+                <span class="c1"># No SMTP: the notice goes to the log, like a sign-up code.</span>
+                <span class="n">send_email</span><span class="o">=</span><span class="n">email_sender</span> <span class="ow">or</span> <span class="n">make_console_sender</span><span class="p">(),</span>
+                <span class="n">on_credentials_changed</span><span class="o">=</span><span class="n">on_credentials_changed</span><span class="p">,</span>
+                <span class="n">cookie_name</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_cookie_name</span><span class="p">,</span>
+                <span class="n">session_max_age</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_max_age_seconds</span><span class="p">,</span>
+                <span class="n">secure_cookies</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">secure_cookies</span><span class="p">,</span>
+                <span class="n">fresh_seconds</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">passkeys</span><span class="o">.</span><span class="n">fresh_seconds</span><span class="p">,</span>
+                <span class="n">public_base_url</span><span class="o">=</span><span class="n">_public_base_url</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">auth_cfg</span><span class="p">),</span>
+                <span class="n">pick_lang</span><span class="o">=</span><span class="n">pick_lang</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
 
     <span class="c1"># Optional OAuth router (lazy import of Authlib).</span>
     <span class="k">if</span> <span class="n">auth_cfg</span><span class="o">.</span><span class="n">oauth</span><span class="p">:</span>
@@ -1837,6 +2005,12 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># proxy to a black-box upstream that can't participate in enlace's</span>
     <span class="c1"># double-submit flow, so their entire mount prefix must also be exempt.</span>
     <span class="n">csrf_exempt</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"/auth/callback"</span><span class="p">,</span> <span class="s2">"/auth/login/"</span><span class="p">,</span> <span class="s2">"/api/"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">passkeys</span><span class="p">:</span>
+        <span class="c1"># A backend redeems a step-up proof with no cookie at all: the proof in</span>
+        <span class="c1"># the body is the credential, so a double-submit token protects nothing.</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.passkeys.routes</span><span class="w"> </span><span class="kn">import</span> <span class="n">REDEEM_PATH</span>
+
+        <span class="n">csrf_exempt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">REDEEM_PATH</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">auth_cfg</span><span class="o">.</span><span class="n">oauth_server</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
         <span class="c1"># OAuth 2.1 server endpoints: /register + /token are cookieless</span>
         <span class="c1"># machine-to-machine calls (protected by PKCE + client validation), and</span>

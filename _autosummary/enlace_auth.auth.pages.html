@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=0ec583c6"></script>
+    <script src="../_static/documentation_options.js?v=aabd07df"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.54" />
+  <meta name="docsearch:version" content="0.1.55" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -347,6 +347,13 @@
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.diagnostics.html">enlace_auth.diagnostics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.emails.html">enlace_auth.emails</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.groups.html">enlace_auth.groups</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.passkeys.html">enlace_auth.passkeys</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.core.html">enlace_auth.passkeys.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.pages.html">enlace_auth.passkeys.pages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.routes.html">enlace_auth.passkeys.routes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.texts.html">enlace_auth.passkeys.texts</a></li>
+</ul>
+</details></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.ratelimit.html">enlace_auth.ratelimit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.resource_policy.html">enlace_auth.resource_policy</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.signup.html">enlace_auth.signup</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -566,7 +573,7 @@ response stays identical either way.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_auth.auth.pages.render_login_page">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.pages.</span></span><span class="sig-name descname"><span class="pre">render_login_page</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">next_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_register_hint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">email_section</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password_summary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Sign</span> <span class="pre">in</span> <span class="pre">with</span> <span class="pre">a</span> <span class="pre">password</span> <span class="pre">instead'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lang</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'en'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/pages.html#render_login_page"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.pages.render_login_page" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.pages.</span></span><span class="sig-name descname"><span class="pre">render_login_page</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">next_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_register_hint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">email_section</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password_summary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Sign</span> <span class="pre">in</span> <span class="pre">with</span> <span class="pre">a</span> <span class="pre">password</span> <span class="pre">instead'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lang</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'en'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">passkey_section</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/pages.html#render_login_page"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.pages.render_login_page" title="Link to this definition">#</a></dt>
 <dd><p>Render the sign-in form.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -580,6 +587,8 @@ sanitized by the caller via <a class="reference internal" href="#enlace_auth.aut
 When given, the password form folds under <em>password_summary</em> and
 the section carries its own sign-up note instead of the hint.</p></li>
 <li><p><strong>lang</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – the page’s <code class="docutils literal notranslate"><span class="pre">lang</span></code> attribute.</p></li>
+<li><p><strong>passkey_section</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – trusted markup shown first (the passkey button and
+autofill from <a class="reference internal" href="enlace_auth.passkeys.pages.html#module-enlace_auth.passkeys.pages" title="enlace_auth.passkeys.pages"><code class="xref py py-mod docutils literal notranslate"><span class="pre">enlace_auth.passkeys.pages</span></code></a>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>

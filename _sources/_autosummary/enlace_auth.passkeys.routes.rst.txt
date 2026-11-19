@@ -1,0 +1,19 @@
+enlace\_auth.passkeys.routes
+============================
+
+.. automodule:: enlace_auth.passkeys.routes
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      REDEEM_PATH
+      REAUTH_HEADER
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_passkey_router
+   

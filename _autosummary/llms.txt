@@ -29,6 +29,11 @@
 - [enlace_auth.diagnostics](enlace_auth.diagnostics.html.md): Auth-specific doctor checks that plug into &#96;enlace.doctor.run_doctor&#96;.
 - [enlace_auth.emails](enlace_auth.emails.html.md): One normal form for an email address, wherever one is compared.
 - [enlace_auth.groups](enlace_auth.groups.html.md): Named groups of accounts: one list of emails, referenced as &#96;@name&#96; wherever an
+- [enlace_auth.passkeys](enlace_auth.passkeys.html.md): Passkeys (WebAuthn): sign-in, a step-up confirmation, and a per-account requirement.
+- [enlace_auth.passkeys.core](enlace_auth.passkeys.core.html.md): Passkey ceremonies, the step-up proof, and the passkey-required policy.
+- [enlace_auth.passkeys.pages](enlace_auth.passkeys.pages.html.md): The passkey markup on the sign-in and account pages.
+- [enlace_auth.passkeys.routes](enlace_auth.passkeys.routes.html.md): &#96;/auth/passkeys/&#42;&#96;: add, list and remove passkeys; sign in; step up; redeem.
+- [enlace_auth.passkeys.texts](enlace_auth.passkeys.texts.html.md): The passkey screens’ copy and notification mails, in English and French.
 - [enlace_auth.ratelimit](enlace_auth.ratelimit.html.md): A sliding-window rate limiter over any &#96;MutableMapping&#96;.
 - [enlace_auth.resource_policy](enlace_auth.resource_policy.html.md): The OAuth per-connector allowlist: its shape, its parsing and its one rule.
 - [enlace_auth.signup](enlace_auth.signup.html.md): Self-service sign-up and email-code sign-in.

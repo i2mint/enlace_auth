@@ -102,7 +102,7 @@ Render the “request a password-reset link” form.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.pages.render_login_page(, next_url='/', error=None, show_register_hint=True, email_section='', password_summary='Sign in with a password instead', lang='en')
+### enlace_auth.auth.pages.render_login_page(, next_url='/', error=None, show_register_hint=True, email_section='', password_summary='Sign in with a password instead', lang='en', passkey_section='')
 
 Render the sign-in form.
 
@@ -116,6 +116,8 @@ Render the sign-in form.
     When given, the password form folds under *password_summary* and
     the section carries its own sign-up note instead of the hint.
   * **lang** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – the page’s `lang` attribute.
+  * **passkey_section** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – trusted markup shown first (the passkey button and
+    autofill from [`enlace_auth.passkeys.pages`](enlace_auth.passkeys.pages.html.md#module-enlace_auth.passkeys.pages)).
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 

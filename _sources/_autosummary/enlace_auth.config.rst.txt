@@ -24,6 +24,7 @@ enlace\_auth.config
       AuthConfig
       OAuthProviderConfig
       OAuthServerConfig
+      PasskeysConfig
       SignupConfig
       SignupLimitsConfig
       StoreBackendConfig

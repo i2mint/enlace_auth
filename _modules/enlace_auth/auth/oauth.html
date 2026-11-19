@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=0ec583c6"></script>
+    <script src="../../../_static/documentation_options.js?v=aabd07df"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.54" />
+  <meta name="docsearch:version" content="0.1.55" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -1225,7 +1225,7 @@ window.runMermaid = runMermaid;</script>
                         <span class="n">provider</span><span class="p">:</span> <span class="n">subject</span><span class="p">,</span>
                     <span class="p">},</span>
                 <span class="p">}</span>
-        <span class="n">session_id</span> <span class="o">=</span> <span class="n">open_session</span><span class="p">(</span><span class="n">session_store</span><span class="p">,</span> <span class="n">user_store</span><span class="p">,</span> <span class="n">email</span><span class="p">)</span>
+        <span class="n">session_id</span> <span class="o">=</span> <span class="n">open_session</span><span class="p">(</span><span class="n">session_store</span><span class="p">,</span> <span class="n">user_store</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"oauth"</span><span class="p">)</span>
         <span class="n">resp</span> <span class="o">=</span> <span class="n">JSONResponse</span><span class="p">({</span><span class="s2">"ok"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">:</span> <span class="n">email</span><span class="p">})</span>
         <span class="n">_set_session_cookie</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="n">session_id</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">resp</span>

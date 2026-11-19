@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=0ec583c6"></script>
+    <script src="../../_static/documentation_options.js?v=aabd07df"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.54" />
+  <meta name="docsearch:version" content="0.1.55" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1045,6 +1045,80 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<div class="viewcode-block" id="PasskeysConfig">
+<a class="viewcode-back" href="../../_autosummary/enlace_auth.config.html#enlace_auth.PasskeysConfig">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PasskeysConfig</span><span class="p">(</span><span class="n">_StrictModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""``[auth.passkeys]``: sign-in and step-up confirmation by passkey (WebAuthn).</span>
+
+<span class="sd">    Off unless ``enabled``. See</span>
+<span class="sd">    :mod:`enlace_auth.passkeys`.</span>
+<span class="sd">    """</span>
+
+    <span class="n">enabled</span><span class="p">:</span> <span class="n">StrictBool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">rp_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"The WebAuthn relying-party ID: a host every origin is on or under. "</span>
+            <span class="s2">"Default: the host of the platform's public origin. Set it to the "</span>
+            <span class="s2">"parent domain (e.g. 'example.com') for one passkey to cover sibling "</span>
+            <span class="s2">"hosts. Changing it later orphans every passkey already made."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">rp_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"The name a device shows; default: the RP ID."</span>
+    <span class="p">)</span>
+    <span class="n">origins</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"Origins a passkey answer may come from (https://host). Default: the "</span>
+            <span class="s2">"platform's public origin."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">required</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"Accounts that must sign in with a passkey: emails, '@group' names "</span>
+            <span class="s2">"from [auth.groups], or '@admins'. Applies once the account has "</span>
+            <span class="s2">"enforce_from passkeys."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">enforce_from</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"How many passkeys a required account needs before the rule applies "</span>
+            <span class="s2">"(one synced passkey also counts). Below it, the account keeps its "</span>
+            <span class="s2">"other sign-in methods so it can enrol: one lost device must not lock "</span>
+            <span class="s2">"an account out."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">fresh_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">900</span><span class="p">,</span>
+        <span class="n">gt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"How recent a sign-in must be to add or remove a passkey."</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">challenge_ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">gt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">3600</span><span class="p">)</span>
+    <span class="n">step_up_ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>
+        <span class="n">gt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">le</span><span class="o">=</span><span class="mi">900</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"How long a step-up proof may wait before it is redeemed."</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"rp_id"</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_rp_id</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">rp_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">rp_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="n">rp_id</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span> <span class="ow">in</span> <span class="n">rp_id</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="s2">"/:@ "</span><span class="p">)</span> <span class="ow">or</span> <span class="n">rp_id</span> <span class="o">!=</span> <span class="n">rp_id</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"[auth.passkeys] rp_id </span><span class="si">{</span><span class="n">rp_id</span><span class="si">!r}</span><span class="s2"> must be a lower-case host name "</span>
+                <span class="s2">"(no scheme, port or path)"</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">rp_id</span></div>
+
+
+
 <div class="viewcode-block" id="AuthConfig">
 <a class="viewcode-back" href="../../_autosummary/enlace_auth.config.html#enlace_auth.AuthConfig">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AuthConfig</span><span class="p">(</span><span class="n">_StrictModel</span><span class="p">):</span>
@@ -1110,6 +1184,7 @@ window.runMermaid = runMermaid;</script>
     <span class="p">)</span>
 
     <span class="n">signup</span><span class="p">:</span> <span class="n">SignupConfig</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">SignupConfig</span><span class="p">)</span>
+    <span class="n">passkeys</span><span class="p">:</span> <span class="n">PasskeysConfig</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">PasskeysConfig</span><span class="p">)</span>
     <span class="n">groups</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span>
         <span class="n">description</span><span class="o">=</span><span class="p">(</span>

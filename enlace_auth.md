@@ -1,4 +1,4 @@
-> built 2026-11-16 14:43 UTC from 83c7e02 (main) · enlace_auth 0.1.54. Details: build_info.json
+> built 2026-11-19 08:56 UTC from 1e8cda1 (main) · enlace_auth 0.1.55. Details: build_info.json
 
 # index.html.md
 
@@ -95,7 +95,8 @@ print(client.get("/auth/whoami").json())
 
 - `/auth/login`, `/auth/logout`, `/auth/whoami`, `/auth/csrf`, `/auth/me/password`, `/auth/shared-login`
 - self-service sign-up and sign-in by emailed code (`/auth/email/*`, the verify-first `/auth/register`), with a per-app sign-up policy; see [Self-service sign-up]()
-- `/auth/account`: the signed-in user changes their own password, or deletes their account
+- `/auth/account`: the signed-in user changes their own password, adds or removes passkeys, or deletes their account
+- passkeys (WebAuthn): sign-in with autofill, a step-up confirmation that hands an app a single-use proof, and a per-account “passkey required” policy; see [Passkeys and step-up]()
 - `/auth/forgot-password`: self-service reset by emailed link
 - `/_admin/api/*`: list, create and delete users, mint a password-reset link, set a password directly, view app policy, and **grant or revoke per-app access at runtime** (optional expiry). Gated by an admin allowlist.
 - per-user data injection via `request.state.store`
@@ -161,6 +162,22 @@ terms_version = "2026-11"
 - Mail and code checks are rate-limited per address, per IP and overall (`[auth.signup.limits]`), and the form carries a honeypot plus a time-to-submit check. Behind a proxy, run uvicorn with `--forwarded-allow-ips` set to the proxy so the per-IP limit sees real clients.
 - A signed-in user deletes their own account from `/auth/account`, confirmed by a mailed code; that removes its sessions, connector sessions, shares, grants and per-user data.
 - `registration_open = true` still works and means `default = "open"`. `/auth/register` (email plus a password of at least 15 characters) now mails a code too, and creates the account at verify.
+
+### Passkeys and step-up
+
+Off by default; py_webauthn comes with enlace_auth. Turn them on:
+
+```toml
+[auth.passkeys]
+enabled = true
+# rp_id = "example.com"          # default: the host of the public origin
+# required = ["@admins"]         # must sign in by passkey, once they have enforce_from
+# enforce_from = 2               # passkeys before the rule applies (lockout guard)
+```
+
+- Any signed-in account adds passkeys from `/auth/account`. Adding or removing one needs a sign-in from the last 15 minutes, made with a passkey once the account has one; each change is mailed to the account, and a removal ends its other sessions. The sign-in page gets a passkey button and passkey autofill on its email field.
+- **Step-up**: a page prepares `enlacePasskeys.prepareStepUp("myapp: start job 42")` (from `/auth/passkeys/passkeys.js`), then on the tap calls `enlacePasskeys.stepUp(prepared)`; the user confirms with Face ID or Touch ID and gets a proof, valid once for 120 seconds; the app or connector backend calls `POST /auth/passkeys/step-up/redeem {proof, action, email}` before acting. The answer the authenticator signs commits to the action text, so a proof for one action never redeems for another. Details in the consumer skill (`enlace_auth/data/skills/enlace-auth-usage`).
+- `required` accounts refuse every other sign-in method once they have `enforce_from` passkeys (or one synced passkey). A lost device is removed with `enlace-auth remove-passkey EMAIL --passkey-id ID`.
 
 ### OAuth 2.1 authorization server (MCP connectors)
 
@@ -666,12 +683,12 @@ it in its own mapping (`sign_ins`).
 
 ### Functions
 
-| [`is_disabled`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.is_disabled)(record)                              | True when *record* is a user record marked disabled.                     |
-|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
-| [`make_account_deleter`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.make_account_deleter)(\*, user_store, ...[, ...]) | Return `delete(email)`: remove an account and what hangs off it.         |
-| [`make_account_records`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.make_account_records)(store_factory)              | The platform's user records: `users` plus the `disabled_accounts` marks. |
-| [`open_session`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.open_session)(session_store, user_store, email)   | Create a session for *email* and return its id, unless it is disabled.   |
-| [`set_disabled`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.set_disabled)(user_store, email, disabled, \*)    | Mark *email*'s record disabled (or not); return the new record.          |
+| [`is_disabled`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.is_disabled)(record)                                | True when *record* is a user record marked disabled.                     |
+|-----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| [`make_account_deleter`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.make_account_deleter)(\*, user_store, ...[, ...])   | Return `delete(email)`: remove an account and what hangs off it.         |
+| [`make_account_records`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.make_account_records)(store_factory)                | The platform's user records: `users` plus the `disabled_accounts` marks. |
+| [`open_session`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.open_session)(session_store, user_store, email, \*) | Create a session for *email* and return its id, unless it is disabled.   |
+| [`set_disabled`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.set_disabled)(user_store, email, disabled, \*)      | Mark *email*'s record disabled (or not); return the new record.          |
 
 ### Classes
 
@@ -741,7 +758,7 @@ True when *record* is a user record marked disabled.
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
-### enlace_auth.auth.accounts.make_account_deleter(, user_store, credentials_changed, share_store=None, grant_store=None, user_data=None, sign_ins=None)
+### enlace_auth.auth.accounts.make_account_deleter(, user_store, credentials_changed, share_store=None, grant_store=None, user_data=None, sign_ins=None, passkeys=None)
 
 Return `delete(email)`: remove an account and what hangs off it.
 
@@ -750,7 +767,7 @@ The record goes first, then its sessions and connector refresh families
 signed in. Then, each optional and each failing alone: the shares naming it,
 its runtime grants (stored under exactly its key: the other spelling of the
 address may be another account), its per-user data (every key under
-`{email}/` in the base store), and its last-sign-in time. Raises
+`{email}/` in the base store), its last-sign-in time, and its passkeys. Raises
 `KeyError` when there is no such account; a damaged grant or data key is
 logged and skipped.
 
@@ -784,14 +801,21 @@ Marks still inside records (written before #71) are moved out first.
 * **Return type:**
   [`AccountRecords`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.AccountRecords)
 
-### enlace_auth.auth.accounts.open_session(session_store, user_store, email)
+### enlace_auth.auth.accounts.open_session(session_store, user_store, email, , method='unknown')
 
 Create a session for *email* and return its id, unless it is disabled.
+
+*method* names how the account proved itself (`password`, `email-code`,
+`oauth`, `passkey`, …). Before anything is created, the session store’s
+`admit(email, method)` hook, when it has one, may refuse it (the
+passkey-required policy, [`enlace_auth.passkeys`](_autosummary/enlace_auth.passkeys.html.md#module-enlace_auth.passkeys)): every sign-in path
+comes through here, so a path that forgets to name its method is refused
+like any method that is not a passkey.
 
 The disabled check runs AFTER the session exists: if an admin disabled the
 account (and revoked its sessions) while this sign-in was in flight, the
 new session is deleted here and the sign-in refused. Raises
-`fastapi.HTTPException(403)` in that case.
+`fastapi.HTTPException(403)` in either case.
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
@@ -1189,7 +1213,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Pure-ASGI auth middleware. See module docstring for behavior.
 
-### *class* enlace_auth.auth.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0, sign_ins=None)
+### *class* enlace_auth.auth.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0, sign_ins=None, admit=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -1820,7 +1844,7 @@ Render the “request a password-reset link” form.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.pages.render_login_page(, next_url='/', error=None, show_register_hint=True, email_section='', password_summary='Sign in with a password instead', lang='en')
+### enlace_auth.auth.pages.render_login_page(, next_url='/', error=None, show_register_hint=True, email_section='', password_summary='Sign in with a password instead', lang='en', passkey_section='')
 
 Render the sign-in form.
 
@@ -1834,6 +1858,8 @@ Render the sign-in form.
     When given, the password form folds under *password_summary* and
     the section carries its own sign-up note instead of the hint.
   * **lang** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – the page’s `lang` attribute.
+  * **passkey_section** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – trusted markup shown first (the passkey button and
+    autofill from [`enlace_auth.passkeys.pages`](_autosummary/enlace_auth.passkeys.pages.html.md#module-enlace_auth.passkeys.pages)).
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
@@ -2273,7 +2299,8 @@ Build a FastAPI router exposing `/auth/*` endpoints.
 
 Session storage backed by a MutableMapping.
 
-A session is `{"user_id": str, "email": str | None, "created_at": float}`.
+A session is `{"user_id": str, "email": str | None, "created_at": float}`,
+plus `"method"` (how the account signed in) when the caller names it.
 Session IDs are 32-byte urlsafe tokens. Revocation is a simple delete.
 
 Records are otherwise only deleted by logout, so given a *max_age* the store
@@ -2286,7 +2313,7 @@ store (and [`SessionStore.revoke_user()`](_autosummary/enlace_auth.auth.sessions
 | [`SessionStore`](_autosummary/enlace_auth.auth.sessions.html.md#enlace_auth.auth.sessions.SessionStore)(store, \*[, max_age, ...])   | Thin adapter around a MutableMapping that speaks session semantics.   |
 |--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 
-### *class* enlace_auth.auth.sessions.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0, sign_ins=None)
+### *class* enlace_auth.auth.sessions.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0, sign_ins=None, admit=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -2550,15 +2577,16 @@ we just deserialize them into typed objects here when the plugin runs.
 
 ### Classes
 
-| [`AuthConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.AuthConfig)(\*[, enabled, ...])                     | Platform-wide authentication configuration.                    |
-|-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
-| [`OAuthProviderConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthProviderConfig)(\*, client_id_env, ...[, ...]) | Configuration for a single OAuth2/OIDC provider.               |
-| [`OAuthServerConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthServerConfig)(\*[, enabled, issuer, ...])      | OAuth 2.1 authorization-server settings (for MCP connectors).  |
-| [`SignupConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.SignupConfig)(\*[, default, apps, allowlist, ...])  | Self-service sign-up and email-code sign-in (`[auth.signup]`). |
-| [`SignupLimitsConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.SignupLimitsConfig)(\*[, window_seconds, ...])      | Rate limits on the endpoints that send mail or check a code.   |
-| [`StoreBackendConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.       |
+| [`AuthConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.AuthConfig)(\*[, enabled, ...])                     | Platform-wide authentication configuration.                                |
+|-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| [`OAuthProviderConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthProviderConfig)(\*, client_id_env, ...[, ...]) | Configuration for a single OAuth2/OIDC provider.                           |
+| [`OAuthServerConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthServerConfig)(\*[, enabled, issuer, ...])      | OAuth 2.1 authorization-server settings (for MCP connectors).              |
+| [`PasskeysConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.PasskeysConfig)(\*[, enabled, rp_id, rp_name, ...]) | `[auth.passkeys]`: sign-in and step-up confirmation by passkey (WebAuthn). |
+| [`SignupConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.SignupConfig)(\*[, default, apps, allowlist, ...])  | Self-service sign-up and email-code sign-in (`[auth.signup]`).             |
+| [`SignupLimitsConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.SignupLimitsConfig)(\*[, window_seconds, ...])      | Rate limits on the endpoints that send mail or check a code.               |
+| [`StoreBackendConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.                   |
 
-### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, groups=<factory>)
+### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, groups=<factory>)
 
 Bases: `_StrictModel`
 
@@ -2594,6 +2622,19 @@ OAuth 2.1 authorization-server settings (for MCP connectors).
 When `enabled`, `enlace_auth` issues signed JWT access tokens that a
 Claude.ai custom connector validates — reusing the platform user store and
 session login. See [`enlace_auth.auth.oauth_server`](_autosummary/enlace_auth.auth.oauth_server.html.md#module-enlace_auth.auth.oauth_server).
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* enlace_auth.config.PasskeysConfig(\*, enabled=False, rp_id=None, rp_name=None, origins=<factory>, required=<factory>, enforce_from=2, fresh_seconds=900, challenge_ttl_seconds=300, step_up_ttl_seconds=120)
+
+Bases: `_StrictModel`
+
+`[auth.passkeys]`: sign-in and step-up confirmation by passkey (WebAuthn).
+
+Off unless `enabled`. See
+[`enlace_auth.passkeys`](_autosummary/enlace_auth.passkeys.html.md#module-enlace_auth.passkeys).
 
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 
@@ -3177,7 +3218,7 @@ changes platform behavior unless the operator opts in.
 | [`EnlaceAuthConfigError`](_autosummary/enlace_auth.html.md#enlace_auth.EnlaceAuthConfigError)   | Raised when auth configuration is unusable at startup.   |
 |--------------------------------------------------------------------------|----------------------------------------------------------|
 
-### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, groups=<factory>)
+### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, groups=<factory>)
 
 Bases: `_StrictModel`
 
@@ -3248,10 +3289,781 @@ Plugin entry point. Safe to call when auth is disabled — does nothing.
 | [`diagnostics`](_autosummary/enlace_auth.diagnostics.html.md#module-enlace_auth.diagnostics)         | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`.                         |
 | [`emails`](_autosummary/enlace_auth.emails.html.md#module-enlace_auth.emails)                   | One normal form for an email address, wherever one is compared.                                |
 | [`groups`](_autosummary/enlace_auth.groups.html.md#module-enlace_auth.groups)                   | Named groups of accounts: one list of emails, referenced as `@name` wherever an email list is. |
+| [`passkeys`](_autosummary/enlace_auth.passkeys.html.md#module-enlace_auth.passkeys)               | Passkeys (WebAuthn): sign-in, a step-up confirmation, and a per-account requirement.           |
 | [`ratelimit`](_autosummary/enlace_auth.ratelimit.html.md#module-enlace_auth.ratelimit)             | A sliding-window rate limiter over any `MutableMapping`.                                       |
 | [`resource_policy`](_autosummary/enlace_auth.resource_policy.html.md#module-enlace_auth.resource_policy) | The OAuth per-connector allowlist: its shape, its parsing and its one rule.                    |
 | [`signup`](_autosummary/enlace_auth.signup.html.md#module-enlace_auth.signup)                   | Self-service sign-up and email-code sign-in.                                                   |
 | [`stores`](_autosummary/enlace_auth.stores.html.md#module-enlace_auth.stores)                   | Per-user stores for enlace.                                                                    |
+
+
+# _autosummary/enlace_auth.passkeys.core.html.md
+
+# enlace_auth.passkeys.core
+
+Passkey ceremonies, the step-up proof, and the passkey-required policy.
+
+No web framework here: [`PasskeyService`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyService) takes and returns JSON-ready
+values, so the HTTP router, the CLI and a test drive the same code. The WebAuthn
+checks themselves are py_webauthn’s (BSD-3-Clause, a dependency), imported on
+first use so a platform that never turns passkeys on never loads it.
+
+Three ceremonies, one challenge format. A challenge is 40 bytes:
+`nonce(16) | expiry(8) | mac(16)`, the mac an HMAC of the purpose, the account
+and (for a step-up) the action, under the platform’s signing key. Nothing is
+stored when a challenge is issued (the sign-in page asks for one on every view);
+the answer carries it back inside `clientDataJSON`, the server recomputes the
+mac from what it expects, and spends the challenge once through *claim_once*.
+So a step-up challenge commits to the action: an answer signed for one action
+cannot be presented for another.
+
+A verified step-up returns a **proof**: a signed token, valid for
+`proof_ttl` seconds, that names the account and the action. An app or a
+connector backend redeems it once ([`PasskeyService.redeem()`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyService.redeem)), stating the
+action it is about to perform; a proof for another action, an expired one or a
+spent one is refused.
+
+Records. A credential is stored under `sha256(credential id)` (hex, a safe
+file name) as `{email, credential_id, public_key, user_handle, name,
+created_at, device_type, backed_up, transports}`. Its use (`sign_count`,
+`last_used_at`) is kept in a second mapping, so a sign-in that races a removal
+writes an orphan usage record, never a resurrected credential. The WebAuthn user
+handle is `HMAC(signing key, email)`: opaque, stable, and kept on each
+credential so a sign-in compares against what was registered.
+
+### Module Attributes
+
+| [`MAX_ACTION_LEN`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.MAX_ACTION_LEN)   | Longest action description a step-up accepts (it is shown to the user).   |
+|-------------------------------------------------------------------|---------------------------------------------------------------------------|
+
+### Functions
+
+| [`b64url`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.b64url)(data)                     | Unpadded base64url, the encoding WebAuthn JSON uses.                                                                                                   |
+|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`clean_action`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.clean_action)(action)             | The action text of a step-up, checked: 1..300 printable characters.                                                                                    |
+| [`clean_name`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.clean_name)(name)                 | A passkey's display name: printable, at most 60 characters, never empty.                                                                               |
+| [`memory_claim`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.memory_claim)(\*[, keep_seconds]) | `claim(key) -> bool`: True the first time a key is claimed, then False.                                                                                |
+| [`passkey_key`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.passkey_key)(credential_id)       | The store key (and public id) of a credential: sha256 of its raw id, hex.                                                                              |
+| [`required_accounts`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.required_accounts)(entries)       | Lower-cased account keys from already-expanded entries.                                                                                                |
+| [`unb64url`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.unb64url)(text)                   | Inverse of [`b64url()`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.b64url); raises [`PasskeyError`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyError) on garbage. |
+
+### Classes
+
+| [`PasskeyPolicy`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyPolicy)(required, count[, ...])        | Which accounts must sign in with a passkey.                                |
+|-----------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| [`PasskeyService`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyService)(credentials, \*, signing_key) | Register, sign in, step up, redeem and remove passkeys.                    |
+| [`RelyingParty`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.RelyingParty)(id, name[, origins])            | Who the passkeys belong to: the RP ID, its display name, accepted origins. |
+
+### Exceptions
+
+| [`PasskeyError`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyError)   | A passkey request that cannot be honoured; the message is safe to show.   |
+|-----------------------------------------------------------------|---------------------------------------------------------------------------|
+
+### enlace_auth.passkeys.core.MAX_ACTION_LEN *= 300*
+
+Longest action description a step-up accepts (it is shown to the user).
+
+### *exception* enlace_auth.passkeys.core.PasskeyError
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+A passkey request that cannot be honoured; the message is safe to show.
+
+### *class* enlace_auth.passkeys.core.PasskeyPolicy(required, count, enforce_from=2, synced=<function PasskeyPolicy.<lambda>>)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Which accounts must sign in with a passkey.
+
+*required* holds account keys (lower-case, every spelling already listed).
+The rule applies to an account once it has *enforce_from* passkeys, or one
+synced passkey (*synced*: it is on every device of its keychain); below
+that it may still sign in by its other methods, so it can enrol (a lockout
+guard: one lost device must not lock an account out).
+
+```pycon
+>>> p = PasskeyPolicy(frozenset({"a@x.io"}), count=lambda e: 2, enforce_from=2)
+>>> p.refusal("a@x.io", "password") is not None, p.refusal("a@x.io", "passkey")
+(True, None)
+>>> one = PasskeyPolicy(frozenset({"a@x.io"}), count=lambda e: 1)
+>>> one.refusal("a@x.io", "password")  # below enforce_from: not yet
+>>> p.refusal("b@x.io", "password")
+```
+
+#### enforced(email)
+
+True when *email* is required to use a passkey right now.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+#### refusal(email, method)
+
+`None` to admit a sign-in by *method*, else the reason to refuse.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### *class* enlace_auth.passkeys.core.PasskeyService(credentials, \*, signing_key, usage=None, claim_once=None, challenge_ttl=300, proof_ttl=120, clock=<built-in function time>)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Register, sign in, step up, redeem and remove passkeys.
+
+* **Parameters:**
+  * **credentials** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)) – credential records, `sha256(id) hex -> dict`.
+  * **signing_key** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – the platform’s HMAC key (challenges, proofs, user handles).
+  * **usage** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)]) – `sha256(id) hex -> {sign_count, last_used_at}` (default: a dict).
+  * **claim_once** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]]) – `claim(sha256 hex) -> bool`, True once per key; spends
+    challenges and proofs (default: [`memory_claim()`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.memory_claim)).
+  * **proof_ttl** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – lifetimes in seconds.
+  * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – `() -> epoch seconds`; tests pass a fake.
+
+#### count(email, , rp_id=None)
+
+How many passkeys *email* has (for *rp_id*, if given).
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### describe(key, record)
+
+The public view of one passkey (no key material).
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### list(email)
+
+The passkeys of *email*, oldest first.
+
+* **Return type:**
+  [`list`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyService.list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### login(credential, rp)
+
+Verify a sign-in assertion; return the account it signs in.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### login_options(rp)
+
+`PublicKeyCredentialRequestOptionsJSON` for a sign-in by any passkey.
+
+No `allowCredentials`: the authenticator offers the account’s passkey
+(and the browser can show it in the email field’s autofill).
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### records(email=None, , rp_id=None)
+
+`(key, record)` of every readable credential (of *email*, if given).
+
+With *rp_id*, only the credentials made for that relying party: a passkey
+made for another RP ID can no longer sign in, so it must not count.
+A damaged record is skipped, never raised: the store is hand-editable.
+
+* **Return type:**
+  [`list`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyService.list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]]
+
+#### redeem(proof, action, , email)
+
+Spend a step-up proof for *action* by *email*; return what it proves.
+
+`{email, action, verified_at, method, passkey}`. Raises
+[`PasskeyError`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyError) for a forged, expired, spent, other-action or
+other-account proof, or one whose passkey has since been removed. The
+caller names the account it expects, so “someone confirmed” can never
+pass for “the owner confirmed”.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### register(email, credential, rp, , name='')
+
+Verify a registration answer and store the passkey; return its view.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### registration_options(email, rp)
+
+`PublicKeyCredentialCreationOptionsJSON` for adding a passkey to *email*.
+
+A discoverable credential with user verification (a passkey proper),
+excluding the account’s existing ones so a device is not enrolled twice.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### remove(email, key)
+
+Remove the passkey *key* of *email*; return its view, or None.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### remove_account(email)
+
+Remove every passkey of *email*; return how many went.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### step_up(email, action, credential, rp)
+
+Verify a step-up for *action*; return `{proof, action, expires_in}`.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### step_up_options(email, action, rp)
+
+Request options for confirming *action* with one of *email*’s passkeys.
+
+The challenge commits to the action. Raises [`PasskeyError`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyError) when the
+account has no passkey.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### synced(email, , rp_id=None)
+
+Whether one of *email*’s passkeys is synced (backed up by its provider).
+
+A synced passkey lives on every device of its keychain (iCloud Keychain,
+Google Password Manager), so losing one device does not lose it.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+#### user_handle(email)
+
+The WebAuthn user handle of an account: opaque, stable, 32 bytes.
+
+* **Return type:**
+  [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes)
+
+### *class* enlace_auth.passkeys.core.RelyingParty(id, name, origins=tuple())
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Who the passkeys belong to: the RP ID, its display name, accepted origins.
+
+The RP ID is a host name every accepted origin is on or under, so one
+passkey covers every app served from those origins.
+
+```pycon
+>>> rp = RelyingParty("example.com", "Example", ("https://apps.example.com",))
+>>> RelyingParty("example.com", "x", ("https://evil.com",))
+Traceback (most recent call last):
+  ...
+ValueError: origin 'https://evil.com' is not on 'example.com' or a subdomain of it
+```
+
+#### *classmethod* for_origin(origin, , rp_id=None, name=None)
+
+The relying party of one origin (RP ID: its host, unless given).
+
+```pycon
+>>> RelyingParty.for_origin("https://apps.example.com/").id
+'apps.example.com'
+```
+
+### enlace_auth.passkeys.core.b64url(data)
+
+Unpadded base64url, the encoding WebAuthn JSON uses.
+
+```pycon
+>>> b64url(b"\xfb\xff")
+'-_8'
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.passkeys.core.clean_action(action)
+
+The action text of a step-up, checked: 1..300 printable characters.
+
+```pycon
+>>> clean_action("  start job: repo, title ")
+'start job: repo, title'
+>>> clean_action("two\nlines")
+Traceback (most recent call last):
+  ...
+enlace_auth.passkeys.core.PasskeyError: An action is one line of at most 300 ...
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.passkeys.core.clean_name(name)
+
+A passkey’s display name: printable, at most 60 characters, never empty.
+
+```pycon
+>>> clean_name(""), clean_name("  Touch ID on the Mac ")
+('Passkey', 'Touch ID on the Mac')
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.passkeys.core.memory_claim(, keep_seconds=3600.0)
+
+`claim(key) -> bool`: True the first time a key is claimed, then False.
+
+In-process only: right for one worker and for tests. A platform running
+several worker processes injects a cross-process claim instead (the plugin
+uses the same `O_EXCL` file claim as the OAuth server). Claims older than
+*keep_seconds* are forgotten, which is safe because every claimed thing
+(a challenge, a proof) expires well before.
+
+```pycon
+>>> claim = memory_claim()
+>>> claim("a"), claim("a"), claim("b")
+(True, False, True)
+```
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]
+
+### enlace_auth.passkeys.core.passkey_key(credential_id)
+
+The store key (and public id) of a credential: sha256 of its raw id, hex.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.passkeys.core.required_accounts(entries)
+
+Lower-cased account keys from already-expanded entries.
+
+```pycon
+>>> sorted(required_accounts(["A@x.io", "b@x.io", ""]))
+['a@x.io', 'b@x.io']
+```
+
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)
+
+### enlace_auth.passkeys.core.unb64url(text)
+
+Inverse of [`b64url()`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.b64url); raises [`PasskeyError`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyError) on garbage.
+
+```pycon
+>>> unb64url("-_8")
+b'\xfb\xff'
+```
+
+* **Return type:**
+  [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes)
+
+
+# _autosummary/enlace_auth.passkeys.html.md
+
+# enlace_auth.passkeys
+
+Passkeys (WebAuthn): sign-in, a step-up confirmation, and a per-account requirement.
+
+Turned on by `[auth.passkeys] enabled = true` (py_webauthn does the WebAuthn
+checks). Four pieces, one boundary:
+
+1. **Add passkeys to any account** from `/auth/account`: several per account,
+   each named and removable, a notice mailed on each change
+   (`/auth/passkeys/register/*`, `DELETE /auth/passkeys/{id}`).
+2. **Sign in with a passkey**, including autofill on the sign-in page’s email
+   field (`/auth/passkeys/login/*`). The email code stays the way back in.
+3. **Step-up**: an app asks the signed-in user to confirm one described action
+   with a passkey and gets a single-use, short-lived proof that its backend (or
+   a connector’s) redeems before acting (`/auth/passkeys/step-up/*`).
+4. **Policy**: `[auth.passkeys] required` lists accounts (emails, `@group`,
+   `@admins`) that must sign in with a passkey once they have
+   `enforce_from` of them. Enforced in `open_session`, which every sign-in
+   path goes through.
+
+The logic is in [`enlace_auth.passkeys.core`](_autosummary/enlace_auth.passkeys.core.html.md#module-enlace_auth.passkeys.core) (no web framework), the HTTP
+surface in [`enlace_auth.passkeys.routes`](_autosummary/enlace_auth.passkeys.routes.html.md#module-enlace_auth.passkeys.routes), the browser side in
+`passkeys.js` (served at `/auth/passkeys/passkeys.js`).
+
+### Classes
+
+| [`PasskeyPolicy`](_autosummary/enlace_auth.passkeys.html.md#enlace_auth.passkeys.PasskeyPolicy)(required, count[, ...])        | Which accounts must sign in with a passkey.                                |
+|-----------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| [`PasskeyService`](_autosummary/enlace_auth.passkeys.html.md#enlace_auth.passkeys.PasskeyService)(credentials, \*, signing_key) | Register, sign in, step up, redeem and remove passkeys.                    |
+| [`RelyingParty`](_autosummary/enlace_auth.passkeys.html.md#enlace_auth.passkeys.RelyingParty)(id, name[, origins])            | Who the passkeys belong to: the RP ID, its display name, accepted origins. |
+
+### Exceptions
+
+| [`PasskeyError`](_autosummary/enlace_auth.passkeys.html.md#enlace_auth.passkeys.PasskeyError)   | A passkey request that cannot be honoured; the message is safe to show.   |
+|-----------------------------------------------------------------|---------------------------------------------------------------------------|
+
+### *exception* enlace_auth.passkeys.PasskeyError
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+A passkey request that cannot be honoured; the message is safe to show.
+
+### *class* enlace_auth.passkeys.PasskeyPolicy(required, count, enforce_from=2, synced=<function PasskeyPolicy.<lambda>>)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Which accounts must sign in with a passkey.
+
+*required* holds account keys (lower-case, every spelling already listed).
+The rule applies to an account once it has *enforce_from* passkeys, or one
+synced passkey (*synced*: it is on every device of its keychain); below
+that it may still sign in by its other methods, so it can enrol (a lockout
+guard: one lost device must not lock an account out).
+
+```pycon
+>>> p = PasskeyPolicy(frozenset({"a@x.io"}), count=lambda e: 2, enforce_from=2)
+>>> p.refusal("a@x.io", "password") is not None, p.refusal("a@x.io", "passkey")
+(True, None)
+>>> one = PasskeyPolicy(frozenset({"a@x.io"}), count=lambda e: 1)
+>>> one.refusal("a@x.io", "password")  # below enforce_from: not yet
+>>> p.refusal("b@x.io", "password")
+```
+
+#### enforced(email)
+
+True when *email* is required to use a passkey right now.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+#### refusal(email, method)
+
+`None` to admit a sign-in by *method*, else the reason to refuse.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### *class* enlace_auth.passkeys.PasskeyService(credentials, \*, signing_key, usage=None, claim_once=None, challenge_ttl=300, proof_ttl=120, clock=<built-in function time>)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Register, sign in, step up, redeem and remove passkeys.
+
+* **Parameters:**
+  * **credentials** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)) – credential records, `sha256(id) hex -> dict`.
+  * **signing_key** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – the platform’s HMAC key (challenges, proofs, user handles).
+  * **usage** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)]) – `sha256(id) hex -> {sign_count, last_used_at}` (default: a dict).
+  * **claim_once** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]]) – `claim(sha256 hex) -> bool`, True once per key; spends
+    challenges and proofs (default: `memory_claim()`).
+  * **proof_ttl** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – lifetimes in seconds.
+  * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – `() -> epoch seconds`; tests pass a fake.
+
+#### count(email, , rp_id=None)
+
+How many passkeys *email* has (for *rp_id*, if given).
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### describe(key, record)
+
+The public view of one passkey (no key material).
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### list(email)
+
+The passkeys of *email*, oldest first.
+
+* **Return type:**
+  [`list`](_autosummary/enlace_auth.passkeys.html.md#enlace_auth.passkeys.PasskeyService.list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### login(credential, rp)
+
+Verify a sign-in assertion; return the account it signs in.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### login_options(rp)
+
+`PublicKeyCredentialRequestOptionsJSON` for a sign-in by any passkey.
+
+No `allowCredentials`: the authenticator offers the account’s passkey
+(and the browser can show it in the email field’s autofill).
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### records(email=None, , rp_id=None)
+
+`(key, record)` of every readable credential (of *email*, if given).
+
+With *rp_id*, only the credentials made for that relying party: a passkey
+made for another RP ID can no longer sign in, so it must not count.
+A damaged record is skipped, never raised: the store is hand-editable.
+
+* **Return type:**
+  [`list`](_autosummary/enlace_auth.passkeys.html.md#enlace_auth.passkeys.PasskeyService.list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]]
+
+#### redeem(proof, action, , email)
+
+Spend a step-up proof for *action* by *email*; return what it proves.
+
+`{email, action, verified_at, method, passkey}`. Raises
+[`PasskeyError`](_autosummary/enlace_auth.passkeys.html.md#enlace_auth.passkeys.PasskeyError) for a forged, expired, spent, other-action or
+other-account proof, or one whose passkey has since been removed. The
+caller names the account it expects, so “someone confirmed” can never
+pass for “the owner confirmed”.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### register(email, credential, rp, , name='')
+
+Verify a registration answer and store the passkey; return its view.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### registration_options(email, rp)
+
+`PublicKeyCredentialCreationOptionsJSON` for adding a passkey to *email*.
+
+A discoverable credential with user verification (a passkey proper),
+excluding the account’s existing ones so a device is not enrolled twice.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### remove(email, key)
+
+Remove the passkey *key* of *email*; return its view, or None.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### remove_account(email)
+
+Remove every passkey of *email*; return how many went.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### step_up(email, action, credential, rp)
+
+Verify a step-up for *action*; return `{proof, action, expires_in}`.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### step_up_options(email, action, rp)
+
+Request options for confirming *action* with one of *email*’s passkeys.
+
+The challenge commits to the action. Raises [`PasskeyError`](_autosummary/enlace_auth.passkeys.html.md#enlace_auth.passkeys.PasskeyError) when the
+account has no passkey.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### synced(email, , rp_id=None)
+
+Whether one of *email*’s passkeys is synced (backed up by its provider).
+
+A synced passkey lives on every device of its keychain (iCloud Keychain,
+Google Password Manager), so losing one device does not lose it.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+#### user_handle(email)
+
+The WebAuthn user handle of an account: opaque, stable, 32 bytes.
+
+* **Return type:**
+  [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes)
+
+### *class* enlace_auth.passkeys.RelyingParty(id, name, origins=tuple())
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Who the passkeys belong to: the RP ID, its display name, accepted origins.
+
+The RP ID is a host name every accepted origin is on or under, so one
+passkey covers every app served from those origins.
+
+```pycon
+>>> rp = RelyingParty("example.com", "Example", ("https://apps.example.com",))
+>>> RelyingParty("example.com", "x", ("https://evil.com",))
+Traceback (most recent call last):
+  ...
+ValueError: origin 'https://evil.com' is not on 'example.com' or a subdomain of it
+```
+
+#### *classmethod* for_origin(origin, , rp_id=None, name=None)
+
+The relying party of one origin (RP ID: its host, unless given).
+
+```pycon
+>>> RelyingParty.for_origin("https://apps.example.com/").id
+'apps.example.com'
+```
+
+### Modules
+
+| [`core`](_autosummary/enlace_auth.passkeys.core.html.md#module-enlace_auth.passkeys.core)     | Passkey ceremonies, the step-up proof, and the passkey-required policy.      |
+|--------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| [`pages`](_autosummary/enlace_auth.passkeys.pages.html.md#module-enlace_auth.passkeys.pages)   | The passkey markup on the sign-in and account pages.                         |
+| [`routes`](_autosummary/enlace_auth.passkeys.routes.html.md#module-enlace_auth.passkeys.routes) | `/auth/passkeys/*`: add, list and remove passkeys; sign in; step up; redeem. |
+| [`texts`](_autosummary/enlace_auth.passkeys.texts.html.md#module-enlace_auth.passkeys.texts)   | The passkey screens' copy and notification mails, in English and French.     |
+
+
+# _autosummary/enlace_auth.passkeys.pages.html.md
+
+# enlace_auth.passkeys.pages
+
+The passkey markup on the sign-in and account pages.
+
+Both are trusted fragments the auth pages embed (`passkey_section` on the
+sign-in page, a card in `extra_section` on the account page). The ceremonies
+run in `/auth/passkeys/passkeys.js`; these fragments only wire buttons to it.
+
+### Functions
+
+| [`render_account_section`](_autosummary/enlace_auth.passkeys.pages.html.md#enlace_auth.passkeys.pages.render_account_section)(\*, lang)          | The account page's passkey card: the list, add, remove, sign in again.        |
+|--------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| [`render_signin_section`](_autosummary/enlace_auth.passkeys.pages.html.md#enlace_auth.passkeys.pages.render_signin_section)(\*, lang, next_url) | The sign-in page's passkey button, plus passkey autofill on its email fields. |
+
+### enlace_auth.passkeys.pages.render_account_section(, lang)
+
+The account page’s passkey card: the list, add, remove, sign in again.
+
+The add request is prepared when the page loads (and again after each use),
+so the system prompt opens straight from the tap, as Safari requires; a
+refusal there (an old or password sign-in) shows “sign in again” at once.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.passkeys.pages.render_signin_section(, lang, next_url)
+
+The sign-in page’s passkey button, plus passkey autofill on its email fields.
+
+Hidden until the script finds a browser that can use passkeys. Autofill
+(conditional mediation) is armed on load; the button aborts it and opens
+the system prompt instead. The button’s request is prepared on load, so the
+prompt opens straight from the tap (Safari refuses it after a round trip).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+
+# _autosummary/enlace_auth.passkeys.routes.html.md
+
+# enlace_auth.passkeys.routes
+
+`/auth/passkeys/*`: add, list and remove passkeys; sign in; step up; redeem.
+
+Endpoints (every POST and DELETE is CSRF-checked like the rest of `/auth`,
+except `step-up/redeem`, see below):
+
+- `GET    /auth/passkeys`                   the account’s passkeys and policy
+- `POST   /auth/passkeys/register/options`  creation options (fresh sign-in needed)
+- `POST   /auth/passkeys/register/verify`   `{credential, name}`: stores the passkey
+- `DELETE /auth/passkeys/{id}`              removes one (fresh sign-in needed)
+- `POST   /auth/passkeys/login/options`     request options for a sign-in by passkey
+- `POST   /auth/passkeys/login/verify`      `{credential, next?}`: opens a session
+- `POST   /auth/passkeys/step-up/options`   `{action}`: options bound to the action
+- `POST   /auth/passkeys/step-up/verify`    `{action, credential}`: `{proof, ...}`
+- `POST   /auth/passkeys/step-up/redeem`    `{proof, action, email}`: spends it
+- `GET    /auth/passkeys/passkeys.js`       the browser helper, `enlacePasskeys`
+
+Adding or removing a passkey needs a session opened within `fresh_seconds`:
+a stolen session cookie should not be enough to plant a passkey or delete the
+owner’s. The refusal then carries an `X-Enlace-Reauth: 1` header so a page
+can offer to sign in again. Both mail the account a notice; a removal also ends
+the account’s other sessions and connector refresh families
+(`on_credentials_changed`).
+
+`step-up/redeem` is called by a backend, not a browser: no cookie
+authenticates it, the proof in the body is the credential, so it is exempt from
+the CSRF double-submit (the plugin lists it). The caller names the action AND the
+account it expects; the answer (`{email, action, verified_at, method,
+passkey}`) comes once.
+
+### Module Attributes
+
+| [`REDEEM_PATH`](_autosummary/enlace_auth.passkeys.routes.html.md#enlace_auth.passkeys.routes.REDEEM_PATH)   | The redeem endpoint, which the plugin exempts from the CSRF check.   |
+|----------------------------------------------------------------|----------------------------------------------------------------------|
+| [`REAUTH_HEADER`](_autosummary/enlace_auth.passkeys.routes.html.md#enlace_auth.passkeys.routes.REAUTH_HEADER) | Set on a 403 that a fresh sign-in would turn into a success.         |
+
+### Functions
+
+| [`make_passkey_router`](_autosummary/enlace_auth.passkeys.routes.html.md#enlace_auth.passkeys.routes.make_passkey_router)(\*, service, ...[, ...])   | Build the passkey router.   |
+|-------------------------------------------------------------------------------------------------|-----------------------------|
+
+### enlace_auth.passkeys.routes.REAUTH_HEADER *= 'X-Enlace-Reauth'*
+
+Set on a 403 that a fresh sign-in would turn into a success.
+
+### enlace_auth.passkeys.routes.REDEEM_PATH *= '/auth/passkeys/step-up/redeem'*
+
+The redeem endpoint, which the plugin exempts from the CSRF check.
+
+### enlace_auth.passkeys.routes.make_passkey_router(\*, service, session_store, user_store, signing_key, relying_party, policy=None, send_email=None, on_credentials_changed=None, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, fresh_seconds=900, public_base_url=None, pick_lang=<function <lambda>>)
+
+Build the passkey router. See the module docstring for the endpoints.
+
+* **Parameters:**
+  * **service** ([`PasskeyService`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyService)) – the ceremonies and records (`PasskeyService`).
+  * **user_store** (*session_store /*) – the platform’s sessions and accounts.
+  * **relying_party** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`Request`], [`RelyingParty`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.RelyingParty)]) – `(request) -> RelyingParty`; the plugin pins it to the
+    platform’s public origin, a test may derive it from the request.
+  * **policy** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`PasskeyPolicy`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyPolicy)]) – who must sign in by passkey (default: nobody).
+  * **send_email** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]) – `send(to=, subject=, body=)` for add/remove notices
+    (`None`: no notice).
+  * **on_credentials_changed** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]) – `hook(email, *, keep=None)` run after a
+    removal (default: none; the plugin passes the platform’s).
+  * **fresh_seconds** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – how recent a sign-in must be to add or remove a passkey.
+  * **public_base_url** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – the site named in notices (else the request’s base URL).
+  * **pick_lang** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – `(accept-language header) -> lang` for the notices.
+* **Return type:**
+  `APIRouter`
+
+
+# _autosummary/enlace_auth.passkeys.texts.html.md
+
+# enlace_auth.passkeys.texts
+
+The passkey screens’ copy and notification mails, in English and French.
+
+Same shape as [`enlace_auth.signup.texts`](_autosummary/enlace_auth.signup.texts.html.md#module-enlace_auth.signup.texts): `t(lang, key, **fields)`, with
+English as the fallback for a missing language or key.
+
+### Functions
+
+| [`t`](_autosummary/enlace_auth.passkeys.texts.html.md#enlace_auth.passkeys.texts.t)(lang, key, \*\*fields)   | The text *key* in *lang* (English when missing), with *fields* filled in.   |
+|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| [`texts_for`](_autosummary/enlace_auth.passkeys.texts.html.md#enlace_auth.passkeys.texts.texts_for)(lang, keys)      | `{key: text}` for the client script of a page.                              |
+
+### enlace_auth.passkeys.texts.t(lang, key, \*\*fields)
+
+The text *key* in *lang* (English when missing), with *fields* filled in.
+
+```pycon
+>>> t("fr", "remove"), t("de", "remove")
+('Supprimer', 'Remove')
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.passkeys.texts.texts_for(lang, keys)
+
+`{key: text}` for the client script of a page.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 
 # _autosummary/enlace_auth.ratelimit.html.md
@@ -4400,16 +5212,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-11-16 14:43 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/83c7e0288f7eda57e158949766211b4e8ab521fc"><code>83c7e02</code></a> on branch <code>main</code>, for **enlace_auth 0.1.54** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-19 08:56 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/1e8cda133129202c87cd608c65541e3ee7ad1e12"><code>1e8cda1</code></a> on branch <code>main</code>, for **enlace_auth 0.1.55** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.55) is behind the latest release on PyPI (0.1.56): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/83c7e0288f7eda57e158949766211b4e8ab521fc"><code>83c7e0288f7eda57e158949766211b4e8ab521fc</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/1e8cda133129202c87cd608c65541e3ee7ad1e12"><code>1e8cda133129202c87cd608c65541e3ee7ad1e12</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -4420,9 +5234,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/43888295847">43888295847</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/44491425186">44491425186</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>83c7e0288f7eda57e158949766211b4e8ab521fc</code> (in the history of the built commit) |
+| Event commit | <code>1e8cda133129202c87cd608c65541e3ee7ad1e12</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -4447,13 +5261,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.54/">0.1.54</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.56/">0.1.56</a>, newer than the documented version (0.1.55).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 83c7e0288f7eda57e158949766211b4e8ab521fc
+git checkout 1e8cda133129202c87cd608c65541e3ee7ad1e12
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
@@ -4477,7 +5291,7 @@ Skills are folders holding a `SKILL.md` (the [Agent Skills](https://agentskills.
 
 ### `enlace-auth-usage`
 
-How to add sign-in, sessions, CSRF protection, admin accounts, per-app access levels, runtime grants and per-user storage to an enlace multi-app platform with the enlace_auth plugin. Use when the user mentions enlace_auth, the enlace-auth CLI, protected:user or protected:shared apps, ENLACE_SIGNING_KEY, ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user, reset-link, grant, share, invite, [auth.signup], sign-up, “continue with email” or account deletion; or wants to put login or self-service sign-up in front of apps served by enlace.
+How to add sign-in, sessions, CSRF protection, admin accounts, per-app access levels, runtime grants and per-user storage to an enlace multi-app platform with the enlace_auth plugin. Use when the user mentions enlace_auth, the enlace-auth CLI, protected:user or protected:shared apps, ENLACE_SIGNING_KEY, ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user, reset-link, grant, share, invite, [auth.signup], sign-up, “continue with email” or account deletion, passkeys, WebAuthn, Face ID or Touch ID sign-in, a step-up confirmation or step-up proof; or wants to put login, self-service sign-up, or a “confirm this action with your passkey” tap in front of apps served by enlace.
 
 ```bash
 gh skill install i2mint/enlace_auth enlace-auth-usage --agent claude-code

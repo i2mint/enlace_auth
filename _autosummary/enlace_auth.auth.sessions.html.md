@@ -2,7 +2,8 @@
 
 Session storage backed by a MutableMapping.
 
-A session is `{"user_id": str, "email": str | None, "created_at": float}`.
+A session is `{"user_id": str, "email": str | None, "created_at": float}`,
+plus `"method"` (how the account signed in) when the caller names it.
 Session IDs are 32-byte urlsafe tokens. Revocation is a simple delete.
 
 Records are otherwise only deleted by logout, so given a *max_age* the store
@@ -15,7 +16,7 @@ store (and [`SessionStore.revoke_user()`](#enlace_auth.auth.sessions.SessionStor
 | [`SessionStore`](#enlace_auth.auth.sessions.SessionStore)(store, \*[, max_age, ...])   | Thin adapter around a MutableMapping that speaks session semantics.   |
 |--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 
-### *class* enlace_auth.auth.sessions.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0, sign_ins=None)
+### *class* enlace_auth.auth.sessions.SessionStore(store, , max_age=None, sweep_batch=100, sweep_interval=3600.0, sign_ins=None, admit=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 

@@ -38,6 +38,7 @@
    diagnostics
    emails
    groups
+   passkeys
    ratelimit
    resource_policy
    signup

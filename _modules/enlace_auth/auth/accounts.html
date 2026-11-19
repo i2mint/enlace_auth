@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=0ec583c6"></script>
+    <script src="../../../_static/documentation_options.js?v=aabd07df"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.54" />
+  <meta name="docsearch:version" content="0.1.55" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -937,17 +937,30 @@ window.runMermaid = runMermaid;</script>
 
 <div class="viewcode-block" id="open_session">
 <a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.accounts.html#enlace_auth.auth.accounts.open_session">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">open_session</span><span class="p">(</span><span class="n">session_store</span><span class="p">,</span> <span class="n">user_store</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">open_session</span><span class="p">(</span>
+    <span class="n">session_store</span><span class="p">,</span> <span class="n">user_store</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"unknown"</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Create a session for *email* and return its id, unless it is disabled.</span>
+
+<span class="sd">    *method* names how the account proved itself (``password``, ``email-code``,</span>
+<span class="sd">    ``oauth``, ``passkey``, ...). Before anything is created, the session store's</span>
+<span class="sd">    ``admit(email, method)`` hook, when it has one, may refuse it (the</span>
+<span class="sd">    passkey-required policy, :mod:`enlace_auth.passkeys`): every sign-in path</span>
+<span class="sd">    comes through here, so a path that forgets to name its method is refused</span>
+<span class="sd">    like any method that is not a passkey.</span>
 
 <span class="sd">    The disabled check runs AFTER the session exists: if an admin disabled the</span>
 <span class="sd">    account (and revoked its sessions) while this sign-in was in flight, the</span>
 <span class="sd">    new session is deleted here and the sign-in refused. Raises</span>
-<span class="sd">    ``fastapi.HTTPException(403)`` in that case.</span>
+<span class="sd">    ``fastapi.HTTPException(403)`` in either case.</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTTPException</span>
 
-    <span class="n">session_id</span> <span class="o">=</span> <span class="n">session_store</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">email</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">)</span>
+    <span class="n">admit</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">session_store</span><span class="p">,</span> <span class="s2">"admit"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">refusal</span> <span class="o">=</span> <span class="n">admit</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">admit</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">refusal</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="n">refusal</span><span class="p">)</span>
+    <span class="n">session_id</span> <span class="o">=</span> <span class="n">session_store</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">email</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">disabled</span> <span class="o">=</span> <span class="n">is_disabled</span><span class="p">(</span><span class="n">user_store</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">email</span><span class="p">))</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - an unreadable store must not refuse a login</span>
@@ -970,6 +983,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">grant_store</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">user_data</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">sign_ins</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">passkeys</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Return ``delete(email)``: remove an account and what hangs off it.</span>
 
@@ -978,7 +992,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    signed in. Then, each optional and each failing alone: the shares naming it,</span>
 <span class="sd">    its runtime grants (stored under exactly its key: the other spelling of the</span>
 <span class="sd">    address may be another account), its per-user data (every key under</span>
-<span class="sd">    ``{email}/`` in the base store), and its last-sign-in time. Raises</span>
+<span class="sd">    ``{email}/`` in the base store), its last-sign-in time, and its passkeys. Raises</span>
 <span class="sd">    ``KeyError`` when there is no such account; a damaged grant or data key is</span>
 <span class="sd">    logged and skipped.</span>
 
@@ -1020,6 +1034,7 @@ window.runMermaid = runMermaid;</script>
             <span class="p">(</span><span class="s2">"grants"</span><span class="p">,</span> <span class="n">grant_store</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_remove_grants</span><span class="p">),</span>
             <span class="p">(</span><span class="s2">"user data"</span><span class="p">,</span> <span class="n">user_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_remove_user_data</span><span class="p">),</span>
             <span class="p">(</span><span class="s2">"last sign-in"</span><span class="p">,</span> <span class="n">sign_ins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_forget_sign_in</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"passkeys"</span><span class="p">,</span> <span class="n">passkeys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">passkeys</span><span class="o">.</span><span class="n">remove_account</span><span class="p">),</span>
         <span class="p">]</span>
         <span class="k">for</span> <span class="n">what</span><span class="p">,</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">step</span><span class="p">:</span>

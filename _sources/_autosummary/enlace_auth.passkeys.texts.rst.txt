@@ -1,0 +1,13 @@
+enlace\_auth.passkeys.texts
+===========================
+
+.. automodule:: enlace_auth.passkeys.texts
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      t
+      texts_for
+   

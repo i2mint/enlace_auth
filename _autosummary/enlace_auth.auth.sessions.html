@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=0ec583c6"></script>
+    <script src="../_static/documentation_options.js?v=aabd07df"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.54" />
+  <meta name="docsearch:version" content="0.1.55" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -347,6 +347,13 @@
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.diagnostics.html">enlace_auth.diagnostics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.emails.html">enlace_auth.emails</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.groups.html">enlace_auth.groups</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.passkeys.html">enlace_auth.passkeys</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.core.html">enlace_auth.passkeys.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.pages.html">enlace_auth.passkeys.pages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.routes.html">enlace_auth.passkeys.routes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.texts.html">enlace_auth.passkeys.texts</a></li>
+</ul>
+</details></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.ratelimit.html">enlace_auth.ratelimit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.resource_policy.html">enlace_auth.resource_policy</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.signup.html">enlace_auth.signup</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -436,7 +443,8 @@
   <section id="module-enlace_auth.auth.sessions">
 <span id="enlace-auth-auth-sessions"></span><h1>enlace_auth.auth.sessions<a class="headerlink" href="#module-enlace_auth.auth.sessions" title="Link to this heading">#</a></h1>
 <p>Session storage backed by a MutableMapping.</p>
-<p>A session is <code class="docutils literal notranslate"><span class="pre">{&quot;user_id&quot;:</span> <span class="pre">str,</span> <span class="pre">&quot;email&quot;:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None,</span> <span class="pre">&quot;created_at&quot;:</span> <span class="pre">float}</span></code>.
+<p>A session is <code class="docutils literal notranslate"><span class="pre">{&quot;user_id&quot;:</span> <span class="pre">str,</span> <span class="pre">&quot;email&quot;:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None,</span> <span class="pre">&quot;created_at&quot;:</span> <span class="pre">float}</span></code>,
+plus <code class="docutils literal notranslate"><span class="pre">&quot;method&quot;</span></code> (how the account signed in) when the caller names it.
 Session IDs are 32-byte urlsafe tokens. Revocation is a simple delete.</p>
 <p>Records are otherwise only deleted by logout, so given a <em>max_age</em> the store
 sweeps records older than it, a bounded batch at a time, when a session is
@@ -453,7 +461,7 @@ store (and <a class="reference internal" href="#enlace_auth.auth.sessions.Sessio
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="enlace_auth.auth.sessions.SessionStore">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.sessions.</span></span><span class="sig-name descname"><span class="pre">SessionStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3600.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sign_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/sessions.html#SessionStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.sessions.SessionStore" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.sessions.</span></span><span class="sig-name descname"><span class="pre">SessionStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3600.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sign_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">admit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/sessions.html#SessionStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.sessions.SessionStore" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Thin adapter around a MutableMapping that speaks session semantics.</p>
 <dl class="field-list simple">

@@ -1,0 +1,38 @@
+enlace\_auth.passkeys.core
+==========================
+
+.. automodule:: enlace_auth.passkeys.core
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      MAX_ACTION_LEN
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      b64url
+      clean_action
+      clean_name
+      memory_claim
+      passkey_key
+      required_accounts
+      unb64url
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      PasskeyPolicy
+      PasskeyService
+      RelyingParty
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      PasskeyError
+   

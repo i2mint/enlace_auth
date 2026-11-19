@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=0ec583c6"></script>
+    <script src="../../../_static/documentation_options.js?v=aabd07df"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.54" />
+  <meta name="docsearch:version" content="0.1.55" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -999,6 +999,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">email_section</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
     <span class="n">password_summary</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Sign in with a password instead"</span><span class="p">,</span>
     <span class="n">lang</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"en"</span><span class="p">,</span>
+    <span class="n">passkey_section</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Render the sign-in form.</span>
 
@@ -1012,6 +1013,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            When given, the password form folds under *password_summary* and</span>
 <span class="sd">            the section carries its own sign-up note instead of the hint.</span>
 <span class="sd">        lang: the page's ``lang`` attribute.</span>
+<span class="sd">        passkey_section: trusted markup shown first (the passkey button and</span>
+<span class="sd">            autofill from :mod:`enlace_auth.passkeys.pages`).</span>
 <span class="sd">    """</span>
     <span class="n">next_js</span> <span class="o">=</span> <span class="n">_js_string</span><span class="p">(</span><span class="n">next_url</span><span class="p">)</span>
     <span class="n">hint</span> <span class="o">=</span> <span class="p">(</span>
@@ -1035,6 +1038,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">body</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""&lt;div class="card"&gt;</span>
 <span class="s2">&lt;h1&gt;Sign in&lt;/h1&gt;</span>
 <span class="s2">&lt;p class="sub"&gt;Access your apps on this platform.&lt;/p&gt;</span>
+<span class="si">{</span><span class="n">passkey_section</span><span class="si">}</span>
 <span class="si">{</span><span class="n">email_section</span><span class="si">}</span>
 <span class="si">{</span><span class="n">password_form</span><span class="si">}</span>
 <span class="si">{</span><span class="n">_msg_div</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="si">}</span>

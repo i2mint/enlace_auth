@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="_static/documentation_options.js?v=0ec583c6"></script>
+    <script src="_static/documentation_options.js?v=aabd07df"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.54" />
+  <meta name="docsearch:version" content="0.1.55" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -433,7 +433,8 @@ skill<span class="w"> </span>link-skills<span class="w"> </span><span class="s2"
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">/auth/login</span></code>, <code class="docutils literal notranslate"><span class="pre">/auth/logout</span></code>, <code class="docutils literal notranslate"><span class="pre">/auth/whoami</span></code>, <code class="docutils literal notranslate"><span class="pre">/auth/csrf</span></code>, <code class="docutils literal notranslate"><span class="pre">/auth/me/password</span></code>, <code class="docutils literal notranslate"><span class="pre">/auth/shared-login</span></code></p></li>
 <li><p>self-service sign-up and sign-in by emailed code (<code class="docutils literal notranslate"><span class="pre">/auth/email/*</span></code>, the verify-first <code class="docutils literal notranslate"><span class="pre">/auth/register</span></code>), with a per-app sign-up policy; see <a class="reference internal" href="#self-service-sign-up">Self-service sign-up</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">/auth/account</span></code>: the signed-in user changes their own password, or deletes their account</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/auth/account</span></code>: the signed-in user changes their own password, adds or removes passkeys, or deletes their account</p></li>
+<li><p>passkeys (WebAuthn): sign-in with autofill, a step-up confirmation that hands an app a single-use proof, and a per-account “passkey required” policy; see <a class="reference internal" href="#passkeys-and-step-up">Passkeys and step-up</a></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">/auth/forgot-password</span></code>: self-service reset by emailed link</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">/_admin/api/*</span></code>: list, create and delete users, mint a password-reset link, set a password directly, view app policy, and <strong>grant or revoke per-app access at runtime</strong> (optional expiry). Gated by an admin allowlist.</p></li>
 <li><p>per-user data injection via <code class="docutils literal notranslate"><span class="pre">request.state.store</span></code></p></li>
@@ -494,6 +495,22 @@ skill<span class="w"> </span>link-skills<span class="w"> </span><span class="s2"
 <li><p>Mail and code checks are rate-limited per address, per IP and overall (<code class="docutils literal notranslate"><span class="pre">[auth.signup.limits]</span></code>), and the form carries a honeypot plus a time-to-submit check. Behind a proxy, run uvicorn with <code class="docutils literal notranslate"><span class="pre">--forwarded-allow-ips</span></code> set to the proxy so the per-IP limit sees real clients.</p></li>
 <li><p>A signed-in user deletes their own account from <code class="docutils literal notranslate"><span class="pre">/auth/account</span></code>, confirmed by a mailed code; that removes its sessions, connector sessions, shares, grants and per-user data.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">registration_open</span> <span class="pre">=</span> <span class="pre">true</span></code> still works and means <code class="docutils literal notranslate"><span class="pre">default</span> <span class="pre">=</span> <span class="pre">&quot;open&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">/auth/register</span></code> (email plus a password of at least 15 characters) now mails a code too, and creates the account at verify.</p></li>
+</ul>
+</section>
+<section id="passkeys-and-step-up">
+<h3>Passkeys and step-up<a class="headerlink" href="#passkeys-and-step-up" title="Link to this heading">#</a></h3>
+<p>Off by default; py_webauthn comes with enlace_auth. Turn them on:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="k">[auth.passkeys]</span>
+<span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<span class="c1"># rp_id = "example.com"          # default: the host of the public origin</span>
+<span class="c1"># required = ["@admins"]         # must sign in by passkey, once they have enforce_from</span>
+<span class="c1"># enforce_from = 2               # passkeys before the rule applies (lockout guard)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Any signed-in account adds passkeys from <code class="docutils literal notranslate"><span class="pre">/auth/account</span></code>. Adding or removing one needs a sign-in from the last 15 minutes, made with a passkey once the account has one; each change is mailed to the account, and a removal ends its other sessions. The sign-in page gets a passkey button and passkey autofill on its email field.</p></li>
+<li><p><strong>Step-up</strong>: a page prepares <code class="docutils literal notranslate"><span class="pre">enlacePasskeys.prepareStepUp(&quot;myapp:</span> <span class="pre">start</span> <span class="pre">job</span> <span class="pre">42&quot;)</span></code> (from <code class="docutils literal notranslate"><span class="pre">/auth/passkeys/passkeys.js</span></code>), then on the tap calls <code class="docutils literal notranslate"><span class="pre">enlacePasskeys.stepUp(prepared)</span></code>; the user confirms with Face ID or Touch ID and gets a proof, valid once for 120 seconds; the app or connector backend calls <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/auth/passkeys/step-up/redeem</span> <span class="pre">{proof,</span> <span class="pre">action,</span> <span class="pre">email}</span></code> before acting. The answer the authenticator signs commits to the action text, so a proof for one action never redeems for another. Details in the consumer skill (<code class="docutils literal notranslate"><span class="pre">enlace_auth/data/skills/enlace-auth-usage</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">required</span></code> accounts refuse every other sign-in method once they have <code class="docutils literal notranslate"><span class="pre">enforce_from</span></code> passkeys (or one synced passkey). A lost device is removed with <code class="docutils literal notranslate"><span class="pre">enlace-auth</span> <span class="pre">remove-passkey</span> <span class="pre">EMAIL</span> <span class="pre">--passkey-id</span> <span class="pre">ID</span></code>.</p></li>
 </ul>
 </section>
 <section id="oauth-2-1-authorization-server-mcp-connectors">
@@ -718,7 +735,7 @@ python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> <
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-16 14:43 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/83c7e0288f7eda57e158949766211b4e8ab521fc">83c7e02</a> (main) · enlace_auth 0.1.54 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-19 08:56 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/1e8cda133129202c87cd608c65541e3ee7ad1e12">1e8cda1</a> (main) · enlace_auth 0.1.55 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               
@@ -762,6 +779,7 @@ python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> <
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick start</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#configuration">Configuration</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#self-service-sign-up">Self-service sign-up</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#passkeys-and-step-up">Passkeys and step-up</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#oauth-2-1-authorization-server-mcp-connectors">OAuth 2.1 authorization server (MCP connectors)</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#keeping-a-connector-alive">Keeping a connector alive</a></li>
 </ul>

@@ -25,15 +25,16 @@ we just deserialize them into typed objects here when the plugin runs.
 
 ### Classes
 
-| [`AuthConfig`](#enlace_auth.config.AuthConfig)(\*[, enabled, ...])                     | Platform-wide authentication configuration.                    |
-|-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
-| [`OAuthProviderConfig`](#enlace_auth.config.OAuthProviderConfig)(\*, client_id_env, ...[, ...]) | Configuration for a single OAuth2/OIDC provider.               |
-| [`OAuthServerConfig`](#enlace_auth.config.OAuthServerConfig)(\*[, enabled, issuer, ...])      | OAuth 2.1 authorization-server settings (for MCP connectors).  |
-| [`SignupConfig`](#enlace_auth.config.SignupConfig)(\*[, default, apps, allowlist, ...])  | Self-service sign-up and email-code sign-in (`[auth.signup]`). |
-| [`SignupLimitsConfig`](#enlace_auth.config.SignupLimitsConfig)(\*[, window_seconds, ...])      | Rate limits on the endpoints that send mail or check a code.   |
-| [`StoreBackendConfig`](#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.       |
+| [`AuthConfig`](#enlace_auth.config.AuthConfig)(\*[, enabled, ...])                     | Platform-wide authentication configuration.                                |
+|-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| [`OAuthProviderConfig`](#enlace_auth.config.OAuthProviderConfig)(\*, client_id_env, ...[, ...]) | Configuration for a single OAuth2/OIDC provider.                           |
+| [`OAuthServerConfig`](#enlace_auth.config.OAuthServerConfig)(\*[, enabled, issuer, ...])      | OAuth 2.1 authorization-server settings (for MCP connectors).              |
+| [`PasskeysConfig`](#enlace_auth.config.PasskeysConfig)(\*[, enabled, rp_id, rp_name, ...]) | `[auth.passkeys]`: sign-in and step-up confirmation by passkey (WebAuthn). |
+| [`SignupConfig`](#enlace_auth.config.SignupConfig)(\*[, default, apps, allowlist, ...])  | Self-service sign-up and email-code sign-in (`[auth.signup]`).             |
+| [`SignupLimitsConfig`](#enlace_auth.config.SignupLimitsConfig)(\*[, window_seconds, ...])      | Rate limits on the endpoints that send mail or check a code.               |
+| [`StoreBackendConfig`](#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.                   |
 
-### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, groups=<factory>)
+### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, groups=<factory>)
 
 Bases: `_StrictModel`
 
@@ -69,6 +70,19 @@ OAuth 2.1 authorization-server settings (for MCP connectors).
 When `enabled`, `enlace_auth` issues signed JWT access tokens that a
 Claude.ai custom connector validates — reusing the platform user store and
 session login. See [`enlace_auth.auth.oauth_server`](enlace_auth.auth.oauth_server.html.md#module-enlace_auth.auth.oauth_server).
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* enlace_auth.config.PasskeysConfig(\*, enabled=False, rp_id=None, rp_name=None, origins=<factory>, required=<factory>, enforce_from=2, fresh_seconds=900, challenge_ttl_seconds=300, step_up_ttl_seconds=120)
+
+Bases: `_StrictModel`
+
+`[auth.passkeys]`: sign-in and step-up confirmation by passkey (WebAuthn).
+
+Off unless `enabled`. See
+[`enlace_auth.passkeys`](enlace_auth.passkeys.html.md#module-enlace_auth.passkeys).
 
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
 

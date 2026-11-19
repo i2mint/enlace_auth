@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="alternate" type="text/markdown" href="core.html.md">
+<link rel="describedby" href="../../../llms.txt" type="text/markdown">
+    <title>enlace_auth.passkeys.core &#8212; enlace_auth</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx_autodoc_typehints.css?v=057ac668" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/epythet.css?v=d146b16c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../_static/documentation_options.js?v=aabd07df"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=fd10adb8"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = "pre.mermaid {\n    /* Same as .mermaid-container > pre */\n    display: block;\n    width: 100%;\n}\n\npre.mermaid > svg {\n    /* Same as .mermaid-container > pre > svg */\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}";
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = ".mermaid-container {\n    position: relative;\n    display: flex;\n    flex-direction: row;\n    width: 100%;\n}\n\n.mermaid-container > pre {\n    display: block;\n    width: 100%;\n}\n\n.mermaid-container > pre > svg {\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}\n\n.mermaid-fullscreen-btn {\n    position: absolute;\n    width: 28px;\n    height: 28px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.3);\n    border-radius: 4px;\n    cursor: pointer;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    transition: all 0.2s;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);\n    font-size: 14px;\n    line-height: 1;\n    padding: 0;\n    color: #333;\n}\n\n.mermaid-fullscreen-btn:hover {\n    opacity: 100% !important;\n    background: rgba(255, 255, 255, 1);\n    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-btn.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.3);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-btn.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal {\n    display: none;\n    position: fixed !important;\n    top: 0 !important;\n    left: 0 !important;\n    width: 95vw;\n    height: 100vh;\n    background: rgba(255, 255, 255, 0.98);\n    z-index: 9999;\n    padding: 20px;\n    overflow: auto;\n}\n\n.mermaid-fullscreen-modal.dark-theme {\n    background: rgba(0, 0, 0, 0.98);\n}\n\n.mermaid-fullscreen-modal.active {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen {\n    position: relative;\n    width: 95vw;\n    height: 90vh;\n    max-width: 95vw;\n    max-height: 90vh;\n    background: white;\n    border-radius: 8px;\n    padding: 20px;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);\n    overflow: auto;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen.dark-theme {\n    background: #1a1a1a;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);\n}\n\n.mermaid-container-fullscreen pre.mermaid {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen .mermaid svg {\n    height: 100% !important;\n    width: 100% !important;\n    cursor: grab;\n}\n\n.mermaid-fullscreen-close {\n    position: fixed !important;\n    top: 20px !important;\n    right: 20px !important;\n    width: 40px;\n    height: 40px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.2);\n    border-radius: 50%;\n    cursor: pointer;\n    z-index: 10000;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);\n    transition: all 0.2s;\n    font-size: 24px;\n    line-height: 1;\n    color: #333;\n}\n\n.mermaid-fullscreen-close:hover {\n    background: white;\n    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-close.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.2);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-close.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal .mermaid-fullscreen-btn {\n    display: none !important;\n}";
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+let _lazyObserver = null;
+let _renderQueue = Promise.resolve();
+let closeModal = () => {};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal?.classList.contains('active')) {
+        closeModal();
+    }
+});
+
+// Apply d3 zoom to each SVG. Idempotent: an SVG already wrapped is skipped,
+// so this is safe to call both for the initial batch and for diagrams that
+// render lazily once they become visible.
+const addZoomToSvgs = (svgs) => {
+    svgs.each(function() {
+        if (this.getAttribute('data-zoom-applied') === 'true') return;
+        var svg = d3.select(this);
+        svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+        var inner = svg.select("g");
+        var zoom = d3.zoom().on("zoom", function(event) {
+            inner.attr("transform", event.transform);
+        });
+        svg.call(zoom);
+        this.setAttribute('data-zoom-applied', 'true');
+    });
+};
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        // Disconnect any previous lazy rendering observer
+        if (_lazyObserver) {
+            _lazyObserver.disconnect();
+            _lazyObserver = null;
+        }
+
+        all_mermaids.forEach((el) => {
+            el.removeAttribute('data-mermaid-deferred');
+            el.removeAttribute('data-mermaid-render-failed');
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+
+        // Separate visible and hidden elements. Mermaid's layout engine measures
+        // text dimensions via the DOM, which fails for elements hidden by a parent
+        // (e.g., Reveal.js non-active slides, sphinx-design unopened tabs),
+        // producing broken SVGs. Render visible elements now, defer hidden ones.
+        const visible = [];
+        const hidden = [];
+        all_mermaids.forEach((el) => {
+            // offsetParent is null for display:none ancestors.
+            // getClientRects().length > 0 catches position:fixed elements
+            // (which also have null offsetParent but are still visible).
+            if (el.offsetParent !== null || el.getClientRects().length > 0) {
+                visible.push(el);
+            } else {
+                hidden.push(el);
+                el.setAttribute('data-mermaid-deferred', 'true');
+            }
+        });
+
+        if (visible.length > 0) {
+            try {
+                await mermaid.run({ nodes: visible });
+            } catch (e) {
+                console.error("Mermaid rendering failed:", e);
+            }
+        }
+
+        // Lazily render hidden elements when they become visible.
+        // Uses a promise chain (_renderQueue) to serialize rendering,
+        // since IntersectionObserver may report multiple entries at once
+        // and mermaid.run() is not safe to call concurrently.
+        if (hidden.length > 0) {
+            if (typeof IntersectionObserver === 'undefined') {
+                console.warn("IntersectionObserver not available; hidden mermaid diagrams will not render.");
+            } else {
+                _renderQueue = Promise.resolve();
+                _lazyObserver = new IntersectionObserver((entries) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting && entry.target.getAttribute("data-processed") !== "true") {
+                            _lazyObserver.unobserve(entry.target);
+                            const el = entry.target;
+                            _renderQueue = _renderQueue.then(async () => {
+                                try {
+                                    await mermaid.run({ nodes: [el] });
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    // Apply zoom to the now-rendered diagram, matching
+                                    // the decoration visible diagrams receive.
+                                    if (false) {
+                                        addZoomToSvgs(d3.selectAll("").select(function() {
+                                            return this.querySelector("svg");
+                                        }));
+                                    }
+                                } catch (e) {
+                                    console.error("Mermaid deferred rendering failed:", e);
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    el.setAttribute('data-mermaid-render-failed', 'true');
+                                }
+                            });
+                        }
+                    }
+                });
+                hidden.forEach((el) => _lazyObserver.observe(el));
+            }
+        }
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    // Exclude deferred (hidden) and render-failed elements from completion checks
+    const mermaids_active = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])");
+    const mermaids_processed = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])[data-processed='true']");
+
+    if (false) {
+        const mermaids_to_add_zoom = 0 === -1 ? mermaids_active.length : 0;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("").select(function() {
+                return this.querySelector("svg");
+            });
+            // Wait until every active (visible) diagram has rendered. Deferred
+            // diagrams are excluded, so a fixed d3_node_count that counts a
+            // hidden diagram no longer loops forever waiting for its SVG.
+            if(mermaids_active.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            }
+            addZoomToSvgs(svgs);
+        }
+    } else if(mermaids_active.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if (!true) return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = "\u26f6";
+        fullscreenBtn.style.opacity = "50%";
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scrollX, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.display = 'block';
+
+                if (false) {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+
+
+const load = async () => {
+    initStyles();
+
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...{"startOnLoad": false},
+                ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...{"startOnLoad": false},
+    ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/enlace_auth/passkeys/core';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.55" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">enlace_auth</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../ai-agents.html">
+    For AI agents
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_auth" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../ai-agents.html">
+    For AI agents
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_auth" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">enlace_auth.passkeys.core</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for enlace_auth.passkeys.core</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Passkey ceremonies, the step-up proof, and the passkey-required policy.</span>
+
+<span class="sd">No web framework here: :class:`PasskeyService` takes and returns JSON-ready</span>
+<span class="sd">values, so the HTTP router, the CLI and a test drive the same code. The WebAuthn</span>
+<span class="sd">checks themselves are py_webauthn's (BSD-3-Clause, a dependency), imported on</span>
+<span class="sd">first use so a platform that never turns passkeys on never loads it.</span>
+
+<span class="sd">Three ceremonies, one challenge format. A challenge is 40 bytes:</span>
+<span class="sd">``nonce(16) | expiry(8) | mac(16)``, the mac an HMAC of the purpose, the account</span>
+<span class="sd">and (for a step-up) the action, under the platform's signing key. Nothing is</span>
+<span class="sd">stored when a challenge is issued (the sign-in page asks for one on every view);</span>
+<span class="sd">the answer carries it back inside ``clientDataJSON``, the server recomputes the</span>
+<span class="sd">mac from what it expects, and spends the challenge once through *claim_once*.</span>
+<span class="sd">So a step-up challenge commits to the action: an answer signed for one action</span>
+<span class="sd">cannot be presented for another.</span>
+
+<span class="sd">A verified step-up returns a **proof**: a signed token, valid for</span>
+<span class="sd">``proof_ttl`` seconds, that names the account and the action. An app or a</span>
+<span class="sd">connector backend redeems it once (:meth:`PasskeyService.redeem`), stating the</span>
+<span class="sd">action it is about to perform; a proof for another action, an expired one or a</span>
+<span class="sd">spent one is refused.</span>
+
+<span class="sd">Records. A credential is stored under ``sha256(credential id)`` (hex, a safe</span>
+<span class="sd">file name) as ``{email, credential_id, public_key, user_handle, name,</span>
+<span class="sd">created_at, device_type, backed_up, transports}``. Its use (``sign_count``,</span>
+<span class="sd">``last_used_at``) is kept in a second mapping, so a sign-in that races a removal</span>
+<span class="sd">writes an orphan usage record, never a resurrected credential. The WebAuthn user</span>
+<span class="sd">handle is ``HMAC(signing key, email)``: opaque, stable, and kept on each</span>
+<span class="sd">credential so a sign-in compares against what was registered.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hmac</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">secrets</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlsplit</span>
+
+<span class="c1">#: Longest action description a step-up accepts (it is shown to the user).</span>
+<span class="n">MAX_ACTION_LEN</span> <span class="o">=</span> <span class="mi">300</span>
+<span class="c1">#: Longest name a passkey may be given.</span>
+<span class="n">MAX_NAME_LEN</span> <span class="o">=</span> <span class="mi">60</span>
+<span class="n">_CHALLENGE_LEN</span> <span class="o">=</span> <span class="mi">40</span>
+<span class="n">_PURPOSES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"register"</span><span class="p">,</span> <span class="s2">"login"</span><span class="p">,</span> <span class="s2">"step-up"</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="PasskeyError">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PasskeyError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A passkey request that cannot be honoured; the message is safe to show."""</span></div>
+
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># small helpers</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="b64url">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.b64url">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">b64url</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Unpadded base64url, the encoding WebAuthn JSON uses.</span>
+
+<span class="sd">    &gt;&gt;&gt; b64url(b"\\xfb\\xff")</span>
+<span class="sd">    '-_8'</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64encode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="sa">b</span><span class="s2">"="</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"ascii"</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="unb64url">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.unb64url">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">unb64url</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Inverse of :func:`b64url`; raises :class:`PasskeyError` on garbage.</span>
+
+<span class="sd">    &gt;&gt;&gt; unb64url("-_8")</span>
+<span class="sd">    b'\\xfb\\xff'</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">8192</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"Malformed passkey response."</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64decode</span><span class="p">(</span><span class="n">text</span> <span class="o">+</span> <span class="s2">"="</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">%</span> <span class="mi">4</span><span class="p">))</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"Malformed passkey response."</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="passkey_key">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.passkey_key">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">passkey_key</span><span class="p">(</span><span class="n">credential_id</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The store key (and public id) of a credential: sha256 of its raw id, hex."""</span>
+    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">credential_id</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="clean_action">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.clean_action">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">clean_action</span><span class="p">(</span><span class="n">action</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The action text of a step-up, checked: 1..300 printable characters.</span>
+
+<span class="sd">    &gt;&gt;&gt; clean_action("  start job: repo, title ")</span>
+<span class="sd">    'start job: repo, title'</span>
+<span class="sd">    &gt;&gt;&gt; clean_action("two\\nlines")  # doctest: +ELLIPSIS</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">      ...</span>
+<span class="sd">    enlace_auth.passkeys.core.PasskeyError: An action is one line of at most 300 ...</span>
+<span class="sd">    """</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">action</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="s2">""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">MAX_ACTION_LEN</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">text</span><span class="o">.</span><span class="n">isprintable</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"An action is one line of at most </span><span class="si">{</span><span class="n">MAX_ACTION_LEN</span><span class="si">}</span><span class="s2"> printable characters."</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">text</span></div>
+
+
+
+<div class="viewcode-block" id="clean_name">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.clean_name">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">clean_name</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""A passkey's display name: printable, at most 60 characters, never empty.</span>
+
+<span class="sd">    &gt;&gt;&gt; clean_name(""), clean_name("  Touch ID on the Mac ")</span>
+<span class="sd">    ('Passkey', 'Touch ID on the Mac')</span>
+<span class="sd">    """</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="s2">""</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">text</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">isprintable</span><span class="p">())[:</span><span class="n">MAX_NAME_LEN</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">text</span> <span class="ow">or</span> <span class="s2">"Passkey"</span></div>
+
+
+
+<div class="viewcode-block" id="memory_claim">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.memory_claim">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">memory_claim</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">keep_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3600.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""``claim(key) -&gt; bool``: True the first time a key is claimed, then False.</span>
+
+<span class="sd">    In-process only: right for one worker and for tests. A platform running</span>
+<span class="sd">    several worker processes injects a cross-process claim instead (the plugin</span>
+<span class="sd">    uses the same ``O_EXCL`` file claim as the OAuth server). Claims older than</span>
+<span class="sd">    *keep_seconds* are forgotten, which is safe because every claimed thing</span>
+<span class="sd">    (a challenge, a proof) expires well before.</span>
+
+<span class="sd">    &gt;&gt;&gt; claim = memory_claim()</span>
+<span class="sd">    &gt;&gt;&gt; claim("a"), claim("a"), claim("b")</span>
+<span class="sd">    (True, False, True)</span>
+<span class="sd">    """</span>
+    <span class="n">held</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">claim</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">held</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">now</span> <span class="o">-</span> <span class="n">at</span> <span class="o">&gt;</span> <span class="n">keep_seconds</span><span class="p">]:</span>
+            <span class="k">del</span> <span class="n">held</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">held</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">held</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">now</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">claim</span></div>
+
+
+
+<div class="viewcode-block" id="RelyingParty">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.RelyingParty">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RelyingParty</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Who the passkeys belong to: the RP ID, its display name, accepted origins.</span>
+
+<span class="sd">    The RP ID is a host name every accepted origin is on or under, so one</span>
+<span class="sd">    passkey covers every app served from those origins.</span>
+
+<span class="sd">    &gt;&gt;&gt; rp = RelyingParty("example.com", "Example", ("https://apps.example.com",))</span>
+<span class="sd">    &gt;&gt;&gt; RelyingParty("example.com", "x", ("https://evil.com",))</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">      ...</span>
+<span class="sd">    ValueError: origin 'https://evil.com' is not on 'example.com' or a subdomain of it</span>
+<span class="sd">    """</span>
+
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">origins</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">tuple</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="ow">or</span> <span class="s2">"/"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="ow">or</span> <span class="s2">":"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"rp_id </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">!r}</span><span class="s2"> must be a bare host name"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">origins</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a relying party needs at least one origin"</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">origin</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">origins</span><span class="p">:</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="n">urlsplit</span><span class="p">(</span><span class="n">origin</span><span class="p">)</span>
+            <span class="n">host</span> <span class="o">=</span> <span class="p">(</span><span class="n">parts</span><span class="o">.</span><span class="n">hostname</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">secure</span> <span class="o">=</span> <span class="n">parts</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s2">"https"</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="n">parts</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s2">"http"</span> <span class="ow">and</span> <span class="n">host</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"localhost"</span><span class="p">,</span> <span class="s2">"127.0.0.1"</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">secure</span> <span class="ow">or</span> <span class="n">parts</span><span class="o">.</span><span class="n">path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"/"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">parts</span><span class="o">.</span><span class="n">query</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"origin </span><span class="si">{</span><span class="n">origin</span><span class="si">!r}</span><span class="s2"> must be https://host (http only on localhost)"</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">host</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">host</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"."</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"origin </span><span class="si">{</span><span class="n">origin</span><span class="si">!r}</span><span class="s2"> is not on </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">!r}</span><span class="s2"> or a subdomain of it"</span>
+                <span class="p">)</span>
+
+<div class="viewcode-block" id="RelyingParty.for_origin">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.RelyingParty.for_origin">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">for_origin</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">origin</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">rp_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""The relying party of one origin (RP ID: its host, unless given).</span>
+
+<span class="sd">        &gt;&gt;&gt; RelyingParty.for_origin("https://apps.example.com/").id</span>
+<span class="sd">        'apps.example.com'</span>
+<span class="sd">        """</span>
+        <span class="n">origin</span> <span class="o">=</span> <span class="n">origin</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
+        <span class="n">host</span> <span class="o">=</span> <span class="n">urlsplit</span><span class="p">(</span><span class="n">origin</span><span class="p">)</span><span class="o">.</span><span class="n">hostname</span> <span class="ow">or</span> <span class="s2">""</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">rp_id</span> <span class="ow">or</span> <span class="n">host</span><span class="p">,</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">rp_id</span> <span class="ow">or</span> <span class="n">host</span><span class="p">,</span> <span class="p">(</span><span class="n">origin</span><span class="p">,))</span></div>
+</div>
+
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># the service</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_webauthn</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">"""py_webauthn, imported on first use."""</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">webauthn</span>  <span class="c1"># noqa: F401  (raises ImportError without the extra)</span>
+
+    <span class="k">return</span> <span class="n">webauthn</span>
+
+
+<div class="viewcode-block" id="PasskeyService">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PasskeyService</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Register, sign in, step up, redeem and remove passkeys.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        credentials: credential records, ``sha256(id) hex -&gt; dict``.</span>
+<span class="sd">        signing_key: the platform's HMAC key (challenges, proofs, user handles).</span>
+<span class="sd">        usage: ``sha256(id) hex -&gt; {sign_count, last_used_at}`` (default: a dict).</span>
+<span class="sd">        claim_once: ``claim(sha256 hex) -&gt; bool``, True once per key; spends</span>
+<span class="sd">            challenges and proofs (default: :func:`memory_claim`).</span>
+<span class="sd">        challenge_ttl / proof_ttl: lifetimes in seconds.</span>
+<span class="sd">        clock: ``() -&gt; epoch seconds``; tests pass a fake.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">credentials</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">signing_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">usage</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">MutableMapping</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">claim_once</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">challenge_ttl</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span>
+        <span class="n">proof_ttl</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">120</span><span class="p">,</span>
+        <span class="n">clock</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">credentials</span> <span class="o">=</span> <span class="n">credentials</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">usage</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">usage</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">usage</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_key</span> <span class="o">=</span> <span class="n">signing_key</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_claim</span> <span class="o">=</span> <span class="n">claim_once</span> <span class="ow">or</span> <span class="n">memory_claim</span><span class="p">(</span>
+            <span class="n">keep_seconds</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">challenge_ttl</span><span class="p">,</span> <span class="n">proof_ttl</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">challenge_ttl</span> <span class="o">=</span> <span class="n">challenge_ttl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proof_ttl</span> <span class="o">=</span> <span class="n">proof_ttl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span> <span class="o">=</span> <span class="n">clock</span>
+
+    <span class="c1"># ----- records --------------------------------------------------------</span>
+
+<div class="viewcode-block" id="PasskeyService.user_handle">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.user_handle">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">user_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The WebAuthn user handle of an account: opaque, stable, 32 bytes."""</span>
+        <span class="k">return</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"enlace-passkey-user|"</span> <span class="o">+</span> <span class="n">email</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">),</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PasskeyService.records">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.records">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">records</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">rp_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""``(key, record)`` of every readable credential (of *email*, if given).</span>
+
+<span class="sd">        With *rp_id*, only the credentials made for that relying party: a passkey</span>
+<span class="sd">        made for another RP ID can no longer sign in, so it must not count.</span>
+<span class="sd">        A damaged record is skipped, never raised: the store is hand-editable.</span>
+<span class="sd">        """</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">),</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">rp_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"rp_id"</span><span class="p">,</span> <span class="n">rp_id</span><span class="p">)</span> <span class="o">!=</span> <span class="n">rp_id</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">email</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">record</span><span class="p">[</span><span class="s2">"email"</span><span class="p">]</span> <span class="o">==</span> <span class="n">email</span><span class="p">:</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">record</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="PasskeyService.count">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.count">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">rp_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""How many passkeys *email* has (for *rp_id*, if given)."""</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">rp_id</span><span class="o">=</span><span class="n">rp_id</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="PasskeyService.synced">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.synced">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">synced</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">rp_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether one of *email*'s passkeys is synced (backed up by its provider).</span>
+
+<span class="sd">        A synced passkey lives on every device of its keychain (iCloud Keychain,</span>
+<span class="sd">        Google Password Manager), so losing one device does not lose it.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"backed_up"</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">rp_id</span><span class="o">=</span><span class="n">rp_id</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="PasskeyService.describe">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.describe">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">describe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The public view of one passkey (no key material)."""</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">used</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">usage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - a listing must not fail on bookkeeping</span>
+            <span class="n">used</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">used</span> <span class="o">=</span> <span class="n">used</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">used</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"id"</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
+            <span class="s2">"name"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"Passkey"</span><span class="p">,</span>
+            <span class="s2">"created_at"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"created_at"</span><span class="p">),</span>
+            <span class="s2">"last_used_at"</span><span class="p">:</span> <span class="n">used</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"last_used_at"</span><span class="p">),</span>
+            <span class="s2">"synced"</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"backed_up"</span><span class="p">)),</span>
+            <span class="s2">"device_type"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"device_type"</span><span class="p">),</span>
+        <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="PasskeyService.list">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.list">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""The passkeys of *email*, oldest first."""</span>
+        <span class="n">views</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">(</span><span class="n">email</span><span class="p">)]</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_when</span><span class="p">(</span><span class="n">view</span><span class="p">):</span>
+            <span class="n">at</span> <span class="o">=</span> <span class="n">view</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"created_at"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">at</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">at</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="k">else</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">views</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">_when</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PasskeyService.remove">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.remove">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Remove the passkey *key* of *email*; return its view, or None."""</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">)</span> <span class="o">!=</span> <span class="n">email</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># removed meanwhile by someone else</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_forget_usage</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">view</span></div>
+
+
+<div class="viewcode-block" id="PasskeyService.remove_account">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.remove_account">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Remove every passkey of *email*; return how many went."""</span>
+        <span class="n">removed</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">(</span><span class="n">email</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">removed</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">removed</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_forget_usage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">usage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="c1"># ----- challenges -----------------------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_mac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">purpose</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">binding</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"|"</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">b</span><span class="s2">"enlace-passkey"</span><span class="p">,</span> <span class="n">purpose</span><span class="o">.</span><span class="n">encode</span><span class="p">(),</span> <span class="n">body</span><span class="p">,</span> <span class="n">binding</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">()[:</span><span class="mi">16</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_binding</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">email</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\x00</span><span class="s2">"</span> <span class="o">+</span> <span class="n">action</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_challenge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">purpose</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">binding</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+        <span class="n">nonce</span> <span class="o">=</span> <span class="n">secrets</span><span class="o">.</span><span class="n">token_bytes</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span>
+        <span class="n">expires</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_clock</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">challenge_ttl</span><span class="p">)</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="s2">"big"</span><span class="p">)</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="n">nonce</span> <span class="o">+</span> <span class="n">expires</span>
+        <span class="k">return</span> <span class="n">body</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mac</span><span class="p">(</span><span class="n">purpose</span><span class="p">,</span> <span class="n">binding</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_challenge_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">credential</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The challenge an answer was signed over, read from its clientDataJSON."""</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">credential</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"response"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"Malformed passkey response."</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">client_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">unb64url</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"clientDataJSON"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)))</span>
+            <span class="k">return</span> <span class="n">unb64url</span><span class="p">(</span><span class="n">client_data</span><span class="p">[</span><span class="s2">"challenge"</span><span class="p">])</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"Malformed passkey response."</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_challenge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">challenge</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">purpose</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">binding</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Raise unless *challenge* is ours, for this purpose and binding, unexpired."""</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">challenge</span><span class="p">)</span> <span class="o">!=</span> <span class="n">_CHALLENGE_LEN</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This passkey request is not valid. Try again."</span><span class="p">)</span>
+        <span class="n">body</span><span class="p">,</span> <span class="n">mac</span> <span class="o">=</span> <span class="n">challenge</span><span class="p">[:</span><span class="mi">24</span><span class="p">],</span> <span class="n">challenge</span><span class="p">[</span><span class="mi">24</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">hmac</span><span class="o">.</span><span class="n">compare_digest</span><span class="p">(</span><span class="n">mac</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mac</span><span class="p">(</span><span class="n">purpose</span><span class="p">,</span> <span class="n">binding</span><span class="p">,</span> <span class="n">body</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This passkey request is not valid. Try again."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">body</span><span class="p">[</span><span class="mi">16</span><span class="p">:</span><span class="mi">24</span><span class="p">],</span> <span class="s2">"big"</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This passkey request has expired. Try again."</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_spend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">challenge</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_claim</span><span class="p">(</span><span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="sa">b</span><span class="s2">"challenge|"</span> <span class="o">+</span> <span class="n">challenge</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()):</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This passkey request was already used. Try again."</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_timeout_ms</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">challenge_ttl</span> <span class="o">*</span> <span class="mi">1000</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_as_json</span><span class="p">(</span><span class="n">options</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">_webauthn</span><span class="p">()</span><span class="o">.</span><span class="n">options_to_json</span><span class="p">(</span><span class="n">options</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_descriptors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">webauthn.helpers.structs</span><span class="w"> </span><span class="kn">import</span> <span class="n">PublicKeyCredentialDescriptor</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">(</span><span class="n">email</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">PublicKeyCredentialDescriptor</span><span class="p">(</span>
+                        <span class="nb">id</span><span class="o">=</span><span class="n">unb64url</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s2">"credential_id"</span><span class="p">]),</span>
+                        <span class="n">transports</span><span class="o">=</span><span class="n">_transports</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"transports"</span><span class="p">)),</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">PasskeyError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
+                <span class="k">continue</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="c1"># ----- registration ---------------------------------------------------</span>
+
+<div class="viewcode-block" id="PasskeyService.registration_options">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.registration_options">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">registration_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">rp</span><span class="p">:</span> <span class="n">RelyingParty</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""``PublicKeyCredentialCreationOptionsJSON`` for adding a passkey to *email*.</span>
+
+<span class="sd">        A discoverable credential with user verification (a passkey proper),</span>
+<span class="sd">        excluding the account's existing ones so a device is not enrolled twice.</span>
+<span class="sd">        """</span>
+        <span class="n">wa</span> <span class="o">=</span> <span class="n">_webauthn</span><span class="p">()</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">webauthn.helpers.structs</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">AuthenticatorSelectionCriteria</span><span class="p">,</span>
+            <span class="n">ResidentKeyRequirement</span><span class="p">,</span>
+            <span class="n">UserVerificationRequirement</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">options</span> <span class="o">=</span> <span class="n">wa</span><span class="o">.</span><span class="n">generate_registration_options</span><span class="p">(</span>
+            <span class="n">rp_id</span><span class="o">=</span><span class="n">rp</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">rp_name</span><span class="o">=</span><span class="n">rp</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">user_name</span><span class="o">=</span><span class="n">email</span><span class="p">,</span>
+            <span class="n">user_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user_handle</span><span class="p">(</span><span class="n">email</span><span class="p">),</span>
+            <span class="n">user_display_name</span><span class="o">=</span><span class="n">email</span><span class="p">,</span>
+            <span class="n">challenge</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_challenge</span><span class="p">(</span><span class="s2">"register"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binding</span><span class="p">(</span><span class="n">email</span><span class="p">)),</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_timeout_ms</span><span class="p">(),</span>
+            <span class="n">authenticator_selection</span><span class="o">=</span><span class="n">AuthenticatorSelectionCriteria</span><span class="p">(</span>
+                <span class="n">resident_key</span><span class="o">=</span><span class="n">ResidentKeyRequirement</span><span class="o">.</span><span class="n">REQUIRED</span><span class="p">,</span>
+                <span class="n">user_verification</span><span class="o">=</span><span class="n">UserVerificationRequirement</span><span class="o">.</span><span class="n">REQUIRED</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">exclude_credentials</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_descriptors</span><span class="p">(</span><span class="n">email</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_json</span><span class="p">(</span><span class="n">options</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PasskeyService.register">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.register">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">credential</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">rp</span><span class="p">:</span> <span class="n">RelyingParty</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Verify a registration answer and store the passkey; return its view."""</span>
+        <span class="n">wa</span> <span class="o">=</span> <span class="n">_webauthn</span><span class="p">()</span>
+        <span class="n">credential</span> <span class="o">=</span> <span class="n">_as_dict</span><span class="p">(</span><span class="n">credential</span><span class="p">)</span>
+        <span class="n">challenge</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_challenge_of</span><span class="p">(</span><span class="n">credential</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_challenge</span><span class="p">(</span><span class="n">challenge</span><span class="p">,</span> <span class="s2">"register"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binding</span><span class="p">(</span><span class="n">email</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">verified</span> <span class="o">=</span> <span class="n">wa</span><span class="o">.</span><span class="n">verify_registration_response</span><span class="p">(</span>
+                <span class="n">credential</span><span class="o">=</span><span class="n">credential</span><span class="p">,</span>
+                <span class="n">expected_challenge</span><span class="o">=</span><span class="n">challenge</span><span class="p">,</span>
+                <span class="n">expected_rp_id</span><span class="o">=</span><span class="n">rp</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">expected_origin</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">rp</span><span class="o">.</span><span class="n">origins</span><span class="p">),</span>
+                <span class="n">require_user_verification</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - every library failure is a refusal</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"The passkey could not be verified (</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">)."</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_spend</span><span class="p">(</span><span class="n">challenge</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">passkey_key</span><span class="p">(</span><span class="n">verified</span><span class="o">.</span><span class="n">credential_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This passkey is already registered."</span><span class="p">)</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span><span class="p">()</span>
+        <span class="n">device_type</span> <span class="o">=</span> <span class="n">verified</span><span class="o">.</span><span class="n">credential_device_type</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">credential</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"response"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"email"</span><span class="p">:</span> <span class="n">email</span><span class="p">,</span>
+            <span class="s2">"rp_id"</span><span class="p">:</span> <span class="n">rp</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="s2">"credential_id"</span><span class="p">:</span> <span class="n">b64url</span><span class="p">(</span><span class="n">verified</span><span class="o">.</span><span class="n">credential_id</span><span class="p">),</span>
+            <span class="s2">"public_key"</span><span class="p">:</span> <span class="n">b64url</span><span class="p">(</span><span class="n">verified</span><span class="o">.</span><span class="n">credential_public_key</span><span class="p">),</span>
+            <span class="s2">"user_handle"</span><span class="p">:</span> <span class="n">b64url</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_handle</span><span class="p">(</span><span class="n">email</span><span class="p">)),</span>
+            <span class="s2">"name"</span><span class="p">:</span> <span class="n">clean_name</span><span class="p">(</span><span class="n">name</span><span class="p">),</span>
+            <span class="s2">"created_at"</span><span class="p">:</span> <span class="n">now</span><span class="p">,</span>
+            <span class="s2">"device_type"</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">device_type</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">,</span> <span class="n">device_type</span><span class="p">),</span>
+            <span class="s2">"backed_up"</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">verified</span><span class="o">.</span><span class="n">credential_backed_up</span><span class="p">),</span>
+            <span class="s2">"transports"</span><span class="p">:</span> <span class="p">[</span>
+                <span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"transports"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[])</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+            <span class="p">][:</span><span class="mi">8</span><span class="p">],</span>
+            <span class="s2">"aaguid"</span><span class="p">:</span> <span class="n">verified</span><span class="o">.</span><span class="n">aaguid</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">usage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"sign_count"</span><span class="p">:</span> <span class="n">verified</span><span class="o">.</span><span class="n">sign_count</span><span class="p">,</span> <span class="s2">"last_used_at"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span></div>
+
+
+    <span class="c1"># ----- assertions (sign-in and step-up) --------------------------------</span>
+
+<div class="viewcode-block" id="PasskeyService.login_options">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.login_options">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">login_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rp</span><span class="p">:</span> <span class="n">RelyingParty</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""``PublicKeyCredentialRequestOptionsJSON`` for a sign-in by any passkey.</span>
+
+<span class="sd">        No ``allowCredentials``: the authenticator offers the account's passkey</span>
+<span class="sd">        (and the browser can show it in the email field's autofill).</span>
+<span class="sd">        """</span>
+        <span class="n">wa</span> <span class="o">=</span> <span class="n">_webauthn</span><span class="p">()</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">webauthn.helpers.structs</span><span class="w"> </span><span class="kn">import</span> <span class="n">UserVerificationRequirement</span>
+
+        <span class="n">options</span> <span class="o">=</span> <span class="n">wa</span><span class="o">.</span><span class="n">generate_authentication_options</span><span class="p">(</span>
+            <span class="n">rp_id</span><span class="o">=</span><span class="n">rp</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">challenge</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_challenge</span><span class="p">(</span><span class="s2">"login"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binding</span><span class="p">()),</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_timeout_ms</span><span class="p">(),</span>
+            <span class="n">user_verification</span><span class="o">=</span><span class="n">UserVerificationRequirement</span><span class="o">.</span><span class="n">REQUIRED</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_json</span><span class="p">(</span><span class="n">options</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PasskeyService.step_up_options">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.step_up_options">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">step_up_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">rp</span><span class="p">:</span> <span class="n">RelyingParty</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Request options for confirming *action* with one of *email*'s passkeys.</span>
+
+<span class="sd">        The challenge commits to the action. Raises :class:`PasskeyError` when the</span>
+<span class="sd">        account has no passkey.</span>
+<span class="sd">        """</span>
+        <span class="n">wa</span> <span class="o">=</span> <span class="n">_webauthn</span><span class="p">()</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">webauthn.helpers.structs</span><span class="w"> </span><span class="kn">import</span> <span class="n">UserVerificationRequirement</span>
+
+        <span class="n">action</span> <span class="o">=</span> <span class="n">clean_action</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+        <span class="n">allowed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_descriptors</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">allowed</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This account has no passkey yet."</span><span class="p">)</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="n">wa</span><span class="o">.</span><span class="n">generate_authentication_options</span><span class="p">(</span>
+            <span class="n">rp_id</span><span class="o">=</span><span class="n">rp</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">challenge</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_challenge</span><span class="p">(</span><span class="s2">"step-up"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binding</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">action</span><span class="p">)),</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_timeout_ms</span><span class="p">(),</span>
+            <span class="n">allow_credentials</span><span class="o">=</span><span class="n">allowed</span><span class="p">,</span>
+            <span class="n">user_verification</span><span class="o">=</span><span class="n">UserVerificationRequirement</span><span class="o">.</span><span class="n">REQUIRED</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_json</span><span class="p">(</span><span class="n">options</span><span class="p">),</span> <span class="s2">"action"</span><span class="p">:</span> <span class="n">action</span><span class="p">}</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_assert</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">credential</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">rp</span><span class="p">:</span> <span class="n">RelyingParty</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">purpose</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">email</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">action</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Verify an assertion; return ``(key, record)`` of the passkey used."""</span>
+        <span class="n">wa</span> <span class="o">=</span> <span class="n">_webauthn</span><span class="p">()</span>
+        <span class="n">credential</span> <span class="o">=</span> <span class="n">_as_dict</span><span class="p">(</span><span class="n">credential</span><span class="p">)</span>
+        <span class="n">challenge</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_challenge_of</span><span class="p">(</span><span class="n">credential</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">passkey_key</span><span class="p">(</span><span class="n">unb64url</span><span class="p">(</span><span class="n">credential</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"rawId"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">credential</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">)))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This passkey is not registered here."</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">),</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This passkey is not registered here."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">email</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">record</span><span class="p">[</span><span class="s2">"email"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">email</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This passkey belongs to another account."</span><span class="p">)</span>
+        <span class="n">binding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binding</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s2">"email"</span><span class="p">]</span> <span class="k">if</span> <span class="n">purpose</span> <span class="o">!=</span> <span class="s2">"login"</span> <span class="k">else</span> <span class="s2">""</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_challenge</span><span class="p">(</span><span class="n">challenge</span><span class="p">,</span> <span class="n">purpose</span><span class="p">,</span> <span class="n">binding</span><span class="p">)</span>
+        <span class="n">returned_handle</span> <span class="o">=</span> <span class="p">(</span><span class="n">credential</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"response"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"userHandle"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">returned_handle</span> <span class="ow">or</span> <span class="n">purpose</span> <span class="o">==</span> <span class="s2">"login"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">returned_handle</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">hmac</span><span class="o">.</span><span class="n">compare_digest</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">returned_handle</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"user_handle"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This passkey belongs to another account."</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">used</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">usage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001</span>
+            <span class="n">used</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">sign_count</span> <span class="o">=</span> <span class="n">used</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sign_count"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">used</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">verified</span> <span class="o">=</span> <span class="n">wa</span><span class="o">.</span><span class="n">verify_authentication_response</span><span class="p">(</span>
+                <span class="n">credential</span><span class="o">=</span><span class="n">credential</span><span class="p">,</span>
+                <span class="n">expected_challenge</span><span class="o">=</span><span class="n">challenge</span><span class="p">,</span>
+                <span class="n">expected_rp_id</span><span class="o">=</span><span class="n">rp</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">expected_origin</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">rp</span><span class="o">.</span><span class="n">origins</span><span class="p">),</span>
+                <span class="n">credential_public_key</span><span class="o">=</span><span class="n">unb64url</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s2">"public_key"</span><span class="p">]),</span>
+                <span class="n">credential_current_sign_count</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">sign_count</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="n">require_user_verification</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - every library failure is a refusal</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"The passkey could not be verified (</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">)."</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_spend</span><span class="p">(</span><span class="n">challenge</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">usage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"sign_count"</span><span class="p">:</span> <span class="n">verified</span><span class="o">.</span><span class="n">new_sign_count</span><span class="p">,</span>
+                <span class="s2">"last_used_at"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span><span class="p">(),</span>
+            <span class="p">}</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - bookkeeping must never block a sign-in</span>
+            <span class="k">pass</span>
+        <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">record</span>
+
+<div class="viewcode-block" id="PasskeyService.login">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.login">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">login</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">credential</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">rp</span><span class="p">:</span> <span class="n">RelyingParty</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Verify a sign-in assertion; return the account it signs in."""</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_assert</span><span class="p">(</span><span class="n">credential</span><span class="p">,</span> <span class="n">rp</span><span class="p">,</span> <span class="n">purpose</span><span class="o">=</span><span class="s2">"login"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">record</span><span class="p">[</span><span class="s2">"email"</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="PasskeyService.step_up">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.step_up">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">step_up</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">credential</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">rp</span><span class="p">:</span> <span class="n">RelyingParty</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Verify a step-up for *action*; return ``{proof, action, expires_in}``."""</span>
+        <span class="n">action</span> <span class="o">=</span> <span class="n">clean_action</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+        <span class="n">key</span><span class="p">,</span> <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_assert</span><span class="p">(</span>
+            <span class="n">credential</span><span class="p">,</span> <span class="n">rp</span><span class="p">,</span> <span class="n">purpose</span><span class="o">=</span><span class="s2">"step-up"</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="n">action</span>
+        <span class="p">)</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"e"</span><span class="p">:</span> <span class="n">email</span><span class="p">,</span>
+            <span class="s2">"a"</span><span class="p">:</span> <span class="n">action</span><span class="p">,</span>
+            <span class="s2">"k"</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
+            <span class="s2">"j"</span><span class="p">:</span> <span class="n">secrets</span><span class="o">.</span><span class="n">token_urlsafe</span><span class="p">(</span><span class="mi">16</span><span class="p">),</span>
+            <span class="s2">"t"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span><span class="p">(),</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"proof"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_serializer</span><span class="p">()</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">),</span>
+            <span class="s2">"action"</span><span class="p">:</span> <span class="n">action</span><span class="p">,</span>
+            <span class="s2">"expires_in"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">proof_ttl</span><span class="p">,</span>
+        <span class="p">}</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_serializer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">itsdangerous</span><span class="w"> </span><span class="kn">import</span> <span class="n">URLSafeSerializer</span>
+
+        <span class="k">return</span> <span class="n">URLSafeSerializer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">,</span> <span class="n">salt</span><span class="o">=</span><span class="s2">"enlace-passkey-step-up"</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PasskeyService.redeem">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.redeem">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">redeem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proof</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Spend a step-up proof for *action* by *email*; return what it proves.</span>
+
+<span class="sd">        ``{email, action, verified_at, method, passkey}``. Raises</span>
+<span class="sd">        :class:`PasskeyError` for a forged, expired, spent, other-action or</span>
+<span class="sd">        other-account proof, or one whose passkey has since been removed. The</span>
+<span class="sd">        caller names the account it expects, so "someone confirmed" can never</span>
+<span class="sd">        pass for "the owner confirmed".</span>
+<span class="sd">        """</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">itsdangerous</span><span class="w"> </span><span class="kn">import</span> <span class="n">BadSignature</span>
+
+        <span class="n">action</span> <span class="o">=</span> <span class="n">clean_action</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">proof</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">proof</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2048</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"Not a step-up proof."</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">payload</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_serializer</span><span class="p">()</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">proof</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">BadSignature</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"Not a step-up proof."</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"Not a step-up proof."</span><span class="p">)</span>
+        <span class="n">at</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"t"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">at</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="p">(</span>
+            <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span><span class="p">()</span> <span class="o">-</span> <span class="n">at</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proof_ttl</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This step-up proof has expired."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">hmac</span><span class="o">.</span><span class="n">compare_digest</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)),</span> <span class="n">action</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This step-up proof is for another action."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">hmac</span><span class="o">.</span><span class="n">compare_digest</span><span class="p">(</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"e"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">email</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This step-up proof is for another account."</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"k"</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">)</span> <span class="o">!=</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"e"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"The passkey behind this proof was removed."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_claim</span><span class="p">(</span>
+            <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="sa">b</span><span class="s2">"proof|"</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"j"</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This step-up proof was already used."</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"email"</span><span class="p">:</span> <span class="n">payload</span><span class="p">[</span><span class="s2">"e"</span><span class="p">],</span>
+            <span class="s2">"action"</span><span class="p">:</span> <span class="n">action</span><span class="p">,</span>
+            <span class="s2">"verified_at"</span><span class="p">:</span> <span class="n">at</span><span class="p">,</span>
+            <span class="s2">"method"</span><span class="p">:</span> <span class="s2">"passkey"</span><span class="p">,</span>
+            <span class="s2">"passkey"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"Passkey"</span><span class="p">,</span>
+        <span class="p">}</span></div>
+</div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_as_dict</span><span class="p">(</span><span class="n">credential</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">credential</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">credential</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">credential</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"Malformed passkey response."</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">credential</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"Malformed passkey response."</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">credential</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_transports</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">webauthn.helpers.structs</span><span class="w"> </span><span class="kn">import</span> <span class="n">AuthenticatorTransport</span>
+
+    <span class="n">known</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">AuthenticatorTransport</span><span class="p">}</span>
+    <span class="n">picked</span> <span class="o">=</span> <span class="p">[</span><span class="n">known</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">values</span> <span class="ow">or</span> <span class="p">[])</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">known</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">picked</span> <span class="ow">or</span> <span class="kc">None</span>
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># the policy</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="PasskeyPolicy">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyPolicy">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PasskeyPolicy</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Which accounts must sign in with a passkey.</span>
+
+<span class="sd">    *required* holds account keys (lower-case, every spelling already listed).</span>
+<span class="sd">    The rule applies to an account once it has *enforce_from* passkeys, or one</span>
+<span class="sd">    synced passkey (*synced*: it is on every device of its keychain); below</span>
+<span class="sd">    that it may still sign in by its other methods, so it can enrol (a lockout</span>
+<span class="sd">    guard: one lost device must not lock an account out).</span>
+
+<span class="sd">    &gt;&gt;&gt; p = PasskeyPolicy(frozenset({"a@x.io"}), count=lambda e: 2, enforce_from=2)</span>
+<span class="sd">    &gt;&gt;&gt; p.refusal("a@x.io", "password") is not None, p.refusal("a@x.io", "passkey")</span>
+<span class="sd">    (True, None)</span>
+<span class="sd">    &gt;&gt;&gt; one = PasskeyPolicy(frozenset({"a@x.io"}), count=lambda e: 1)</span>
+<span class="sd">    &gt;&gt;&gt; one.refusal("a@x.io", "password")  # below enforce_from: not yet</span>
+<span class="sd">    &gt;&gt;&gt; p.refusal("b@x.io", "password")</span>
+<span class="sd">    """</span>
+
+    <span class="n">required</span><span class="p">:</span> <span class="nb">frozenset</span>
+    <span class="n">count</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">int</span><span class="p">]</span>
+    <span class="n">enforce_from</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">synced</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">_email</span><span class="p">:</span> <span class="kc">False</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">requires</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">email</span><span class="p">)</span> <span class="ow">and</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">required</span>
+
+<div class="viewcode-block" id="PasskeyPolicy.enforced">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyPolicy.enforced">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">enforced</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""True when *email* is required to use a passkey right now."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">requires</span><span class="p">(</span><span class="n">email</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">n</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enforce_from</span> <span class="ow">or</span> <span class="p">(</span><span class="n">n</span> <span class="o">&gt;=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">synced</span><span class="p">(</span><span class="n">email</span><span class="p">)))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - an unreadable store fails closed</span>
+            <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="PasskeyPolicy.refusal">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyPolicy.refusal">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">refusal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""``None`` to admit a sign-in by *method*, else the reason to refuse."""</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"passkey"</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">enforced</span><span class="p">(</span><span class="n">email</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="s2">"This account signs in with a passkey."</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="required_accounts">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.required_accounts">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">required_accounts</span><span class="p">(</span><span class="n">entries</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Lower-cased account keys from already-expanded entries.</span>
+
+<span class="sd">    &gt;&gt;&gt; sorted(required_accounts(["A@x.io", "b@x.io", ""]))</span>
+<span class="sd">    ['a@x.io', 'b@x.io']</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">entries</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">e</span><span class="p">)</span></div>
+
+
+
+<span class="n">__all__</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"MAX_ACTION_LEN"</span><span class="p">,</span>
+    <span class="s2">"PasskeyError"</span><span class="p">,</span>
+    <span class="s2">"PasskeyPolicy"</span><span class="p">,</span>
+    <span class="s2">"PasskeyService"</span><span class="p">,</span>
+    <span class="s2">"RelyingParty"</span><span class="p">,</span>
+    <span class="s2">"b64url"</span><span class="p">,</span>
+    <span class="s2">"clean_action"</span><span class="p">,</span>
+    <span class="s2">"clean_name"</span><span class="p">,</span>
+    <span class="s2">"memory_claim"</span><span class="p">,</span>
+    <span class="s2">"passkey_key"</span><span class="p">,</span>
+    <span class="s2">"required_accounts"</span><span class="p">,</span>
+    <span class="s2">"unb64url"</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

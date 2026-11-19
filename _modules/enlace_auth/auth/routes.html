@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=0ec583c6"></script>
+    <script src="../../../_static/documentation_options.js?v=aabd07df"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.54" />
+  <meta name="docsearch:version" content="0.1.55" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -904,7 +904,7 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># to someone who does not already hold the credentials.</span>
         <span class="k">if</span> <span class="n">is_disabled</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="n">DISABLED_DETAIL</span><span class="p">)</span>
-        <span class="n">session_id</span> <span class="o">=</span> <span class="n">open_session</span><span class="p">(</span><span class="n">session_store</span><span class="p">,</span> <span class="n">user_store</span><span class="p">,</span> <span class="n">email</span><span class="p">)</span>
+        <span class="n">session_id</span> <span class="o">=</span> <span class="n">open_session</span><span class="p">(</span><span class="n">session_store</span><span class="p">,</span> <span class="n">user_store</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"password"</span><span class="p">)</span>
         <span class="n">_set_session_cookie</span><span class="p">(</span>
             <span class="n">response</span><span class="p">,</span>
             <span class="n">session_id</span><span class="p">,</span>
@@ -1158,6 +1158,12 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># its password is left as it was for when it is re-enabled.</span>
         <span class="k">if</span> <span class="n">is_disabled</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="n">DISABLED_DETAIL</span><span class="p">)</span>
+        <span class="c1"># An account that signs in only by passkey is refused BEFORE anything</span>
+        <span class="c1"># changes: a mailbox holder must not log it out everywhere and plant a</span>
+        <span class="c1"># password that would work again if the policy were ever relaxed.</span>
+        <span class="n">admit</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">session_store</span><span class="p">,</span> <span class="s2">"admit"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">admit</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">refusal</span> <span class="o">:=</span> <span class="n">admit</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="s2">"password-reset"</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="n">refusal</span><span class="p">)</span>
         <span class="n">record</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
         <span class="n">record</span><span class="p">[</span><span class="s2">"password_hash"</span><span class="p">]</span> <span class="o">=</span> <span class="n">hash_password</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">new_password</span><span class="p">)</span>
         <span class="c1"># A reset is account recovery: external sign-ins linked to the account</span>
@@ -1167,7 +1173,9 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># A reset is the recovery path for a compromised account, so every</span>
         <span class="c1"># session opened with the old password ends here.</span>
         <span class="n">credentials_changed</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
-        <span class="n">session_id</span> <span class="o">=</span> <span class="n">open_session</span><span class="p">(</span><span class="n">session_store</span><span class="p">,</span> <span class="n">user_store</span><span class="p">,</span> <span class="n">email</span><span class="p">)</span>
+        <span class="n">session_id</span> <span class="o">=</span> <span class="n">open_session</span><span class="p">(</span>
+            <span class="n">session_store</span><span class="p">,</span> <span class="n">user_store</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"password-reset"</span>
+        <span class="p">)</span>
         <span class="n">_set_session_cookie</span><span class="p">(</span>
             <span class="n">response</span><span class="p">,</span>
             <span class="n">session_id</span><span class="p">,</span>

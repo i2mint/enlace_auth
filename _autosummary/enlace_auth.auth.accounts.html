@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=0ec583c6"></script>
+    <script src="../_static/documentation_options.js?v=aabd07df"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.54" />
+  <meta name="docsearch:version" content="0.1.55" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -347,6 +347,13 @@
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.diagnostics.html">enlace_auth.diagnostics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.emails.html">enlace_auth.emails</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.groups.html">enlace_auth.groups</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.passkeys.html">enlace_auth.passkeys</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.core.html">enlace_auth.passkeys.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.pages.html">enlace_auth.passkeys.pages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.routes.html">enlace_auth.passkeys.routes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.texts.html">enlace_auth.passkeys.texts</a></li>
+</ul>
+</details></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.ratelimit.html">enlace_auth.ratelimit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.resource_policy.html">enlace_auth.resource_policy</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.signup.html">enlace_auth.signup</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -474,7 +481,7 @@ it in its own mapping (<code class="docutils literal notranslate"><span class="p
 <tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.make_account_records" title="enlace_auth.auth.accounts.make_account_records"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_account_records</span></code></a>(store_factory)</p></td>
 <td><p>The platform's user records: <code class="docutils literal notranslate"><span class="pre">users</span></code> plus the <code class="docutils literal notranslate"><span class="pre">disabled_accounts</span></code> marks.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.open_session" title="enlace_auth.auth.accounts.open_session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_session</span></code></a>(session_store, user_store, email)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.open_session" title="enlace_auth.auth.accounts.open_session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_session</span></code></a>(session_store, user_store, email, *)</p></td>
 <td><p>Create a session for <em>email</em> and return its id, unless it is disabled.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.accounts.set_disabled" title="enlace_auth.auth.accounts.set_disabled"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_disabled</span></code></a>(user_store, email, disabled, *)</p></td>
@@ -568,14 +575,14 @@ the record stays disabled (rewrites keep it) until an enable clears it.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_auth.auth.accounts.make_account_deleter">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.accounts.</span></span><span class="sig-name descname"><span class="pre">make_account_deleter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">credentials_changed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">share_store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grant_store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sign_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/accounts.html#make_account_deleter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.accounts.make_account_deleter" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.accounts.</span></span><span class="sig-name descname"><span class="pre">make_account_deleter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">credentials_changed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">share_store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grant_store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sign_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">passkeys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/accounts.html#make_account_deleter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.accounts.make_account_deleter" title="Link to this definition">#</a></dt>
 <dd><p>Return <code class="docutils literal notranslate"><span class="pre">delete(email)</span></code>: remove an account and what hangs off it.</p>
 <p>The record goes first, then its sessions and connector refresh families
 (<code class="docutils literal notranslate"><span class="pre">credentials_changed</span></code>), so a failure later cannot leave a deleted account
 signed in. Then, each optional and each failing alone: the shares naming it,
 its runtime grants (stored under exactly its key: the other spelling of the
 address may be another account), its per-user data (every key under
-<code class="docutils literal notranslate"><span class="pre">{email}/</span></code> in the base store), and its last-sign-in time. Raises
+<code class="docutils literal notranslate"><span class="pre">{email}/</span></code> in the base store), its last-sign-in time, and its passkeys. Raises
 <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> when there is no such account; a damaged grant or data key is
 logged and skipped.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">users</span><span class="p">,</span> <span class="n">ended</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"a@x.io"</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">"b@x.io"</span><span class="p">:</span> <span class="p">{}},</span> <span class="p">[]</span>
@@ -615,12 +622,18 @@ logged and skipped.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_auth.auth.accounts.open_session">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.accounts.</span></span><span class="sig-name descname"><span class="pre">open_session</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">email</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/accounts.html#open_session"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.accounts.open_session" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.accounts.</span></span><span class="sig-name descname"><span class="pre">open_session</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'unknown'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/accounts.html#open_session"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.accounts.open_session" title="Link to this definition">#</a></dt>
 <dd><p>Create a session for <em>email</em> and return its id, unless it is disabled.</p>
+<p><em>method</em> names how the account proved itself (<code class="docutils literal notranslate"><span class="pre">password</span></code>, <code class="docutils literal notranslate"><span class="pre">email-code</span></code>,
+<code class="docutils literal notranslate"><span class="pre">oauth</span></code>, <code class="docutils literal notranslate"><span class="pre">passkey</span></code>, …). Before anything is created, the session store’s
+<code class="docutils literal notranslate"><span class="pre">admit(email,</span> <span class="pre">method)</span></code> hook, when it has one, may refuse it (the
+passkey-required policy, <a class="reference internal" href="enlace_auth.passkeys.html#module-enlace_auth.passkeys" title="enlace_auth.passkeys"><code class="xref py py-mod docutils literal notranslate"><span class="pre">enlace_auth.passkeys</span></code></a>): every sign-in path
+comes through here, so a path that forgets to name its method is refused
+like any method that is not a passkey.</p>
 <p>The disabled check runs AFTER the session exists: if an admin disabled the
 account (and revoked its sessions) while this sign-in was in flight, the
 new session is deleted here and the sign-in refused. Raises
-<code class="docutils literal notranslate"><span class="pre">fastapi.HTTPException(403)</span></code> in that case.</p>
+<code class="docutils literal notranslate"><span class="pre">fastapi.HTTPException(403)</span></code> in either case.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
