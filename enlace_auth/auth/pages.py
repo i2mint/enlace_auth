@@ -274,6 +274,7 @@ def render_login_page(
     email_section: str = "",
     password_summary: str = "Sign in with a password instead",
     lang: str = "en",
+    passkey_section: str = "",
 ) -> str:
     """Render the sign-in form.
 
@@ -287,6 +288,8 @@ def render_login_page(
             When given, the password form folds under *password_summary* and
             the section carries its own sign-up note instead of the hint.
         lang: the page's ``lang`` attribute.
+        passkey_section: trusted markup shown first (the passkey button and
+            autofill from :mod:`enlace_auth.passkeys.pages`).
     """
     next_js = _js_string(next_url)
     hint = (
@@ -310,6 +313,7 @@ def render_login_page(
     body = f"""<div class="card">
 <h1>Sign in</h1>
 <p class="sub">Access your apps on this platform.</p>
+{passkey_section}
 {email_section}
 {password_form}
 {_msg_div(error)}

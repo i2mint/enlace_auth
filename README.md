@@ -89,7 +89,8 @@ print(client.get("/auth/whoami").json())
 
 - `/auth/login`, `/auth/logout`, `/auth/whoami`, `/auth/csrf`, `/auth/me/password`, `/auth/shared-login`
 - self-service sign-up and sign-in by emailed code (`/auth/email/*`, the verify-first `/auth/register`), with a per-app sign-up policy; see [Self-service sign-up](#self-service-sign-up)
-- `/auth/account`: the signed-in user changes their own password, or deletes their account
+- `/auth/account`: the signed-in user changes their own password, adds or removes passkeys, or deletes their account
+- passkeys (WebAuthn): sign-in with autofill, a step-up confirmation that hands an app a single-use proof, and a per-account "passkey required" policy; see [Passkeys and step-up](#passkeys-and-step-up)
 - `/auth/forgot-password`: self-service reset by emailed link
 - `/_admin/api/*`: list, create and delete users, mint a password-reset link, set a password directly, view app policy, and **grant or revoke per-app access at runtime** (optional expiry). Gated by an admin allowlist.
 - per-user data injection via `request.state.store`
@@ -155,6 +156,22 @@ terms_version = "2026-11"
 - Mail and code checks are rate-limited per address, per IP and overall (`[auth.signup.limits]`), and the form carries a honeypot plus a time-to-submit check. Behind a proxy, run uvicorn with `--forwarded-allow-ips` set to the proxy so the per-IP limit sees real clients.
 - A signed-in user deletes their own account from `/auth/account`, confirmed by a mailed code; that removes its sessions, connector sessions, shares, grants and per-user data.
 - `registration_open = true` still works and means `default = "open"`. `/auth/register` (email plus a password of at least 15 characters) now mails a code too, and creates the account at verify.
+
+### Passkeys and step-up
+
+Off by default; py_webauthn comes with enlace_auth. Turn them on:
+
+```toml
+[auth.passkeys]
+enabled = true
+# rp_id = "example.com"          # default: the host of the public origin
+# required = ["@admins"]         # must sign in by passkey, once they have enforce_from
+# enforce_from = 2               # passkeys before the rule applies (lockout guard)
+```
+
+- Any signed-in account adds passkeys from `/auth/account` (a sign-in from the last 15 minutes is needed to add or remove one; each change is mailed to the account, and a removal ends its other sessions). The sign-in page gets a passkey button and passkey autofill on its email field.
+- **Step-up**: a page calls `enlacePasskeys.stepUp("start job: repo, title")` (from `/auth/passkeys/passkeys.js`); the user confirms with Face ID or Touch ID and gets a proof, valid once for 120 seconds; the app or connector backend calls `POST /auth/passkeys/step-up/redeem {proof, action}` before acting. The answer the authenticator signs commits to the action text, so a proof for one action never redeems for another. Details in the consumer skill (`enlace_auth/data/skills/enlace-auth-usage`).
+- `required` accounts refuse every other sign-in method once they have `enforce_from` passkeys. A lost device is removed with `enlace-auth remove-passkey EMAIL --passkey-id ID`.
 
 ### OAuth 2.1 authorization server (MCP connectors)
 

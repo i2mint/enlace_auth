@@ -32,6 +32,7 @@ dependencies = [
     "dol>=0.2",
     "email-validator>=2.0",
     "cw>=0.1.1,<0.2",
+    "webauthn>=3.0.1,<4",  # py_webauthn (BSD-3): passkeys, enlace_auth.passkeys
 ]
 
 [project.urls]
@@ -73,6 +74,9 @@ ignore = ["D203"]
 # One translated sentence per line, and inline page markup: wrapping them hurts review.
 "enlace_auth/signup/texts.py" = ["E501"]
 "enlace_auth/signup/pages.py" = ["E501"]
+"enlace_auth/passkeys/texts.py" = ["E501"]
+"enlace_auth/passkeys/pages.py" = ["E501"]
+"tests/test_passkeys.py" = ["E501"]
 
 [tool.wads.ci]
 installer = "uv"

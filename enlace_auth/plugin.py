@@ -729,6 +729,126 @@ def _wire_signup(
     return hooks
 
 
+def _build_passkeys(
+    config, auth_cfg, *, platform_factory, admin_emails: tuple[str, ...], signing_key
+) -> Optional[dict]:
+    """The passkey service, policy and relying party of ``[auth.passkeys]``.
+
+    ``None`` when passkeys are off. Built before the session store, which takes
+    the policy as its ``admit`` hook. When py_webauthn is missing (installed with
+    ``--no-deps``) or
+    the relying party is misconfigured, the error is logged and no router is
+    mounted, but the policy still applies (fail closed): a required account that
+    has its passkeys is not let back in by a password because a deploy dropped a
+    dependency.
+    """
+    cfg = auth_cfg.passkeys
+    if not cfg.enabled:
+        return None
+    import importlib.util
+
+    from enlace_auth.passkeys.core import (
+        PasskeyPolicy,
+        PasskeyService,
+        RelyingParty,
+        required_accounts,
+    )
+
+    service = PasskeyService(
+        platform_factory("passkeys"),
+        signing_key=signing_key,
+        usage=platform_factory("passkey_usage"),
+        claim_once=_make_file_claim(
+            Path(os.path.expanduser(auth_cfg.stores.path)) / "passkey_claims",
+            keep_seconds=2 * max(cfg.challenge_ttl_seconds, cfg.step_up_ttl_seconds),
+        ),
+        challenge_ttl=cfg.challenge_ttl_seconds,
+        proof_ttl=cfg.step_up_ttl_seconds,
+    )
+    required = _expand_allowed_users(
+        cfg.required,
+        admin_emails,
+        app_name="[auth.passkeys] required",
+        groups=auth_cfg.groups,
+    )
+    policy = PasskeyPolicy(
+        required_accounts(e for e in required if not is_group_ref(e)),
+        count=service.count,
+        enforce_from=cfg.enforce_from,
+    )
+    out = {"service": service, "policy": policy, "relying_party": None}
+    if importlib.util.find_spec("webauthn") is None:
+        _logger.error(
+            "enlace_auth: [auth.passkeys] is enabled but py_webauthn is not "
+            "installed. Passkey endpoints will be MISSING (the passkey-required "
+            "policy still applies). Reinstall enlace_auth with its dependencies."
+        )
+        return out
+    public = _public_base_url(config, auth_cfg)
+    origins = list(cfg.origins) or ([public] if public else [])
+    try:
+        if origins:
+            fixed = RelyingParty(
+                cfg.rp_id or _host_of(origins[0]),
+                cfg.rp_name or cfg.rp_id or _host_of(origins[0]),
+                tuple(o.rstrip("/") for o in origins),
+            )
+            out["relying_party"] = lambda _request: fixed
+        else:  # a local dev server: the origin it is being served from
+            out["relying_party"] = lambda request: RelyingParty.for_origin(
+                str(request.base_url), rp_id=cfg.rp_id, name=cfg.rp_name
+            )
+    except ValueError as e:
+        _logger.error(
+            "enlace_auth: [auth.passkeys] %s. Passkey endpoints will be MISSING.", e
+        )
+    return out
+
+
+def _passkey_page_extras(passkeys: Optional[dict], signup: dict) -> dict:
+    """The sign-in and account page hooks, with the passkey markup added.
+
+    Returns ``{"login_page_extras", "account_page_extras"}`` for
+    :func:`~enlace_auth.auth.routes.make_auth_router`: sign-up's hooks unchanged
+    when passkeys are off or not mounted, else wrapped so the sign-in page gets
+    the passkey button and autofill, and the account page a passkey card above
+    sign-up's deletion card.
+    """
+    login, account = signup["login_page_extras"], signup["account_page_extras"]
+    if not passkeys or passkeys["relying_party"] is None:
+        return {"login_page_extras": login, "account_page_extras": account}
+    from enlace_auth.passkeys.pages import (
+        render_account_section,
+        render_signin_section,
+    )
+    from enlace_auth.signup.texts import pick_lang
+
+    def login_page_extras(request, next_url: str) -> dict:
+        extras = dict(login(request, next_url) if login else {})
+        lang = pick_lang(request.headers.get("accept-language"))
+        extras["passkey_section"] = render_signin_section(lang=lang, next_url=next_url)
+        return extras
+
+    def account_page_extras(request, email: str) -> dict:
+        extras = dict(account(request, email) if account else {})
+        lang = pick_lang(request.headers.get("accept-language"))
+        extras["extra_section"] = render_account_section(lang=lang) + extras.get(
+            "extra_section", ""
+        )
+        return extras
+
+    return {
+        "login_page_extras": login_page_extras,
+        "account_page_extras": account_page_extras,
+    }
+
+
+def _host_of(origin: str) -> str:
+    from urllib.parse import urlsplit
+
+    return (urlsplit(origin).hostname or "").lower()
+
+
 def wire(parent: "FastAPI", config) -> None:
     """Mount /auth/*, /_admin/*, store routes, and middleware on ``parent``.
 
@@ -761,10 +881,20 @@ def wire(parent: "FastAPI", config) -> None:
     session_backend = platform_factory("sessions")
     # Disabled marks are kept apart from the records they mark (#71).
     user_backend = make_account_records(platform_factory)
+    admin_emails = platform_admin_emails(auth_cfg)
+    passkeys = _build_passkeys(
+        config,
+        auth_cfg,
+        platform_factory=platform_factory,
+        admin_emails=admin_emails,
+        signing_key=signing_key,
+    )
     session_store = SessionStore(
         session_backend,
         max_age=auth_cfg.session_max_age_seconds,
         sign_ins=platform_factory("sign_ins"),
+        # Every sign-in path asks this before opening a session (open_session).
+        admit=passkeys["policy"].refusal if passkeys else None,
     )
 
     # Runtime per-app access grants (additive, optional UTC expiry). Lives beside
@@ -793,7 +923,6 @@ def wire(parent: "FastAPI", config) -> None:
         user_data_factory = make_file_store_factory(user_data_cfg.path)
         user_data_backend = user_data_factory("user_data")
 
-    admin_emails = platform_admin_emails(auth_cfg)
     invites = platform_factory("invites")
     signup_policy = _build_signup_policy(auth_cfg, admin_emails, invites=invites)
 
@@ -924,8 +1053,10 @@ def wire(parent: "FastAPI", config) -> None:
             grant_store=grant_store,
             user_data=user_data_backend,
             sign_ins=platform_factory("sign_ins"),
+            passkeys=passkeys["service"] if passkeys else None,
         ),
     )
+    passkey_pages = _passkey_page_extras(passkeys, signup)
 
     auth_router = make_auth_router(
         session_store=session_store,
@@ -939,12 +1070,36 @@ def wire(parent: "FastAPI", config) -> None:
         public_base_url=_public_base_url(config, auth_cfg),
         on_credentials_changed=on_credentials_changed,
         reset_allowed=signup["reset_allowed"],
-        login_page_extras=signup["login_page_extras"],
-        account_page_extras=signup["account_page_extras"],
+        login_page_extras=passkey_pages["login_page_extras"],
+        account_page_extras=passkey_pages["account_page_extras"],
     )
     parent.include_router(auth_router)
     if signup["router"] is not None:
         parent.include_router(signup["router"])
+    if passkeys and passkeys["relying_party"] is not None:
+        from enlace_auth.auth.email import make_console_sender
+        from enlace_auth.passkeys.routes import make_passkey_router
+        from enlace_auth.signup.texts import pick_lang
+
+        parent.include_router(
+            make_passkey_router(
+                service=passkeys["service"],
+                session_store=session_store,
+                user_store=user_backend,
+                signing_key=signing_key,
+                relying_party=passkeys["relying_party"],
+                policy=passkeys["policy"],
+                # No SMTP: the notice goes to the log, like a sign-up code.
+                send_email=email_sender or make_console_sender(),
+                on_credentials_changed=on_credentials_changed,
+                cookie_name=auth_cfg.session_cookie_name,
+                session_max_age=auth_cfg.session_max_age_seconds,
+                secure_cookies=auth_cfg.secure_cookies,
+                fresh_seconds=auth_cfg.passkeys.fresh_seconds,
+                public_base_url=_public_base_url(config, auth_cfg),
+                pick_lang=pick_lang,
+            )
+        )
 
     # Optional OAuth router (lazy import of Authlib).
     if auth_cfg.oauth:
@@ -1118,6 +1273,12 @@ def wire(parent: "FastAPI", config) -> None:
     # proxy to a black-box upstream that can't participate in enlace's
     # double-submit flow, so their entire mount prefix must also be exempt.
     csrf_exempt = ["/auth/callback", "/auth/login/", "/api/"]
+    if passkeys:
+        # A backend redeems a step-up proof with no cookie at all: the proof in
+        # the body is the credential, so a double-submit token protects nothing.
+        from enlace_auth.passkeys.routes import REDEEM_PATH
+
+        csrf_exempt.append(REDEEM_PATH)
     if auth_cfg.oauth_server.enabled:
         # OAuth 2.1 server endpoints: /register + /token are cookieless
         # machine-to-machine calls (protected by PKCE + client validation), and

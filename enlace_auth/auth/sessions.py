@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import secrets
 import time
-from collections.abc import MutableMapping
+from collections.abc import Callable, MutableMapping
 from itertools import islice
 from typing import Any, Optional
 
@@ -29,7 +29,12 @@ class SessionStore:
         sweep_batch: int = 100,
         sweep_interval: float = 3600.0,
         sign_ins: Optional[MutableMapping] = None,
+        admit: Optional[Callable[[str, str], Optional[str]]] = None,
     ):
+        # *admit* ``(email, method) -> None | reason`` may refuse a sign-in
+        # before its session exists (see ``accounts.open_session``); the
+        # platform passes the passkey-required policy.
+        self.admit = admit
         # *sign_ins* (email -> epoch seconds) records when each account last
         # opened a session. Kept apart from the user records on purpose: a
         # read-modify-write of the user record at every login could overwrite

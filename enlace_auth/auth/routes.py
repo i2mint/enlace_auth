@@ -188,7 +188,7 @@ def make_auth_router(
         # to someone who does not already hold the credentials.
         if is_disabled(record):
             raise HTTPException(status_code=403, detail=DISABLED_DETAIL)
-        session_id = open_session(session_store, user_store, email)
+        session_id = open_session(session_store, user_store, email, method="password")
         _set_session_cookie(
             response,
             session_id,
@@ -451,7 +451,9 @@ def make_auth_router(
         # A reset is the recovery path for a compromised account, so every
         # session opened with the old password ends here.
         credentials_changed(email)
-        session_id = open_session(session_store, user_store, email)
+        session_id = open_session(
+            session_store, user_store, email, method="password-reset"
+        )
         _set_session_cookie(
             response,
             session_id,

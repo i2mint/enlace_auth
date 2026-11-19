@@ -509,7 +509,7 @@ def make_oauth_router(
                         provider: subject,
                     },
                 }
-        session_id = open_session(session_store, user_store, email)
+        session_id = open_session(session_store, user_store, email, method="oauth")
         resp = JSONResponse({"ok": True, "email": email})
         _set_session_cookie(resp, session_id)
         return resp

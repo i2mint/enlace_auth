@@ -7,8 +7,10 @@ description: >-
   enlace-auth CLI, protected:user or protected:shared apps, ENLACE_SIGNING_KEY,
   ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user,
   reset-link, grant, share, invite, [auth.signup], sign-up, "continue with
-  email" or account deletion; or wants to put login or self-service sign-up in
-  front of apps served by enlace.
+  email" or account deletion, passkeys, WebAuthn, Face ID or Touch ID sign-in,
+  a step-up confirmation or step-up proof; or wants to put login, self-service
+  sign-up, or a "confirm this action with your passkey" tap in front of apps
+  served by enlace.
 metadata:
   audience: users
 ---
@@ -58,9 +60,44 @@ Off by default. `[auth.signup]` sets a policy per app: `default = "closed"` plus
 - **The account is platform-wide, and access is unchanged: a `protected:user` app with no `allowed_users` opens to every account.** Give it `allowed_users = ["@admins"]` (or a list) before opening sign-up anywhere; `enlace doctor` fails until you do.
 - Set `privacy_url`, `terms_url` and `terms_version`. Signed-in users delete their own account from `/auth/account`, confirmed by a mailed code. Children under 15 must not sign up themselves; managed profiles held by an adult are planned (i2mint/enlace_auth#81).
 
+## 3c. Passkeys, and confirming an action with one (step-up)
+
+Off by default: set `[auth.passkeys] enabled = true` (py_webauthn comes with enlace_auth). The relying party is the platform's public origin (the OAuth issuer, else `https://{domain}`); set `rp_id = "example.com"` to let one passkey cover sibling hosts, and `origins = [...]` to accept more than one. Changing `rp_id` later orphans every passkey already made.
+
+- **Add and remove** from `/auth/account` (any signed-in account, several per account, each named). Both need a sign-in from the last 15 minutes (`fresh_seconds`), mail the account a notice, and a removal ends the account's other sessions and connector sessions. Recovery for a lost device: `enlace-auth list-passkeys EMAIL`, `enlace-auth remove-passkey EMAIL --passkey-id ID` (or `--all`).
+- **Sign in** with the "Sign in with a passkey" button or the email field's autofill on `/auth/login`. The email code and password stay as the way back in.
+- **Require it** for some accounts: `required = ["@admins", "@family", "a@x.io"]`. The rule applies once an account has `enforce_from` passkeys (default 2), so one lost device never locks an account out; then every other sign-in method answers 403 for it. A required account cannot remove its last passkey from the page.
+
+**Step-up: a backend asks the account holder to confirm one action in person.** The proof is single-use, lives 120 seconds (`step_up_ttl_seconds`), and names the account and the exact action text it was signed for.
+
+1. On a page of a signed-in user (any app on the platform), show the action, then:
+
+   ```html
+   <script src="/auth/passkeys/passkeys.js"></script>
+   <script type="module">
+     const action = "start job: owner/repo, 'title'";   // what the user sees
+     const {proof} = await enlacePasskeys.stepUp(action);  // Face ID / Touch ID
+     await fetch("/api/myapp/jobs/42/confirm", {method: "POST", body: JSON.stringify({proof})});
+   </script>
+   ```
+
+   `stepUp` rejects with `err.name === "NotAllowedError"` when the user cancels, and with `err.status === 409` when the account has no passkey yet (send them to `/auth/account`).
+2. The backend, before acting, redeems it. No cookie and no CSRF token are needed; state the action you are about to perform, and check the account:
+
+   ```python
+   r = httpx.post(f"{PLATFORM}/auth/passkeys/step-up/redeem",
+                  json={"proof": proof, "action": "start job: owner/repo, 'title'"})
+   ok = r.status_code == 200 and r.json()["email"] == expected_owner
+   # 200 -> {"ok": true, "email", "action", "verified_at", "passkey"}; 400 otherwise
+   ```
+
+   A proof for another action, a second redemption, an expired proof, or one whose passkey was removed answers 400; a disabled account 403. Build the action text on the backend from the job itself, never from what the browser sends back, and compare the returned `email`.
+
+Raw endpoints, for a client without the helper: `POST /auth/passkeys/step-up/options {action}` returns WebAuthn request options (base64url JSON, user verification required); `POST /auth/passkeys/step-up/verify {action, credential}` takes the `PublicKeyCredential` as JSON and returns `{proof, action, expires_in}`. Both need the session cookie and the CSRF pair.
+
 ## 4. Calling the HTTP API correctly
 
-Every POST, PUT, PATCH and DELETE needs the CSRF pair, except the OAuth callback and consent routes (`/auth/callback`, `/auth/login/<provider>`, `/auth/oauth/`), sub-app APIs under `/api/` (but not `/api/{app}/store`), and proxied `process`/`external` apps. That covers `/auth`, `/_admin`, `/_apps/{name}/meta` and the per-user store. Fetch the token first, then echo it in a header:
+Every POST, PUT, PATCH and DELETE needs the CSRF pair, except the OAuth callback and consent routes (`/auth/callback`, `/auth/login/<provider>`, `/auth/oauth/`), the step-up redeem (`/auth/passkeys/step-up/redeem`), sub-app APIs under `/api/` (but not `/api/{app}/store`), and proxied `process`/`external` apps. That covers `/auth`, `/_admin`, `/_apps/{name}/meta` and the per-user store. Fetch the token first, then echo it in a header:
 
 ```python
 token = client.get("/auth/csrf").json()["csrf"]

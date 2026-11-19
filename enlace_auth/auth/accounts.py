@@ -203,16 +203,29 @@ def set_disabled(
     return record
 
 
-def open_session(session_store, user_store: MutableMapping, email: str) -> str:
+def open_session(
+    session_store, user_store: MutableMapping, email: str, *, method: str = "unknown"
+) -> str:
     """Create a session for *email* and return its id, unless it is disabled.
+
+    *method* names how the account proved itself (``password``, ``email-code``,
+    ``oauth``, ``passkey``, ...). Before anything is created, the session store's
+    ``admit(email, method)`` hook, when it has one, may refuse it (the
+    passkey-required policy, :mod:`enlace_auth.passkeys`): every sign-in path
+    comes through here, so a path that forgets to name its method is refused
+    like any method that is not a passkey.
 
     The disabled check runs AFTER the session exists: if an admin disabled the
     account (and revoked its sessions) while this sign-in was in flight, the
     new session is deleted here and the sign-in refused. Raises
-    ``fastapi.HTTPException(403)`` in that case.
+    ``fastapi.HTTPException(403)`` in either case.
     """
     from fastapi import HTTPException
 
+    admit = getattr(session_store, "admit", None)
+    refusal = admit(email, method) if callable(admit) else None
+    if refusal:
+        raise HTTPException(status_code=403, detail=refusal)
     session_id = session_store.create(user_id=email, email=email)
     try:
         disabled = is_disabled(user_store.get(email))
@@ -233,6 +246,7 @@ def make_account_deleter(
     grant_store: Any = None,
     user_data: Any = None,
     sign_ins: Any = None,
+    passkeys: Any = None,
 ) -> Callable[[str], None]:
     """Return ``delete(email)``: remove an account and what hangs off it.
 
@@ -241,7 +255,7 @@ def make_account_deleter(
     signed in. Then, each optional and each failing alone: the shares naming it,
     its runtime grants (stored under exactly its key: the other spelling of the
     address may be another account), its per-user data (every key under
-    ``{email}/`` in the base store), and its last-sign-in time. Raises
+    ``{email}/`` in the base store), its last-sign-in time, and its passkeys. Raises
     ``KeyError`` when there is no such account; a damaged grant or data key is
     logged and skipped.
 
@@ -283,6 +297,7 @@ def make_account_deleter(
             ("grants", grant_store is not None and _remove_grants),
             ("user data", user_data is not None and _remove_user_data),
             ("last sign-in", sign_ins is not None and _forget_sign_in),
+            ("passkeys", passkeys is not None and passkeys.remove_account),
         ]
         for what, step in steps:
             if not step:
