@@ -188,7 +188,7 @@ def make_auth_router(
         # to someone who does not already hold the credentials.
         if is_disabled(record):
             raise HTTPException(status_code=403, detail=DISABLED_DETAIL)
-        session_id = open_session(session_store, user_store, email)
+        session_id = open_session(session_store, user_store, email, method="password")
         _set_session_cookie(
             response,
             session_id,
@@ -442,6 +442,12 @@ def make_auth_router(
         # its password is left as it was for when it is re-enabled.
         if is_disabled(record):
             raise HTTPException(status_code=403, detail=DISABLED_DETAIL)
+        # An account that signs in only by passkey is refused BEFORE anything
+        # changes: a mailbox holder must not log it out everywhere and plant a
+        # password that would work again if the policy were ever relaxed.
+        admit = getattr(session_store, "admit", None)
+        if callable(admit) and (refusal := admit(email, "password-reset")):
+            raise HTTPException(status_code=403, detail=refusal)
         record = dict(record)
         record["password_hash"] = hash_password(body.new_password)
         # A reset is account recovery: external sign-ins linked to the account
@@ -451,7 +457,9 @@ def make_auth_router(
         # A reset is the recovery path for a compromised account, so every
         # session opened with the old password ends here.
         credentials_changed(email)
-        session_id = open_session(session_store, user_store, email)
+        session_id = open_session(
+            session_store, user_store, email, method="password-reset"
+        )
         _set_session_cookie(
             response,
             session_id,

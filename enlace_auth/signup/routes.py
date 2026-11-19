@@ -402,7 +402,7 @@ def make_signup_router(
             if callable(on_created):
                 on_created(email)
             key = email
-        session_id = open_session(session_store, user_store, key)
+        session_id = open_session(session_store, user_store, key, method="email-code")
         _cookie(
             response,
             cookie_name,

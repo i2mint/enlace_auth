@@ -17,6 +17,8 @@ Usage::
     enlace-auth grant <app_id> <email> [--expires YYYY-MM-DD] [--note ...]
     enlace-auth revoke-grant <app_id> <email>
     enlace-auth list-grants [--app NAME] [--json]
+    enlace-auth list-passkeys <email> [--json]
+    enlace-auth remove-passkey <email> [--passkey-id ID | --all]
 """
 
 from __future__ import annotations
@@ -775,6 +777,100 @@ def signup_policy(*, json: bool = False, toml: str = "platform.toml"):
         print(f"{name}\t{mode}")
 
 
+def _load_passkeys(toml_path: Path = Path("platform.toml")):
+    """Open the platform's passkey records (as the plugin does, without a router)."""
+    import os
+
+    from enlace_auth.passkeys.core import PasskeyService
+    from enlace_auth.stores import make_file_store_factory
+
+    auth = coerce_auth_config(PlatformConfig.from_toml(toml_path).auth)
+    factory = make_file_store_factory(auth.stores.path)
+    return PasskeyService(
+        factory("passkeys"),
+        signing_key=os.environ.get(auth.signing_key_env, "") or "cli-lists-only",
+        usage=factory("passkey_usage"),
+    )
+
+
+def list_passkeys(email: str, *, json: bool = False, toml: str = "platform.toml"):
+    """List an account's passkeys (id, name, added, last used).
+
+    Args:
+        email: The account.
+        json: Print JSON instead of a table.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    from enlace_auth.emails import account_spellings
+
+    service = _load_passkeys(Path(toml))
+    rows = [
+        row
+        for key in account_spellings(_normalized_email(email))
+        for row in service.list(key)
+    ]
+    if json:
+        print(json_module.dumps(rows, indent=2))
+        return
+    for row in rows:
+        print(
+            f"{row['id']}\t{row['name']}\tadded {_when(row['created_at'])}"
+            f"\tlast used {_when(row['last_used_at'])}"
+        )
+
+
+def _when(ts) -> str:
+    import datetime
+
+    if not isinstance(ts, (int, float)):
+        return "never"
+    return datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M")
+
+
+def remove_passkey(
+    email: str,
+    passkey_id: str = None,
+    *,
+    all: bool = False,
+    toml: str = "platform.toml",
+):
+    """Remove one passkey of an account (or all of them), as for a lost device.
+
+    The account's sessions and connector sessions end too, as on the account page.
+    The passkey-required policy then lets the account sign in by its other methods
+    until it has enough passkeys again.
+
+    Args:
+        email: The account.
+        passkey_id: The id from ``list-passkeys``.
+        all: Remove every passkey of the account.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    from enlace_auth.emails import account_spellings
+
+    service = _load_passkeys(Path(toml))
+    # The account may be keyed under either spelling of its address (an OAuth
+    # sign-up keeps the punycode one): try both.
+    spellings = account_spellings(_normalized_email(email))
+    key = next((k for k in spellings if service.count(k)), spellings[0])
+    if all:
+        removed = service.remove_account(key)
+    elif passkey_id:
+        removed = 1 if service.remove(key, passkey_id) else 0
+    else:
+        print("Name a passkey id (see list-passkeys) or pass --all.", file=sys.stderr)
+        sys.exit(2)
+    if not removed:
+        print(f"No such passkey for {key!r}.", file=sys.stderr)
+        sys.exit(1)
+    revoked = _load_session_store(Path(toml)).revoke_user(key)
+    families = _revoke_connector_subject(key, Path(toml))
+    print(
+        f"Removed {removed} passkey(s) of {key}; {revoked} session(s) and "
+        f"{families} connector session(s) revoked."
+    )
+
+
 #: The SSOT for the CLI surface: a verb that is not in this list does not exist.
 COMMANDS = [
     init,
@@ -798,6 +894,8 @@ COMMANDS = [
     uninvite,
     list_invites,
     signup_policy,
+    list_passkeys,
+    remove_passkey,
 ]
 
 

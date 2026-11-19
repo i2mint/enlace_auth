@@ -911,8 +911,8 @@ def test_a_sign_in_racing_a_disable_does_not_keep_its_session():
     sign_ins = {}
 
     class RacingStore(SessionStore):
-        def create(self, user_id, email=None):
-            sid = super().create(user_id, email)
+        def create(self, user_id, email=None, **kw):
+            sid = super().create(user_id, email, **kw)
             set_disabled(users, DORA, True)  # the admin's disable lands here
             return sid
 

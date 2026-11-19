@@ -316,6 +316,77 @@ class SignupConfig(_StrictModel):
         return url
 
 
+class PasskeysConfig(_StrictModel):
+    """``[auth.passkeys]``: sign-in and step-up confirmation by passkey (WebAuthn).
+
+    Off unless ``enabled``. See
+    :mod:`enlace_auth.passkeys`.
+    """
+
+    enabled: StrictBool = False
+    rp_id: Optional[str] = Field(
+        default=None,
+        description=(
+            "The WebAuthn relying-party ID: a host every origin is on or under. "
+            "Default: the host of the platform's public origin. Set it to the "
+            "parent domain (e.g. 'example.com') for one passkey to cover sibling "
+            "hosts. Changing it later orphans every passkey already made."
+        ),
+    )
+    rp_name: Optional[str] = Field(
+        default=None, description="The name a device shows; default: the RP ID."
+    )
+    origins: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Origins a passkey answer may come from (https://host). Default: the "
+            "platform's public origin."
+        ),
+    )
+    required: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Accounts that must sign in with a passkey: emails, '@group' names "
+            "from [auth.groups], or '@admins'. Applies once the account has "
+            "enforce_from passkeys."
+        ),
+    )
+    enforce_from: int = Field(
+        default=2,
+        ge=1,
+        description=(
+            "How many passkeys a required account needs before the rule applies "
+            "(one synced passkey also counts). Below it, the account keeps its "
+            "other sign-in methods so it can enrol: one lost device must not lock "
+            "an account out."
+        ),
+    )
+    fresh_seconds: int = Field(
+        default=900,
+        gt=0,
+        description="How recent a sign-in must be to add or remove a passkey.",
+    )
+    challenge_ttl_seconds: int = Field(default=300, gt=0, le=3600)
+    step_up_ttl_seconds: int = Field(
+        default=120,
+        gt=0,
+        le=900,
+        description="How long a step-up proof may wait before it is redeemed.",
+    )
+
+    @field_validator("rp_id")
+    @classmethod
+    def _check_rp_id(cls, rp_id: Optional[str]) -> Optional[str]:
+        if rp_id is not None and (
+            not rp_id or any(c in rp_id for c in "/:@ ") or rp_id != rp_id.lower()
+        ):
+            raise ValueError(
+                f"[auth.passkeys] rp_id {rp_id!r} must be a lower-case host name "
+                "(no scheme, port or path)"
+            )
+        return rp_id
+
+
 class AuthConfig(_StrictModel):
     """Platform-wide authentication configuration."""
 
@@ -379,6 +450,7 @@ class AuthConfig(_StrictModel):
     )
 
     signup: SignupConfig = Field(default_factory=SignupConfig)
+    passkeys: PasskeysConfig = Field(default_factory=PasskeysConfig)
     groups: dict[str, list[str]] = Field(
         default_factory=dict,
         description=(

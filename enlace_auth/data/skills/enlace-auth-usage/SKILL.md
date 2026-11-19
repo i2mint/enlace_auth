@@ -7,8 +7,10 @@ description: >-
   enlace-auth CLI, protected:user or protected:shared apps, ENLACE_SIGNING_KEY,
   ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user,
   reset-link, grant, share, invite, [auth.signup], sign-up, "continue with
-  email" or account deletion; or wants to put login or self-service sign-up in
-  front of apps served by enlace.
+  email" or account deletion, passkeys, WebAuthn, Face ID or Touch ID sign-in,
+  a step-up confirmation or step-up proof; or wants to put login, self-service
+  sign-up, or a "confirm this action with your passkey" tap in front of apps
+  served by enlace.
 metadata:
   audience: users
 ---
@@ -58,9 +60,47 @@ Off by default. `[auth.signup]` sets a policy per app: `default = "closed"` plus
 - **The account is platform-wide, and access is unchanged: a `protected:user` app with no `allowed_users` opens to every account.** Give it `allowed_users = ["@admins"]` (or a list) before opening sign-up anywhere; `enlace doctor` fails until you do.
 - Set `privacy_url`, `terms_url` and `terms_version`. Signed-in users delete their own account from `/auth/account`, confirmed by a mailed code. Children under 15 must not sign up themselves; managed profiles held by an adult are planned (i2mint/enlace_auth#81).
 
+## 3c. Passkeys, and confirming an action with one (step-up)
+
+Off by default: set `[auth.passkeys] enabled = true` (py_webauthn comes with enlace_auth). The relying party is the platform's public origin (the OAuth issuer, else `https://{domain}`); set `rp_id = "example.com"` to let one passkey cover sibling hosts, and `origins = [...]` to accept more than one. Changing `rp_id` later orphans every passkey already made (they stop counting toward the policy too).
+
+- **Add and remove** from `/auth/account` (any signed-in account, several per account, each named). Both need a sign-in from the last 15 minutes (`fresh_seconds`), and once the account has a passkey, a sign-in **with a passkey**: a password holder cannot plant one. Each change is mailed to the account, and a removal ends its other sessions and connector sessions. To enrol two devices that do not share a keychain, enrol the phone first, then on the computer sign in with the phone's passkey (the browser shows a QR code) and add the computer's. Recovery for a lost device: `enlace-auth list-passkeys EMAIL`, `enlace-auth remove-passkey EMAIL --passkey-id ID` (or `--all`).
+- **Sign in** with the "Sign in with a passkey" button or the email field's autofill on `/auth/login`. The email code and password stay as the way back in.
+- **Require it** for some accounts: `required = ["@admins", "@family", "a@x.io"]`. The rule applies once an account has `enforce_from` passkeys (default 2) or one synced passkey (iCloud Keychain, Google Password Manager), so one lost device never locks an account out. From then on every other sign-in method, and the password reset, answers 403 for it, and the sessions it opened by password end. Below the threshold, or while passkey sign-in is not mounted (a configuration error, logged), the account keeps its other methods. A required account cannot remove a passkey from the page while that would take it back to its threshold.
+
+**Step-up: a backend asks the account holder to confirm one action in person.** The proof is single-use, lives 120 seconds (`step_up_ttl_seconds`), and names the account and the exact action text it was signed for.
+
+1. On a page of a signed-in user (any app on the platform), show the action and **prepare the request before the tap** (Safari only opens the passkey prompt straight from a tap):
+
+   ```html
+   <script src="/auth/passkeys/passkeys.js"></script>
+   <script type="module">
+     const action = "equerry: start job 42 on owner/repo, 'title'";  // shown on the page
+     const prepared = await enlacePasskeys.prepareStepUp(action);
+     confirmButton.onclick = async () => {
+       const {proof} = await enlacePasskeys.stepUp(prepared);     // Face ID / Touch ID
+       await fetch("/api/myapp/jobs/42/confirm", {method: "POST", body: JSON.stringify({proof})});
+     };
+   </script>
+   ```
+
+   A prepared request is good for four minutes (prepare again on focus). `prepareStepUp` rejects with `err.status === 409` when the account has no passkey yet (send the user to `/auth/account`); `stepUp` rejects with `err.name === "NotAllowedError"` when the user cancels.
+2. The backend, before acting, redeems it. No cookie and no CSRF token are needed. Name the action you are about to perform AND the account that must have confirmed it; the server compares both:
+
+   ```python
+   r = httpx.post(f"{PLATFORM}/auth/passkeys/step-up/redeem",
+                  json={"proof": proof, "action": action, "email": owner_email})
+   confirmed = r.status_code == 200
+   # 200 -> {"ok": true, "email", "action", "verified_at", "method": "passkey", "passkey"}
+   ```
+
+   A proof for another action or another account, a second redemption, an expired proof, or one whose passkey was removed answers 400; a disabled account 403; a missing field 422. Build the action text on the backend from the job itself (never from what the browser sends back) and prefix it with your app's name, since every app on the platform shares the origin.
+
+Raw endpoints, for a client without the helper: `POST /auth/passkeys/step-up/options {action}` returns WebAuthn request options (base64url JSON, user verification required); `POST /auth/passkeys/step-up/verify {action, credential}` takes the `PublicKeyCredential` as JSON and returns `{proof, action, expires_in}`. Both need the session cookie and the CSRF pair.
+
 ## 4. Calling the HTTP API correctly
 
-Every POST, PUT, PATCH and DELETE needs the CSRF pair, except the OAuth callback and consent routes (`/auth/callback`, `/auth/login/<provider>`, `/auth/oauth/`), sub-app APIs under `/api/` (but not `/api/{app}/store`), and proxied `process`/`external` apps. That covers `/auth`, `/_admin`, `/_apps/{name}/meta` and the per-user store. Fetch the token first, then echo it in a header:
+Every POST, PUT, PATCH and DELETE needs the CSRF pair, except the OAuth callback and consent routes (`/auth/callback`, `/auth/login/<provider>`, `/auth/oauth/`), the step-up redeem (`/auth/passkeys/step-up/redeem`), sub-app APIs under `/api/` (but not `/api/{app}/store`), and proxied `process`/`external` apps. That covers `/auth`, `/_admin`, `/_apps/{name}/meta` and the per-user store. Fetch the token first, then echo it in a header:
 
 ```python
 token = client.get("/auth/csrf").json()["csrf"]
