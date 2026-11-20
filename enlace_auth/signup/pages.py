@@ -17,6 +17,7 @@ from typing import Optional
 
 from enlace_auth.auth.pages import (
     _CSRF_JS,
+    _NEXT_JS,
     _js_string,
     _page,
     fill_template,
@@ -119,6 +120,7 @@ def render_email_section(
     script = f"""<script>
 (function(){{
 {_CSRF_JS}
+{_NEXT_JS}
 const S = {_js_string(_json(strings))};
 const T = JSON.parse(S);
 const NEXT = {_js_string(next_url)};
@@ -165,7 +167,7 @@ cf.addEventListener('submit', async (e) => {{
     const res = await postJSON('/auth/email/verify', {{
       email: EMAIL, code: document.getElementById('e-code').value,
     }});
-    if (res.ok) {{ window.location.assign(NEXT || '/'); return; }}
+    if (res.ok) {{ window.location.assign(nextUrl(NEXT)); return; }}
     say(res.status === 429 ? T.too_many : res.status === 403 ? (res.detail || T.signup_closed) : T.wrong_code, 'err');
   }} catch (err) {{ say(err.message || 'Error', 'err'); }}
   cs.disabled = false; cs.textContent = T.verify;
