@@ -58,7 +58,7 @@ Off by default. `[auth.signup]` sets a policy per app: `default = "closed"` plus
 - The sign-in page offers "Continue with email" when `ENLACE_SMTP_HOST` is set: a 6-digit code is mailed, and the account is created only when it checks out. From an app, link to `/auth/login?next=/<app>/`; the app's policy is taken from `next`.
 - A non-browser client calls `GET /auth/email/challenge`, waits `min_seconds`, then `POST /auth/email/start {email, app, next, challenge}` (always the same 202, or 429), then `POST /auth/email/verify {email, code}`.
 - **The account is platform-wide, and access is unchanged: a `protected:user` app with no `allowed_users` opens to every account.** Give it `allowed_users = ["@admins"]` (or a list) before opening sign-up anywhere; `enlace doctor` fails until you do.
-- Set `privacy_url`, `terms_url` and `terms_version`. Signed-in users delete their own account from `/auth/account`, confirmed by a mailed code. Children under 15 must not sign up themselves; managed profiles held by an adult are planned (i2mint/enlace_auth#81).
+- Set `privacy_url`, `terms_url` and `terms_version`. Signed-in users delete their own account from `/auth/account`, confirmed by a mailed code. An operator erases one for them with `enlace-auth delete-user EMAIL` or the admin page's Delete; all three remove the same things. Children under 15 must not sign up themselves; managed profiles held by an adult are planned (i2mint/enlace_auth#81).
 
 ## 3c. Passkeys, and confirming an action with one (step-up)
 

@@ -155,6 +155,7 @@ terms_version = "2026-11"
 - The mail goes through `ENLACE_SMTP_*` (SMTP). Without it the sign-in page does not offer the email step, and the code only reaches the server log. Set SPF, DKIM and DMARC for the sending domain.
 - Mail and code checks are rate-limited per address, per IP and overall (`[auth.signup.limits]`), and the form carries a honeypot plus a time-to-submit check. Behind a proxy, run uvicorn with `--forwarded-allow-ips` set to the proxy so the per-IP limit sees real clients.
 - A signed-in user deletes their own account from `/auth/account`, confirmed by a mailed code; that removes its sessions, connector sessions, shares, grants and per-user data.
+- An operator deletes an account on someone's behalf (a data-erasure request, say) from the **Delete** button in `/_admin/` or with `enlace-auth delete-user EMAIL` (add `--keep-data` to keep its per-user data). Both remove exactly what the self-service deletion removes, the last sign-in time and passkeys included, and say what they removed from each store.
 - `registration_open = true` still works and means `default = "open"`. `/auth/register` (email plus a password of at least 15 characters) now mails a code too, and creates the account at verify.
 
 ### Passkeys and step-up
