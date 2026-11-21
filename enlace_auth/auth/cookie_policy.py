@@ -75,6 +75,34 @@ def host_within(host: Optional[str], domain: Optional[str]) -> bool:
     return host == domain or host.endswith("." + domain)
 
 
+def request_port(headers) -> Optional[str]:
+    """The port in a request's ``Host`` header, when it names one (digits only)."""
+    if isinstance(headers, (list, tuple)):
+        raw = next(
+            (v.decode("latin-1") for k, v in headers if k.lower() == b"host"), ""
+        )
+    else:
+        raw = headers.get("host", "") or ""
+    _, _, port = raw.strip().partition(":")
+    return port if port and _PORT.match(port) else None
+
+
+def first_cookie(headers, name: str) -> Optional[str]:
+    """The FIRST *name* cookie a request carries, as the auth middleware reads it.
+
+    A browser sends the more specific (older, host-only) cookie first, and a
+    sibling subdomain can plant a second one; Starlette's ``request.cookies``
+    keeps the last. Anything that re-issues or ends "the session" must act on
+    the one that was authenticated, which is the first.
+    """
+    raw = headers.get("cookie", "") if not isinstance(headers, (list, tuple)) else ""
+    for part in (raw or "").split(";"):
+        key, sep, value = part.strip().partition("=")
+        if sep and key.strip() == name:
+            return value.strip()
+    return None
+
+
 def request_host(headers) -> Optional[str]:
     """The lower-case host name a request was sent to (``Host`` without its port).
 
@@ -169,9 +197,30 @@ class CookiePolicy:
             out.append(f"{base}; Domain={self.domain}")
         return out
 
+    def set_headers(
+        self,
+        name: str,
+        value: str,
+        *,
+        max_age: int,
+        host: Optional[str] = None,
+        path: str = "/",
+    ) -> list[str]:
+        """The ``Set-Cookie`` values that leave exactly one *name* cookie in place.
+
+        When the cookie goes on the domain, an older host-only one is cleared
+        first: a browser would otherwise keep sending it first, and the platform,
+        reading the first, would keep seeing a session that may be dead.
+        """
+        out = [self.set_header(name, value, max_age=max_age, host=host, path=path)]
+        if self.domain_for(host):
+            out.insert(0, self.clear_headers(name, path=path)[0])
+        return out
+
     def set_cookie(self, response, name: str, value: str, **kwargs) -> None:
-        """Append :meth:`set_header` to a Starlette *response*."""
-        response.headers.append("set-cookie", self.set_header(name, value, **kwargs))
+        """Append :meth:`set_headers` to a Starlette *response*."""
+        for header in self.set_headers(name, value, **kwargs):
+            response.headers.append("set-cookie", header)
 
     def clear_cookie(self, response, name: str, *, path: str = "/") -> None:
         """Append :meth:`clear_headers` to a Starlette *response*."""

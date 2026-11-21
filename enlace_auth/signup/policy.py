@@ -130,8 +130,13 @@ def app_from_next(next_url: str, known_apps: Iterable[str]) -> Optional[str]:
     'game'
     >>> app_from_next("/nope/", {"game"}) is None
     True
+    >>> app_from_next("https://a.apps.example.com/game/", {"game"})  # cookie_domain
+    'game'
     """
-    parts = [p for p in (next_url or "").split("?", 1)[0].split("/") if p]
+    from urllib.parse import urlsplit
+
+    path = urlsplit(next_url or "").path
+    parts = [p for p in path.split("/") if p]
     if len(parts) >= 2 and parts[0] == "api":
         parts = parts[1:]
     return parts[0] if parts and parts[0] in set(known_apps) else None

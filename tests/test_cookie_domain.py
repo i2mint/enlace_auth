@@ -59,11 +59,12 @@ def platform(tmp_path, monkeypatch):
     users = make_file_store_factory(str(tmp_path / "platform"))("users")
     users[USER] = {"password_hash": hash_password(PW)}
 
-    def make(*, cookie_domain=DOMAIN, base_url=PARENT) -> TestClient:
+    def make(*, cookie_domain=DOMAIN, base_url=PARENT, **extra) -> TestClient:
         auth = {
             "enabled": True,
             "secure_cookies": True,
             "stores": {"backend": "file", "path": str(tmp_path / "platform")},
+            **extra,
         }
         if cookie_domain:
             auth["cookie_domain"] = cookie_domain
@@ -84,6 +85,12 @@ def _session_cookies(response, name="enlace_session") -> list[str]:
     return [v for v in response.headers.get_list("set-cookie") if v.startswith(name)]
 
 
+def _set_cookie(response, name="enlace_session") -> str:
+    """The one cookie a response SETS (not the clears that go with it)."""
+    (cookie,) = [c for c in _session_cookies(response, name) if "Max-Age=0" not in c]
+    return cookie
+
+
 def _login(client):
     return client.post(
         "/auth/login", json={"email": USER, "password": PW}, headers=_csrf(client)
@@ -96,23 +103,25 @@ def _login(client):
 def test_signing_in_on_the_parent_sets_a_domain_cookie(platform):
     r = _login(platform())
     assert r.status_code == 200, r.text
-    (cookie,) = _session_cookies(r)
+    cookie = _set_cookie(r)
     assert f"Domain={DOMAIN}" in cookie and "Secure" in cookie and "HttpOnly" in cookie
 
 
 def test_signing_in_on_an_app_host_sets_the_domain_cookie_too(platform):
-    (cookie,) = _session_cookies(_login(platform(base_url=APP_HOST)))
+    cookie = _set_cookie(_login(platform(base_url=APP_HOST)))
     assert f"Domain={DOMAIN}" in cookie
 
 
 def test_a_host_outside_the_domain_gets_a_host_only_cookie(platform):
     """A browser would refuse Domain=apps.example.com there, and sign-in would fail."""
-    (cookie,) = _session_cookies(_login(platform(base_url="https://10.0.0.5")))
+    cookie = _set_cookie(_login(platform(base_url="https://10.0.0.5")))
     assert "Domain=" not in cookie
 
 
 def test_unset_the_cookie_is_host_only_as_before(platform):
-    (cookie,) = _session_cookies(_login(platform(cookie_domain=None)))
+    r = _login(platform(cookie_domain=None))
+    assert len(_session_cookies(r)) == 1  # no clearing either: unchanged
+    cookie = _set_cookie(r)
     assert "Domain=" not in cookie
 
 
@@ -124,7 +133,7 @@ def test_the_shared_password_cookie_carries_the_domain(platform):
         headers=_csrf(client),
     )
     assert r.status_code == 200, r.text
-    (cookie,) = _session_cookies(r, "shared_auth_shr")
+    cookie = _set_cookie(r, "shared_auth_shr")
     assert f"Domain={DOMAIN}" in cookie
 
 
@@ -293,3 +302,115 @@ def test_a_malformed_cookie_domain_is_refused_at_load(bad):
 
 def test_the_policy_clears_only_the_host_only_form_when_unset():
     assert len(CookiePolicy(secure=False).clear_headers("s")) == 1
+
+
+# -- review of #102: stale and duplicate cookies, every sign-in path -----------
+
+
+def test_a_domain_sign_in_clears_an_older_host_only_cookie(platform):
+    """Else the browser keeps sending the dead host-only one first, and the parent
+    host never sees the new session (a reset revokes the old one: a lock-out)."""
+    r = _login(platform())
+    cookies = _session_cookies(r)
+    assert len(cookies) == 2
+    clear, new = cookies
+    assert "Max-Age=0" in clear and "Domain=" not in clear
+    assert f"Domain={DOMAIN}" in new
+
+
+def test_the_parent_sees_the_new_session_past_a_dead_host_only_cookie(platform):
+    old = platform(cookie_domain=None)
+    _login(old)
+    dead = old.cookies.get("enlace_session")
+    old.post("/auth/logout", headers=_csrf(old))  # the session behind it ends
+    client = platform()
+    r = _login(client)
+    fresh = _set_cookie(r).split(";", 1)[0].split("=", 1)[1]
+    # What the browser holds after that response: only the Domain cookie.
+    assert any("Max-Age=0" in c and "Domain=" not in c for c in _session_cookies(r))
+    me = platform().get("/auth/whoami", headers={"cookie": f"enlace_session={fresh}"})
+    assert me.json()["email"] == USER
+    stale = platform().get("/auth/whoami", headers={"cookie": f"enlace_session={dead}"})
+    assert stale.json()["email"] is None
+
+
+def test_the_move_reissues_the_authenticated_cookie_not_a_planted_one(platform):
+    client = platform()
+    _login(client)
+    good = client.cookies.get("enlace_session")
+    r = platform().get(
+        "/auth/login?next=/priv/",
+        headers={"cookie": f"enlace_session={good}; enlace_session=planted"},
+    )
+    assert r.status_code == 303
+    moved = _set_cookie(r)
+    assert moved.startswith(f"enlace_session={good};")
+    assert "planted" not in " ".join(r.headers.get_list("set-cookie"))
+
+
+def test_an_email_code_sign_in_sets_the_domain_cookie(platform):
+    from tests.signup_helpers import challenge, mailed_code
+
+    client = platform(signup={"default": "open"})
+    body = {"email": USER, "challenge": challenge(KEY)}
+    r, code = mailed_code(client, "/auth/email/start", body, csrf=_csrf(client))
+    assert r.status_code == 202 and code, r.text
+    v = client.post(
+        "/auth/email/verify", json={"email": USER, "code": code}, headers=_csrf(client)
+    )
+    assert v.status_code == 200, v.text
+    assert f"Domain={DOMAIN}" in _set_cookie(v)
+
+
+def test_a_passkey_sign_in_sets_the_domain_cookie(platform):
+    from tests.passkey_helpers import SoftAuthenticator
+
+    client = platform(passkeys={"enabled": True, "origins": [PARENT]})
+    _login(client)
+    device = SoftAuthenticator(PARENT)
+    csrf = _csrf(client)
+    options = client.post("/auth/passkeys/register/options", json={}, headers=csrf)
+    assert options.status_code == 200, options.text
+    added = client.post(
+        "/auth/passkeys/register/verify",
+        json={"credential": device.create(options.json()), "name": "Mac"},
+        headers=csrf,
+    )
+    assert added.status_code == 200, added.text
+    login = client.post("/auth/passkeys/login/options", json={}, headers=csrf).json()
+    r = client.post(
+        "/auth/passkeys/login/verify",
+        json={"credential": device.get(login), "next": f"{APP_HOST}/priv/page"},
+        headers=csrf,
+    )
+    assert r.status_code == 200, r.text
+    assert f"Domain={DOMAIN}" in _set_cookie(r)
+    assert r.json()["next"] == f"{APP_HOST}/priv/page"
+
+
+def test_an_app_host_on_a_port_keeps_it_both_ways(platform):
+    r = _browser_get(platform(base_url=f"{APP_HOST}:8443"), "/priv/page")
+    target = urlsplit(r.headers["location"])
+    assert target.netloc == f"{DOMAIN}:8443"
+    assert parse_qs(target.query)["next"] == [f"{APP_HOST}:8443/priv/page"]
+
+
+def test_no_sign_in_cookie_is_written_around_the_policy():
+    """Every session or shared-password Set-Cookie goes through CookiePolicy."""
+    from pathlib import Path
+
+    import enlace_auth
+
+    root = Path(enlace_auth.__file__).parent
+    allowed = {
+        "auth/cookie_policy.py",  # the policy itself
+        "auth/middleware.py",  # the CSRF cookie, host-only by design
+        "auth/oauth.py",  # the OAuth state cookie, Path=/auth
+        "signup/routes.py",  # the sign-up nonce cookie, Path=/auth
+    }
+    writers = {
+        str(p.relative_to(root))
+        for p in root.rglob("*.py")
+        if "set-cookie" in p.read_text("utf-8").lower()
+    }
+    assert writers <= allowed, writers - allowed

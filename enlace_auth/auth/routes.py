@@ -32,7 +32,7 @@ from pydantic import BaseModel, EmailStr
 
 from enlace_auth.auth import pages
 from enlace_auth.auth.accounts import DISABLED_DETAIL, is_disabled, open_session
-from enlace_auth.auth.cookie_policy import CookiePolicy, request_host
+from enlace_auth.auth.cookie_policy import CookiePolicy, first_cookie, request_host
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.email import EmailSender, make_console_sender
 from enlace_auth.auth.passwords import (
@@ -199,7 +199,7 @@ def make_auth_router(
 
     @router.post("/logout")
     async def logout(request: Request, response: Response) -> dict[str, Any]:
-        token = request.cookies.get(cookie_name)
+        token = first_cookie(request.headers, cookie_name)
         if token:
             session_id = verify_cookie(token, signing_key, salt="session")
             if session_id:
@@ -313,14 +313,14 @@ def make_auth_router(
         if getattr(request.state, "user_id", None):
             response = RedirectResponse(next_url, status_code=303)
             host = request_host(request.headers)
-            token = request.cookies.get(cookie_name)
+            # The cookie the gate authenticated (the first), never a duplicate a
+            # sibling host planted after it.
+            token = first_cookie(request.headers, cookie_name)
             if token and cookies.domain_for(host):
                 # A session from before cookie_domain was set is host-only, so
                 # the apps' hosts never see it: move it onto the domain (same
                 # signed value, so its age is unchanged) instead of asking for
-                # a new sign-in.
-                for header in cookies.clear_headers(cookie_name)[:1]:
-                    response.headers.append("set-cookie", header)
+                # a new sign-in. set_cookie clears the host-only one first.
                 cookies.set_cookie(
                     response, cookie_name, token, max_age=session_max_age, host=host
                 )

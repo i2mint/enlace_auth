@@ -211,20 +211,24 @@ def _original_target(scope) -> str:
     return f"{raw_path}?{raw_qs.decode('latin-1')}" if raw_qs else raw_path
 
 
-def _sign_in_host(scope, cookie_domain: Optional[str]) -> Optional[str]:
-    """The request's host when it is an app host under *cookie_domain*, else None.
+def _sign_in_origins(scope, cookie_domain: Optional[str]) -> Optional[tuple[str, str]]:
+    """``(this origin, the sign-in origin)`` for an app host under *cookie_domain*.
 
     Such a request is sent to sign in on *cookie_domain* itself, with an absolute
     ``next`` back to this host (#94); the parent host and any host outside the
-    domain sign in where they are, as before.
+    domain sign in where they are, as before (None). A port in ``Host`` is kept
+    on both: the parent is served where its apps are.
     """
     if not cookie_domain:
         return None
-    from enlace_auth.auth.cookie_policy import host_within, request_host
+    from enlace_auth.auth.cookie_policy import host_within, request_host, request_port
 
-    host = request_host(scope.get("headers", []))
+    headers = scope.get("headers", [])
+    host = request_host(headers)
     if host and host != cookie_domain and host_within(host, cookie_domain):
-        return host
+        port = request_port(headers)
+        suffix = f":{port}" if port else ""
+        return f"https://{host}{suffix}", f"https://{cookie_domain}{suffix}"
     return None
 
 
@@ -241,8 +245,8 @@ def _redirect_target(
     sep = "&" if "?" in login_path else "?"
     target = _original_target(scope)
     prefix = ""
-    if host := _sign_in_host(scope, cookie_domain):
-        target, prefix = f"https://{host}{target}", f"https://{cookie_domain}"
+    if origins := _sign_in_origins(scope, cookie_domain):
+        target, prefix = origins[0] + target, origins[1]
     nxt = quote(target, safe="")
     return f"{prefix}{login_path}{sep}login_required=1&next={nxt}"
 
@@ -262,8 +266,8 @@ def _shared_redirect_target(
     sep = "&" if "?" in shared_login_path else "?"
     target = _original_target(scope)
     prefix = ""
-    if host := _sign_in_host(scope, cookie_domain):
-        target, prefix = f"https://{host}{target}", f"https://{cookie_domain}"
+    if origins := _sign_in_origins(scope, cookie_domain):
+        target, prefix = origins[0] + target, origins[1]
     nxt = quote(target, safe="")
     return f"{prefix}{shared_login_path}{sep}app={quote(app_id, safe='')}&next={nxt}"
 
