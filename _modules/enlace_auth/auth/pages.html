@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=9d458db5"></script>
+    <script src="../../../_static/documentation_options.js?v=393d09ac"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.56" />
+  <meta name="docsearch:version" content="0.1.57" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -848,6 +848,23 @@ window.runMermaid = runMermaid;</script>
 <span class="s2">"""</span>
 
 
+<span class="c1"># Shared client helper: where to go after signing in. A protected page's fragment</span>
+<span class="c1"># (``/app/page/#state=abc``) never reaches the server, so the gate's redirect to the</span>
+<span class="c1"># sign-in page cannot put it in ``next``; the browser carries it onto the sign-in page</span>
+<span class="c1"># instead (a ``Location`` with no fragment keeps the request's). Re-attach it to</span>
+<span class="c1"># ``next`` unless ``next`` has a fragment of its own, so a signed-out visitor lands</span>
+<span class="c1"># where a signed-in one would. No ``next``: the platform root, without the fragment,</span>
+<span class="c1"># which belonged to a page we no longer know. The fragment stays in the browser: it</span>
+<span class="c1"># is never sent to the server (an emailed sign-in link, opened elsewhere, cannot</span>
+<span class="c1"># carry it for that reason).</span>
+<span class="n">_NEXT_JS</span> <span class="o">=</span> <span class="s2">"""</span>
+<span class="s2">function nextUrl(next){</span>
+<span class="s2">  if(!next) return '/';</span>
+<span class="s2">  return next.indexOf('#') === -1 ? next + location.hash : next;</span>
+<span class="s2">}</span>
+<span class="s2">"""</span>
+
+
 <span class="c1"># Shared client helper: wire every ``.pw-toggle`` button to flip its target</span>
 <span class="c1"># input between ``password`` and ``text``. One handler covers all password</span>
 <span class="c1"># fields on a page (login has one; the reset page has two).</span>
@@ -1051,6 +1068,7 @@ window.runMermaid = runMermaid;</script>
 <span class="s2">&lt;script&gt;</span>
 <span class="si">{</span><span class="n">_CSRF_JS</span><span class="si">}</span>
 <span class="si">{</span><span class="n">_PW_TOGGLE_JS</span><span class="si">}</span>
+<span class="si">{</span><span class="n">_NEXT_JS</span><span class="si">}</span>
 <span class="s2">const NEXT = </span><span class="si">{</span><span class="n">next_js</span><span class="si">}</span><span class="s2">;</span>
 <span class="s2">const f = document.getElementById('f');</span>
 <span class="s2">const msg = document.getElementById('msg');</span>
@@ -1063,7 +1081,7 @@ window.runMermaid = runMermaid;</script>
 <span class="s2">      email: document.getElementById('email').value.trim(),</span>
 <span class="s2">      password: document.getElementById('password').value,</span>
 <span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
-<span class="s2">    if (res.ok) </span><span class="se">{{</span><span class="s2"> window.location.assign(NEXT || '/'); return; </span><span class="se">}}</span>
+<span class="s2">    if (res.ok) </span><span class="se">{{</span><span class="s2"> window.location.assign(nextUrl(NEXT)); return; </span><span class="se">}}</span>
 <span class="s2">    msg.textContent = res.detail || ('Sign in failed (' + res.status + ').');</span>
 <span class="s2">    msg.className = 'msg err';</span>
 <span class="s2">  </span><span class="se">}}</span><span class="s2"> catch (err) </span><span class="se">{{</span>
@@ -1123,6 +1141,7 @@ window.runMermaid = runMermaid;</script>
 <span class="s2">&lt;/div&gt;</span>
 <span class="s2">&lt;script&gt;</span>
 <span class="si">{</span><span class="n">_CSRF_JS</span><span class="si">}</span>
+<span class="si">{</span><span class="n">_NEXT_JS</span><span class="si">}</span>
 <span class="s2">const APP = "</span><span class="si">{</span><span class="n">app_js</span><span class="si">}</span><span class="s2">";</span>
 <span class="s2">const NEXT = </span><span class="si">{</span><span class="n">next_js</span><span class="si">}</span><span class="s2">;</span>
 <span class="s2">const f = document.getElementById('f');</span>
@@ -1136,7 +1155,7 @@ window.runMermaid = runMermaid;</script>
 <span class="s2">      app: APP,</span>
 <span class="s2">      password: document.getElementById('password').value,</span>
 <span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
-<span class="s2">    if (res.ok) </span><span class="se">{{</span><span class="s2"> window.location.assign(NEXT || '/'); return; </span><span class="se">}}</span>
+<span class="s2">    if (res.ok) </span><span class="se">{{</span><span class="s2"> window.location.assign(nextUrl(NEXT)); return; </span><span class="se">}}</span>
 <span class="s2">    msg.textContent = res.detail || ('Sign in failed (' + res.status + ').');</span>
 <span class="s2">    msg.className = 'msg err';</span>
 <span class="s2">  </span><span class="se">}}</span><span class="s2"> catch (err) </span><span class="se">{{</span>

@@ -1,4 +1,4 @@
-> built 2026-11-21 19:28 UTC from 53631ed (main) · enlace_auth 0.1.56. Details: build_info.json
+> built 2026-11-21 22:28 UTC from 9025361 (main) · enlace_auth 0.1.57. Details: build_info.json
 
 # index.html.md
 
@@ -5212,16 +5212,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-11-21 19:28 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/53631ed7a496472c1fef607dd12c60d2f4b3453e"><code>53631ed</code></a> on branch <code>main</code>, for **enlace_auth 0.1.56** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-21 22:28 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/90253616f4a22fb14a0055fdf0aae4bc8e6a9de9"><code>9025361</code></a> on branch <code>main</code>, for **enlace_auth 0.1.57** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.57) is behind the latest release on PyPI (0.1.58): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/53631ed7a496472c1fef607dd12c60d2f4b3453e"><code>53631ed7a496472c1fef607dd12c60d2f4b3453e</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/90253616f4a22fb14a0055fdf0aae4bc8e6a9de9"><code>90253616f4a22fb14a0055fdf0aae4bc8e6a9de9</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -5232,9 +5234,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/44940839712">44940839712</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/44956616496">44956616496</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>53631ed7a496472c1fef607dd12c60d2f4b3453e</code> (in the history of the built commit) |
+| Event commit | <code>90253616f4a22fb14a0055fdf0aae4bc8e6a9de9</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -5259,13 +5261,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.56/">0.1.56</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.58/">0.1.58</a>, newer than the documented version (0.1.57).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 53631ed7a496472c1fef607dd12c60d2f4b3453e
+git checkout 90253616f4a22fb14a0055fdf0aae4bc8e6a9de9
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
