@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=fb9c6db4"></script>
+    <script src="../../../_static/documentation_options.js?v=cc64e7de"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.61" />
+  <meta name="docsearch:version" content="0.1.62" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -778,10 +778,12 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.pages</span><span class="w"> </span><span class="kn">import</span> <span class="n">safe_next</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.step_up</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepUpError</span><span class="p">,</span> <span class="n">same_account</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.passkeys.core</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ANY_PURPOSE</span><span class="p">,</span>
     <span class="n">PasskeyError</span><span class="p">,</span>
     <span class="n">PasskeyPolicy</span><span class="p">,</span>
     <span class="n">PasskeyService</span><span class="p">,</span>
     <span class="n">RelyingParty</span><span class="p">,</span>
+    <span class="n">clean_purpose</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.passkeys.texts</span><span class="w"> </span><span class="kn">import</span> <span class="n">t</span>
 
@@ -803,6 +805,12 @@ window.runMermaid = runMermaid;</script>
 <span class="k">class</span><span class="w"> </span><span class="nc">_RegisterBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
     <span class="n">credential</span><span class="p">:</span> <span class="nb">dict</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_RegisterOptionsBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_LoginBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
@@ -813,11 +821,13 @@ window.runMermaid = runMermaid;</script>
 <span class="k">class</span><span class="w"> </span><span class="nc">_ActionBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
     <span class="n">action</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">request</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_StepUpBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
     <span class="n">action</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">request</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">credential</span><span class="p">:</span> <span class="nb">dict</span>
 
 
@@ -827,6 +837,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">email</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">audience</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">methods</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_RequestBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
@@ -834,6 +845,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">action</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">audience</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">return_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <div class="viewcode-block" id="make_passkey_router">
@@ -923,7 +935,12 @@ window.runMermaid = runMermaid;</script>
                 <span class="p">),</span>
                 <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="n">REAUTH_HEADER</span><span class="p">:</span> <span class="s2">"1"</span><span class="p">},</span>
             <span class="p">)</span>
-        <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"method"</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"passkey"</span> <span class="ow">and</span> <span class="n">service</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">email</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Any passkey, purpose-bound ones included: a password holder must not</span>
+        <span class="c1"># plant a second purpose passkey beside the owner's, nor remove it.</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"method"</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"passkey"</span>
+            <span class="ow">and</span> <span class="n">service</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">purpose</span><span class="o">=</span><span class="n">ANY_PURPOSE</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="p">):</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
                 <span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span>
                 <span class="n">detail</span><span class="o">=</span><span class="p">(</span>
@@ -979,19 +996,48 @@ window.runMermaid = runMermaid;</script>
 
     <span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">list_passkeys</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""The signed-in account's passkeys, and whether it must use one."""</span>
+<span class="w">        </span><span class="sd">"""The signed-in account's passkeys, and whether it must use one.</span>
+
+<span class="sd">        ``?purpose=X`` lists only the account's passkeys for X, with each one's</span>
+<span class="sd">        credential id and COSE public key, for a verifier that pins them.</span>
+<span class="sd">        """</span>
         <span class="n">email</span> <span class="o">=</span> <span class="n">_signed_in</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">wanted</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">query_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"purpose"</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">listing</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">service</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">wanted</span>
+                <span class="k">else</span> <span class="n">service</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">purpose</span><span class="o">=</span><span class="n">clean_purpose</span><span class="p">(</span><span class="n">wanted</span><span class="p">))</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="n">PasskeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_refused</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">"passkeys"</span><span class="p">:</span> <span class="n">service</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">email</span><span class="p">),</span>
+            <span class="s2">"passkeys"</span><span class="p">:</span> <span class="n">listing</span><span class="p">,</span>
             <span class="s2">"required"</span><span class="p">:</span> <span class="n">policy</span><span class="o">.</span><span class="n">requires</span><span class="p">(</span><span class="n">email</span><span class="p">),</span>
             <span class="s2">"enforced"</span><span class="p">:</span> <span class="n">policy</span><span class="o">.</span><span class="n">enforced</span><span class="p">(</span><span class="n">email</span><span class="p">),</span>
             <span class="s2">"enforce_from"</span><span class="p">:</span> <span class="n">policy</span><span class="o">.</span><span class="n">enforce_from</span><span class="p">,</span>
         <span class="p">}</span>
 
     <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/register/options"</span><span class="p">)</span>
-    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">register_options</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">register_options</span><span class="p">(</span>
+        <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_RegisterOptionsBody</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">email</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_fresh</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">service</span><span class="o">.</span><span class="n">registration_options</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">_rp</span><span class="p">(</span><span class="n">request</span><span class="p">))</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="n">body</span> <span class="ow">or</span> <span class="n">_RegisterOptionsBody</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">body</span><span class="o">.</span><span class="n">purpose</span> <span class="ow">and</span> <span class="n">service</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">email</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Purpose passkeys never sign in, and changing passkeys needs a</span>
+            <span class="c1"># passkey sign-in once any exists: without a general one first, the</span>
+            <span class="c1"># account could never change its passkeys again (#97).</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="mi">409</span><span class="p">,</span>
+                <span class="n">detail</span><span class="o">=</span><span class="s2">"Add a passkey for signing in first, then this one."</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">service</span><span class="o">.</span><span class="n">registration_options</span><span class="p">(</span>
+                <span class="n">email</span><span class="p">,</span> <span class="n">_rp</span><span class="p">(</span><span class="n">request</span><span class="p">),</span> <span class="n">purpose</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">purpose</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">label</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="n">PasskeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_refused</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
 
     <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/register/verify"</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">register_verify</span><span class="p">(</span>
@@ -1001,7 +1047,11 @@ window.runMermaid = runMermaid;</script>
         <span class="n">was_enforced</span> <span class="o">=</span> <span class="n">policy</span><span class="o">.</span><span class="n">enforced</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">view</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">register</span><span class="p">(</span>
-                <span class="n">email</span><span class="p">,</span> <span class="n">body</span><span class="o">.</span><span class="n">credential</span><span class="p">,</span> <span class="n">_rp</span><span class="p">(</span><span class="n">request</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">name</span>
+                <span class="n">email</span><span class="p">,</span>
+                <span class="n">body</span><span class="o">.</span><span class="n">credential</span><span class="p">,</span>
+                <span class="n">_rp</span><span class="p">(</span><span class="n">request</span><span class="p">),</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">purpose</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">purpose</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="n">PasskeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">_refused</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
@@ -1021,7 +1071,24 @@ window.runMermaid = runMermaid;</script>
         <span class="n">passkey_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span> <span class="n">background</span><span class="p">:</span> <span class="n">BackgroundTasks</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">email</span><span class="p">,</span> <span class="n">sid</span> <span class="o">=</span> <span class="n">_fresh</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">policy</span><span class="o">.</span><span class="n">requires</span><span class="p">(</span><span class="n">email</span><span class="p">)</span> <span class="ow">and</span> <span class="n">service</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">email</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">policy</span><span class="o">.</span><span class="n">enforce_from</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">credentials</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">passkey_id</span><span class="p">)</span>
+        <span class="n">bound</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">target</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"purpose"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">general</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="n">bound</span>
+            <span class="ow">and</span> <span class="n">general</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+            <span class="ow">and</span> <span class="n">service</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">purpose</span><span class="o">=</span><span class="n">ANY_PURPOSE</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">general</span>
+        <span class="p">):</span>
+            <span class="c1"># Purpose passkeys never sign in, so the last general one is what</span>
+            <span class="c1"># lets this account sign in with a passkey to change them.</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="mi">409</span><span class="p">,</span>
+                <span class="n">detail</span><span class="o">=</span><span class="p">(</span>
+                    <span class="s2">"Remove this account's purpose-bound passkeys first: this is "</span>
+                    <span class="s2">"the passkey that signs in to change them."</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">bound</span> <span class="ow">and</span> <span class="n">policy</span><span class="o">.</span><span class="n">requires</span><span class="p">(</span><span class="n">email</span><span class="p">)</span> <span class="ow">and</span> <span class="n">general</span> <span class="o">&lt;=</span> <span class="n">policy</span><span class="o">.</span><span class="n">enforce_from</span><span class="p">:</span>
             <span class="c1"># Removing one would let the password back in: only the admin's</span>
             <span class="c1"># CLI (remove-passkey) may take a required account below the rule.</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
@@ -1070,14 +1137,15 @@ window.runMermaid = runMermaid;</script>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_what_to_confirm</span><span class="p">(</span>
         <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">_ActionBody</span> <span class="o">|</span> <span class="n">_StepUpBody</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sd">"""``(action, audience)``: the page's action, or a backend's request.</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""``(action, audience, purpose)``: the page's, or a backend's request's.</span>
 
 <span class="sd">        A page cannot name an audience: only a request signed with the</span>
-<span class="sd">        audience's key carries one. A request is for one account only.</span>
+<span class="sd">        audience's key carries one. A request is for one account only, and its</span>
+<span class="sd">        passkey purpose is the backend's (a page cannot swap it).</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="n">body</span><span class="o">.</span><span class="n">request</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">body</span><span class="o">.</span><span class="n">action</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="n">body</span><span class="o">.</span><span class="n">action</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">body</span><span class="o">.</span><span class="n">purpose</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">wanted</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">proofs</span><span class="o">.</span><span class="n">read_request</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">request</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">StepUpError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -1086,7 +1154,7 @@ window.runMermaid = runMermaid;</script>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
                 <span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"This confirmation is for another account."</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">wanted</span><span class="p">[</span><span class="s2">"action"</span><span class="p">],</span> <span class="n">wanted</span><span class="p">[</span><span class="s2">"audience"</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">wanted</span><span class="p">[</span><span class="s2">"action"</span><span class="p">],</span> <span class="n">wanted</span><span class="p">[</span><span class="s2">"audience"</span><span class="p">],</span> <span class="n">wanted</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"purpose"</span><span class="p">)</span>
 
     <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/step-up/request"</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">step_up_request</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">_RequestBody</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
@@ -1110,8 +1178,9 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">audience</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">audience</span><span class="p">,</span>
                 <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
                 <span class="n">return_url</span><span class="o">=</span><span class="n">back</span><span class="p">,</span>
+                <span class="n">purpose</span><span class="o">=</span><span class="n">clean_purpose</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">purpose</span><span class="p">),</span>
             <span class="p">)</span>
-        <span class="k">except</span> <span class="n">StepUpError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">StepUpError</span><span class="p">,</span> <span class="n">PasskeyError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">status</span> <span class="o">=</span> <span class="mi">401</span> <span class="k">if</span> <span class="s2">"key"</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">else</span> <span class="mi">400</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
         <span class="n">base</span> <span class="o">=</span> <span class="p">(</span><span class="n">public_base_url</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">base_url</span><span class="p">))</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
@@ -1180,22 +1249,32 @@ window.runMermaid = runMermaid;</script>
     <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/step-up/options"</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">step_up_options</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">_ActionBody</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">email</span> <span class="o">=</span> <span class="n">_signed_in</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
-        <span class="n">action</span><span class="p">,</span> <span class="n">audience</span> <span class="o">=</span> <span class="n">_what_to_confirm</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span>
+        <span class="n">action</span><span class="p">,</span> <span class="n">audience</span><span class="p">,</span> <span class="n">purpose</span> <span class="o">=</span> <span class="n">_what_to_confirm</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">service</span><span class="o">.</span><span class="n">step_up_options</span><span class="p">(</span>
-                <span class="n">email</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">_rp</span><span class="p">(</span><span class="n">request</span><span class="p">),</span> <span class="n">audience</span><span class="o">=</span><span class="n">audience</span>
+                <span class="n">email</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">_rp</span><span class="p">(</span><span class="n">request</span><span class="p">),</span> <span class="n">audience</span><span class="o">=</span><span class="n">audience</span><span class="p">,</span> <span class="n">purpose</span><span class="o">=</span><span class="n">purpose</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="n">PasskeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">status</span> <span class="o">=</span> <span class="mi">409</span> <span class="k">if</span> <span class="n">service</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">email</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">400</span>
+            <span class="n">none_yet</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">service</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">purpose</span><span class="o">=</span><span class="n">purpose</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+                <span class="k">if</span> <span class="n">purpose</span>
+                <span class="k">else</span> <span class="p">(</span><span class="n">service</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">email</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="mi">409</span> <span class="k">if</span> <span class="n">none_yet</span> <span class="k">else</span> <span class="mi">400</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
 
     <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/step-up/verify"</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">step_up_verify</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">_StepUpBody</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">email</span> <span class="o">=</span> <span class="n">_signed_in</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
-        <span class="n">action</span><span class="p">,</span> <span class="n">audience</span> <span class="o">=</span> <span class="n">_what_to_confirm</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span>
+        <span class="n">action</span><span class="p">,</span> <span class="n">audience</span><span class="p">,</span> <span class="n">purpose</span> <span class="o">=</span> <span class="n">_what_to_confirm</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">proven</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">step_up</span><span class="p">(</span>
-                <span class="n">email</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">body</span><span class="o">.</span><span class="n">credential</span><span class="p">,</span> <span class="n">_rp</span><span class="p">(</span><span class="n">request</span><span class="p">),</span> <span class="n">audience</span><span class="o">=</span><span class="n">audience</span>
+                <span class="n">email</span><span class="p">,</span>
+                <span class="n">action</span><span class="p">,</span>
+                <span class="n">body</span><span class="o">.</span><span class="n">credential</span><span class="p">,</span>
+                <span class="n">_rp</span><span class="p">(</span><span class="n">request</span><span class="p">),</span>
+                <span class="n">audience</span><span class="o">=</span><span class="n">audience</span><span class="p">,</span>
+                <span class="n">purpose</span><span class="o">=</span><span class="n">purpose</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">body</span><span class="o">.</span><span class="n">request</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="c1"># Spent only once the passkey checked out, and before the proof</span>
@@ -1214,6 +1293,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">email</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">email</span><span class="p">,</span>
                 <span class="n">audience</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">audience</span><span class="p">,</span>
                 <span class="n">methods</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">methods</span><span class="p">,</span>
+                <span class="n">purpose</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">purpose</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="n">PasskeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">_refused</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=fb9c6db4"></script>
+    <script src="../../../_static/documentation_options.js?v=cc64e7de"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.61" />
+  <meta name="docsearch:version" content="0.1.62" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -841,6 +841,29 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<span class="c1">#: ``records(purpose=ANY_PURPOSE)``: every passkey, general and purpose-bound.</span>
+<span class="n">ANY_PURPOSE</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">clean_purpose</span><span class="p">(</span><span class="n">purpose</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""A passkey purpose (letters, digits, ``._-``, at most 64), or None (general).</span>
+
+<span class="sd">    A purpose-bound passkey (#97) confirms one kind of action and nothing else:</span>
+<span class="sd">    it never signs in, and a step-up names its purpose to use it.</span>
+
+<span class="sd">    &gt;&gt;&gt; clean_purpose("confirm-jobs"), clean_purpose(None), clean_purpose("")</span>
+<span class="sd">    ('confirm-jobs', None, None)</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.step_up</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepUpError</span><span class="p">,</span> <span class="n">clean_audience</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">clean_audience</span><span class="p">(</span><span class="n">purpose</span><span class="p">)</span>  <span class="c1"># same shape as an audience name</span>
+    <span class="k">except</span> <span class="n">StepUpError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span>
+            <span class="s2">"A passkey purpose is a name of letters, digits, '.', '_' or '-'."</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+
+
 <div class="viewcode-block" id="clean_name">
 <a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.clean_name">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">clean_name</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -1004,22 +1027,32 @@ window.runMermaid = runMermaid;</script>
 
 <div class="viewcode-block" id="PasskeyService.user_handle">
 <a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.user_handle">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">user_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""The WebAuthn user handle of an account: opaque, stable, 32 bytes."""</span>
-        <span class="k">return</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"enlace-passkey-user|"</span> <span class="o">+</span> <span class="n">email</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">),</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">user_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The WebAuthn user handle of an account: opaque, stable, 32 bytes.</span>
+
+<span class="sd">        A purpose-bound passkey gets a handle of its own, so an authenticator</span>
+<span class="sd">        keeps it beside the account's sign-in passkey instead of replacing it.</span>
+<span class="sd">        """</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"enlace-passkey-user|"</span> <span class="o">+</span> <span class="n">email</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">purpose</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">body</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"|"</span> <span class="o">+</span> <span class="n">purpose</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="PasskeyService.records">
 <a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.records">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">records</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">rp_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">email</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">rp_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">purpose</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">ANY_PURPOSE</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""``(key, record)`` of every readable credential (of *email*, if given).</span>
 
 <span class="sd">        With *rp_id*, only the credentials made for that relying party: a passkey</span>
 <span class="sd">        made for another RP ID can no longer sign in, so it must not count.</span>
+<span class="sd">        With *purpose*, only those of that purpose (``None``: the general ones).</span>
 <span class="sd">        A damaged record is skipped, never raised: the store is hand-editable.</span>
 <span class="sd">        """</span>
         <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1032,6 +1065,8 @@ window.runMermaid = runMermaid;</script>
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="n">rp_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"rp_id"</span><span class="p">,</span> <span class="n">rp_id</span><span class="p">)</span> <span class="o">!=</span> <span class="n">rp_id</span><span class="p">:</span>
                 <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">purpose</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">ANY_PURPOSE</span> <span class="ow">and</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"purpose"</span><span class="p">)</span> <span class="o">!=</span> <span class="n">purpose</span><span class="p">:</span>
+                <span class="k">continue</span>
             <span class="k">if</span> <span class="n">email</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">record</span><span class="p">[</span><span class="s2">"email"</span><span class="p">]</span> <span class="o">==</span> <span class="n">email</span><span class="p">:</span>
                 <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">record</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">out</span></div>
@@ -1039,9 +1074,15 @@ window.runMermaid = runMermaid;</script>
 
 <div class="viewcode-block" id="PasskeyService.count">
 <a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.count">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">rp_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""How many passkeys *email* has (for *rp_id*, if given)."""</span>
-        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">rp_id</span><span class="o">=</span><span class="n">rp_id</span><span class="p">))</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">count</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">rp_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">purpose</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""How many general passkeys *email* has (for *rp_id*, if given).</span>
+
+<span class="sd">        A purpose-bound one cannot sign in, so it does not count toward the</span>
+<span class="sd">        passkey-required policy; pass *purpose* to count those instead.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">rp_id</span><span class="o">=</span><span class="n">rp_id</span><span class="p">,</span> <span class="n">purpose</span><span class="o">=</span><span class="n">purpose</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="PasskeyService.synced">
@@ -1052,7 +1093,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        A synced passkey lives on every device of its keychain (iCloud Keychain,</span>
 <span class="sd">        Google Password Manager), so losing one device does not lose it.</span>
 <span class="sd">        """</span>
-        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"backed_up"</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">rp_id</span><span class="o">=</span><span class="n">rp_id</span><span class="p">))</span></div>
+        <span class="n">general</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">rp_id</span><span class="o">=</span><span class="n">rp_id</span><span class="p">,</span> <span class="n">purpose</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"backed_up"</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">general</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="PasskeyService.describe">
@@ -1071,14 +1113,24 @@ window.runMermaid = runMermaid;</script>
             <span class="s2">"last_used_at"</span><span class="p">:</span> <span class="n">used</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"last_used_at"</span><span class="p">),</span>
             <span class="s2">"synced"</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"backed_up"</span><span class="p">)),</span>
             <span class="s2">"device_type"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"device_type"</span><span class="p">),</span>
+            <span class="s2">"purpose"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"purpose"</span><span class="p">),</span>
         <span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="PasskeyService.list">
 <a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.list">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""The passkeys of *email*, oldest first."""</span>
-        <span class="n">views</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">(</span><span class="n">email</span><span class="p">)]</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">purpose</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">ANY_PURPOSE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""The passkeys of *email*, oldest first (of one *purpose*, if given).</span>
+
+<span class="sd">        Listing one purpose adds each credential's id and COSE public key</span>
+<span class="sd">        (base64url), so a verifier that checks assertions itself can pin them.</span>
+<span class="sd">        """</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">purpose</span><span class="o">=</span><span class="n">purpose</span><span class="p">)</span>
+        <span class="n">views</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">found</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">purpose</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">ANY_PURPOSE</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">view</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">views</span><span class="p">,</span> <span class="n">found</span><span class="p">):</span>
+                <span class="n">view</span><span class="p">[</span><span class="s2">"credential_id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"credential_id"</span><span class="p">)</span>
+                <span class="n">view</span><span class="p">[</span><span class="s2">"public_key"</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"public_key"</span><span class="p">)</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">_when</span><span class="p">(</span><span class="n">view</span><span class="p">):</span>
             <span class="n">at</span> <span class="o">=</span> <span class="n">view</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"created_at"</span><span class="p">)</span>
@@ -1171,11 +1223,11 @@ window.runMermaid = runMermaid;</script>
     <span class="k">def</span><span class="w"> </span><span class="nf">_as_json</span><span class="p">(</span><span class="n">options</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">_webauthn</span><span class="p">()</span><span class="o">.</span><span class="n">options_to_json</span><span class="p">(</span><span class="n">options</span><span class="p">))</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_descriptors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_descriptors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">purpose</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">webauthn.helpers.structs</span><span class="w"> </span><span class="kn">import</span> <span class="n">PublicKeyCredentialDescriptor</span>
 
         <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">(</span><span class="n">email</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">purpose</span><span class="o">=</span><span class="n">purpose</span><span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                     <span class="n">PublicKeyCredentialDescriptor</span><span class="p">(</span>
@@ -1191,12 +1243,24 @@ window.runMermaid = runMermaid;</script>
 
 <div class="viewcode-block" id="PasskeyService.registration_options">
 <a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.registration_options">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">registration_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">rp</span><span class="p">:</span> <span class="n">RelyingParty</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">registration_options</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">rp</span><span class="p">:</span> <span class="n">RelyingParty</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">purpose</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">label</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""``PublicKeyCredentialCreationOptionsJSON`` for adding a passkey to *email*.</span>
 
 <span class="sd">        A discoverable credential with user verification (a passkey proper),</span>
-<span class="sd">        excluding the account's existing ones so a device is not enrolled twice.</span>
+<span class="sd">        excluding the account's existing ones of the same purpose so a device is</span>
+<span class="sd">        not enrolled twice. With *purpose* (#97) the credential gets a user</span>
+<span class="sd">        handle of its own and the system sheet's name is *label* ("Start a job</span>
+<span class="sd">        on my Mac"), so the person recognises it at the tap.</span>
 <span class="sd">        """</span>
+        <span class="n">purpose</span> <span class="o">=</span> <span class="n">clean_purpose</span><span class="p">(</span><span class="n">purpose</span><span class="p">)</span>
+        <span class="n">shown</span> <span class="o">=</span> <span class="n">clean_name</span><span class="p">(</span><span class="n">label</span><span class="p">)</span> <span class="k">if</span> <span class="n">purpose</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">email</span>
         <span class="n">wa</span> <span class="o">=</span> <span class="n">_webauthn</span><span class="p">()</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">webauthn.helpers.structs</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
             <span class="n">AuthenticatorSelectionCriteria</span><span class="p">,</span>
@@ -1207,30 +1271,46 @@ window.runMermaid = runMermaid;</script>
         <span class="n">options</span> <span class="o">=</span> <span class="n">wa</span><span class="o">.</span><span class="n">generate_registration_options</span><span class="p">(</span>
             <span class="n">rp_id</span><span class="o">=</span><span class="n">rp</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
             <span class="n">rp_name</span><span class="o">=</span><span class="n">rp</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">user_name</span><span class="o">=</span><span class="n">email</span><span class="p">,</span>
-            <span class="n">user_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user_handle</span><span class="p">(</span><span class="n">email</span><span class="p">),</span>
-            <span class="n">user_display_name</span><span class="o">=</span><span class="n">email</span><span class="p">,</span>
-            <span class="n">challenge</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_challenge</span><span class="p">(</span><span class="s2">"register"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binding</span><span class="p">(</span><span class="n">email</span><span class="p">)),</span>
+            <span class="n">user_name</span><span class="o">=</span><span class="n">shown</span><span class="p">,</span>
+            <span class="n">user_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user_handle</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">purpose</span><span class="p">),</span>
+            <span class="n">user_display_name</span><span class="o">=</span><span class="n">shown</span><span class="p">,</span>
+            <span class="n">challenge</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_challenge</span><span class="p">(</span><span class="s2">"register"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binding</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">purpose</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)),</span>
             <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_timeout_ms</span><span class="p">(),</span>
             <span class="n">authenticator_selection</span><span class="o">=</span><span class="n">AuthenticatorSelectionCriteria</span><span class="p">(</span>
                 <span class="n">resident_key</span><span class="o">=</span><span class="n">ResidentKeyRequirement</span><span class="o">.</span><span class="n">REQUIRED</span><span class="p">,</span>
                 <span class="n">user_verification</span><span class="o">=</span><span class="n">UserVerificationRequirement</span><span class="o">.</span><span class="n">REQUIRED</span><span class="p">,</span>
             <span class="p">),</span>
-            <span class="n">exclude_credentials</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_descriptors</span><span class="p">(</span><span class="n">email</span><span class="p">),</span>
+            <span class="n">exclude_credentials</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_descriptors</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">purpose</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_json</span><span class="p">(</span><span class="n">options</span><span class="p">)</span></div>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_json</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">purpose</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s2">"purpose"</span><span class="p">]</span> <span class="o">=</span> <span class="n">purpose</span>
+        <span class="k">return</span> <span class="n">out</span></div>
 
 
 <div class="viewcode-block" id="PasskeyService.register">
 <a class="viewcode-back" href="../../../_autosummary/enlace_auth.passkeys.core.html#enlace_auth.passkeys.PasskeyService.register">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">register</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">credential</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">rp</span><span class="p">:</span> <span class="n">RelyingParty</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="s2">""</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">credential</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">rp</span><span class="p">:</span> <span class="n">RelyingParty</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+        <span class="n">purpose</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Verify a registration answer and store the passkey; return its view."""</span>
+<span class="w">        </span><span class="sd">"""Verify a registration answer and store the passkey; return its view.</span>
+
+<span class="sd">        *purpose* must be the one the options were made for (the challenge</span>
+<span class="sd">        commits to it).</span>
+<span class="sd">        """</span>
         <span class="n">wa</span> <span class="o">=</span> <span class="n">_webauthn</span><span class="p">()</span>
+        <span class="n">purpose</span> <span class="o">=</span> <span class="n">clean_purpose</span><span class="p">(</span><span class="n">purpose</span><span class="p">)</span>
         <span class="n">credential</span> <span class="o">=</span> <span class="n">_as_dict</span><span class="p">(</span><span class="n">credential</span><span class="p">)</span>
         <span class="n">challenge</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_challenge_of</span><span class="p">(</span><span class="n">credential</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_check_challenge</span><span class="p">(</span><span class="n">challenge</span><span class="p">,</span> <span class="s2">"register"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binding</span><span class="p">(</span><span class="n">email</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_challenge</span><span class="p">(</span>
+            <span class="n">challenge</span><span class="p">,</span> <span class="s2">"register"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binding</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">purpose</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">verified</span> <span class="o">=</span> <span class="n">wa</span><span class="o">.</span><span class="n">verify_registration_response</span><span class="p">(</span>
                 <span class="n">credential</span><span class="o">=</span><span class="n">credential</span><span class="p">,</span>
@@ -1253,7 +1333,7 @@ window.runMermaid = runMermaid;</script>
             <span class="s2">"rp_id"</span><span class="p">:</span> <span class="n">rp</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
             <span class="s2">"credential_id"</span><span class="p">:</span> <span class="n">b64url</span><span class="p">(</span><span class="n">verified</span><span class="o">.</span><span class="n">credential_id</span><span class="p">),</span>
             <span class="s2">"public_key"</span><span class="p">:</span> <span class="n">b64url</span><span class="p">(</span><span class="n">verified</span><span class="o">.</span><span class="n">credential_public_key</span><span class="p">),</span>
-            <span class="s2">"user_handle"</span><span class="p">:</span> <span class="n">b64url</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_handle</span><span class="p">(</span><span class="n">email</span><span class="p">)),</span>
+            <span class="s2">"user_handle"</span><span class="p">:</span> <span class="n">b64url</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_handle</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">purpose</span><span class="p">)),</span>
             <span class="s2">"name"</span><span class="p">:</span> <span class="n">clean_name</span><span class="p">(</span><span class="n">name</span><span class="p">),</span>
             <span class="s2">"created_at"</span><span class="p">:</span> <span class="n">now</span><span class="p">,</span>
             <span class="s2">"device_type"</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">device_type</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">,</span> <span class="n">device_type</span><span class="p">),</span>
@@ -1263,6 +1343,8 @@ window.runMermaid = runMermaid;</script>
             <span class="p">][:</span><span class="mi">8</span><span class="p">],</span>
             <span class="s2">"aaguid"</span><span class="p">:</span> <span class="n">verified</span><span class="o">.</span><span class="n">aaguid</span><span class="p">,</span>
         <span class="p">}</span>
+        <span class="k">if</span> <span class="n">purpose</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">record</span><span class="p">[</span><span class="s2">"purpose"</span><span class="p">]</span> <span class="o">=</span> <span class="n">purpose</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">usage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"sign_count"</span><span class="p">:</span> <span class="n">verified</span><span class="o">.</span><span class="n">sign_count</span><span class="p">,</span> <span class="s2">"last_used_at"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span></div>
@@ -1299,20 +1381,27 @@ window.runMermaid = runMermaid;</script>
         <span class="n">rp</span><span class="p">:</span> <span class="n">RelyingParty</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">audience</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">purpose</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Request options for confirming *action* with one of *email*'s passkeys.</span>
 
-<span class="sd">        The challenge commits to the action and the audience. Raises</span>
-<span class="sd">        :class:`PasskeyError` when the account has no passkey.</span>
+<span class="sd">        The challenge commits to the action and the audience. Only passkeys of</span>
+<span class="sd">        *purpose* are offered (``None``: the general ones, never a purpose-bound</span>
+<span class="sd">        one). Raises :class:`PasskeyError` when the account has none.</span>
 <span class="sd">        """</span>
         <span class="n">wa</span> <span class="o">=</span> <span class="n">_webauthn</span><span class="p">()</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">webauthn.helpers.structs</span><span class="w"> </span><span class="kn">import</span> <span class="n">UserVerificationRequirement</span>
 
         <span class="n">action</span> <span class="o">=</span> <span class="n">clean_action</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
-        <span class="n">allowed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_descriptors</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+        <span class="n">purpose</span> <span class="o">=</span> <span class="n">clean_purpose</span><span class="p">(</span><span class="n">purpose</span><span class="p">)</span>
+        <span class="n">allowed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_descriptors</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">purpose</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">allowed</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This account has no passkey yet."</span><span class="p">)</span>
-        <span class="n">bound</span> <span class="o">=</span> <span class="n">challenge_binding</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">audience</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span>
+                <span class="s2">"This account has no passkey yet."</span>
+                <span class="k">if</span> <span class="n">purpose</span> <span class="ow">is</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="sa">f</span><span class="s2">"This account has no passkey for </span><span class="si">{</span><span class="n">purpose</span><span class="si">!r}</span><span class="s2"> yet."</span>
+            <span class="p">)</span>
+        <span class="n">bound</span> <span class="o">=</span> <span class="n">challenge_binding</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">audience</span><span class="p">,</span> <span class="n">purpose</span><span class="p">)</span>
         <span class="n">options</span> <span class="o">=</span> <span class="n">wa</span><span class="o">.</span><span class="n">generate_authentication_options</span><span class="p">(</span>
             <span class="n">rp_id</span><span class="o">=</span><span class="n">rp</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
             <span class="n">challenge</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_challenge</span><span class="p">(</span><span class="s2">"step-up"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binding</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">bound</span><span class="p">)),</span>
@@ -1323,6 +1412,8 @@ window.runMermaid = runMermaid;</script>
         <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_json</span><span class="p">(</span><span class="n">options</span><span class="p">),</span> <span class="s2">"action"</span><span class="p">:</span> <span class="n">action</span><span class="p">}</span>
         <span class="k">if</span> <span class="n">audience</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">out</span><span class="p">[</span><span class="s2">"audience"</span><span class="p">]</span> <span class="o">=</span> <span class="n">audience</span>
+        <span class="k">if</span> <span class="n">purpose</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s2">"purpose"</span><span class="p">]</span> <span class="o">=</span> <span class="n">purpose</span>
         <span class="k">return</span> <span class="n">out</span></div>
 
 
@@ -1334,8 +1425,13 @@ window.runMermaid = runMermaid;</script>
         <span class="n">purpose</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">email</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">action</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+        <span class="n">bound_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Verify an assertion; return ``(key, record)`` of the passkey used."""</span>
+<span class="w">        </span><span class="sd">"""Verify an assertion; return ``(key, record)`` of the passkey used.</span>
+
+<span class="sd">        *bound_to* is the passkey purpose a step-up expects (``None``: a general</span>
+<span class="sd">        passkey). A purpose-bound passkey never signs in (#97).</span>
+<span class="sd">        """</span>
         <span class="n">wa</span> <span class="o">=</span> <span class="n">_webauthn</span><span class="p">()</span>
         <span class="n">credential</span> <span class="o">=</span> <span class="n">_as_dict</span><span class="p">(</span><span class="n">credential</span><span class="p">)</span>
         <span class="n">challenge</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_challenge_of</span><span class="p">(</span><span class="n">credential</span><span class="p">)</span>
@@ -1348,6 +1444,11 @@ window.runMermaid = runMermaid;</script>
             <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This passkey is not registered here."</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">email</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">record</span><span class="p">[</span><span class="s2">"email"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">email</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This passkey belongs to another account."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">purpose</span> <span class="o">==</span> <span class="s2">"login"</span> <span class="ow">and</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"purpose"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Generic: whoever holds a credential id learns nothing about it.</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This passkey cannot sign in."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">purpose</span> <span class="o">==</span> <span class="s2">"step-up"</span> <span class="ow">and</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"purpose"</span><span class="p">)</span> <span class="o">!=</span> <span class="n">bound_to</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="s2">"This passkey is not the one for this confirmation."</span><span class="p">)</span>
         <span class="n">binding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binding</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s2">"email"</span><span class="p">]</span> <span class="k">if</span> <span class="n">purpose</span> <span class="o">!=</span> <span class="s2">"login"</span> <span class="k">else</span> <span class="s2">""</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_challenge</span><span class="p">(</span><span class="n">challenge</span><span class="p">,</span> <span class="n">purpose</span><span class="p">,</span> <span class="n">binding</span><span class="p">)</span>
         <span class="n">returned_handle</span> <span class="o">=</span> <span class="p">(</span><span class="n">credential</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"response"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"userHandle"</span><span class="p">)</span>
@@ -1401,11 +1502,13 @@ window.runMermaid = runMermaid;</script>
         <span class="n">rp</span><span class="p">:</span> <span class="n">RelyingParty</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">audience</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">purpose</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Verify a step-up for *action*; return ``{proof, action, expires_in}``.</span>
 
 <span class="sd">        With *audience* (a step-up a backend requested), the challenge must have</span>
-<span class="sd">        committed to it and the proof redeems only where it is named.</span>
+<span class="sd">        committed to it and the proof redeems only where it is named. The passkey</span>
+<span class="sd">        used must be of *purpose* (``None``: a general one).</span>
 <span class="sd">        """</span>
         <span class="n">action</span> <span class="o">=</span> <span class="n">clean_action</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
         <span class="n">key</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_assert</span><span class="p">(</span>
@@ -1413,11 +1516,17 @@ window.runMermaid = runMermaid;</script>
             <span class="n">rp</span><span class="p">,</span>
             <span class="n">purpose</span><span class="o">=</span><span class="s2">"step-up"</span><span class="p">,</span>
             <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="n">challenge_binding</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">audience</span><span class="p">),</span>
+            <span class="n">action</span><span class="o">=</span><span class="n">challenge_binding</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">audience</span><span class="p">,</span> <span class="n">clean_purpose</span><span class="p">(</span><span class="n">purpose</span><span class="p">)),</span>
+            <span class="n">bound_to</span><span class="o">=</span><span class="n">clean_purpose</span><span class="p">(</span><span class="n">purpose</span><span class="p">),</span>
         <span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">proofs</span><span class="o">.</span><span class="n">mint</span><span class="p">(</span>
-                <span class="n">email</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"passkey"</span><span class="p">,</span> <span class="n">audience</span><span class="o">=</span><span class="n">audience</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="n">key</span>
+                <span class="n">email</span><span class="p">,</span>
+                <span class="n">action</span><span class="p">,</span>
+                <span class="n">method</span><span class="o">=</span><span class="s2">"passkey"</span><span class="p">,</span>
+                <span class="n">audience</span><span class="o">=</span><span class="n">audience</span><span class="p">,</span>
+                <span class="n">ref</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
+                <span class="n">purpose</span><span class="o">=</span><span class="n">clean_purpose</span><span class="p">(</span><span class="n">purpose</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="n">StepUpError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span></div>
@@ -1446,6 +1555,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">email</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
         <span class="n">audience</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">methods</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Spend a step-up proof for *action* by *email*; return what it proves.</span>
 
@@ -1464,6 +1574,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">audience</span><span class="o">=</span><span class="n">audience</span><span class="p">,</span>
                 <span class="n">methods</span><span class="o">=</span><span class="n">methods</span><span class="p">,</span>
                 <span class="n">still_valid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_passkey_still_there</span><span class="p">,</span>
+                <span class="n">purpose</span><span class="o">=</span><span class="n">purpose</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="n">StepUpError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">PasskeyError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>

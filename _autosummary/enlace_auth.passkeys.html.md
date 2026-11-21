@@ -91,9 +91,12 @@ Register, sign in, step up, redeem and remove passkeys.
     backend’s step-up request must outlive a sign-in on the way).
   * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – `() -> epoch seconds`; tests pass a fake.
 
-#### count(email, , rp_id=None)
+#### count(email, , rp_id=None, purpose=None)
 
-How many passkeys *email* has (for *rp_id*, if given).
+How many general passkeys *email* has (for *rp_id*, if given).
+
+A purpose-bound one cannot sign in, so it does not count toward the
+passkey-required policy; pass *purpose* to count those instead.
 
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
@@ -105,9 +108,12 @@ The public view of one passkey (no key material).
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
-#### list(email)
+#### list(email, \*, purpose=<object object>)
 
-The passkeys of *email*, oldest first.
+The passkeys of *email*, oldest first (of one *purpose*, if given).
+
+Listing one purpose adds each credential’s id and COSE public key
+(base64url), so a verifier that checks assertions itself can pin them.
 
 * **Return type:**
   [`list`](#enlace_auth.passkeys.PasskeyService.list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
@@ -133,18 +139,19 @@ No `allowCredentials`: the authenticator offers the account’s passkey
 
 Proofs and requests, shared with any other step-up method.
 
-#### records(email=None, , rp_id=None)
+#### records(email=None, \*, rp_id=None, purpose=<object object>)
 
 `(key, record)` of every readable credential (of *email*, if given).
 
 With *rp_id*, only the credentials made for that relying party: a passkey
 made for another RP ID can no longer sign in, so it must not count.
+With *purpose*, only those of that purpose (`None`: the general ones).
 A damaged record is skipped, never raised: the store is hand-editable.
 
 * **Return type:**
   [`list`](#enlace_auth.passkeys.PasskeyService.list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]]
 
-#### redeem(proof, action, , email, audience=None, methods=None)
+#### redeem(proof, action, , email, audience=None, methods=None, purpose=None)
 
 Spend a step-up proof for *action* by *email*; return what it proves.
 
@@ -158,19 +165,25 @@ owner confirmed”.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
-#### register(email, credential, rp, , name='')
+#### register(email, credential, rp, , name='', purpose=None)
 
 Verify a registration answer and store the passkey; return its view.
+
+*purpose* must be the one the options were made for (the challenge
+commits to it).
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
-#### registration_options(email, rp)
+#### registration_options(email, rp, , purpose=None, label='')
 
 `PublicKeyCredentialCreationOptionsJSON` for adding a passkey to *email*.
 
 A discoverable credential with user verification (a passkey proper),
-excluding the account’s existing ones so a device is not enrolled twice.
+excluding the account’s existing ones of the same purpose so a device is
+not enrolled twice. With *purpose* (#97) the credential gets a user
+handle of its own and the system sheet’s name is *label* (“Start a job
+on my Mac”), so the person recognises it at the tap.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
@@ -189,22 +202,24 @@ Remove every passkey of *email*; return how many went.
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
-#### step_up(email, action, credential, rp, , audience=None)
+#### step_up(email, action, credential, rp, , audience=None, purpose=None)
 
 Verify a step-up for *action*; return `{proof, action, expires_in}`.
 
 With *audience* (a step-up a backend requested), the challenge must have
-committed to it and the proof redeems only where it is named.
+committed to it and the proof redeems only where it is named. The passkey
+used must be of *purpose* (`None`: a general one).
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
-#### step_up_options(email, action, rp, , audience=None)
+#### step_up_options(email, action, rp, , audience=None, purpose=None)
 
 Request options for confirming *action* with one of *email*’s passkeys.
 
-The challenge commits to the action and the audience. Raises
-[`PasskeyError`](#enlace_auth.passkeys.PasskeyError) when the account has no passkey.
+The challenge commits to the action and the audience. Only passkeys of
+*purpose* are offered (`None`: the general ones, never a purpose-bound
+one). Raises [`PasskeyError`](#enlace_auth.passkeys.PasskeyError) when the account has none.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
@@ -219,9 +234,12 @@ Google Password Manager), so losing one device does not lose it.
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
-#### user_handle(email)
+#### user_handle(email, purpose=None)
 
 The WebAuthn user handle of an account: opaque, stable, 32 bytes.
+
+A purpose-bound passkey gets a handle of its own, so an authenticator
+keeps it beside the account’s sign-in passkey instead of replacing it.
 
 * **Return type:**
   [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes)

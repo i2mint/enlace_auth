@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=fb9c6db4"></script>
+    <script src="../_static/documentation_options.js?v=cc64e7de"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.61" />
+  <meta name="docsearch:version" content="0.1.62" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -499,8 +499,8 @@ and keep <code class="docutils literal notranslate"><span class="pre">/auth</spa
 <tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.step_up.audience_key" title="enlace_auth.auth.step_up.audience_key"><code class="xref py py-obj docutils literal notranslate"><span class="pre">audience_key</span></code></a>(signing_key, audience)</p></td>
 <td><p>The secret a backend proves it speaks for <em>audience</em> with.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.step_up.challenge_binding" title="enlace_auth.auth.step_up.challenge_binding"><code class="xref py py-obj docutils literal notranslate"><span class="pre">challenge_binding</span></code></a>(action, audience)</p></td>
-<td><p>The text a step-up challenge commits to: the action, and its audience.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.step_up.challenge_binding" title="enlace_auth.auth.step_up.challenge_binding"><code class="xref py py-obj docutils literal notranslate"><span class="pre">challenge_binding</span></code></a>(action, audience[, purpose])</p></td>
+<td><p>The text a step-up challenge commits to: the action, audience and purpose.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.step_up.clean_action" title="enlace_auth.auth.step_up.clean_action"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clean_action</span></code></a>(action)</p></td>
 <td><p>The action text of a step-up, checked: 1..300 printable characters.</p></td>
@@ -508,7 +508,10 @@ and keep <code class="docutils literal notranslate"><span class="pre">/auth</spa
 <tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.step_up.clean_audience" title="enlace_auth.auth.step_up.clean_audience"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clean_audience</span></code></a>(audience)</p></td>
 <td><p>An audience name (letters, digits, <code class="docutils literal notranslate"><span class="pre">._-</span></code>, at most 64), or None for none.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.step_up.same_account" title="enlace_auth.auth.step_up.same_account"><code class="xref py py-obj docutils literal notranslate"><span class="pre">same_account</span></code></a>(a, b)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.step_up.purpose_problem" title="enlace_auth.auth.step_up.purpose_problem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">purpose_problem</span></code></a>(purpose, audience)</p></td>
+<td><p>Why a backend for <em>audience</em> may not ask for a passkey of <em>purpose</em>, or None.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.step_up.same_account" title="enlace_auth.auth.step_up.same_account"><code class="xref py py-obj docutils literal notranslate"><span class="pre">same_account</span></code></a>(a, b)</p></td>
 <td><p>Whether two written addresses name one account (either IDN spelling).</p></td>
 </tr>
 </tbody>
@@ -570,7 +573,7 @@ and keep <code class="docutils literal notranslate"><span class="pre">/auth</spa
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="enlace_auth.auth.step_up.StepUpProofs.create_request">
-<span class="sig-name descname"><span class="pre">create_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/step_up.html#StepUpProofs.create_request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.step_up.StepUpProofs.create_request" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">create_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">purpose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/step_up.html#StepUpProofs.create_request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.step_up.StepUpProofs.create_request" title="Link to this definition">#</a></dt>
 <dd><p>A signed step-up request, for a backend holding <em>audience</em>’s key.</p>
 <p>The request id carries the action, so the confirmation page shows what
 the backend wrote and nothing a page chose.</p>
@@ -583,8 +586,10 @@ the backend wrote and nothing a page chose.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="enlace_auth.auth.step_up.StepUpProofs.mint">
-<span class="sig-name descname"><span class="pre">mint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/step_up.html#StepUpProofs.mint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.step_up.StepUpProofs.mint" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">mint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">purpose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/step_up.html#StepUpProofs.mint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.step_up.StepUpProofs.mint" title="Link to this definition">#</a></dt>
 <dd><p>A proof that <em>email</em> confirmed <em>action</em> by <em>method</em>.</p>
+<p><em>purpose</em> records which purpose-bound credential confirmed it (#97):
+such a proof redeems only where that purpose is named.</p>
 <p><em>ref</em> is the method’s own reference (a passkey’s key), returned on
 redemption so the method can check it still stands.</p>
 <dl class="field-list simple">
@@ -607,7 +612,7 @@ redemption so the method can check it still stands.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="enlace_auth.auth.step_up.StepUpProofs.redeem">
-<span class="sig-name descname"><span class="pre">redeem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proof</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">methods</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">still_valid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/step_up.html#StepUpProofs.redeem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.step_up.StepUpProofs.redeem" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">redeem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proof</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">methods</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">still_valid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">purpose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/step_up.html#StepUpProofs.redeem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.step_up.StepUpProofs.redeem" title="Link to this definition">#</a></dt>
 <dd><p>Spend <em>proof</em> for <em>action</em> by <em>email</em>; return what it proves.</p>
 <p><code class="docutils literal notranslate"><span class="pre">{email,</span> <span class="pre">action,</span> <span class="pre">audience,</span> <span class="pre">verified_at,</span> <span class="pre">method,</span> <span class="pre">ref}</span></code>. Refused (raises
 <a class="reference internal" href="#enlace_auth.auth.step_up.StepUpError" title="enlace_auth.auth.step_up.StepUpError"><code class="xref py py-class docutils literal notranslate"><span class="pre">StepUpError</span></code></a>): a forged, expired or spent proof; another action,
@@ -655,10 +660,11 @@ signing key rotates every audience key.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_auth.auth.step_up.challenge_binding">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.step_up.</span></span><span class="sig-name descname"><span class="pre">challenge_binding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/step_up.html#challenge_binding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.step_up.challenge_binding" title="Link to this definition">#</a></dt>
-<dd><p>The text a step-up challenge commits to: the action, and its audience.</p>
-<p>The NUL cannot occur in a clean action or audience, so the pair is unambiguous,
-and an audience-less binding is the action alone (as before #95).</p>
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.step_up.</span></span><span class="sig-name descname"><span class="pre">challenge_binding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">purpose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/step_up.html#challenge_binding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.step_up.challenge_binding" title="Link to this definition">#</a></dt>
+<dd><p>The text a step-up challenge commits to: the action, audience and purpose.</p>
+<p>NUL and SOH cannot occur in a clean action, audience or purpose, and each
+has its own separator, so the triple is unambiguous; an audience-less,
+purpose-less binding is the action alone (as before #95).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
@@ -687,6 +693,26 @@ and an audience-less binding is the action alone (as before #95).</p>
 <dd><p>An audience name (letters, digits, <code class="docutils literal notranslate"><span class="pre">._-</span></code>, at most 64), or None for none.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">clean_audience</span><span class="p">(</span><span class="s2">"my_app"</span><span class="p">),</span> <span class="n">clean_audience</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="n">clean_audience</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
 <span class="go">('my_app', None, None)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.auth.step_up.purpose_problem">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.step_up.</span></span><span class="sig-name descname"><span class="pre">purpose_problem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">purpose</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/step_up.html#purpose_problem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.step_up.purpose_problem" title="Link to this definition">#</a></dt>
+<dd><p>Why a backend for <em>audience</em> may not ask for a passkey of <em>purpose</em>, or None.</p>
+<p>A purpose belongs to the audience whose name it starts with (<code class="docutils literal notranslate"><span class="pre">jobs</span></code> or
+<code class="docutils literal notranslate"><span class="pre">jobs.confirm</span></code> for the audience <code class="docutils literal notranslate"><span class="pre">jobs</span></code>), so no backend can borrow another
+app’s purpose passkey, and so its label, for its own action (#97).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">purpose_problem</span><span class="p">(</span><span class="s2">"jobs.confirm"</span><span class="p">,</span> <span class="s2">"jobs"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">purpose_problem</span><span class="p">(</span><span class="s2">"jobs.confirm"</span><span class="p">,</span> <span class="s2">"billing"</span><span class="p">)</span>
+<span class="go">"purpose 'jobs.confirm' is not one of audience 'billing' (...)"</span>
 </pre></div>
 </div>
 <dl class="field-list simple">
@@ -777,6 +803,7 @@ and an audience-less binding is the action alone (as before #95).</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.step_up.challenge_binding"><code class="docutils literal notranslate"><span class="pre">challenge_binding()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.step_up.clean_action"><code class="docutils literal notranslate"><span class="pre">clean_action()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.step_up.clean_audience"><code class="docutils literal notranslate"><span class="pre">clean_audience()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.step_up.purpose_problem"><code class="docutils literal notranslate"><span class="pre">purpose_problem()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.auth.step_up.same_account"><code class="docutils literal notranslate"><span class="pre">same_account()</span></code></a></li>
 </ul>
   </nav></div>

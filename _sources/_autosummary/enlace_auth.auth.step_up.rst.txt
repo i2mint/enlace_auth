@@ -19,6 +19,7 @@ enlace\_auth.auth.step\_up
       challenge_binding
       clean_action
       clean_audience
+      purpose_problem
       same_account
    
    .. rubric:: Classes

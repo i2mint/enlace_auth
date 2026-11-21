@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=fb9c6db4"></script>
+    <script src="../../../_static/documentation_options.js?v=cc64e7de"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.61" />
+  <meta name="docsearch:version" content="0.1.62" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -816,6 +816,7 @@ window.runMermaid = runMermaid;</script>
         <span class="s2">"last_used"</span><span class="p">,</span>
         <span class="s2">"never_used"</span><span class="p">,</span>
         <span class="s2">"synced"</span><span class="p">,</span>
+        <span class="s2">"for_purpose"</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">texts</span> <span class="o">=</span> <span class="n">_js_string</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">texts_for</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="n">keys</span><span class="p">)))</span>
     <span class="k">return</span> <span class="sa">f</span><span class="s2">"""</span><span class="si">{</span><span class="n">_CSS</span><span class="si">}</span><span class="s2">&lt;div class="card" id="pk-card"&gt;</span>
@@ -866,7 +867,8 @@ window.runMermaid = runMermaid;</script>
 <span class="s2">    const meta = document.createElement('span'); meta.className = 'meta';</span>
 <span class="s2">    meta.textContent = T.created + ' ' + when(pk.created_at) + ' · ' +</span>
 <span class="s2">      (pk.last_used_at ? T.last_used + ' ' + when(pk.last_used_at) : T.never_used) +</span>
-<span class="s2">      (pk.synced ? ' · ' + T.synced : '');</span>
+<span class="s2">      (pk.synced ? ' · ' + T.synced : '') +</span>
+<span class="s2">      (pk.purpose ? ' · ' + T.for_purpose.replace('</span><span class="se">{{</span><span class="s2">purpose</span><span class="se">}}</span><span class="s2">', pk.purpose) : '');</span>
 <span class="s2">    label.appendChild(meta);</span>
 <span class="s2">    const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'danger';</span>
 <span class="s2">    rm.textContent = T.remove;</span>

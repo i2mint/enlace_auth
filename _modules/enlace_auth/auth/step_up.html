@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=fb9c6db4"></script>
+    <script src="../../../_static/documentation_options.js?v=cc64e7de"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.61" />
+  <meta name="docsearch:version" content="0.1.62" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -871,13 +871,43 @@ window.runMermaid = runMermaid;</script>
 
 <div class="viewcode-block" id="challenge_binding">
 <a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.step_up.html#enlace_auth.auth.step_up.challenge_binding">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">challenge_binding</span><span class="p">(</span><span class="n">action</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">audience</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""The text a step-up challenge commits to: the action, and its audience.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">challenge_binding</span><span class="p">(</span>
+    <span class="n">action</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">audience</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The text a step-up challenge commits to: the action, audience and purpose.</span>
 
-<span class="sd">    The NUL cannot occur in a clean action or audience, so the pair is unambiguous,</span>
-<span class="sd">    and an audience-less binding is the action alone (as before #95).</span>
+<span class="sd">    NUL and SOH cannot occur in a clean action, audience or purpose, and each</span>
+<span class="sd">    has its own separator, so the triple is unambiguous; an audience-less,</span>
+<span class="sd">    purpose-less binding is the action alone (as before #95).</span>
 <span class="sd">    """</span>
-    <span class="k">return</span> <span class="n">action</span> <span class="k">if</span> <span class="n">audience</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">audience</span><span class="si">}</span><span class="se">\x00</span><span class="si">{</span><span class="n">action</span><span class="si">}</span><span class="s2">"</span></div>
+    <span class="n">bound</span> <span class="o">=</span> <span class="n">action</span> <span class="k">if</span> <span class="n">audience</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">audience</span><span class="si">}</span><span class="se">\x00</span><span class="si">{</span><span class="n">action</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">return</span> <span class="n">bound</span> <span class="k">if</span> <span class="n">purpose</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">bound</span><span class="si">}</span><span class="se">\x01</span><span class="si">{</span><span class="n">purpose</span><span class="si">}</span><span class="s2">"</span></div>
+
+
+
+<div class="viewcode-block" id="purpose_problem">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.step_up.html#enlace_auth.auth.step_up.purpose_problem">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">purpose_problem</span><span class="p">(</span><span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">audience</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Why a backend for *audience* may not ask for a passkey of *purpose*, or None.</span>
+
+<span class="sd">    A purpose belongs to the audience whose name it starts with (``jobs`` or</span>
+<span class="sd">    ``jobs.confirm`` for the audience ``jobs``), so no backend can borrow another</span>
+<span class="sd">    app's purpose passkey, and so its label, for its own action (#97).</span>
+
+<span class="sd">    &gt;&gt;&gt; purpose_problem("jobs.confirm", "jobs") is None</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; purpose_problem("jobs.confirm", "billing")  # doctest: +ELLIPSIS</span>
+<span class="sd">    "purpose 'jobs.confirm' is not one of audience 'billing' (...)"</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">purpose</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span>
+        <span class="n">audience</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="ow">and</span> <span class="p">(</span><span class="n">purpose</span> <span class="o">==</span> <span class="n">audience</span> <span class="ow">or</span> <span class="n">purpose</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">audience</span> <span class="o">+</span> <span class="s2">"."</span><span class="p">))</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"purpose </span><span class="si">{</span><span class="n">purpose</span><span class="si">!r}</span><span class="s2"> is not one of audience </span><span class="si">{</span><span class="n">audience</span><span class="si">!r}</span><span class="s2"> "</span>
+        <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">audience</span><span class="si">!r}</span><span class="s2"> or '</span><span class="si">{</span><span class="n">audience</span><span class="si">}</span><span class="s2">.&lt;name&gt;')"</span>
+    <span class="p">)</span></div>
 
 
 
@@ -945,8 +975,12 @@ window.runMermaid = runMermaid;</script>
         <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">audience</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">ref</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""A proof that *email* confirmed *action* by *method*.</span>
+
+<span class="sd">        *purpose* records which purpose-bound credential confirmed it (#97):</span>
+<span class="sd">        such a proof redeems only where that purpose is named.</span>
 
 <span class="sd">        *ref* is the method's own reference (a passkey's key), returned on</span>
 <span class="sd">        redemption so the method can check it still stands.</span>
@@ -964,6 +998,8 @@ window.runMermaid = runMermaid;</script>
             <span class="n">payload</span><span class="p">[</span><span class="s2">"k"</span><span class="p">]</span> <span class="o">=</span> <span class="n">ref</span>
         <span class="k">if</span> <span class="n">audience</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">payload</span><span class="p">[</span><span class="s2">"u"</span><span class="p">]</span> <span class="o">=</span> <span class="n">audience</span>
+        <span class="k">if</span> <span class="n">purpose</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">payload</span><span class="p">[</span><span class="s2">"p"</span><span class="p">]</span> <span class="o">=</span> <span class="n">clean_audience</span><span class="p">(</span><span class="n">purpose</span><span class="p">)</span>
         <span class="n">out</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"proof"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_serializer</span><span class="p">(</span><span class="n">_PROOF_SALT</span><span class="p">)</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">),</span>
             <span class="s2">"action"</span><span class="p">:</span> <span class="n">action</span><span class="p">,</span>
@@ -985,6 +1021,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">audience</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">methods</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">still_valid</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Spend *proof* for *action* by *email*; return what it proves.</span>
 
@@ -1007,6 +1044,8 @@ window.runMermaid = runMermaid;</script>
             <span class="k">raise</span> <span class="n">StepUpError</span><span class="p">(</span><span class="s2">"This step-up proof is for another account."</span><span class="p">)</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"u"</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span> <span class="o">!=</span> <span class="n">audience</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">StepUpError</span><span class="p">(</span><span class="s2">"This step-up proof is for another audience."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"p"</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span> <span class="o">!=</span> <span class="n">clean_audience</span><span class="p">(</span><span class="n">purpose</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">StepUpError</span><span class="p">(</span><span class="s2">"This step-up proof was made with another passkey kind."</span><span class="p">)</span>
         <span class="n">method</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"m"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"passkey"</span>  <span class="c1"># minted before #95: passkey only</span>
         <span class="k">if</span> <span class="n">methods</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">methods</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">StepUpError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"This step-up was confirmed by </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">, refused here."</span><span class="p">)</span>
@@ -1037,6 +1076,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">audience</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
         <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">return_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""A signed step-up request, for a backend holding *audience*'s key.</span>
 
@@ -1061,6 +1101,11 @@ window.runMermaid = runMermaid;</script>
         <span class="p">}</span>
         <span class="k">if</span> <span class="n">return_url</span><span class="p">:</span>
             <span class="n">payload</span><span class="p">[</span><span class="s2">"r"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">return_url</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">purpose</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">purpose</span> <span class="o">=</span> <span class="n">clean_audience</span><span class="p">(</span><span class="n">purpose</span><span class="p">)</span>  <span class="c1"># a passkey purpose (#97)</span>
+            <span class="k">if</span> <span class="n">problem</span> <span class="o">:=</span> <span class="n">purpose_problem</span><span class="p">(</span><span class="n">purpose</span><span class="p">,</span> <span class="n">audience</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">StepUpError</span><span class="p">(</span><span class="n">problem</span><span class="p">)</span>
+            <span class="n">payload</span><span class="p">[</span><span class="s2">"p"</span><span class="p">]</span> <span class="o">=</span> <span class="n">purpose</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_serializer</span><span class="p">(</span><span class="n">_REQUEST_SALT</span><span class="p">)</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span></div>
 
 
@@ -1094,6 +1139,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="s2">"action"</span><span class="p">:</span> <span class="n">clean_action</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"a"</span><span class="p">]),</span>
                 <span class="s2">"audience"</span><span class="p">:</span> <span class="n">clean_audience</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"u"</span><span class="p">]),</span>
                 <span class="s2">"return_url"</span><span class="p">:</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"r"</span><span class="p">),</span>
+                <span class="s2">"purpose"</span><span class="p">:</span> <span class="n">clean_audience</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"p"</span><span class="p">)),</span>
             <span class="p">}</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">StepUpError</span><span class="p">(</span><span class="s2">"Not a step-up request."</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span></div>

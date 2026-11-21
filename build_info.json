@@ -1,32 +1,32 @@
 {
   "schema_version": 1,
-  "built_at": "2026-11-21T23:13:53Z",
+  "built_at": "2026-11-21T23:28:40Z",
   "package": {
     "name": "enlace_auth",
-    "version": "0.1.61",
+    "version": "0.1.62",
     "display_name": "enlace_auth",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "e835dfda3a1da81d3ea24fc6bf586cfe102b3038",
-    "short_commit": "e835dfd",
+    "commit": "3c9328a800af25fadb47d51929f442e1826bad89",
+    "short_commit": "3c9328a",
     "branch": "main",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/i2mint/enlace_auth",
-    "commit_url": "https://github.com/i2mint/enlace_auth/commit/e835dfda3a1da81d3ea24fc6bf586cfe102b3038",
+    "commit_url": "https://github.com/i2mint/enlace_auth/commit/3c9328a800af25fadb47d51929f442e1826bad89",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "i2mint/enlace_auth",
-    "sha": "d23d2e4b24997efd6fe2e111766afa03e92dee97",
+    "sha": "3c9328a800af25fadb47d51929f442e1826bad89",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "44960469432",
-    "run_url": "https://github.com/i2mint/enlace_auth/actions/runs/44960469432",
+    "run_id": "44961735242",
+    "run_url": "https://github.com/i2mint/enlace_auth/actions/runs/44961735242",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -56,15 +56,15 @@
   },
   "site": {
     "modules_documented": 46,
-    "objects_documented": 327
+    "objects_documented": 328
   },
   "pypi": {
     "checked": true,
-    "latest": "0.1.61",
+    "latest": "0.1.62",
     "relation": "same",
     "error": null
   },
-  "reproduce": "git clone https://github.com/i2mint/enlace_auth && cd enlace_auth\ngit checkout e835dfda3a1da81d3ea24fc6bf586cfe102b3038\npip install \"epythet==0.2.23\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/i2mint/enlace_auth && cd enlace_auth\ngit checkout 3c9328a800af25fadb47d51929f442e1826bad89\npip install \"epythet==0.2.23\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": true,

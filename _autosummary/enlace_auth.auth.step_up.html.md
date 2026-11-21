@@ -50,12 +50,13 @@ enlace_auth.auth.step_up.StepUpError: This step-up proof was already used.
 
 ### Functions
 
-| [`audience_key`](#enlace_auth.auth.step_up.audience_key)(signing_key, audience)   | The secret a backend proves it speaks for *audience* with.               |
-|----------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
-| [`challenge_binding`](#enlace_auth.auth.step_up.challenge_binding)(action, audience)   | The text a step-up challenge commits to: the action, and its audience.   |
-| [`clean_action`](#enlace_auth.auth.step_up.clean_action)(action)                  | The action text of a step-up, checked: 1..300 printable characters.      |
-| [`clean_audience`](#enlace_auth.auth.step_up.clean_audience)(audience)              | An audience name (letters, digits, `._-`, at most 64), or None for none. |
-| [`same_account`](#enlace_auth.auth.step_up.same_account)(a, b)                    | Whether two written addresses name one account (either IDN spelling).    |
+| [`audience_key`](#enlace_auth.auth.step_up.audience_key)(signing_key, audience)            | The secret a backend proves it speaks for *audience* with.                    |
+|-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| [`challenge_binding`](#enlace_auth.auth.step_up.challenge_binding)(action, audience[, purpose]) | The text a step-up challenge commits to: the action, audience and purpose.    |
+| [`clean_action`](#enlace_auth.auth.step_up.clean_action)(action)                           | The action text of a step-up, checked: 1..300 printable characters.           |
+| [`clean_audience`](#enlace_auth.auth.step_up.clean_audience)(audience)                       | An audience name (letters, digits, `._-`, at most 64), or None for none.      |
+| [`purpose_problem`](#enlace_auth.auth.step_up.purpose_problem)(purpose, audience)             | Why a backend for *audience* may not ask for a passkey of *purpose*, or None. |
+| [`same_account`](#enlace_auth.auth.step_up.same_account)(a, b)                             | Whether two written addresses name one account (either IDN spelling).         |
 
 ### Classes
 
@@ -95,7 +96,7 @@ Mint and redeem step-up proofs; sign and read step-up requests.
   * **request_ttl** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – how long a step-up request is valid, in seconds.
   * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – `() -> epoch seconds`.
 
-#### create_request(, email, action, audience, key, return_url=None)
+#### create_request(, email, action, audience, key, return_url=None, purpose=None)
 
 A signed step-up request, for a backend holding *audience*’s key.
 
@@ -105,9 +106,12 @@ the backend wrote and nothing a page chose.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-#### mint(email, action, , method, audience=None, ref=None)
+#### mint(email, action, , method, audience=None, ref=None, purpose=None)
 
 A proof that *email* confirmed *action* by *method*.
+
+*purpose* records which purpose-bound credential confirmed it (#97):
+such a proof redeems only where that purpose is named.
 
 *ref* is the method’s own reference (a passkey’s key), returned on
 redemption so the method can check it still stands.
@@ -122,7 +126,7 @@ redemption so the method can check it still stands.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
-#### redeem(proof, action, , email, audience=None, methods=None, still_valid=None)
+#### redeem(proof, action, , email, audience=None, methods=None, still_valid=None, purpose=None)
 
 Spend *proof* for *action* by *email*; return what it proves.
 
@@ -160,12 +164,13 @@ signing key rotates every audience key.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.step_up.challenge_binding(action, audience)
+### enlace_auth.auth.step_up.challenge_binding(action, audience, purpose=None)
 
-The text a step-up challenge commits to: the action, and its audience.
+The text a step-up challenge commits to: the action, audience and purpose.
 
-The NUL cannot occur in a clean action or audience, so the pair is unambiguous,
-and an audience-less binding is the action alone (as before #95).
+NUL and SOH cannot occur in a clean action, audience or purpose, and each
+has its own separator, so the triple is unambiguous; an audience-less,
+purpose-less binding is the action alone (as before #95).
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
@@ -189,6 +194,24 @@ An audience name (letters, digits, `._-`, at most 64), or None for none.
 ```pycon
 >>> clean_audience("my_app"), clean_audience(None), clean_audience("")
 ('my_app', None, None)
+```
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.auth.step_up.purpose_problem(purpose, audience)
+
+Why a backend for *audience* may not ask for a passkey of *purpose*, or None.
+
+A purpose belongs to the audience whose name it starts with (`jobs` or
+`jobs.confirm` for the audience `jobs`), so no backend can borrow another
+app’s purpose passkey, and so its label, for its own action (#97).
+
+```pycon
+>>> purpose_problem("jobs.confirm", "jobs") is None
+True
+>>> purpose_problem("jobs.confirm", "billing")
+"purpose 'jobs.confirm' is not one of audience 'billing' (...)"
 ```
 
 * **Return type:**
