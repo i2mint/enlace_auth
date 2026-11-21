@@ -20,6 +20,7 @@ Usage::
     enlace-auth list-grants [--app NAME] [--json]
     enlace-auth list-passkeys <email> [--json]
     enlace-auth remove-passkey <email> [--passkey-id ID | --all]
+    enlace-auth step-up-key <audience>
 """
 
 from __future__ import annotations
@@ -941,6 +942,36 @@ def remove_passkey(
     )
 
 
+def step_up_key(audience: str, *, toml: str = "platform.toml"):
+    """Print the key a backend uses to request step-ups for *audience*.
+
+    The backend sends it as ``Authorization: Bearer <key>`` to
+    ``POST /auth/passkeys/step-up/request``; the confirmation the account holder
+    then gives on the platform's page yields a proof that only a redeem naming
+    *audience* accepts. The key is derived from the platform's signing key (read
+    from the environment variable ``[auth] signing_key_env`` names), so rotating
+    that key rotates every audience key. Keep it with the backend's other secrets.
+
+    Args:
+        audience: The audience name (letters, digits, ``._-``), usually the app's.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    import os
+
+    from enlace_auth.auth.step_up import StepUpError, audience_key
+
+    auth = coerce_auth_config(PlatformConfig.from_toml(Path(toml)).auth)
+    signing_key = os.environ.get(auth.signing_key_env, "")
+    if not signing_key:
+        print(f"{auth.signing_key_env} is not set.", file=sys.stderr)
+        sys.exit(1)
+    try:
+        print(audience_key(signing_key, audience))
+    except StepUpError as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(2)
+
+
 #: The SSOT for the CLI surface: a verb that is not in this list does not exist.
 COMMANDS = [
     init,
@@ -967,6 +998,7 @@ COMMANDS = [
     signup_policy,
     list_passkeys,
     remove_passkey,
+    step_up_key,
 ]
 
 

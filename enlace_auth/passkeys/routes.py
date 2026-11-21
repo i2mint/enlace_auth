@@ -9,9 +9,16 @@ except ``step-up/redeem``, see below):
 - ``DELETE /auth/passkeys/{id}``              removes one (fresh sign-in needed)
 - ``POST   /auth/passkeys/login/options``     request options for a sign-in by passkey
 - ``POST   /auth/passkeys/login/verify``      ``{credential, next?}``: opens a session
-- ``POST   /auth/passkeys/step-up/options``   ``{action}``: options bound to the action
-- ``POST   /auth/passkeys/step-up/verify``    ``{action, credential}``: ``{proof, ...}``
-- ``POST   /auth/passkeys/step-up/redeem``    ``{proof, action, email}``: spends it
+- ``POST   /auth/passkeys/step-up/request``   a backend's ``{email, action, audience,
+  return_url?}`` with ``Authorization: Bearer <audience key>``: ``{request,
+  confirm_url, expires_in}``
+- ``GET    /auth/passkeys/confirm?r=<request>`` the platform's confirmation page
+- ``POST   /auth/passkeys/step-up/options``   ``{action}`` or ``{request}``: options
+  bound to the action (and the request's audience)
+- ``POST   /auth/passkeys/step-up/verify``    ``{action | request, credential}``:
+  ``{proof, ...}``
+- ``POST   /auth/passkeys/step-up/redeem``    ``{proof, action, email, audience?,
+  methods?}``: spends it
 - ``GET    /auth/passkeys/passkeys.js``       the browser helper, ``enlacePasskeys``
 
 Adding or removing a passkey needs a session opened within ``fresh_seconds``:
@@ -24,8 +31,17 @@ the account's other sessions and connector refresh families
 ``step-up/redeem`` is called by a backend, not a browser: no cookie
 authenticates it, the proof in the body is the credential, so it is exempt from
 the CSRF double-submit (the plugin lists it). The caller names the action AND the
-account it expects; the answer (``{email, action, verified_at, method,
+account it expects; the answer (``{email, action, audience, verified_at, method,
 passkey}``) comes once.
+
+Two ways to ask for a step-up (i2mint/enlace_auth#95). A page may still call
+``step-up/options {action}`` itself; such a proof carries no audience, so a
+backend that names its audience refuses it. The strong way: the backend creates
+the request (``step-up/request``, CSRF-exempt, authenticated by the audience key
+``enlace-auth step-up-key AUDIENCE`` prints), and the browser opens the
+platform's ``/auth/passkeys/confirm`` page, which shows the backend's action and
+audience and mints a proof only that audience redeems. A page script never
+chooses the text, and the page refuses to be framed.
 """
 
 from __future__ import annotations
@@ -34,14 +50,17 @@ import time
 from collections.abc import Callable
 from importlib.resources import files
 from typing import Any, Optional
+from urllib.parse import quote
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 
 from enlace_auth.auth.accounts import DISABLED_DETAIL, is_disabled, open_session
 from enlace_auth.auth.cookie_policy import CookiePolicy, request_host
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.pages import safe_next
+from enlace_auth.auth.step_up import StepUpError
 from enlace_auth.passkeys.core import (
     PasskeyError,
     PasskeyPolicy,
@@ -52,6 +71,15 @@ from enlace_auth.passkeys.texts import t
 
 #: The redeem endpoint, which the plugin exempts from the CSRF check.
 REDEEM_PATH = "/auth/passkeys/step-up/redeem"
+#: The backend's request endpoint, exempt likewise (a bearer key, no cookie).
+REQUEST_PATH = "/auth/passkeys/step-up/request"
+#: Headers of the confirmation page: never framed, never cached.
+_CONFIRM_HEADERS = {
+    "Content-Security-Policy": "frame-ancestors 'none'",
+    "X-Frame-Options": "DENY",
+    "Cache-Control": "no-store",
+    "Referrer-Policy": "no-referrer",
+}
 #: Set on a 403 that a fresh sign-in would turn into a success.
 REAUTH_HEADER = "X-Enlace-Reauth"
 
@@ -67,11 +95,13 @@ class _LoginBody(BaseModel):
 
 
 class _ActionBody(BaseModel):
-    action: str
+    action: Optional[str] = None
+    request: Optional[str] = None
 
 
 class _StepUpBody(BaseModel):
-    action: str
+    action: Optional[str] = None
+    request: Optional[str] = None
     credential: dict
 
 
@@ -79,6 +109,15 @@ class _RedeemBody(BaseModel):
     proof: str
     action: str
     email: str
+    audience: Optional[str] = None
+    methods: Optional[list[str]] = None
+
+
+class _RequestBody(BaseModel):
+    email: str
+    action: str
+    audience: str
+    return_url: Optional[str] = None
 
 
 def make_passkey_router(
@@ -311,11 +350,121 @@ def make_passkey_router(
 
     # ----- step-up ----------------------------------------------------------
 
+    def _what_to_confirm(
+        email: str, body: _ActionBody | _StepUpBody
+    ) -> tuple[Any, Optional[str]]:
+        """``(action, audience)``: the page's action, or a backend's request.
+
+        A page cannot name an audience: only a request signed with the
+        audience's key carries one. A request is for one account only.
+        """
+        if body.request is None:
+            return body.action, None
+        try:
+            wanted = service.proofs.read_request(body.request)
+        except StepUpError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from None
+        if wanted["email"] != email.lower():
+            raise HTTPException(
+                status_code=403, detail="This confirmation is for another account."
+            )
+        return wanted["action"], wanted["audience"]
+
+    @router.post("/step-up/request")
+    async def step_up_request(body: _RequestBody, request: Request) -> dict[str, Any]:
+        """A backend asks the account holder to confirm *action* for its audience."""
+        scheme, _, key = request.headers.get("authorization", "").partition(" ")
+        if scheme.lower() != "bearer" or not key:
+            raise HTTPException(status_code=401, detail="An audience key is needed.")
+        back = None
+        if body.return_url:
+            back = safe_next(body.return_url, default="")
+            if not back:
+                raise HTTPException(
+                    status_code=400, detail="return_url must be a path on this site."
+                )
+        try:
+            request_id = service.proofs.create_request(
+                email=body.email,
+                action=body.action,
+                audience=body.audience,
+                key=key.strip(),
+                return_url=back,
+            )
+        except StepUpError as e:
+            status = 401 if "key" in str(e) else 400
+            raise HTTPException(status_code=status, detail=str(e)) from None
+        base = (public_base_url or str(request.base_url)).rstrip("/")
+        return {
+            "request": request_id,
+            "confirm_url": f"{base}/auth/passkeys/confirm?r={quote(request_id)}",
+            "expires_in": service.proofs.request_ttl,
+        }
+
+    @router.get("/confirm", response_class=HTMLResponse, include_in_schema=False)
+    async def confirm_page(request: Request) -> Response:
+        """The platform's page for confirming a backend's request."""
+        from enlace_auth.auth.pages import _page, render_notice_page
+        from enlace_auth.passkeys.pages import render_confirm_section
+
+        lang = pick_lang(request.headers.get("accept-language"))
+        request_id = request.query_params.get("r", "")
+        try:
+            wanted = service.proofs.read_request(request_id)
+        except StepUpError:
+            page = render_notice_page(
+                title=t(lang, "confirm_title"),
+                heading=t(lang, "confirm_title"),
+                message=t(lang, "confirm_invalid"),
+                links=[],
+            )
+            return HTMLResponse(page, status_code=400, headers=_CONFIRM_HEADERS)
+        here = f"/auth/passkeys/confirm?r={quote(request_id)}"
+        current = getattr(request.state, "user_email", None)
+        if not current:
+            return RedirectResponse(
+                f"/auth/login?login_required=1&next={quote(here, safe='')}",
+                status_code=303,
+                headers=_CONFIRM_HEADERS,
+            )
+        if current.lower() != wanted["email"]:
+            page = render_notice_page(
+                title=t(lang, "confirm_title"),
+                heading=t(lang, "confirm_title"),
+                message=t(
+                    lang,
+                    "confirm_other_account",
+                    email=wanted["email"],
+                    current=current,
+                ),
+                links=[
+                    (
+                        t(lang, "confirm_switch", email=wanted["email"]),
+                        f"/auth/login?next={quote(here, safe='')}",
+                        True,
+                    )
+                ],
+            )
+            return HTMLResponse(page, status_code=403, headers=_CONFIRM_HEADERS)
+        body = render_confirm_section(
+            lang=lang,
+            request_id=request_id,
+            action=wanted["action"],
+            audience=wanted["audience"],
+            return_url=wanted["return_url"] or "",
+        )
+        return HTMLResponse(
+            _page(t(lang, "confirm_title"), body, lang=lang), headers=_CONFIRM_HEADERS
+        )
+
     @router.post("/step-up/options")
     async def step_up_options(body: _ActionBody, request: Request) -> dict[str, Any]:
         email = _signed_in(request)
+        action, audience = _what_to_confirm(email, body)
         try:
-            return service.step_up_options(email, body.action, _rp(request))
+            return service.step_up_options(
+                email, action, _rp(request), audience=audience
+            )
         except PasskeyError as e:
             status = 409 if service.count(email) == 0 else 400
             raise HTTPException(status_code=status, detail=str(e)) from None
@@ -323,15 +472,24 @@ def make_passkey_router(
     @router.post("/step-up/verify")
     async def step_up_verify(body: _StepUpBody, request: Request) -> dict[str, Any]:
         email = _signed_in(request)
+        action, audience = _what_to_confirm(email, body)
         try:
-            return service.step_up(email, body.action, body.credential, _rp(request))
+            return service.step_up(
+                email, action, body.credential, _rp(request), audience=audience
+            )
         except PasskeyError as e:
             raise _refused(e) from None
 
     @router.post("/step-up/redeem")
     async def step_up_redeem(body: _RedeemBody) -> dict[str, Any]:
         try:
-            proven = service.redeem(body.proof, body.action, email=body.email)
+            proven = service.redeem(
+                body.proof,
+                body.action,
+                email=body.email,
+                audience=body.audience,
+                methods=body.methods,
+            )
         except PasskeyError as e:
             raise _refused(e) from None
         try:

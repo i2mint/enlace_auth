@@ -8,6 +8,7 @@ run in ``/auth/passkeys/passkeys.js``; these fragments only wire buttons to it.
 from __future__ import annotations
 
 import json
+from html import escape
 
 from enlace_auth.auth.pages import _NEXT_JS, _js_string
 from enlace_auth.passkeys.texts import t, texts_for
@@ -182,5 +183,63 @@ reauth.addEventListener('click', async () => {{
   window.location.assign('/auth/login?next=%2Fauth%2Faccount');
 }});
 refresh().catch((e) => say(e.message, 'err'));
+}})();
+</script>"""
+
+
+#: The fragment key the confirmation page hands a proof back under.
+PROOF_FRAGMENT = "enlace_step_up"
+
+
+def render_confirm_section(
+    *, lang: str, request_id: str, action: str, audience: str, return_url: str
+) -> str:
+    """The platform's confirmation page body: the action, as the backend wrote it.
+
+    The text comes from the signed request, never from a page, and the proof is
+    minted for that request only. On success the browser goes to *return_url*
+    (already checked with ``safe_next``) with the proof in its fragment, which
+    never reaches a server log; with no *return_url* the page says it is done.
+    """
+    texts = _js_string(
+        json.dumps(texts_for(lang, ("confirm_waiting", "confirm_done", "cancelled")))
+    )
+    return f"""{_CSS}<div class="card" id="pk-confirm">
+<h1>{escape(t(lang, "confirm_title"))}</h1>
+<p>{escape(t(lang, "confirm_asks", audience=audience))}</p>
+<p class="pk-action"><strong>{escape(action)}</strong></p>
+<button id="pk-go" type="button" hidden>{escape(t(lang, "confirm_button"))}</button>
+<div id="pk-msg" class="msg"></div>
+</div>
+{_SCRIPT}
+<script>
+(function(){{
+const P = window.enlacePasskeys, T = JSON.parse({texts});
+const REQ = {_js_string(request_id)}, BACK = {_js_string(return_url)};
+const btn = document.getElementById('pk-go'), msg = document.getElementById('pk-msg');
+function say(text, cls) {{ msg.textContent = text || ''; msg.className = 'msg ' + (cls || ''); }}
+if (!P || !P.supported()) return;
+let prepared = null;
+function arm() {{
+  P.prepareStepUp({{request: REQ}}).then(
+    (p) => {{ prepared = p; btn.hidden = false; }},
+    (e) => say(e.message, 'err'));
+}}
+btn.addEventListener('click', async () => {{
+  btn.disabled = true; say(T.confirm_waiting);
+  try {{
+    const r = await P.stepUp(prepared);
+    btn.hidden = true;
+    if (BACK) {{
+      window.location.assign(BACK.split('#')[0] + '#{PROOF_FRAGMENT}=' + encodeURIComponent(r.proof));
+      return;
+    }}
+    say(T.confirm_done, 'ok');
+  }} catch (e) {{
+    say(e.name === 'NotAllowedError' ? T.cancelled : e.message, 'err');
+    prepared = null; btn.disabled = false; arm();
+  }}
+}});
+arm();
 }})();
 </script>"""

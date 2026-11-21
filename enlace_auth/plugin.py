@@ -1297,9 +1297,11 @@ def wire(parent: "FastAPI", config) -> None:
     if passkeys:
         # A backend redeems a step-up proof with no cookie at all: the proof in
         # the body is the credential, so a double-submit token protects nothing.
-        from enlace_auth.passkeys.routes import REDEEM_PATH
+        from enlace_auth.passkeys.routes import REDEEM_PATH, REQUEST_PATH
 
         csrf_exempt.append(REDEEM_PATH)
+        # A backend creates a step-up request with its audience key, no cookie.
+        csrf_exempt.append(REQUEST_PATH)
     if auth_cfg.oauth_server.enabled:
         # OAuth 2.1 server endpoints: /register + /token are cookieless
         # machine-to-machine calls (protected by PKCE + client validation), and

@@ -15,10 +15,12 @@ So a step-up challenge commits to the action: an answer signed for one action
 cannot be presented for another.
 
 A verified step-up returns a **proof**: a signed token, valid for
-``proof_ttl`` seconds, that names the account and the action. An app or a
-connector backend redeems it once (:meth:`PasskeyService.redeem`), stating the
-action it is about to perform; a proof for another action, an expired one or a
-spent one is refused.
+``proof_ttl`` seconds, that names the account, the action and (for a step-up a
+backend requested) the audience. An app or a connector backend redeems it once
+(:meth:`PasskeyService.redeem`), stating the action it is about to perform; a
+proof for another action or audience, an expired one or a spent one is refused.
+Proofs and requests are method-agnostic (:mod:`enlace_auth.auth.step_up`); the
+passkey is one method that mints them.
 
 Records. A credential is stored under ``sha256(credential id)`` (hex, a safe
 file name) as ``{email, credential_id, public_key, user_handle, name,
@@ -42,8 +44,13 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 from urllib.parse import urlsplit
 
-#: Longest action description a step-up accepts (it is shown to the user).
-MAX_ACTION_LEN = 300
+from enlace_auth.auth.step_up import (  # noqa: E402 - re-exported
+    MAX_ACTION_LEN,
+    StepUpError,
+    StepUpProofs,
+    challenge_binding,
+)
+
 #: Longest name a passkey may be given.
 MAX_NAME_LEN = 60
 _CHALLENGE_LEN = 40
@@ -97,12 +104,12 @@ def clean_action(action: Any) -> str:
       ...
     enlace_auth.passkeys.core.PasskeyError: An action is one line of at most 300 ...
     """
-    text = action.strip() if isinstance(action, str) else ""
-    if not text or len(text) > MAX_ACTION_LEN or not text.isprintable():
-        raise PasskeyError(
-            f"An action is one line of at most {MAX_ACTION_LEN} printable characters."
-        )
-    return text
+    from enlace_auth.auth import step_up
+
+    try:
+        return step_up.clean_action(action)
+    except StepUpError as e:
+        raise PasskeyError(str(e)) from None
 
 
 def clean_name(name: Any) -> str:
@@ -238,6 +245,14 @@ class PasskeyService:
         self.challenge_ttl = challenge_ttl
         self.proof_ttl = proof_ttl
         self._clock = clock
+        #: Proofs and requests, shared with any other step-up method.
+        self.proofs = StepUpProofs(
+            signing_key,
+            claim_once=self._claim,
+            ttl=proof_ttl,
+            request_ttl=challenge_ttl,
+            clock=lambda: self._clock(),
+        )
 
     # ----- records --------------------------------------------------------
 
@@ -496,11 +511,18 @@ class PasskeyService:
         )
         return self._as_json(options)
 
-    def step_up_options(self, email: str, action: Any, rp: RelyingParty) -> dict:
+    def step_up_options(
+        self,
+        email: str,
+        action: Any,
+        rp: RelyingParty,
+        *,
+        audience: Optional[str] = None,
+    ) -> dict:
         """Request options for confirming *action* with one of *email*'s passkeys.
 
-        The challenge commits to the action. Raises :class:`PasskeyError` when the
-        account has no passkey.
+        The challenge commits to the action and the audience. Raises
+        :class:`PasskeyError` when the account has no passkey.
         """
         wa = _webauthn()
         from webauthn.helpers.structs import UserVerificationRequirement
@@ -509,14 +531,18 @@ class PasskeyService:
         allowed = self._descriptors(email)
         if not allowed:
             raise PasskeyError("This account has no passkey yet.")
+        bound = challenge_binding(action, audience)
         options = wa.generate_authentication_options(
             rp_id=rp.id,
-            challenge=self._challenge("step-up", self._binding(email, action)),
+            challenge=self._challenge("step-up", self._binding(email, bound)),
             timeout=self._timeout_ms(),
             allow_credentials=allowed,
             user_verification=UserVerificationRequirement.REQUIRED,
         )
-        return {**self._as_json(options), "action": action}
+        out = {**self._as_json(options), "action": action}
+        if audience is not None:
+            out["audience"] = audience
+        return out
 
     def _assert(
         self,
@@ -581,80 +607,82 @@ class PasskeyService:
         return record["email"]
 
     def step_up(
-        self, email: str, action: Any, credential: Any, rp: RelyingParty
+        self,
+        email: str,
+        action: Any,
+        credential: Any,
+        rp: RelyingParty,
+        *,
+        audience: Optional[str] = None,
     ) -> dict:
-        """Verify a step-up for *action*; return ``{proof, action, expires_in}``."""
-        action = clean_action(action)
-        key, record = self._assert(
-            credential, rp, purpose="step-up", email=email, action=action
-        )
-        payload = {
-            "e": email,
-            "a": action,
-            "k": key,
-            "j": secrets.token_urlsafe(16),
-            "t": self._clock(),
-        }
-        return {
-            "proof": self._serializer().dumps(payload),
-            "action": action,
-            "expires_in": self.proof_ttl,
-        }
+        """Verify a step-up for *action*; return ``{proof, action, expires_in}``.
 
-    def _serializer(self):
-        from itsdangerous import URLSafeSerializer
-
-        return URLSafeSerializer(self._key, salt="enlace-passkey-step-up")
-
-    def redeem(self, proof: Any, action: Any, *, email: Any) -> dict:
-        """Spend a step-up proof for *action* by *email*; return what it proves.
-
-        ``{email, action, verified_at, method, passkey}``. Raises
-        :class:`PasskeyError` for a forged, expired, spent, other-action or
-        other-account proof, or one whose passkey has since been removed. The
-        caller names the account it expects, so "someone confirmed" can never
-        pass for "the owner confirmed".
+        With *audience* (a step-up a backend requested), the challenge must have
+        committed to it and the proof redeems only where it is named.
         """
-        from itsdangerous import BadSignature
-
         action = clean_action(action)
-        if not isinstance(proof, str) or len(proof) > 2048:
-            raise PasskeyError("Not a step-up proof.")
+        key, _ = self._assert(
+            credential,
+            rp,
+            purpose="step-up",
+            email=email,
+            action=challenge_binding(action, audience),
+        )
         try:
-            payload = self._serializer().loads(proof)
-        except BadSignature:
-            raise PasskeyError("Not a step-up proof.") from None
-        if not isinstance(payload, dict):
-            raise PasskeyError("Not a step-up proof.")
-        at = payload.get("t")
-        if not isinstance(at, (int, float)) or not (
-            0 <= self._clock() - at <= self.proof_ttl
-        ):
-            raise PasskeyError("This step-up proof has expired.")
-        if not hmac.compare_digest(str(payload.get("a", "")), action):
-            raise PasskeyError("This step-up proof is for another action.")
-        if not isinstance(email, str) or not hmac.compare_digest(
-            str(payload.get("e", "")).lower(), email.strip().lower()
-        ):
-            raise PasskeyError("This step-up proof is for another account.")
+            return self.proofs.mint(
+                email, action, method="passkey", audience=audience, ref=key
+            )
+        except StepUpError as e:
+            raise PasskeyError(str(e)) from None
+
+    def _passkey_still_there(self, payload: dict) -> Optional[str]:
+        """Why a passkey proof no longer stands (its passkey was removed), or None."""
+        if (payload.get("m") or "passkey") != "passkey":
+            return None
         key = payload.get("k")
         try:
             record = self.credentials[key] if isinstance(key, str) else None
         except KeyError:
             record = None
         if not isinstance(record, dict) or record.get("email") != payload.get("e"):
-            raise PasskeyError("The passkey behind this proof was removed.")
-        if not self._claim(
-            hashlib.sha256(b"proof|" + str(payload.get("j")).encode()).hexdigest()
-        ):
-            raise PasskeyError("This step-up proof was already used.")
-        return {
-            "email": payload["e"],
-            "action": action,
-            "verified_at": at,
-            "method": "passkey",
-            "passkey": record.get("name") or "Passkey",
-        }
+            return "The passkey behind this proof was removed."
+        return None
+
+    def redeem(
+        self,
+        proof: Any,
+        action: Any,
+        *,
+        email: Any,
+        audience: Optional[str] = None,
+        methods: Optional[Iterable[str]] = None,
+    ) -> dict:
+        """Spend a step-up proof for *action* by *email*; return what it proves.
+
+        ``{email, action, audience, verified_at, method, passkey}``. Raises
+        :class:`PasskeyError` for a forged, expired, spent, other-action,
+        other-account or other-audience proof, one confirmed by a method outside
+        *methods*, or one whose passkey has since been removed. The caller names
+        the account it expects, so "someone confirmed" can never pass for "the
+        owner confirmed".
+        """
+        try:
+            proven = self.proofs.redeem(
+                proof,
+                action,
+                email=email,
+                audience=audience,
+                methods=methods,
+                still_valid=self._passkey_still_there,
+            )
+        except StepUpError as e:
+            raise PasskeyError(str(e)) from None
+        ref = proven.pop("ref", None)
+        if proven["method"] == "passkey":
+            record = self.credentials.get(ref) if isinstance(ref, str) else None
+            name = record.get("name") if isinstance(record, dict) else None
+            proven["passkey"] = name or "Passkey"
+        return proven
 
 
 def _as_dict(credential: Any) -> dict:

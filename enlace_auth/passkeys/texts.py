@@ -34,6 +34,16 @@ _TEXTS: dict[str, dict[str, str]] = {
         "never_used": "never used",
         "synced": "synced",
         "signin": "Sign in with a passkey",
+        "confirm_title": "Confirm an action",
+        "confirm_asks": "{audience} asks you to confirm:",
+        "confirm_button": "Confirm with my passkey",
+        "confirm_waiting": "Waiting for your device…",
+        "confirm_done": "Confirmed. You can close this page.",
+        "confirm_other_account": (
+            "This confirmation is for {email}, and you are signed in as {current}."
+        ),
+        "confirm_switch": "Sign in as {email}",
+        "confirm_invalid": "This confirmation link is not valid or has expired.",
         "mail_added_subject": "A passkey was added to your account",
         "mail_added_body": (
             "A passkey named “{name}” was just added to your account {email} on "
@@ -75,6 +85,17 @@ _TEXTS: dict[str, dict[str, str]] = {
         "never_used": "jamais utilisée",
         "synced": "synchronisée",
         "signin": "Se connecter avec une clé d'accès",
+        "confirm_title": "Confirmer une action",
+        "confirm_asks": "{audience} vous demande de confirmer :",
+        "confirm_button": "Confirmer avec ma clé d'accès",
+        "confirm_waiting": "En attente de votre appareil…",
+        "confirm_done": "Confirmé. Vous pouvez fermer cette page.",
+        "confirm_other_account": (
+            "Cette confirmation est pour {email}, et vous êtes connecté en tant que "
+            "{current}."
+        ),
+        "confirm_switch": "Se connecter en tant que {email}",
+        "confirm_invalid": "Ce lien de confirmation n'est pas valide ou a expiré.",
         "mail_added_subject": "Une clé d'accès a été ajoutée à votre compte",
         "mail_added_body": (
             "Une clé d'accès nommée « {name} » vient d'être ajoutée à votre compte "
