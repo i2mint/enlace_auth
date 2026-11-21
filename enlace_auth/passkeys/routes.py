@@ -378,10 +378,12 @@ def make_passkey_router(
             raise HTTPException(status_code=401, detail="An audience key is needed.")
         back = None
         if body.return_url:
-            back = safe_next(body.return_url, default="")
+            back = safe_next(body.return_url, default="", cookie_domain=cookie_domain)
             if not back:
                 raise HTTPException(
-                    status_code=400, detail="return_url must be a path on this site."
+                    status_code=400,
+                    detail="return_url must be a path on this site (or an https URL "
+                    "under [auth] cookie_domain).",
                 )
         try:
             request_id = service.proofs.create_request(

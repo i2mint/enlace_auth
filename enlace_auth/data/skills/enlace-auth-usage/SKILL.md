@@ -80,11 +80,15 @@ Off by default: set `[auth.passkeys] enabled = true` (py_webauthn comes with enl
    ```python
    r = httpx.post(
        f"{PLATFORM}/auth/passkeys/step-up/request",
-       json={"email": owner_email, "action": "myapp: start job 42", "audience": "myapp",
-             "return_url": "/myapp/jobs/42"},                    # a path on the platform
+       json={
+           "email": owner_email,
+           "action": "myapp: start job 42",
+           "audience": "myapp",
+           "return_url": "/myapp/jobs/42",
+       },  # a path on the platform
        headers={"Authorization": f"Bearer {MYAPP_STEP_UP_KEY}"},
    )
-   confirm_url = r.json()["confirm_url"]   # open it (link, redirect, window)
+   confirm_url = r.json()["confirm_url"]  # open it (link, redirect, window)
    ```
 
    After Face ID or Touch ID, the page goes to `return_url#enlace_step_up=<proof>`; the page there reads the proof from the fragment and posts it to its backend.
