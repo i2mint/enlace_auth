@@ -112,6 +112,29 @@ def clean_action(action: Any) -> str:
         raise PasskeyError(str(e)) from None
 
 
+#: ``records(purpose=ANY_PURPOSE)``: every passkey, general and purpose-bound.
+ANY_PURPOSE = object()
+
+
+def clean_purpose(purpose: Any) -> Optional[str]:
+    """A passkey purpose (letters, digits, ``._-``, at most 64), or None (general).
+
+    A purpose-bound passkey (#97) confirms one kind of action and nothing else:
+    it never signs in, and a step-up names its purpose to use it.
+
+    >>> clean_purpose("confirm-jobs"), clean_purpose(None), clean_purpose("")
+    ('confirm-jobs', None, None)
+    """
+    from enlace_auth.auth.step_up import StepUpError, clean_audience
+
+    try:
+        return clean_audience(purpose)  # same shape as an audience name
+    except StepUpError:
+        raise PasskeyError(
+            "A passkey purpose is a name of letters, digits, '.', '_' or '-'."
+        ) from None
+
+
 def clean_name(name: Any) -> str:
     """A passkey's display name: printable, at most 60 characters, never empty.
 
@@ -259,19 +282,29 @@ class PasskeyService:
 
     # ----- records --------------------------------------------------------
 
-    def user_handle(self, email: str) -> bytes:
-        """The WebAuthn user handle of an account: opaque, stable, 32 bytes."""
-        return hmac.new(
-            self._key, b"enlace-passkey-user|" + email.encode("utf-8"), hashlib.sha256
-        ).digest()
+    def user_handle(self, email: str, purpose: Optional[str] = None) -> bytes:
+        """The WebAuthn user handle of an account: opaque, stable, 32 bytes.
+
+        A purpose-bound passkey gets a handle of its own, so an authenticator
+        keeps it beside the account's sign-in passkey instead of replacing it.
+        """
+        body = b"enlace-passkey-user|" + email.encode("utf-8")
+        if purpose is not None:
+            body += b"|" + purpose.encode("utf-8")
+        return hmac.new(self._key, body, hashlib.sha256).digest()
 
     def records(
-        self, email: Optional[str] = None, *, rp_id: Optional[str] = None
+        self,
+        email: Optional[str] = None,
+        *,
+        rp_id: Optional[str] = None,
+        purpose: Any = ANY_PURPOSE,
     ) -> list[tuple[str, dict]]:
         """``(key, record)`` of every readable credential (of *email*, if given).
 
         With *rp_id*, only the credentials made for that relying party: a passkey
         made for another RP ID can no longer sign in, so it must not count.
+        With *purpose*, only those of that purpose (``None``: the general ones).
         A damaged record is skipped, never raised: the store is hand-editable.
         """
         out = []
@@ -284,13 +317,21 @@ class PasskeyService:
                 continue
             if rp_id is not None and record.get("rp_id", rp_id) != rp_id:
                 continue
+            if purpose is not ANY_PURPOSE and record.get("purpose") != purpose:
+                continue
             if email is None or record["email"] == email:
                 out.append((key, record))
         return out
 
-    def count(self, email: str, *, rp_id: Optional[str] = None) -> int:
-        """How many passkeys *email* has (for *rp_id*, if given)."""
-        return len(self.records(email, rp_id=rp_id))
+    def count(
+        self, email: str, *, rp_id: Optional[str] = None, purpose: Any = None
+    ) -> int:
+        """How many general passkeys *email* has (for *rp_id*, if given).
+
+        A purpose-bound one cannot sign in, so it does not count toward the
+        passkey-required policy; pass *purpose* to count those instead.
+        """
+        return len(self.records(email, rp_id=rp_id, purpose=purpose))
 
     def synced(self, email: str, *, rp_id: Optional[str] = None) -> bool:
         """Whether one of *email*'s passkeys is synced (backed up by its provider).
@@ -298,7 +339,8 @@ class PasskeyService:
         A synced passkey lives on every device of its keychain (iCloud Keychain,
         Google Password Manager), so losing one device does not lose it.
         """
-        return any(r.get("backed_up") for _, r in self.records(email, rp_id=rp_id))
+        general = self.records(email, rp_id=rp_id, purpose=None)
+        return any(r.get("backed_up") for _, r in general)
 
     def describe(self, key: str, record: dict) -> dict:
         """The public view of one passkey (no key material)."""
@@ -314,11 +356,21 @@ class PasskeyService:
             "last_used_at": used.get("last_used_at"),
             "synced": bool(record.get("backed_up")),
             "device_type": record.get("device_type"),
+            "purpose": record.get("purpose"),
         }
 
-    def list(self, email: str) -> list[dict]:
-        """The passkeys of *email*, oldest first."""
-        views = [self.describe(k, r) for k, r in self.records(email)]
+    def list(self, email: str, *, purpose: Any = ANY_PURPOSE) -> list[dict]:
+        """The passkeys of *email*, oldest first (of one *purpose*, if given).
+
+        Listing one purpose adds each credential's id and COSE public key
+        (base64url), so a verifier that checks assertions itself can pin them.
+        """
+        found = self.records(email, purpose=purpose)
+        views = [self.describe(k, r) for k, r in found]
+        if purpose is not ANY_PURPOSE:
+            for view, (_, record) in zip(views, found):
+                view["credential_id"] = record.get("credential_id")
+                view["public_key"] = record.get("public_key")
 
         def _when(view):
             at = view.get("created_at")
@@ -404,11 +456,11 @@ class PasskeyService:
     def _as_json(options) -> dict:
         return json.loads(_webauthn().options_to_json(options))
 
-    def _descriptors(self, email: str):
+    def _descriptors(self, email: str, purpose: Any = None):
         from webauthn.helpers.structs import PublicKeyCredentialDescriptor
 
         out = []
-        for _, record in self.records(email):
+        for _, record in self.records(email, purpose=purpose):
             try:
                 out.append(
                     PublicKeyCredentialDescriptor(
@@ -422,12 +474,24 @@ class PasskeyService:
 
     # ----- registration ---------------------------------------------------
 
-    def registration_options(self, email: str, rp: RelyingParty) -> dict:
+    def registration_options(
+        self,
+        email: str,
+        rp: RelyingParty,
+        *,
+        purpose: Any = None,
+        label: Any = "",
+    ) -> dict:
         """``PublicKeyCredentialCreationOptionsJSON`` for adding a passkey to *email*.
 
         A discoverable credential with user verification (a passkey proper),
-        excluding the account's existing ones so a device is not enrolled twice.
+        excluding the account's existing ones of the same purpose so a device is
+        not enrolled twice. With *purpose* (#97) the credential gets a user
+        handle of its own and the system sheet's name is *label* ("Start a job
+        on my Mac"), so the person recognises it at the tap.
         """
+        purpose = clean_purpose(purpose)
+        shown = clean_name(label) if purpose is not None else email
         wa = _webauthn()
         from webauthn.helpers.structs import (
             AuthenticatorSelectionCriteria,
@@ -438,27 +502,43 @@ class PasskeyService:
         options = wa.generate_registration_options(
             rp_id=rp.id,
             rp_name=rp.name,
-            user_name=email,
-            user_id=self.user_handle(email),
-            user_display_name=email,
-            challenge=self._challenge("register", self._binding(email)),
+            user_name=shown,
+            user_id=self.user_handle(email, purpose),
+            user_display_name=shown,
+            challenge=self._challenge("register", self._binding(email, purpose or "")),
             timeout=self._timeout_ms(),
             authenticator_selection=AuthenticatorSelectionCriteria(
                 resident_key=ResidentKeyRequirement.REQUIRED,
                 user_verification=UserVerificationRequirement.REQUIRED,
             ),
-            exclude_credentials=self._descriptors(email),
+            exclude_credentials=self._descriptors(email, purpose),
         )
-        return self._as_json(options)
+        out = self._as_json(options)
+        if purpose is not None:
+            out["purpose"] = purpose
+        return out
 
     def register(
-        self, email: str, credential: Any, rp: RelyingParty, *, name: Any = ""
+        self,
+        email: str,
+        credential: Any,
+        rp: RelyingParty,
+        *,
+        name: Any = "",
+        purpose: Any = None,
     ) -> dict:
-        """Verify a registration answer and store the passkey; return its view."""
+        """Verify a registration answer and store the passkey; return its view.
+
+        *purpose* must be the one the options were made for (the challenge
+        commits to it).
+        """
         wa = _webauthn()
+        purpose = clean_purpose(purpose)
         credential = _as_dict(credential)
         challenge = self._challenge_of(credential)
-        self._check_challenge(challenge, "register", self._binding(email))
+        self._check_challenge(
+            challenge, "register", self._binding(email, purpose or "")
+        )
         try:
             verified = wa.verify_registration_response(
                 credential=credential,
@@ -481,7 +561,7 @@ class PasskeyService:
             "rp_id": rp.id,
             "credential_id": b64url(verified.credential_id),
             "public_key": b64url(verified.credential_public_key),
-            "user_handle": b64url(self.user_handle(email)),
+            "user_handle": b64url(self.user_handle(email, purpose)),
             "name": clean_name(name),
             "created_at": now,
             "device_type": getattr(device_type, "value", device_type),
@@ -491,6 +571,8 @@ class PasskeyService:
             ][:8],
             "aaguid": verified.aaguid,
         }
+        if purpose is not None:
+            record["purpose"] = purpose
         self.credentials[key] = record
         self.usage[key] = {"sign_count": verified.sign_count, "last_used_at": None}
         return self.describe(key, record)
@@ -521,19 +603,26 @@ class PasskeyService:
         rp: RelyingParty,
         *,
         audience: Optional[str] = None,
+        purpose: Any = None,
     ) -> dict:
         """Request options for confirming *action* with one of *email*'s passkeys.
 
-        The challenge commits to the action and the audience. Raises
-        :class:`PasskeyError` when the account has no passkey.
+        The challenge commits to the action and the audience. Only passkeys of
+        *purpose* are offered (``None``: the general ones, never a purpose-bound
+        one). Raises :class:`PasskeyError` when the account has none.
         """
         wa = _webauthn()
         from webauthn.helpers.structs import UserVerificationRequirement
 
         action = clean_action(action)
-        allowed = self._descriptors(email)
+        purpose = clean_purpose(purpose)
+        allowed = self._descriptors(email, purpose)
         if not allowed:
-            raise PasskeyError("This account has no passkey yet.")
+            raise PasskeyError(
+                "This account has no passkey yet."
+                if purpose is None
+                else f"This account has no passkey for {purpose!r} yet."
+            )
         bound = challenge_binding(action, audience)
         options = wa.generate_authentication_options(
             rp_id=rp.id,
@@ -545,6 +634,8 @@ class PasskeyService:
         out = {**self._as_json(options), "action": action}
         if audience is not None:
             out["audience"] = audience
+        if purpose is not None:
+            out["purpose"] = purpose
         return out
 
     def _assert(
@@ -555,8 +646,13 @@ class PasskeyService:
         purpose: str,
         email: Optional[str] = None,
         action: str = "",
+        bound_to: Optional[str] = None,
     ) -> tuple[str, dict]:
-        """Verify an assertion; return ``(key, record)`` of the passkey used."""
+        """Verify an assertion; return ``(key, record)`` of the passkey used.
+
+        *bound_to* is the passkey purpose a step-up expects (``None``: a general
+        passkey). A purpose-bound passkey never signs in (#97).
+        """
         wa = _webauthn()
         credential = _as_dict(credential)
         challenge = self._challenge_of(credential)
@@ -569,6 +665,12 @@ class PasskeyService:
             raise PasskeyError("This passkey is not registered here.")
         if email is not None and record["email"] != email:
             raise PasskeyError("This passkey belongs to another account.")
+        if purpose == "login" and record.get("purpose") is not None:
+            raise PasskeyError(
+                f"This passkey is for {record['purpose']!r} only; it cannot sign in."
+            )
+        if purpose == "step-up" and record.get("purpose") != bound_to:
+            raise PasskeyError("This passkey is not the one for this confirmation.")
         binding = self._binding(record["email"] if purpose != "login" else "", action)
         self._check_challenge(challenge, purpose, binding)
         returned_handle = (credential.get("response") or {}).get("userHandle")
@@ -617,11 +719,13 @@ class PasskeyService:
         rp: RelyingParty,
         *,
         audience: Optional[str] = None,
+        purpose: Any = None,
     ) -> dict:
         """Verify a step-up for *action*; return ``{proof, action, expires_in}``.
 
         With *audience* (a step-up a backend requested), the challenge must have
-        committed to it and the proof redeems only where it is named.
+        committed to it and the proof redeems only where it is named. The passkey
+        used must be of *purpose* (``None``: a general one).
         """
         action = clean_action(action)
         key, _ = self._assert(
@@ -630,6 +734,7 @@ class PasskeyService:
             purpose="step-up",
             email=email,
             action=challenge_binding(action, audience),
+            bound_to=clean_purpose(purpose),
         )
         try:
             return self.proofs.mint(
