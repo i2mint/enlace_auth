@@ -46,7 +46,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Auth policy for a single mount prefix.
 
-### *class* enlace_auth.auth.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=(), mint_prefixes=None)
+### *class* enlace_auth.auth.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=(), mint_prefixes=None, secure=False)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -132,7 +132,7 @@ Unicode), which is why the caller is told which.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
-### *class* enlace_auth.auth.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', shared_login_path=None, dynamic_allowed_users=None)
+### *class* enlace_auth.auth.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', shared_login_path=None, dynamic_allowed_users=None, cookie_domain=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -278,7 +278,7 @@ Return an argon2id hash string for `password`.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None, reset_allowed=<function <lambda>>, login_page_extras=None, account_page_extras=None)
+### enlace_auth.auth.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, cookie_domain=None, shared_password_for=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None, reset_allowed=<function <lambda>>, login_page_extras=None, account_page_extras=None)
 
 Build a FastAPI router exposing `/auth/*` endpoints.
 
@@ -286,6 +286,11 @@ Build a FastAPI router exposing `/auth/*` endpoints.
   * **user_store** (*session_store /*) – backing stores.
   * **signing_key** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – HMAC key for session, CSRF, shared, and reset tokens.
   * **secure_cookies** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – session-cookie policy.
+  * **cookie_domain** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – `[auth] cookie_domain` (#94). Sign-in cookies set on
+    that host or one under it carry `Domain`, so one sign-in serves
+    apps on sibling subdomains; `?next=` may then name an `https://`
+    URL on such a host; and a signed-in visit to the sign-in page moves
+    an older host-only session cookie onto the domain. None: host-only.
   * **shared_password_for** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – maps an app id to its shared-password hash.
   * **send_email** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`EmailSender`](enlace_auth.auth.email.html.md#enlace_auth.auth.email.EmailSender)]) – delivers password-reset emails. `None` means no delivery
     channel is configured: the flow falls back to the console sender
@@ -355,19 +360,20 @@ Return True iff `password` matches the stored `hashed` value.
 
 ### Modules
 
-| [`accounts`](enlace_auth.auth.accounts.html.md#module-enlace_auth.auth.accounts)         | Disabled accounts, and the one way a sign-in opens a session.                       |
-|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| [`cookies`](enlace_auth.auth.cookies.html.md#module-enlace_auth.auth.cookies)           | Signed cookie helpers built on itsdangerous.                                        |
-| [`email`](enlace_auth.auth.email.html.md#module-enlace_auth.auth.email)               | Outbound email for enlace_auth — used by the password-recovery flow.                |
-| [`grants`](enlace_auth.auth.grants.html.md#module-enlace_auth.auth.grants)             | Runtime per-app access grants, with optional UTC expiry.                            |
-| [`middleware`](enlace_auth.auth.middleware.html.md#module-enlace_auth.auth.middleware)     | Platform auth middleware (pure ASGI).                                               |
-| [`oauth`](enlace_auth.auth.oauth.html.md#module-enlace_auth.auth.oauth)               | OAuth2/OIDC login via Authlib.                                                      |
-| [`oauth_server`](enlace_auth.auth.oauth_server.html.md#module-enlace_auth.auth.oauth_server) | OAuth 2.1 authorization server — issue tokens for MCP custom connectors.            |
-| [`pages`](enlace_auth.auth.pages.html.md#module-enlace_auth.auth.pages)               | HTML pages for the enlace_auth browser-facing flows.                                |
-| [`passwords`](enlace_auth.auth.passwords.html.md#module-enlace_auth.auth.passwords)       | Password hashing via argon2id.                                                      |
-| [`reset_tokens`](enlace_auth.auth.reset_tokens.html.md#module-enlace_auth.auth.reset_tokens) | Password-reset tokens — minting, verification, and the link they live in.           |
-| [`revocation`](enlace_auth.auth.revocation.html.md#module-enlace_auth.auth.revocation)     | Credential revocation: end everything an account holds when its credentials change. |
-| [`routes`](enlace_auth.auth.routes.html.md#module-enlace_auth.auth.routes)             | Auth HTTP routes: login, logout, shared-login, csrf, recovery.                      |
-| [`sessions`](enlace_auth.auth.sessions.html.md#module-enlace_auth.auth.sessions)         | Session storage backed by a MutableMapping.                                         |
-| [`share_routes`](enlace_auth.auth.share_routes.html.md#module-enlace_auth.auth.share_routes) | `/auth/shares/*` — the signed-in user manages the shares of their own data.         |
-| [`shares`](enlace_auth.auth.shares.html.md#module-enlace_auth.auth.shares)             | Owner-granted data shares: let named users at one user's per-user data in one app.  |
+| [`accounts`](enlace_auth.auth.accounts.html.md#module-enlace_auth.auth.accounts)           | Disabled accounts, and the one way a sign-in opens a session.                       |
+|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| [`cookie_policy`](enlace_auth.auth.cookie_policy.html.md#module-enlace_auth.auth.cookie_policy) | Where the platform's sign-in cookies go, in one place (#94).                        |
+| [`cookies`](enlace_auth.auth.cookies.html.md#module-enlace_auth.auth.cookies)             | Signed cookie helpers built on itsdangerous.                                        |
+| [`email`](enlace_auth.auth.email.html.md#module-enlace_auth.auth.email)                 | Outbound email for enlace_auth — used by the password-recovery flow.                |
+| [`grants`](enlace_auth.auth.grants.html.md#module-enlace_auth.auth.grants)               | Runtime per-app access grants, with optional UTC expiry.                            |
+| [`middleware`](enlace_auth.auth.middleware.html.md#module-enlace_auth.auth.middleware)       | Platform auth middleware (pure ASGI).                                               |
+| [`oauth`](enlace_auth.auth.oauth.html.md#module-enlace_auth.auth.oauth)                 | OAuth2/OIDC login via Authlib.                                                      |
+| [`oauth_server`](enlace_auth.auth.oauth_server.html.md#module-enlace_auth.auth.oauth_server)   | OAuth 2.1 authorization server — issue tokens for MCP custom connectors.            |
+| [`pages`](enlace_auth.auth.pages.html.md#module-enlace_auth.auth.pages)                 | HTML pages for the enlace_auth browser-facing flows.                                |
+| [`passwords`](enlace_auth.auth.passwords.html.md#module-enlace_auth.auth.passwords)         | Password hashing via argon2id.                                                      |
+| [`reset_tokens`](enlace_auth.auth.reset_tokens.html.md#module-enlace_auth.auth.reset_tokens)   | Password-reset tokens — minting, verification, and the link they live in.           |
+| [`revocation`](enlace_auth.auth.revocation.html.md#module-enlace_auth.auth.revocation)       | Credential revocation: end everything an account holds when its credentials change. |
+| [`routes`](enlace_auth.auth.routes.html.md#module-enlace_auth.auth.routes)               | Auth HTTP routes: login, logout, shared-login, csrf, recovery.                      |
+| [`sessions`](enlace_auth.auth.sessions.html.md#module-enlace_auth.auth.sessions)           | Session storage backed by a MutableMapping.                                         |
+| [`share_routes`](enlace_auth.auth.share_routes.html.md#module-enlace_auth.auth.share_routes)   | `/auth/shares/*` — the signed-in user manages the shares of their own data.         |
+| [`shares`](enlace_auth.auth.shares.html.md#module-enlace_auth.auth.shares)               | Owner-granted data shares: let named users at one user's per-user data in one app.  |

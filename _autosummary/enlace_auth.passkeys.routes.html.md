@@ -48,7 +48,7 @@ Set on a 403 that a fresh sign-in would turn into a success.
 
 The redeem endpoint, which the plugin exempts from the CSRF check.
 
-### enlace_auth.passkeys.routes.make_passkey_router(\*, service, session_store, user_store, signing_key, relying_party, policy=None, send_email=None, on_credentials_changed=None, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, fresh_seconds=900, public_base_url=None, pick_lang=<function <lambda>>)
+### enlace_auth.passkeys.routes.make_passkey_router(\*, service, session_store, user_store, signing_key, relying_party, policy=None, send_email=None, on_credentials_changed=None, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, cookie_domain=None, fresh_seconds=900, public_base_url=None, pick_lang=<function <lambda>>)
 
 Build the passkey router. See the module docstring for the endpoints.
 
@@ -62,6 +62,8 @@ Build the passkey router. See the module docstring for the endpoints.
     (`None`: no notice).
   * **on_credentials_changed** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]) – `hook(email, *, keep=None)` run after a
     removal (default: none; the plugin passes the platform’s).
+  * **cookie_domain** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – `[auth] cookie_domain` (#94), for the session cookie a
+    passkey sign-in sets and the `next` it may return to.
   * **fresh_seconds** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – how recent a sign-in must be to add or remove a passkey.
   * **public_base_url** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – the site named in notices (else the request’s base URL).
   * **pick_lang** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – `(accept-language header) -> lang` for the notices.

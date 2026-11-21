@@ -94,7 +94,7 @@ True
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis), [`bool`](https://docs.python.org/3/builtins/functions.html#bool)], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]]
 
-### enlace_auth.signup.routes.make_signup_router(\*, user_store, session_store, signing_key, send_email, policy=None, codes=None, rate_limiter=None, bot_check=None, limits=None, client_ip=<function \_peer_host>, known_apps=(), delete_account=None, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, public_base_url=None, terms_version=None)
+### enlace_auth.signup.routes.make_signup_router(\*, user_store, session_store, signing_key, send_email, policy=None, codes=None, rate_limiter=None, bot_check=None, limits=None, client_ip=<function \_peer_host>, known_apps=(), delete_account=None, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, cookie_domain=None, public_base_url=None, terms_version=None)
 
 Build the sign-up router. See the module docstring for the endpoints.
 
@@ -114,6 +114,9 @@ Build the sign-up router. See the module docstring for the endpoints.
   * **known_apps** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – app names a sign-up may name, directly or through `next`.
   * **delete_account** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]) – `delete(email)`, removing an account and its data;
     `None` leaves the deletion endpoints unmounted.
+  * **cookie_domain** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – `[auth] cookie_domain` (#94): the session cookie a
+    verified code sets carries it, and `next` may name an `https://`
+    URL under it (see [`enlace_auth.auth.cookie_policy`](enlace_auth.auth.cookie_policy.html.md#module-enlace_auth.auth.cookie_policy)).
   * **public_base_url** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – the origin put in mailed links. Without it the link is
     built from the request’s `Host`, which the requester controls.
   * **terms_version** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – stored on each account created, as the terms accepted.

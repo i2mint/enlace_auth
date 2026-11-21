@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=d127aa6e"></script>
+    <script src="../../../_static/documentation_options.js?v=755f2e77"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -963,15 +963,32 @@ window.runMermaid = runMermaid;</script>
 
 <div class="viewcode-block" id="safe_next">
 <a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.pages.html#enlace_auth.auth.pages.safe_next">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">safe_next</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"/"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">safe_next</span><span class="p">(</span>
+    <span class="n">raw</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"/"</span><span class="p">,</span> <span class="n">cookie_domain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Return a same-origin path safe to redirect to, or ``default``.</span>
 
 <span class="sd">    Guards against open-redirect: only local absolute paths are accepted —</span>
 <span class="sd">    no scheme, no ``//host`` form, no control characters. This is applied to</span>
 <span class="sd">    every ``?next=`` value before it reaches a page or a redirect.</span>
+
+<span class="sd">    With ``cookie_domain`` (``[auth] cookie_domain``, #94), an ``https://`` URL on</span>
+<span class="sd">    that host or one under it is accepted too, so sign-in on the parent host can</span>
+<span class="sd">    return to an app on a sibling subdomain. Nothing else absolute is.</span>
+
+<span class="sd">    &gt;&gt;&gt; safe_next("https://a.apps.example.com/x", cookie_domain="apps.example.com")</span>
+<span class="sd">    'https://a.apps.example.com/x'</span>
+<span class="sd">    &gt;&gt;&gt; safe_next("https://a.apps.example.com/x")</span>
+<span class="sd">    '/'</span>
+<span class="sd">    &gt;&gt;&gt; safe_next("https://evil.example.com/", cookie_domain="apps.example.com")</span>
+<span class="sd">    '/'</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">raw</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">default</span>
+    <span class="k">if</span> <span class="n">cookie_domain</span> <span class="ow">and</span> <span class="n">raw</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"https://"</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.cookie_policy</span><span class="w"> </span><span class="kn">import</span> <span class="n">absolute_next_problem</span>
+
+        <span class="k">return</span> <span class="n">default</span> <span class="k">if</span> <span class="n">absolute_next_problem</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">cookie_domain</span><span class="p">)</span> <span class="k">else</span> <span class="n">raw</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">raw</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">raw</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"//"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">raw</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"/</span><span class="se">\\</span><span class="s2">"</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">default</span>
     <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span> <span class="ow">in</span> <span class="n">raw</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\r</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">"</span><span class="p">))</span> <span class="ow">or</span> <span class="s2">":"</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"?"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>

@@ -138,6 +138,19 @@ backend = "file"
 path = "~/.enlace/user_data"
 ```
 
+### One sign-in across sibling subdomains
+
+To give each app its own browser origin (its own storage, its own service worker) and still sign in once, serve the apps on subdomains of one parent and name the parent:
+
+```toml
+[auth]
+cookie_domain = "apps.example.com"   # sign-in on apps.example.com; apps on a.apps.example.com, ...
+```
+
+Then sign-in cookies set on that host or one under it carry `Domain=apps.example.com`, so every app host receives the session. A signed-out visitor on an app host is sent to `https://apps.example.com/auth/login` with an absolute `next` back to the page, and `next` may name an `https://` URL on a host under the domain (nothing else absolute is accepted). A request to any other host (an IP address, a second name) keeps a host-only cookie. Sign-out clears both forms. A session made before the key was set moves onto the domain the next time its holder opens the sign-in page, so nobody has to sign in again. The CSRF cookie stays host-only: each host mints its own.
+
+Every host under `cookie_domain` receives the session cookie, so each must be served by the platform; never point a subdomain under it at an outside service. Separate hosts isolate the apps’ browser storage, not the platform: every host serves the whole backend, so a script running on one app host can still call `/_admin/api` or another app’s `/api/` there with the visitor’s cookie, exactly as on a single origin. Keep the platform’s own pages (`/auth`, `/_admin`) on the parent. Unset (the default), cookies are host-only and `next` is a relative path, as before. For passkeys to work on every app host, set `[auth.passkeys] rp_id` to the same parent. OAuth sign-in still lands on `/` (#85).
+
 ### Self-service sign-up
 
 “Continue with email” signs a person in with a 6-digit code mailed to them, and creates their account only once the code checks out, so nobody can claim an address they do not receive mail at, and the answer never says whether an address has an account. Where an account may be created is a policy per app:
@@ -286,7 +299,7 @@ Every `POST`, `PUT`, `PATCH` and `DELETE` must carry an `X-CSRF-Token` header th
 
 The cookie is set only on `/auth/*`, `/_admin` and `protected:*` apps. A `public` app’s pages set no cookie, so an app that promises “nothing is stored on your device” keeps that promise on this platform. A public page that has to `POST` to the auth routes fetches `/auth/csrf` first. Sub-app APIs under `/api/` are exempt from the check because the session cookie is `SameSite=Lax`, except the per-user store routes.
 
-If you use `CSRFMiddleware` directly, `mint_prefixes` limits where it sets the cookie (default: every safe request); the check itself always runs.
+The cookie is `Secure` when `secure_cookies` is on, and on any HTTPS request (directly, or per `X-Forwarded-Proto`). If you use `CSRFMiddleware` directly, pass `secure=True` to mark it always; `mint_prefixes` limits where it sets the cookie (default: every safe request); the check itself always runs.
 
 ## Passwords
 

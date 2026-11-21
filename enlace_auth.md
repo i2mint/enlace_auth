@@ -1,4 +1,4 @@
-> built 2026-11-21 22:39 UTC from c72e217 (main) · enlace_auth 0.1.58. Details: build_info.json
+> built 2026-11-21 22:58 UTC from d248e99 (main) · enlace_auth 0.1.59. Details: build_info.json
 
 # index.html.md
 
@@ -141,6 +141,19 @@ path = "~/.enlace/platform_store"
 backend = "file"
 path = "~/.enlace/user_data"
 ```
+
+### One sign-in across sibling subdomains
+
+To give each app its own browser origin (its own storage, its own service worker) and still sign in once, serve the apps on subdomains of one parent and name the parent:
+
+```toml
+[auth]
+cookie_domain = "apps.example.com"   # sign-in on apps.example.com; apps on a.apps.example.com, ...
+```
+
+Then sign-in cookies set on that host or one under it carry `Domain=apps.example.com`, so every app host receives the session. A signed-out visitor on an app host is sent to `https://apps.example.com/auth/login` with an absolute `next` back to the page, and `next` may name an `https://` URL on a host under the domain (nothing else absolute is accepted). A request to any other host (an IP address, a second name) keeps a host-only cookie. Sign-out clears both forms. A session made before the key was set moves onto the domain the next time its holder opens the sign-in page, so nobody has to sign in again. The CSRF cookie stays host-only: each host mints its own.
+
+Every host under `cookie_domain` receives the session cookie, so each must be served by the platform; never point a subdomain under it at an outside service. Separate hosts isolate the apps’ browser storage, not the platform: every host serves the whole backend, so a script running on one app host can still call `/_admin/api` or another app’s `/api/` there with the visitor’s cookie, exactly as on a single origin. Keep the platform’s own pages (`/auth`, `/_admin`) on the parent. Unset (the default), cookies are host-only and `next` is a relative path, as before. For passkeys to work on every app host, set `[auth.passkeys] rp_id` to the same parent. OAuth sign-in still lands on `/` (#85).
 
 ### Self-service sign-up
 
@@ -290,7 +303,7 @@ Every `POST`, `PUT`, `PATCH` and `DELETE` must carry an `X-CSRF-Token` header th
 
 The cookie is set only on `/auth/*`, `/_admin` and `protected:*` apps. A `public` app’s pages set no cookie, so an app that promises “nothing is stored on your device” keeps that promise on this platform. A public page that has to `POST` to the auth routes fetches `/auth/csrf` first. Sub-app APIs under `/api/` are exempt from the check because the session cookie is `SameSite=Lax`, except the per-user store routes.
 
-If you use `CSRFMiddleware` directly, `mint_prefixes` limits where it sets the cookie (default: every safe request); the check itself always runs.
+The cookie is `Secure` when `secure_cookies` is on, and on any HTTPS request (directly, or per `X-Forwarded-Proto`). If you use `CSRFMiddleware` directly, pass `secure=True` to mark it always; `mint_prefixes` limits where it sets the cookie (default: every safe request); the check itself always runs.
 
 ## Passwords
 
@@ -862,6 +875,187 @@ False
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
 
+# _autosummary/enlace_auth.auth.cookie_policy.html.md
+
+# enlace_auth.auth.cookie_policy
+
+Where the platform’s sign-in cookies go, in one place (#94).
+
+Every sign-in path (password, reset, email code, passkey, OAuth, shared password)
+sets the same kind of cookie, and every sign-out clears it. They used to build the
+`Set-Cookie` line each on its own; [`CookiePolicy`](_autosummary/enlace_auth.auth.cookie_policy.html.md#enlace_auth.auth.cookie_policy.CookiePolicy) builds it once, so adding
+an attribute (`Domain`) cannot miss a path.
+
+`cookie_domain` (`[auth] cookie_domain`) lets one sign-in serve apps on sibling
+subdomains of one parent (`a.apps.example.com`, `b.apps.example.com`, sign-in on
+`apps.example.com`): sign-in cookies then carry `Domain=apps.example.com` when
+the request came to that host or one under it. On any other host (an IP, a second
+name) the cookie stays host-only, as a browser would refuse the `Domain` there.
+Unset, nothing changes.
+
+Every host under `cookie_domain` receives the session cookie, so it must be one
+the platform serves: an outside service on a sibling subdomain would see it.
+
+```pycon
+>>> p = CookiePolicy(secure=True, domain="apps.example.com")
+>>> p.set_header("s", "v", max_age=60, host="a.apps.example.com")
+'s=v; Path=/; HttpOnly; Max-Age=60; SameSite=Lax; Secure; Domain=apps.example.com'
+>>> p.set_header("s", "v", max_age=60, host="10.0.0.5")
+'s=v; Path=/; HttpOnly; Max-Age=60; SameSite=Lax; Secure'
+>>> len(p.clear_headers("s"))  # the Domain form and the host-only one
+2
+```
+
+### Functions
+
+| [`absolute_next_problem`](_autosummary/enlace_auth.auth.cookie_policy.html.md#enlace_auth.auth.cookie_policy.absolute_next_problem)(raw, domain)   | None when *raw* is an `https://` URL on *domain* or a host under it.        |
+|---------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| [`cookie_domain_problem`](_autosummary/enlace_auth.auth.cookie_policy.html.md#enlace_auth.auth.cookie_policy.cookie_domain_problem)(domain)        | Why *domain* cannot be a `cookie_domain`, or None when it can.              |
+| [`first_cookie`](_autosummary/enlace_auth.auth.cookie_policy.html.md#enlace_auth.auth.cookie_policy.first_cookie)(headers, name)          | The FIRST *name* cookie a request carries, as the auth middleware reads it. |
+| [`host_within`](_autosummary/enlace_auth.auth.cookie_policy.html.md#enlace_auth.auth.cookie_policy.host_within)(host, domain)            | Whether *host* (a bare host name, no port) is *domain* or under it.         |
+| [`request_host`](_autosummary/enlace_auth.auth.cookie_policy.html.md#enlace_auth.auth.cookie_policy.request_host)(headers)                | The lower-case host name a request was sent to (`Host` without its port).   |
+| [`request_port`](_autosummary/enlace_auth.auth.cookie_policy.html.md#enlace_auth.auth.cookie_policy.request_port)(headers)                | The port in a request's `Host` header, when it names one (digits only).     |
+
+### Classes
+
+| [`CookiePolicy`](_autosummary/enlace_auth.auth.cookie_policy.html.md#enlace_auth.auth.cookie_policy.CookiePolicy)([secure, domain])   | The attributes of the platform's sign-in cookies.   |
+|-----------------------------------------------------------------------------------|-----------------------------------------------------|
+
+### *class* enlace_auth.auth.cookie_policy.CookiePolicy(secure=True, domain=None)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+The attributes of the platform’s sign-in cookies.
+
+`secure` adds `Secure`; `domain` is `[auth] cookie_domain`.
+
+#### clear_cookie(response, name, , path='/')
+
+Append [`clear_headers()`](_autosummary/enlace_auth.auth.cookie_policy.html.md#enlace_auth.auth.cookie_policy.CookiePolicy.clear_headers) to a Starlette *response*.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### clear_headers(name, , path='/')
+
+`Set-Cookie` values that remove *name*: host-only, and the Domain form.
+
+Both, whatever the host: a browser holding a cookie from before
+`cookie_domain` was set (or after it was unset) must lose it too.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### domain_for(host)
+
+The `Domain` to set for a request to *host*, or None (host-only).
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### set_cookie(response, name, value, \*\*kwargs)
+
+Append [`set_headers()`](_autosummary/enlace_auth.auth.cookie_policy.html.md#enlace_auth.auth.cookie_policy.CookiePolicy.set_headers) to a Starlette *response*.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### set_header(name, value, , max_age, host=None, path='/')
+
+The `Set-Cookie` value for a sign-in cookie sent to *host*.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### set_headers(name, value, , max_age, host=None, path='/')
+
+The `Set-Cookie` values that leave exactly one *name* cookie in place.
+
+When the cookie goes on the domain, an older host-only one is cleared
+first: a browser would otherwise keep sending it first, and the platform,
+reading the first, would keep seeing a session that may be dead.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.auth.cookie_policy.absolute_next_problem(raw, domain)
+
+None when *raw* is an `https://` URL on *domain* or a host under it.
+
+Strict on purpose: the authority must be a plain host name (an optional port),
+so a backslash, `@` or percent sign that a browser reads differently from
+Python is refused, not parsed.
+
+```pycon
+>>> d = "apps.example.com"
+>>> absolute_next_problem("https://a.apps.example.com/x?y=1", d)
+>>> absolute_next_problem("https://evil.com\\.apps.example.com/", d)
+'control or ambiguous character'
+```
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.auth.cookie_policy.cookie_domain_problem(domain)
+
+Why *domain* cannot be a `cookie_domain`, or None when it can.
+
+```pycon
+>>> cookie_domain_problem("apps.example.com") is None
+True
+>>> cookie_domain_problem("localhost")
+"'localhost' has no dot: browsers refuse a Domain cookie for a single label"
+```
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.auth.cookie_policy.first_cookie(headers, name)
+
+The FIRST *name* cookie a request carries, as the auth middleware reads it.
+
+A browser sends the more specific (older, host-only) cookie first, and a
+sibling subdomain can plant a second one; Starlette’s `request.cookies`
+keeps the last. Anything that re-issues or ends “the session” must act on
+the one that was authenticated, which is the first.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.auth.cookie_policy.host_within(host, domain)
+
+Whether *host* (a bare host name, no port) is *domain* or under it.
+
+```pycon
+>>> host_within("a.apps.example.com", "apps.example.com")
+True
+>>> host_within("apps.example.com", "apps.example.com")
+True
+>>> host_within("evilapps.example.com", "apps.example.com")
+False
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### enlace_auth.auth.cookie_policy.request_host(headers)
+
+The lower-case host name a request was sent to (`Host` without its port).
+
+*headers* is an ASGI header list or a mapping. Returns None for anything that
+is not a plain host name.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.auth.cookie_policy.request_port(headers)
+
+The port in a request’s `Host` header, when it names one (digits only).
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+
 # _autosummary/enlace_auth.auth.cookies.html.md
 
 # enlace_auth.auth.cookies
@@ -1143,7 +1337,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Auth policy for a single mount prefix.
 
-### *class* enlace_auth.auth.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=(), mint_prefixes=None)
+### *class* enlace_auth.auth.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=(), mint_prefixes=None, secure=False)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -1229,7 +1423,7 @@ Unicode), which is why the caller is told which.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
-### *class* enlace_auth.auth.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', shared_login_path=None, dynamic_allowed_users=None)
+### *class* enlace_auth.auth.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', shared_login_path=None, dynamic_allowed_users=None, cookie_domain=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -1375,7 +1569,7 @@ Return an argon2id hash string for `password`.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None, reset_allowed=<function <lambda>>, login_page_extras=None, account_page_extras=None)
+### enlace_auth.auth.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, cookie_domain=None, shared_password_for=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None, reset_allowed=<function <lambda>>, login_page_extras=None, account_page_extras=None)
 
 Build a FastAPI router exposing `/auth/*` endpoints.
 
@@ -1383,6 +1577,11 @@ Build a FastAPI router exposing `/auth/*` endpoints.
   * **user_store** (*session_store /*) – backing stores.
   * **signing_key** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – HMAC key for session, CSRF, shared, and reset tokens.
   * **secure_cookies** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – session-cookie policy.
+  * **cookie_domain** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – `[auth] cookie_domain` (#94). Sign-in cookies set on
+    that host or one under it carry `Domain`, so one sign-in serves
+    apps on sibling subdomains; `?next=` may then name an `https://`
+    URL on such a host; and a signed-in visit to the sign-in page moves
+    an older host-only session cookie onto the domain. None: host-only.
   * **shared_password_for** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – maps an app id to its shared-password hash.
   * **send_email** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`EmailSender`](_autosummary/enlace_auth.auth.email.html.md#enlace_auth.auth.email.EmailSender)]) – delivers password-reset emails. `None` means no delivery
     channel is configured: the flow falls back to the console sender
@@ -1452,22 +1651,23 @@ Return True iff `password` matches the stored `hashed` value.
 
 ### Modules
 
-| [`accounts`](_autosummary/enlace_auth.auth.accounts.html.md#module-enlace_auth.auth.accounts)         | Disabled accounts, and the one way a sign-in opens a session.                       |
-|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| [`cookies`](_autosummary/enlace_auth.auth.cookies.html.md#module-enlace_auth.auth.cookies)           | Signed cookie helpers built on itsdangerous.                                        |
-| [`email`](_autosummary/enlace_auth.auth.email.html.md#module-enlace_auth.auth.email)               | Outbound email for enlace_auth — used by the password-recovery flow.                |
-| [`grants`](_autosummary/enlace_auth.auth.grants.html.md#module-enlace_auth.auth.grants)             | Runtime per-app access grants, with optional UTC expiry.                            |
-| [`middleware`](_autosummary/enlace_auth.auth.middleware.html.md#module-enlace_auth.auth.middleware)     | Platform auth middleware (pure ASGI).                                               |
-| [`oauth`](_autosummary/enlace_auth.auth.oauth.html.md#module-enlace_auth.auth.oauth)               | OAuth2/OIDC login via Authlib.                                                      |
-| [`oauth_server`](_autosummary/enlace_auth.auth.oauth_server.html.md#module-enlace_auth.auth.oauth_server) | OAuth 2.1 authorization server — issue tokens for MCP custom connectors.            |
-| [`pages`](_autosummary/enlace_auth.auth.pages.html.md#module-enlace_auth.auth.pages)               | HTML pages for the enlace_auth browser-facing flows.                                |
-| [`passwords`](_autosummary/enlace_auth.auth.passwords.html.md#module-enlace_auth.auth.passwords)       | Password hashing via argon2id.                                                      |
-| [`reset_tokens`](_autosummary/enlace_auth.auth.reset_tokens.html.md#module-enlace_auth.auth.reset_tokens) | Password-reset tokens — minting, verification, and the link they live in.           |
-| [`revocation`](_autosummary/enlace_auth.auth.revocation.html.md#module-enlace_auth.auth.revocation)     | Credential revocation: end everything an account holds when its credentials change. |
-| [`routes`](_autosummary/enlace_auth.auth.routes.html.md#module-enlace_auth.auth.routes)             | Auth HTTP routes: login, logout, shared-login, csrf, recovery.                      |
-| [`sessions`](_autosummary/enlace_auth.auth.sessions.html.md#module-enlace_auth.auth.sessions)         | Session storage backed by a MutableMapping.                                         |
-| [`share_routes`](_autosummary/enlace_auth.auth.share_routes.html.md#module-enlace_auth.auth.share_routes) | `/auth/shares/*` — the signed-in user manages the shares of their own data.         |
-| [`shares`](_autosummary/enlace_auth.auth.shares.html.md#module-enlace_auth.auth.shares)             | Owner-granted data shares: let named users at one user's per-user data in one app.  |
+| [`accounts`](_autosummary/enlace_auth.auth.accounts.html.md#module-enlace_auth.auth.accounts)           | Disabled accounts, and the one way a sign-in opens a session.                       |
+|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| [`cookie_policy`](_autosummary/enlace_auth.auth.cookie_policy.html.md#module-enlace_auth.auth.cookie_policy) | Where the platform's sign-in cookies go, in one place (#94).                        |
+| [`cookies`](_autosummary/enlace_auth.auth.cookies.html.md#module-enlace_auth.auth.cookies)             | Signed cookie helpers built on itsdangerous.                                        |
+| [`email`](_autosummary/enlace_auth.auth.email.html.md#module-enlace_auth.auth.email)                 | Outbound email for enlace_auth — used by the password-recovery flow.                |
+| [`grants`](_autosummary/enlace_auth.auth.grants.html.md#module-enlace_auth.auth.grants)               | Runtime per-app access grants, with optional UTC expiry.                            |
+| [`middleware`](_autosummary/enlace_auth.auth.middleware.html.md#module-enlace_auth.auth.middleware)       | Platform auth middleware (pure ASGI).                                               |
+| [`oauth`](_autosummary/enlace_auth.auth.oauth.html.md#module-enlace_auth.auth.oauth)                 | OAuth2/OIDC login via Authlib.                                                      |
+| [`oauth_server`](_autosummary/enlace_auth.auth.oauth_server.html.md#module-enlace_auth.auth.oauth_server)   | OAuth 2.1 authorization server — issue tokens for MCP custom connectors.            |
+| [`pages`](_autosummary/enlace_auth.auth.pages.html.md#module-enlace_auth.auth.pages)                 | HTML pages for the enlace_auth browser-facing flows.                                |
+| [`passwords`](_autosummary/enlace_auth.auth.passwords.html.md#module-enlace_auth.auth.passwords)         | Password hashing via argon2id.                                                      |
+| [`reset_tokens`](_autosummary/enlace_auth.auth.reset_tokens.html.md#module-enlace_auth.auth.reset_tokens)   | Password-reset tokens — minting, verification, and the link they live in.           |
+| [`revocation`](_autosummary/enlace_auth.auth.revocation.html.md#module-enlace_auth.auth.revocation)       | Credential revocation: end everything an account holds when its credentials change. |
+| [`routes`](_autosummary/enlace_auth.auth.routes.html.md#module-enlace_auth.auth.routes)               | Auth HTTP routes: login, logout, shared-login, csrf, recovery.                      |
+| [`sessions`](_autosummary/enlace_auth.auth.sessions.html.md#module-enlace_auth.auth.sessions)           | Session storage backed by a MutableMapping.                                         |
+| [`share_routes`](_autosummary/enlace_auth.auth.share_routes.html.md#module-enlace_auth.auth.share_routes)   | `/auth/shares/*` — the signed-in user manages the shares of their own data.         |
+| [`shares`](_autosummary/enlace_auth.auth.shares.html.md#module-enlace_auth.auth.shares)               | Owner-granted data shares: let named users at one user's per-user data in one app.  |
 
 
 # _autosummary/enlace_auth.auth.middleware.html.md
@@ -1517,7 +1717,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Auth policy for a single mount prefix.
 
-### *class* enlace_auth.auth.middleware.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=(), mint_prefixes=None)
+### *class* enlace_auth.auth.middleware.CSRFMiddleware(app, , signing_key, cookie_name='enlace_csrf', header_name='X-CSRF-Token', exempt_prefixes=('/auth/callback', '/auth/login/', '/api/'), enforce_prefixes=(), mint_prefixes=None, secure=False)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -1541,7 +1741,7 @@ pre-enlace apps working out of the box without each having to implement
 the `/auth/csrf` double-submit flow. The auth endpoints themselves
 (`/auth/login`, `/auth/register`, `/auth/logout`) stay protected.
 
-### *class* enlace_auth.auth.middleware.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', shared_login_path=None, dynamic_allowed_users=None)
+### *class* enlace_auth.auth.middleware.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', shared_login_path=None, dynamic_allowed_users=None, cookie_domain=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -1590,7 +1790,7 @@ endpoints; other providers need explicit URLs in the config.
 | [`make_oauth_router`](_autosummary/enlace_auth.auth.oauth.html.md#enlace_auth.auth.oauth.make_oauth_router)(\*, providers, ...[, ...])   | Build an OAuth router or return None if no providers are configured.   |
 |-------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
 
-### enlace_auth.auth.oauth.make_oauth_router(\*, providers, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, can_register=<function <lambda>>, admin_emails=(), state_cookie_name='enlace_oauth_state', state_max_age=600)
+### enlace_auth.auth.oauth.make_oauth_router(\*, providers, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, cookie_domain=None, can_register=<function <lambda>>, admin_emails=(), state_cookie_name='enlace_oauth_state', state_max_age=600)
 
 Build an OAuth router or return None if no providers are configured.
 
@@ -1598,6 +1798,9 @@ Build an OAuth router or return None if no providers are configured.
 carries Authlib’s per-login state between `/auth/login/{provider}` and the
 callback (see the module docstring). It is only used when no Starlette
 `SessionMiddleware` already provides `request.session`.
+
+*cookie_domain* (`[auth] cookie_domain`, #94) goes on the session cookie
+when the callback ran on that host or one under it.
 
 *admin_emails* may create their account by a first sign-in, whatever
 *can_register* says, but only when the provider itself verified the address
@@ -1789,7 +1992,7 @@ page that redirect lands on, and it threads `next` back through after sign-in.
 | [`render_notice_page`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.render_notice_page)(\*, title, heading, ...[, ...]) | Render a centered notice card.                                         |
 | [`render_reset_page`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.render_reset_page)(\*, token[, error])              | Render the "set a new password" form for a reset `token`.              |
 | [`render_shared_login_page`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.render_shared_login_page)(\*, app[, next_url, ...]) | Render the shared-password form for a `protected:shared` app.          |
-| [`safe_next`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.safe_next)(raw, \*[, default])                      | Return a same-origin path safe to redirect to, or `default`.           |
+| [`safe_next`](_autosummary/enlace_auth.auth.pages.html.md#enlace_auth.auth.pages.safe_next)(raw, \*[, default, cookie_domain])       | Return a same-origin path safe to redirect to, or `default`.           |
 
 ### enlace_auth.auth.pages.fill_template(template, , \*\*values)
 
@@ -1924,13 +2127,26 @@ fill in.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.pages.safe_next(raw, , default='/')
+### enlace_auth.auth.pages.safe_next(raw, , default='/', cookie_domain=None)
 
 Return a same-origin path safe to redirect to, or `default`.
 
 Guards against open-redirect: only local absolute paths are accepted —
 no scheme, no `//host` form, no control characters. This is applied to
 every `?next=` value before it reaches a page or a redirect.
+
+With `cookie_domain` (`[auth] cookie_domain`, #94), an `https://` URL on
+that host or one under it is accepted too, so sign-in on the parent host can
+return to an app on a sibling subdomain. Nothing else absolute is.
+
+```pycon
+>>> safe_next("https://a.apps.example.com/x", cookie_domain="apps.example.com")
+'https://a.apps.example.com/x'
+>>> safe_next("https://a.apps.example.com/x")
+'/'
+>>> safe_next("https://evil.example.com/", cookie_domain="apps.example.com")
+'/'
+```
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
@@ -2279,7 +2495,7 @@ it creates the account.
 | [`make_auth_router`](_autosummary/enlace_auth.auth.routes.html.md#enlace_auth.auth.routes.make_auth_router)(\*, session_store, ...[, ...])   | Build a FastAPI router exposing `/auth/*` endpoints.   |
 |----------------------------------------------------------------------------------------------------|--------------------------------------------------------|
 
-### enlace_auth.auth.routes.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None, reset_allowed=<function <lambda>>, login_page_extras=None, account_page_extras=None)
+### enlace_auth.auth.routes.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, cookie_domain=None, shared_password_for=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None, reset_allowed=<function <lambda>>, login_page_extras=None, account_page_extras=None)
 
 Build a FastAPI router exposing `/auth/*` endpoints.
 
@@ -2287,6 +2503,11 @@ Build a FastAPI router exposing `/auth/*` endpoints.
   * **user_store** (*session_store /*) – backing stores.
   * **signing_key** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – HMAC key for session, CSRF, shared, and reset tokens.
   * **secure_cookies** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – session-cookie policy.
+  * **cookie_domain** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – `[auth] cookie_domain` (#94). Sign-in cookies set on
+    that host or one under it carry `Domain`, so one sign-in serves
+    apps on sibling subdomains; `?next=` may then name an `https://`
+    URL on such a host; and a signed-in visit to the sign-in page moves
+    an older host-only session cookie onto the domain. None: host-only.
   * **shared_password_for** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – maps an app id to its shared-password hash.
   * **send_email** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`EmailSender`](_autosummary/enlace_auth.auth.email.html.md#enlace_auth.auth.email.EmailSender)]) – delivers password-reset emails. `None` means no delivery
     channel is configured: the flow falls back to the console sender
@@ -2608,7 +2829,7 @@ we just deserialize them into typed objects here when the plugin runs.
 | [`SignupLimitsConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.SignupLimitsConfig)(\*[, window_seconds, ...])      | Rate limits on the endpoints that send mail or check a code.               |
 | [`StoreBackendConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.                   |
 
-### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, groups=<factory>)
+### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, cookie_domain=None, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, groups=<factory>)
 
 Bases: `_StrictModel`
 
@@ -3240,7 +3461,7 @@ changes platform behavior unless the operator opts in.
 | [`EnlaceAuthConfigError`](_autosummary/enlace_auth.html.md#enlace_auth.EnlaceAuthConfigError)   | Raised when auth configuration is unusable at startup.   |
 |--------------------------------------------------------------------------|----------------------------------------------------------|
 
-### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, groups=<factory>)
+### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, cookie_domain=None, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, groups=<factory>)
 
 Bases: `_StrictModel`
 
@@ -4032,7 +4253,7 @@ Set on a 403 that a fresh sign-in would turn into a success.
 
 The redeem endpoint, which the plugin exempts from the CSRF check.
 
-### enlace_auth.passkeys.routes.make_passkey_router(\*, service, session_store, user_store, signing_key, relying_party, policy=None, send_email=None, on_credentials_changed=None, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, fresh_seconds=900, public_base_url=None, pick_lang=<function <lambda>>)
+### enlace_auth.passkeys.routes.make_passkey_router(\*, service, session_store, user_store, signing_key, relying_party, policy=None, send_email=None, on_credentials_changed=None, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, cookie_domain=None, fresh_seconds=900, public_base_url=None, pick_lang=<function <lambda>>)
 
 Build the passkey router. See the module docstring for the endpoints.
 
@@ -4046,6 +4267,8 @@ Build the passkey router. See the module docstring for the endpoints.
     (`None`: no notice).
   * **on_credentials_changed** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]) – `hook(email, *, keep=None)` run after a
     removal (default: none; the plugin passes the platform’s).
+  * **cookie_domain** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – `[auth] cookie_domain` (#94), for the session cookie a
+    passkey sign-in sets and the `next` it may return to.
   * **fresh_seconds** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – how recent a sign-in must be to add or remove a passkey.
   * **public_base_url** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – the site named in notices (else the request’s base URL).
   * **pick_lang** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – `(accept-language header) -> lang` for the notices.
@@ -4721,6 +4944,8 @@ The app a `next` path belongs to (`/<app>/...` or `/api/<app>/...`).
 'game'
 >>> app_from_next("/nope/", {"game"}) is None
 True
+>>> app_from_next("https://a.apps.example.com/game/", {"game"})  # cookie_domain
+'game'
 ```
 
 * **Return type:**
@@ -4839,7 +5064,7 @@ True
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis), [`bool`](https://docs.python.org/3/builtins/functions.html#bool)], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]]
 
-### enlace_auth.signup.routes.make_signup_router(\*, user_store, session_store, signing_key, send_email, policy=None, codes=None, rate_limiter=None, bot_check=None, limits=None, client_ip=<function \_peer_host>, known_apps=(), delete_account=None, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, public_base_url=None, terms_version=None)
+### enlace_auth.signup.routes.make_signup_router(\*, user_store, session_store, signing_key, send_email, policy=None, codes=None, rate_limiter=None, bot_check=None, limits=None, client_ip=<function \_peer_host>, known_apps=(), delete_account=None, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, cookie_domain=None, public_base_url=None, terms_version=None)
 
 Build the sign-up router. See the module docstring for the endpoints.
 
@@ -4859,6 +5084,9 @@ Build the sign-up router. See the module docstring for the endpoints.
   * **known_apps** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – app names a sign-up may name, directly or through `next`.
   * **delete_account** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]) – `delete(email)`, removing an account and its data;
     `None` leaves the deletion endpoints unmounted.
+  * **cookie_domain** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – `[auth] cookie_domain` (#94): the session cookie a
+    verified code sets carries it, and `next` may name an `https://`
+    URL under it (see [`enlace_auth.auth.cookie_policy`](_autosummary/enlace_auth.auth.cookie_policy.html.md#module-enlace_auth.auth.cookie_policy)).
   * **public_base_url** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – the origin put in mailed links. Without it the link is
     built from the request’s `Host`, which the requester controls.
   * **terms_version** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – stored on each account created, as the terms accepted.
@@ -5234,7 +5462,7 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-11-21 22:39 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/c72e21730f17e1ec1fe77f3e32fb7ff91a74f793"><code>c72e217</code></a> on branch <code>main</code>, for **enlace_auth 0.1.58** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-21 22:58 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/d248e99d088dbb8d27c7e036f94dbec94493d38c"><code>d248e99</code></a> on branch <code>main</code>, for **enlace_auth 0.1.59** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -5243,7 +5471,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/c72e21730f17e1ec1fe77f3e32fb7ff91a74f793"><code>c72e21730f17e1ec1fe77f3e32fb7ff91a74f793</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/d248e99d088dbb8d27c7e036f94dbec94493d38c"><code>d248e99d088dbb8d27c7e036f94dbec94493d38c</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -5254,9 +5482,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/44957563879">44957563879</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/44959172861">44959172861</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>c72e21730f17e1ec1fe77f3e32fb7ff91a74f793</code> (in the history of the built commit) |
+| Event commit | <code>d248e99d088dbb8d27c7e036f94dbec94493d38c</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -5281,13 +5509,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.58/">0.1.58</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.59/">0.1.59</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout c72e21730f17e1ec1fe77f3e32fb7ff91a74f793
+git checkout d248e99d088dbb8d27c7e036f94dbec94493d38c
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

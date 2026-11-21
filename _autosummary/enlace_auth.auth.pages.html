@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=d127aa6e"></script>
+    <script src="../_static/documentation_options.js?v=755f2e77"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -327,6 +327,7 @@
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.appmeta.html">enlace_auth.appmeta</a></li>
 <li class="toctree-l2 current active has-children"><a class="reference internal" href="enlace_auth.auth.html">enlace_auth.auth</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.accounts.html">enlace_auth.auth.accounts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.cookie_policy.html">enlace_auth.auth.cookie_policy</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.cookies.html">enlace_auth.auth.cookies</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.email.html">enlace_auth.auth.email</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.grants.html">enlace_auth.auth.grants</a></li>
@@ -480,7 +481,7 @@ page that redirect lands on, and it threads <code class="docutils literal notran
 <tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.render_shared_login_page" title="enlace_auth.auth.pages.render_shared_login_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_shared_login_page</span></code></a>(*, app[, next_url, ...])</p></td>
 <td><p>Render the shared-password form for a <code class="docutils literal notranslate"><span class="pre">protected:shared</span></code> app.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.safe_next" title="enlace_auth.auth.pages.safe_next"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_next</span></code></a>(raw, *[, default])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.auth.pages.safe_next" title="enlace_auth.auth.pages.safe_next"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_next</span></code></a>(raw, *[, default, cookie_domain])</p></td>
 <td><p>Return a same-origin path safe to redirect to, or <code class="docutils literal notranslate"><span class="pre">default</span></code>.</p></td>
 </tr>
 </tbody>
@@ -655,11 +656,22 @@ by the caller via <a class="reference internal" href="#enlace_auth.auth.pages.sa
 
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_auth.auth.pages.safe_next">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.pages.</span></span><span class="sig-name descname"><span class="pre">safe_next</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/pages.html#safe_next"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.pages.safe_next" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.pages.</span></span><span class="sig-name descname"><span class="pre">safe_next</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cookie_domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/pages.html#safe_next"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.pages.safe_next" title="Link to this definition">#</a></dt>
 <dd><p>Return a same-origin path safe to redirect to, or <code class="docutils literal notranslate"><span class="pre">default</span></code>.</p>
 <p>Guards against open-redirect: only local absolute paths are accepted —
 no scheme, no <code class="docutils literal notranslate"><span class="pre">//host</span></code> form, no control characters. This is applied to
 every <code class="docutils literal notranslate"><span class="pre">?next=</span></code> value before it reaches a page or a redirect.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">cookie_domain</span></code> (<code class="docutils literal notranslate"><span class="pre">[auth]</span> <span class="pre">cookie_domain</span></code>, #94), an <code class="docutils literal notranslate"><span class="pre">https://</span></code> URL on
+that host or one under it is accepted too, so sign-in on the parent host can
+return to an app on a sibling subdomain. Nothing else absolute is.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">safe_next</span><span class="p">(</span><span class="s2">"https://a.apps.example.com/x"</span><span class="p">,</span> <span class="n">cookie_domain</span><span class="o">=</span><span class="s2">"apps.example.com"</span><span class="p">)</span>
+<span class="go">'https://a.apps.example.com/x'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">safe_next</span><span class="p">(</span><span class="s2">"https://a.apps.example.com/x"</span><span class="p">)</span>
+<span class="go">'/'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">safe_next</span><span class="p">(</span><span class="s2">"https://evil.example.com/"</span><span class="p">,</span> <span class="n">cookie_domain</span><span class="o">=</span><span class="s2">"apps.example.com"</span><span class="p">)</span>
+<span class="go">'/'</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>

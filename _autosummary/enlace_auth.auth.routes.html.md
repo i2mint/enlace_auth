@@ -27,7 +27,7 @@ it creates the account.
 | [`make_auth_router`](#enlace_auth.auth.routes.make_auth_router)(\*, session_store, ...[, ...])   | Build a FastAPI router exposing `/auth/*` endpoints.   |
 |----------------------------------------------------------------------------------------------------|--------------------------------------------------------|
 
-### enlace_auth.auth.routes.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, shared_password_for=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None, reset_allowed=<function <lambda>>, login_page_extras=None, account_page_extras=None)
+### enlace_auth.auth.routes.make_auth_router(\*, session_store, user_store, signing_key, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, cookie_domain=None, shared_password_for=<function <lambda>>, send_email=None, reset_token_max_age=1800, public_base_url=None, on_credentials_changed=None, reset_allowed=<function <lambda>>, login_page_extras=None, account_page_extras=None)
 
 Build a FastAPI router exposing `/auth/*` endpoints.
 
@@ -35,6 +35,11 @@ Build a FastAPI router exposing `/auth/*` endpoints.
   * **user_store** (*session_store /*) – backing stores.
   * **signing_key** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – HMAC key for session, CSRF, shared, and reset tokens.
   * **secure_cookies** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – session-cookie policy.
+  * **cookie_domain** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – `[auth] cookie_domain` (#94). Sign-in cookies set on
+    that host or one under it carry `Domain`, so one sign-in serves
+    apps on sibling subdomains; `?next=` may then name an `https://`
+    URL on such a host; and a signed-in visit to the sign-in page moves
+    an older host-only session cookie onto the domain. None: host-only.
   * **shared_password_for** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – maps an app id to its shared-password hash.
   * **send_email** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`EmailSender`](enlace_auth.auth.email.html.md#enlace_auth.auth.email.EmailSender)]) – delivers password-reset emails. `None` means no delivery
     channel is configured: the flow falls back to the console sender

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=d127aa6e"></script>
+    <script src="../../_static/documentation_options.js?v=755f2e77"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1129,6 +1129,16 @@ window.runMermaid = runMermaid;</script>
     <span class="n">session_max_age_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">86400</span>
     <span class="n">signing_key_env</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"ENLACE_SIGNING_KEY"</span>
     <span class="n">secure_cookies</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">cookie_domain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"One sign-in for apps on sibling subdomains of this host (#94): "</span>
+            <span class="s2">"sign-in cookies carry Domain=&lt;cookie_domain&gt;, an app host under it "</span>
+            <span class="s2">"sends its visitors to sign in on it, and ?next= may name an https:// "</span>
+            <span class="s2">"URL under it. Every host under it must be one the platform serves. "</span>
+            <span class="s2">"Unset: host-only cookies, relative next only."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
     <span class="n">stores</span><span class="p">:</span> <span class="n">StoreBackendConfig</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">StoreBackendConfig</span><span class="p">)</span>
     <span class="n">oauth</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">OAuthProviderConfig</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
     <span class="n">oauth_server</span><span class="p">:</span> <span class="n">OAuthServerConfig</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">OAuthServerConfig</span><span class="p">)</span>
@@ -1139,6 +1149,18 @@ window.runMermaid = runMermaid;</script>
             <span class="s2">"reviewable config change. Unioned with the admin_emails_env list."</span>
         <span class="p">),</span>
     <span class="p">)</span>
+
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"cookie_domain"</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_cookie_domain</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">domain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""A plain lower-case host name with a dot, or a clear error at load."""</span>
+        <span class="k">if</span> <span class="n">domain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.cookie_policy</span><span class="w"> </span><span class="kn">import</span> <span class="n">cookie_domain_problem</span>
+
+        <span class="k">if</span> <span class="n">problem</span> <span class="o">:=</span> <span class="n">cookie_domain_problem</span><span class="p">(</span><span class="n">domain</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[auth] cookie_domain: </span><span class="si">{</span><span class="n">problem</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">domain</span>
 
     <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"admin_emails"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>

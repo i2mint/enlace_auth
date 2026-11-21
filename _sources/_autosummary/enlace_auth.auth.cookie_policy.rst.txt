@@ -1,0 +1,23 @@
+enlace\_auth.auth.cookie\_policy
+================================
+
+.. automodule:: enlace_auth.auth.cookie_policy
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      absolute_next_problem
+      cookie_domain_problem
+      first_cookie
+      host_within
+      request_host
+      request_port
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      CookiePolicy
+   

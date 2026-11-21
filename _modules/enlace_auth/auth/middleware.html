@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=d127aa6e"></script>
+    <script src="../../../_static/documentation_options.js?v=755f2e77"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -928,16 +928,49 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">raw_path</span><span class="si">}</span><span class="s2">?</span><span class="si">{</span><span class="n">raw_qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">'latin-1'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">raw_qs</span> <span class="k">else</span> <span class="n">raw_path</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_redirect_target</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">login_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Build the login-redirect URL, preserving the original path as ``next``."""</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_sign_in_origins</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">cookie_domain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""``(this origin, the sign-in origin)`` for an app host under *cookie_domain*.</span>
+
+<span class="sd">    Such a request is sent to sign in on *cookie_domain* itself, with an absolute</span>
+<span class="sd">    ``next`` back to this host (#94); the parent host and any host outside the</span>
+<span class="sd">    domain sign in where they are, as before (None). A port in ``Host`` is kept</span>
+<span class="sd">    on both: the parent is served where its apps are.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cookie_domain</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.cookie_policy</span><span class="w"> </span><span class="kn">import</span> <span class="n">host_within</span><span class="p">,</span> <span class="n">request_host</span><span class="p">,</span> <span class="n">request_port</span>
+
+    <span class="n">headers</span> <span class="o">=</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"headers"</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="n">host</span> <span class="o">=</span> <span class="n">request_host</span><span class="p">(</span><span class="n">headers</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">host</span> <span class="ow">and</span> <span class="n">host</span> <span class="o">!=</span> <span class="n">cookie_domain</span> <span class="ow">and</span> <span class="n">host_within</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">cookie_domain</span><span class="p">):</span>
+        <span class="n">port</span> <span class="o">=</span> <span class="n">request_port</span><span class="p">(</span><span class="n">headers</span><span class="p">)</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">":</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">port</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"https://</span><span class="si">{</span><span class="n">host</span><span class="si">}{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"https://</span><span class="si">{</span><span class="n">cookie_domain</span><span class="si">}{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_redirect_target</span><span class="p">(</span>
+    <span class="n">scope</span><span class="p">,</span> <span class="n">login_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cookie_domain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Build the login-redirect URL, preserving the original path as ``next``.</span>
+
+<span class="sd">    On an app host under *cookie_domain*, the sign-in page is the parent's and</span>
+<span class="sd">    ``next`` is this request's absolute ``https://`` URL.</span>
+<span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">quote</span>
 
     <span class="n">sep</span> <span class="o">=</span> <span class="s2">"&amp;"</span> <span class="k">if</span> <span class="s2">"?"</span> <span class="ow">in</span> <span class="n">login_path</span> <span class="k">else</span> <span class="s2">"?"</span>
-    <span class="n">nxt</span> <span class="o">=</span> <span class="n">quote</span><span class="p">(</span><span class="n">_original_target</span><span class="p">(</span><span class="n">scope</span><span class="p">),</span> <span class="n">safe</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
-    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">login_path</span><span class="si">}{</span><span class="n">sep</span><span class="si">}</span><span class="s2">login_required=1&amp;next=</span><span class="si">{</span><span class="n">nxt</span><span class="si">}</span><span class="s2">"</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">_original_target</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="k">if</span> <span class="n">origins</span> <span class="o">:=</span> <span class="n">_sign_in_origins</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">cookie_domain</span><span class="p">):</span>
+        <span class="n">target</span><span class="p">,</span> <span class="n">prefix</span> <span class="o">=</span> <span class="n">origins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">target</span><span class="p">,</span> <span class="n">origins</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">nxt</span> <span class="o">=</span> <span class="n">quote</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">login_path</span><span class="si">}{</span><span class="n">sep</span><span class="si">}</span><span class="s2">login_required=1&amp;next=</span><span class="si">{</span><span class="n">nxt</span><span class="si">}</span><span class="s2">"</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_shared_redirect_target</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">shared_login_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">app_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_shared_redirect_target</span><span class="p">(</span>
+    <span class="n">scope</span><span class="p">,</span> <span class="n">shared_login_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">app_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cookie_domain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build the shared-password redirect URL: the app's form, then ``next``.</span>
 
 <span class="sd">    A ``protected:shared`` app is opened with its shared password, never with a</span>
@@ -948,8 +981,12 @@ window.runMermaid = runMermaid;</script>
     <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">quote</span>
 
     <span class="n">sep</span> <span class="o">=</span> <span class="s2">"&amp;"</span> <span class="k">if</span> <span class="s2">"?"</span> <span class="ow">in</span> <span class="n">shared_login_path</span> <span class="k">else</span> <span class="s2">"?"</span>
-    <span class="n">nxt</span> <span class="o">=</span> <span class="n">quote</span><span class="p">(</span><span class="n">_original_target</span><span class="p">(</span><span class="n">scope</span><span class="p">),</span> <span class="n">safe</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
-    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">shared_login_path</span><span class="si">}{</span><span class="n">sep</span><span class="si">}</span><span class="s2">app=</span><span class="si">{</span><span class="n">quote</span><span class="p">(</span><span class="n">app_id</span><span class="p">,</span><span class="w"> </span><span class="n">safe</span><span class="o">=</span><span class="s1">''</span><span class="p">)</span><span class="si">}</span><span class="s2">&amp;next=</span><span class="si">{</span><span class="n">nxt</span><span class="si">}</span><span class="s2">"</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">_original_target</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="k">if</span> <span class="n">origins</span> <span class="o">:=</span> <span class="n">_sign_in_origins</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">cookie_domain</span><span class="p">):</span>
+        <span class="n">target</span><span class="p">,</span> <span class="n">prefix</span> <span class="o">=</span> <span class="n">origins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">target</span><span class="p">,</span> <span class="n">origins</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">nxt</span> <span class="o">=</span> <span class="n">quote</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">shared_login_path</span><span class="si">}{</span><span class="n">sep</span><span class="si">}</span><span class="s2">app=</span><span class="si">{</span><span class="n">quote</span><span class="p">(</span><span class="n">app_id</span><span class="p">,</span><span class="w"> </span><span class="n">safe</span><span class="o">=</span><span class="s1">''</span><span class="p">)</span><span class="si">}</span><span class="s2">&amp;next=</span><span class="si">{</span><span class="n">nxt</span><span class="si">}</span><span class="s2">"</span>
 
 
 <div class="viewcode-block" id="PlatformAuthMiddleware">
@@ -970,6 +1007,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">login_redirect_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"/"</span><span class="p">,</span>
         <span class="n">shared_login_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">dynamic_allowed_users</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">cookie_domain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">app</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_rules</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">access_rules</span><span class="p">)</span>
@@ -988,6 +1026,9 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># static ``allowed_users``. When None (the default), behavior is</span>
         <span class="c1"># identical to a config-only whitelist.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dynamic</span> <span class="o">=</span> <span class="n">dynamic_allowed_users</span>
+        <span class="c1"># ``[auth] cookie_domain`` (#94): a browser denied on an app host under it</span>
+        <span class="c1"># is sent to sign in on the domain itself, which sets the shared cookie.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cookie_domain</span> <span class="o">=</span> <span class="n">cookie_domain</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">scope</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"http"</span><span class="p">,</span> <span class="s2">"websocket"</span><span class="p">):</span>
@@ -1132,7 +1173,9 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">email</span> <span class="o">=</span> <span class="p">(</span><span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"state"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"user_email"</span><span class="p">)</span>
                 <span class="n">page</span> <span class="o">=</span> <span class="n">render_forbidden_page</span><span class="p">(</span>
                     <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">,</span>
-                    <span class="n">switch_url</span><span class="o">=</span><span class="n">_redirect_target</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_login_redirect</span><span class="p">),</span>
+                    <span class="n">switch_url</span><span class="o">=</span><span class="n">_redirect_target</span><span class="p">(</span>
+                        <span class="n">scope</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_login_redirect</span><span class="p">,</span> <span class="n">cookie_domain</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cookie_domain</span>
+                    <span class="p">),</span>
                 <span class="p">)</span>
                 <span class="n">head</span> <span class="o">=</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"method"</span><span class="p">,</span> <span class="s2">"GET"</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"HEAD"</span>
                 <span class="k">await</span> <span class="n">_send_html_response</span><span class="p">(</span><span class="n">send</span><span class="p">,</span> <span class="mi">403</span><span class="p">,</span> <span class="n">page</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="n">head</span><span class="p">)</span>
@@ -1143,9 +1186,16 @@ window.runMermaid = runMermaid;</script>
             <span class="k">return</span>
         <span class="k">if</span> <span class="n">_wants_html</span><span class="p">(</span><span class="n">scope</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">"shared"</span> <span class="ow">and</span> <span class="n">app_id</span><span class="p">:</span>
-                <span class="n">target</span> <span class="o">=</span> <span class="n">_shared_redirect_target</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shared_login</span><span class="p">,</span> <span class="n">app_id</span><span class="p">)</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">_shared_redirect_target</span><span class="p">(</span>
+                    <span class="n">scope</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_shared_login</span><span class="p">,</span>
+                    <span class="n">app_id</span><span class="p">,</span>
+                    <span class="n">cookie_domain</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cookie_domain</span><span class="p">,</span>
+                <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">target</span> <span class="o">=</span> <span class="n">_redirect_target</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_login_redirect</span><span class="p">)</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">_redirect_target</span><span class="p">(</span>
+                    <span class="n">scope</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_login_redirect</span><span class="p">,</span> <span class="n">cookie_domain</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cookie_domain</span>
+                <span class="p">)</span>
             <span class="k">await</span> <span class="n">_send_redirect</span><span class="p">(</span><span class="n">send</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
             <span class="k">return</span>
         <span class="k">await</span> <span class="n">_send_json_response</span><span class="p">(</span>
@@ -1157,6 +1207,20 @@ window.runMermaid = runMermaid;</script>
 <span class="c1"># ---------------------------------------------------------------------------</span>
 <span class="c1"># CSRF middleware</span>
 <span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_https</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether the request came over HTTPS (directly, or per the proxy's header).</span>
+
+<span class="sd">    ``X-Forwarded-Proto`` is trusted only to *add* ``Secure``, which a forged</span>
+<span class="sd">    header can do no harm with.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"scheme"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"https"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"headers"</span><span class="p">,</span> <span class="p">[]):</span>
+        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">"x-forwarded-proto"</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"latin-1"</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"https"</span>
+    <span class="k">return</span> <span class="kc">False</span>
 
 
 <span class="n">_SAFE_METHODS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"GET"</span><span class="p">,</span> <span class="s2">"HEAD"</span><span class="p">,</span> <span class="s2">"OPTIONS"</span><span class="p">}</span>
@@ -1200,6 +1264,7 @@ window.runMermaid = runMermaid;</script>
         <span class="p">),</span>
         <span class="n">enforce_prefixes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
         <span class="n">mint_prefixes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">secure</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""``enforce_prefixes`` are checked even under an exempt prefix: the per-user</span>
 <span class="sd">        store routes (``/api/{app}/store``) sit under ``/api/`` but carry data a</span>
@@ -1207,10 +1272,16 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">        ``mint_prefixes``: path prefixes (whole segments: ``/auth`` matches</span>
 <span class="sd">        ``/auth`` and ``/auth/x``, not ``/authors``) where the cookie may be</span>
-<span class="sd">        set. ``None`` means everywhere."""</span>
+<span class="sd">        set. ``None`` means everywhere.</span>
+
+<span class="sd">        ``secure`` marks the cookie ``Secure`` (the plugin passes ``[auth]</span>
+<span class="sd">        secure_cookies``); it is marked so on any HTTPS request regardless (#78).</span>
+<span class="sd">        The cookie stays host-only under ``cookie_domain``: each host mints its</span>
+<span class="sd">        own, and the double-submit check works per host."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">app</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_signing_key</span> <span class="o">=</span> <span class="n">signing_key</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cookie</span> <span class="o">=</span> <span class="n">cookie_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_secure</span> <span class="o">=</span> <span class="n">secure</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_enforce</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">enforce_prefixes</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_header</span> <span class="o">=</span> <span class="n">header_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"latin-1"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_exempt</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">exempt_prefixes</span><span class="p">)</span>
@@ -1280,9 +1351,10 @@ window.runMermaid = runMermaid;</script>
 
         <span class="n">new_value</span> <span class="o">=</span> <span class="n">secrets</span><span class="o">.</span><span class="n">token_urlsafe</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
         <span class="n">signed</span> <span class="o">=</span> <span class="n">sign_cookie</span><span class="p">(</span><span class="n">new_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_signing_key</span><span class="p">,</span> <span class="n">salt</span><span class="o">=</span><span class="s2">"csrf"</span><span class="p">)</span>
-        <span class="n">cookie_header</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_cookie</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">signed</span><span class="si">}</span><span class="s2">; Path=/; SameSite=Lax"</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
-            <span class="s2">"latin-1"</span>
-        <span class="p">)</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_cookie</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">signed</span><span class="si">}</span><span class="s2">; Path=/; SameSite=Lax"</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_secure</span> <span class="ow">or</span> <span class="n">_is_https</span><span class="p">(</span><span class="n">scope</span><span class="p">):</span>
+            <span class="n">attrs</span> <span class="o">+=</span> <span class="s2">"; Secure"</span>
+        <span class="n">cookie_header</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"latin-1"</span><span class="p">)</span>
 
         <span class="c1"># Expose the minted unsigned value to downstream handlers (e.g.</span>
         <span class="c1"># /auth/csrf) so they can return it in the body without minting a</span>

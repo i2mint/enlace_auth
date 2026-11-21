@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=d127aa6e"></script>
+    <script src="../../_static/documentation_options.js?v=755f2e77"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1404,6 +1404,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">cookie_name</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_cookie_name</span><span class="p">,</span>
         <span class="n">session_max_age</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_max_age_seconds</span><span class="p">,</span>
         <span class="n">secure_cookies</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">secure_cookies</span><span class="p">,</span>
+        <span class="n">cookie_domain</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">cookie_domain</span><span class="p">,</span>
         <span class="n">public_base_url</span><span class="o">=</span><span class="n">_public_base_url</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">auth_cfg</span><span class="p">),</span>
         <span class="n">terms_version</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">terms_version</span><span class="p">,</span>
     <span class="p">)</span>
@@ -1800,6 +1801,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">cookie_name</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_cookie_name</span><span class="p">,</span>
         <span class="n">session_max_age</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_max_age_seconds</span><span class="p">,</span>
         <span class="n">secure_cookies</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">secure_cookies</span><span class="p">,</span>
+        <span class="n">cookie_domain</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">cookie_domain</span><span class="p">,</span>
         <span class="n">shared_password_for</span><span class="o">=</span><span class="n">shared_hashes</span><span class="o">.</span><span class="n">get</span><span class="p">,</span>
         <span class="n">send_email</span><span class="o">=</span><span class="n">email_sender</span><span class="p">,</span>
         <span class="n">public_base_url</span><span class="o">=</span><span class="n">_public_base_url</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">auth_cfg</span><span class="p">),</span>
@@ -1830,6 +1832,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">cookie_name</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_cookie_name</span><span class="p">,</span>
                 <span class="n">session_max_age</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_max_age_seconds</span><span class="p">,</span>
                 <span class="n">secure_cookies</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">secure_cookies</span><span class="p">,</span>
+                <span class="n">cookie_domain</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">cookie_domain</span><span class="p">,</span>
                 <span class="n">fresh_seconds</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">passkeys</span><span class="o">.</span><span class="n">fresh_seconds</span><span class="p">,</span>
                 <span class="n">public_base_url</span><span class="o">=</span><span class="n">_public_base_url</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">auth_cfg</span><span class="p">),</span>
                 <span class="n">pick_lang</span><span class="o">=</span><span class="n">pick_lang</span><span class="p">,</span>
@@ -1849,6 +1852,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">cookie_name</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_cookie_name</span><span class="p">,</span>
                 <span class="n">session_max_age</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">session_max_age_seconds</span><span class="p">,</span>
                 <span class="n">secure_cookies</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">secure_cookies</span><span class="p">,</span>
+                <span class="n">cookie_domain</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">cookie_domain</span><span class="p">,</span>
                 <span class="n">can_register</span><span class="o">=</span><span class="n">can_register</span><span class="p">,</span>
                 <span class="n">admin_emails</span><span class="o">=</span><span class="n">admin_emails</span><span class="p">,</span>
             <span class="p">)</span>
@@ -2048,6 +2052,8 @@ window.runMermaid = runMermaid;</script>
         <span class="n">exempt_prefixes</span><span class="o">=</span><span class="n">csrf_exempt</span><span class="p">,</span>
         <span class="n">enforce_prefixes</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">"/api/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">/store"</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">store_apps</span><span class="p">)],</span>
         <span class="n">mint_prefixes</span><span class="o">=</span><span class="n">csrf_mint</span><span class="p">,</span>
+        <span class="c1"># Secure as the session cookie is, and on any HTTPS request (#78).</span>
+        <span class="n">secure</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">secure_cookies</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parent</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span><span class="n">StoreInjectionMiddleware</span><span class="p">,</span> <span class="n">base_store</span><span class="o">=</span><span class="n">user_data_backend</span><span class="p">)</span>
     <span class="n">parent</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span>
@@ -2065,6 +2071,7 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># Consult runtime grants live, per request, on top of each rule's static</span>
         <span class="c1"># allowed_users. ``now`` is evaluated at call time so expiry is exact.</span>
         <span class="n">dynamic_allowed_users</span><span class="o">=</span><span class="n">grants_resolver</span><span class="p">,</span>
+        <span class="n">cookie_domain</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">cookie_domain</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 

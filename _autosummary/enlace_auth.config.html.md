@@ -34,7 +34,7 @@ we just deserialize them into typed objects here when the plugin runs.
 | [`SignupLimitsConfig`](#enlace_auth.config.SignupLimitsConfig)(\*[, window_seconds, ...])      | Rate limits on the endpoints that send mail or check a code.               |
 | [`StoreBackendConfig`](#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.                   |
 
-### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, groups=<factory>)
+### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, cookie_domain=None, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, groups=<factory>)
 
 Bases: `_StrictModel`
 

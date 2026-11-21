@@ -39,6 +39,7 @@ enlace\_auth.auth
    :recursive:
 
    accounts
+   cookie_policy
    cookies
    email
    grants

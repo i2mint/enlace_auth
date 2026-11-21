@@ -92,6 +92,8 @@ The app a `next` path belongs to (`/<app>/...` or `/api/<app>/...`).
 'game'
 >>> app_from_next("/nope/", {"game"}) is None
 True
+>>> app_from_next("https://a.apps.example.com/game/", {"game"})  # cookie_domain
+'game'
 ```
 
 * **Return type:**

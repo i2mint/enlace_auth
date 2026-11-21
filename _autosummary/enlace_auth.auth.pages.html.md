@@ -25,7 +25,7 @@ page that redirect lands on, and it threads `next` back through after sign-in.
 | [`render_notice_page`](#enlace_auth.auth.pages.render_notice_page)(\*, title, heading, ...[, ...]) | Render a centered notice card.                                         |
 | [`render_reset_page`](#enlace_auth.auth.pages.render_reset_page)(\*, token[, error])              | Render the "set a new password" form for a reset `token`.              |
 | [`render_shared_login_page`](#enlace_auth.auth.pages.render_shared_login_page)(\*, app[, next_url, ...]) | Render the shared-password form for a `protected:shared` app.          |
-| [`safe_next`](#enlace_auth.auth.pages.safe_next)(raw, \*[, default])                      | Return a same-origin path safe to redirect to, or `default`.           |
+| [`safe_next`](#enlace_auth.auth.pages.safe_next)(raw, \*[, default, cookie_domain])       | Return a same-origin path safe to redirect to, or `default`.           |
 
 ### enlace_auth.auth.pages.fill_template(template, , \*\*values)
 
@@ -160,13 +160,26 @@ fill in.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_auth.auth.pages.safe_next(raw, , default='/')
+### enlace_auth.auth.pages.safe_next(raw, , default='/', cookie_domain=None)
 
 Return a same-origin path safe to redirect to, or `default`.
 
 Guards against open-redirect: only local absolute paths are accepted —
 no scheme, no `//host` form, no control characters. This is applied to
 every `?next=` value before it reaches a page or a redirect.
+
+With `cookie_domain` (`[auth] cookie_domain`, #94), an `https://` URL on
+that host or one under it is accepted too, so sign-in on the parent host can
+return to an app on a sibling subdomain. Nothing else absolute is.
+
+```pycon
+>>> safe_next("https://a.apps.example.com/x", cookie_domain="apps.example.com")
+'https://a.apps.example.com/x'
+>>> safe_next("https://a.apps.example.com/x")
+'/'
+>>> safe_next("https://evil.example.com/", cookie_domain="apps.example.com")
+'/'
+```
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)

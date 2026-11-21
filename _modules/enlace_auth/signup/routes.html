@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=d127aa6e"></script>
+    <script src="../../../_static/documentation_options.js?v=755f2e77"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -763,6 +763,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.concurrency</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_in_threadpool</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.accounts</span><span class="w"> </span><span class="kn">import</span> <span class="n">open_session</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.cookie_policy</span><span class="w"> </span><span class="kn">import</span> <span class="n">CookiePolicy</span><span class="p">,</span> <span class="n">request_host</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.cookies</span><span class="w"> </span><span class="kn">import</span> <span class="n">sign_cookie</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.email</span><span class="w"> </span><span class="kn">import</span> <span class="n">EmailSender</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.pages</span><span class="w"> </span><span class="kn">import</span> <span class="n">safe_next</span>
@@ -904,6 +905,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">cookie_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"enlace_session"</span><span class="p">,</span>
     <span class="n">session_max_age</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">86400</span><span class="p">,</span>
     <span class="n">secure_cookies</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">cookie_domain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">public_base_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">terms_version</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">APIRouter</span><span class="p">:</span>
@@ -925,6 +927,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        known_apps: app names a sign-up may name, directly or through ``next``.</span>
 <span class="sd">        delete_account: ``delete(email)``, removing an account and its data;</span>
 <span class="sd">            ``None`` leaves the deletion endpoints unmounted.</span>
+<span class="sd">        cookie_domain: ``[auth] cookie_domain`` (#94): the session cookie a</span>
+<span class="sd">            verified code sets carries it, and ``next`` may name an ``https://``</span>
+<span class="sd">            URL under it (see :mod:`enlace_auth.auth.cookie_policy`).</span>
 <span class="sd">        public_base_url: the origin put in mailed links. Without it the link is</span>
 <span class="sd">            built from the request's ``Host``, which the requester controls.</span>
 <span class="sd">        terms_version: stored on each account created, as the terms accepted.</span>
@@ -961,6 +966,11 @@ window.runMermaid = runMermaid;</script>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_base</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">public_base_url</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">base_url</span><span class="p">))</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
+
+    <span class="n">session_cookies</span> <span class="o">=</span> <span class="n">CookiePolicy</span><span class="p">(</span><span class="n">secure</span><span class="o">=</span><span class="n">secure_cookies</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">cookie_domain</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_safe_next</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">safe_next</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">cookie_domain</span><span class="o">=</span><span class="n">cookie_domain</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_cookie</span><span class="p">(</span><span class="n">response</span><span class="p">:</span> <span class="n">Response</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">max_age</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"Path=</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"HttpOnly"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"Max-Age=</span><span class="si">{</span><span class="n">max_age</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span>
@@ -1006,7 +1016,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">extra</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Store a pending code (a decoy when it must not verify) and mail."""</span>
-        <span class="n">next_url</span> <span class="o">=</span> <span class="n">safe_next</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">next</span><span class="p">)</span>
+        <span class="n">next_url</span> <span class="o">=</span> <span class="n">_safe_next</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">next</span><span class="p">)</span>
         <span class="n">app</span> <span class="o">=</span> <span class="n">_app_for</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">app</span><span class="p">,</span> <span class="n">next_url</span><span class="p">)</span>
         <span class="n">lang</span> <span class="o">=</span> <span class="n">pick_lang</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"accept-language"</span><span class="p">),</span> <span class="n">explicit</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">lang</span><span class="p">)</span>
         <span class="n">base</span> <span class="o">=</span> <span class="n">_base</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
@@ -1122,19 +1132,19 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">on_created</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
             <span class="n">key</span> <span class="o">=</span> <span class="n">email</span>
         <span class="n">session_id</span> <span class="o">=</span> <span class="n">open_session</span><span class="p">(</span><span class="n">session_store</span><span class="p">,</span> <span class="n">user_store</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"email-code"</span><span class="p">)</span>
-        <span class="n">_cookie</span><span class="p">(</span>
+        <span class="n">session_cookies</span><span class="o">.</span><span class="n">set_cookie</span><span class="p">(</span>
             <span class="n">response</span><span class="p">,</span>
             <span class="n">cookie_name</span><span class="p">,</span>
             <span class="n">sign_cookie</span><span class="p">(</span><span class="n">session_id</span><span class="p">,</span> <span class="n">signing_key</span><span class="p">,</span> <span class="n">salt</span><span class="o">=</span><span class="s2">"session"</span><span class="p">),</span>
             <span class="n">max_age</span><span class="o">=</span><span class="n">session_max_age</span><span class="p">,</span>
-            <span class="n">path</span><span class="o">=</span><span class="s2">"/"</span><span class="p">,</span>
+            <span class="n">host</span><span class="o">=</span><span class="n">request_host</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="p">),</span>
         <span class="p">)</span>
         <span class="n">_cookie</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">NONCE_COOKIE</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="n">max_age</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">"/auth"</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"ok"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
             <span class="s2">"email"</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
             <span class="s2">"created"</span><span class="p">:</span> <span class="n">created</span><span class="p">,</span>
-            <span class="s2">"next"</span><span class="p">:</span> <span class="n">safe_next</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"next"</span><span class="p">)),</span>
+            <span class="s2">"next"</span><span class="p">:</span> <span class="n">_safe_next</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"next"</span><span class="p">)),</span>
         <span class="p">}</span>
 
     <span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/email/link"</span><span class="p">,</span> <span class="n">response_class</span><span class="o">=</span><span class="n">HTMLResponse</span><span class="p">,</span> <span class="n">include_in_schema</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -1190,7 +1200,7 @@ window.runMermaid = runMermaid;</script>
             <span class="n">delete_account</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"User not found"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
-        <span class="n">_cookie</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">cookie_name</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="n">max_age</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">"/"</span><span class="p">)</span>
+        <span class="n">session_cookies</span><span class="o">.</span><span class="n">clear_cookie</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">cookie_name</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">"ok"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">:</span> <span class="n">email</span><span class="p">}</span>
 
     <span class="k">return</span> <span class="n">router</span></div>
