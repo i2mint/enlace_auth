@@ -64,6 +64,7 @@ from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.pages import safe_next
 from enlace_auth.auth.step_up import StepUpError, same_account
 from enlace_auth.passkeys.core import (
+    ANY_PURPOSE,
     PasskeyError,
     PasskeyPolicy,
     PasskeyService,
@@ -122,6 +123,7 @@ class _RedeemBody(BaseModel):
     email: str
     audience: Optional[str] = None
     methods: Optional[list[str]] = None
+    purpose: Optional[str] = None
 
 
 class _RequestBody(BaseModel):
@@ -217,7 +219,12 @@ def make_passkey_router(
                 ),
                 headers={REAUTH_HEADER: "1"},
             )
-        if record.get("method") != "passkey" and service.count(email) > 0:
+        # Any passkey, purpose-bound ones included: a password holder must not
+        # plant a second purpose passkey beside the owner's, nor remove it.
+        if (
+            record.get("method") != "passkey"
+            and service.count(email, purpose=ANY_PURPOSE) > 0
+        ):
             raise HTTPException(
                 status_code=403,
                 detail=(
@@ -283,7 +290,7 @@ def make_passkey_router(
         try:
             listing = (
                 service.list(email)
-                if wanted is None
+                if not wanted
                 else service.list(email, purpose=clean_purpose(wanted))
             )
         except PasskeyError as e:
@@ -340,7 +347,24 @@ def make_passkey_router(
         passkey_id: str, request: Request, background: BackgroundTasks
     ) -> dict[str, Any]:
         email, sid = _fresh(request)
-        if policy.requires(email) and service.count(email) <= policy.enforce_from:
+        target = service.credentials.get(passkey_id)
+        bound = isinstance(target, dict) and target.get("purpose") is not None
+        general = service.count(email)
+        if (
+            not bound
+            and general <= 1
+            and service.count(email, purpose=ANY_PURPOSE) > general
+        ):
+            # Purpose passkeys never sign in, so the last general one is what
+            # lets this account sign in with a passkey to change them.
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Remove this account's purpose-bound passkeys first: this is "
+                    "the passkey that signs in to change them."
+                ),
+            )
+        if not bound and policy.requires(email) and general <= policy.enforce_from:
             # Removing one would let the password back in: only the admin's
             # CLI (remove-passkey) may take a required account below the rule.
             raise HTTPException(
@@ -545,6 +569,7 @@ def make_passkey_router(
                 email=body.email,
                 audience=body.audience,
                 methods=body.methods,
+                purpose=body.purpose,
             )
         except PasskeyError as e:
             raise _refused(e) from None

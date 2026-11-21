@@ -623,7 +623,7 @@ class PasskeyService:
                 if purpose is None
                 else f"This account has no passkey for {purpose!r} yet."
             )
-        bound = challenge_binding(action, audience)
+        bound = challenge_binding(action, audience, purpose)
         options = wa.generate_authentication_options(
             rp_id=rp.id,
             challenge=self._challenge("step-up", self._binding(email, bound)),
@@ -666,9 +666,8 @@ class PasskeyService:
         if email is not None and record["email"] != email:
             raise PasskeyError("This passkey belongs to another account.")
         if purpose == "login" and record.get("purpose") is not None:
-            raise PasskeyError(
-                f"This passkey is for {record['purpose']!r} only; it cannot sign in."
-            )
+            # Generic: whoever holds a credential id learns nothing about it.
+            raise PasskeyError("This passkey cannot sign in.")
         if purpose == "step-up" and record.get("purpose") != bound_to:
             raise PasskeyError("This passkey is not the one for this confirmation.")
         binding = self._binding(record["email"] if purpose != "login" else "", action)
@@ -733,12 +732,17 @@ class PasskeyService:
             rp,
             purpose="step-up",
             email=email,
-            action=challenge_binding(action, audience),
+            action=challenge_binding(action, audience, clean_purpose(purpose)),
             bound_to=clean_purpose(purpose),
         )
         try:
             return self.proofs.mint(
-                email, action, method="passkey", audience=audience, ref=key
+                email,
+                action,
+                method="passkey",
+                audience=audience,
+                ref=key,
+                purpose=clean_purpose(purpose),
             )
         except StepUpError as e:
             raise PasskeyError(str(e)) from None
@@ -764,6 +768,7 @@ class PasskeyService:
         email: Any,
         audience: Optional[str] = None,
         methods: Optional[Iterable[str]] = None,
+        purpose: Optional[str] = None,
     ) -> dict:
         """Spend a step-up proof for *action* by *email*; return what it proves.
 
@@ -782,6 +787,7 @@ class PasskeyService:
                 audience=audience,
                 methods=methods,
                 still_valid=self._passkey_still_there,
+                purpose=purpose,
             )
         except StepUpError as e:
             raise PasskeyError(str(e)) from None
