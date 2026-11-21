@@ -74,11 +74,13 @@
     });
   }
   function creationOptions(o) {
-    return Object.assign({}, o, {
+    var out = Object.assign({}, o, {
       challenge: u2b(o.challenge),
       user: Object.assign({}, o.user, { id: u2b(o.user.id) }),
       excludeCredentials: descriptors(o.excludeCredentials),
     });
+    delete out.purpose;
+    return out;
   }
   function requestOptions(o) {
     var out = Object.assign({}, o, {
@@ -87,6 +89,7 @@
     });
     delete out.action;
     delete out.audience;
+    delete out.purpose;
     return out;
   }
   function credentialJSON(c) {
@@ -128,15 +131,21 @@
   async function list() {
     return send("GET", "/auth/passkeys");
   }
-  function prepareRegister() {
-    return prepare("/auth/passkeys/register/options", {});
+  // opts: {purpose, label} enrols a purpose-bound passkey (it never signs in;
+  // the system sheet shows `label`, e.g. "Start a job on my Mac").
+  function prepareRegister(opts) {
+    opts = opts || {};
+    var body = opts.purpose ? { purpose: opts.purpose, label: opts.label || "" } : {};
+    return prepare("/auth/passkeys/register/options", body);
   }
   async function register(name, prepared) {
-    var p = await ready(prepared, "/auth/passkeys/register/options", {});
+    var body = (prepared && prepared.body) || {};
+    var p = await ready(prepared, "/auth/passkeys/register/options", body);
     var c = await navigator.credentials.create({ publicKey: creationOptions(p.options) });
     return send("POST", "/auth/passkeys/register/verify", {
       credential: credentialJSON(c),
-      name: name || "",
+      name: name || body.label || "",
+      purpose: body.purpose || null,
     }, p.token);
   }
   async function remove(id) {
@@ -157,10 +166,12 @@
       next: opts.next || null,
     }, p.token);
   }
+  // A string (the action), {action, purpose}, or {request} (a backend's).
   function prepareStepUp(actionOrRequest) {
-    var body = typeof actionOrRequest === "string"
-      ? { action: actionOrRequest }
-      : { request: actionOrRequest.request };
+    var a = actionOrRequest;
+    var body = typeof a === "string"
+      ? { action: a }
+      : a.request ? { request: a.request } : { action: a.action, purpose: a.purpose || null };
     return prepare("/auth/passkeys/step-up/options", body);
   }
   async function stepUp(actionOrPrepared) {
@@ -171,7 +182,7 @@
     var credential = credentialJSON(c);
     var body = p.body && p.body.request
       ? { request: p.body.request, credential: credential }
-      : { action: p.options.action, credential: credential };
+      : { action: p.options.action, purpose: p.options.purpose || null, credential: credential };
     var out = await send("POST", "/auth/passkeys/step-up/verify", body, p.token);
     // The signed assertion too, for a verifier that checks it against keys it pinned.
     out.credential = credential;

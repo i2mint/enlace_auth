@@ -295,6 +295,7 @@ class StepUpProofs:
         audience: Any,
         key: str,
         return_url: Optional[str] = None,
+        purpose: Optional[str] = None,
     ) -> str:
         """A signed step-up request, for a backend holding *audience*'s key.
 
@@ -319,6 +320,8 @@ class StepUpProofs:
         }
         if return_url:
             payload["r"] = str(return_url)
+        if purpose is not None:
+            payload["p"] = clean_audience(purpose)  # a passkey purpose (#97)
         return self._serializer(_REQUEST_SALT).dumps(payload)
 
     def spend_request(self, request_id: str) -> None:
@@ -346,6 +349,7 @@ class StepUpProofs:
                 "action": clean_action(payload["a"]),
                 "audience": clean_audience(payload["u"]),
                 "return_url": payload.get("r"),
+                "purpose": clean_audience(payload.get("p")),
             }
         except KeyError:
             raise StepUpError("Not a step-up request.") from None
