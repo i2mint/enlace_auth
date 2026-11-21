@@ -1049,6 +1049,17 @@ def wire(parent: "FastAPI", config) -> None:
         session_store, **_connector_revocation
     )
 
+    # One deleter for the self-service deletion and the admin's (#92): both
+    # remove the account and everything that hangs off it.
+    delete_account = make_account_deleter(
+        user_store=user_backend,
+        credentials_changed=on_credentials_changed,
+        share_store=share_store,
+        grant_store=grant_store,
+        user_data=user_data_backend,
+        sign_ins=platform_factory("sign_ins"),
+        passkeys=passkeys["service"] if passkeys else None,
+    )
     signup = _wire_signup(
         config,
         auth_cfg,
@@ -1059,15 +1070,7 @@ def wire(parent: "FastAPI", config) -> None:
         email_sender=email_sender,
         policy=signup_policy,
         admin_emails=admin_emails,
-        delete_account=make_account_deleter(
-            user_store=user_backend,
-            credentials_changed=on_credentials_changed,
-            share_store=share_store,
-            grant_store=grant_store,
-            user_data=user_data_backend,
-            sign_ins=platform_factory("sign_ins"),
-            passkeys=passkeys["service"] if passkeys else None,
-        ),
+        delete_account=delete_account,
     )
     passkey_pages = _passkey_page_extras(passkeys, signup)
 
@@ -1274,6 +1277,7 @@ def wire(parent: "FastAPI", config) -> None:
         oauth_server_enabled=auth_cfg.oauth_server.enabled,
         public_base_url=_public_base_url(config, auth_cfg),
         on_credentials_changed=on_credentials_changed,
+        delete_account=delete_account,
     )
     parent.include_router(admin_router)
     if admin_emails:

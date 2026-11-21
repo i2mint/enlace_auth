@@ -116,6 +116,7 @@ def make_admin_router(
     oauth_server_enabled: bool = False,
     public_base_url: Optional[str] = None,
     on_credentials_changed=None,  # CredentialsChanged; default: sessions only
+    delete_account=None,  # delete(email) -> {what: count}; default: built here
 ) -> APIRouter:
     """Build a FastAPI router exposing ``/_admin/api/*`` endpoints.
 
@@ -152,11 +153,26 @@ def make_admin_router(
     user is deleted or has their password set. The default revokes the
     account's browser sessions; the plugin injects one that also revokes its
     OAuth connector refresh families (``enlace_auth.auth.revocation``).
+
+    ``delete_account`` (``delete(email) -> {what: count}``, see
+    :func:`~enlace_auth.auth.accounts.make_account_deleter`) removes a deleted
+    user's account and everything that hangs off it. The default is built from
+    the stores given here (the record, sessions, shares, grants); the plugin
+    injects the one the self-service deletion uses, which also removes the
+    account's per-user data, last sign-in and passkeys, so an operator deleting
+    an account on someone's behalf erases as much as they would themselves.
     """
+    from enlace_auth.auth.accounts import make_account_deleter
     from enlace_auth.auth.revocation import make_on_credentials_changed
 
     credentials_changed = on_credentials_changed or make_on_credentials_changed(
         session_store
+    )
+    delete_account = delete_account or make_account_deleter(
+        user_store=user_store,
+        credentials_changed=credentials_changed,
+        share_store=share_store,
+        grant_store=grant_store,
     )
     admin_set = frozenset(e.lower() for e in admin_emails)
     apps_snapshot = list(apps)
@@ -305,22 +321,20 @@ def make_admin_router(
                     status_code=409,
                     detail="Cannot delete the last admin user",
                 )
+        # The deleter removes the record, then ends its sessions and connector
+        # sessions (before anything else, so a later failure cannot leave a
+        # deleted account signed in; an actor deleting themselves is logged
+        # out), then its shares, grants, per-user data, last sign-in and
+        # passkeys. A share or grant never outlives the account it names (ADR
+        # 0001 §2): the address is free to be registered again by someone else.
+        _ = actor
         try:
-            del user_store[target]
+            removed = delete_account(target)
         except KeyError:
             raise HTTPException(status_code=404, detail="User not found")
-        # Sessions are not checked against the user store on each request, so
-        # a deleted account keeps working until its cookie expires unless its
-        # sessions go too. (An actor deleting themselves is logged out.) This
-        # comes before the share cleanup so a failure there cannot leave a
-        # deleted account signed in.
-        _ = actor
-        credentials_changed(target)
-        # A share never outlives an account it names (ADR 0001 §2): the email is
-        # free to be registered again by someone else.
-        if share_store is not None:
-            share_store.remove_account(target)
-        return {"ok": True, "email": target}
+        removed = dict(removed or {})
+        failed = sorted(what for what, n in removed.items() if n is None)
+        return {"ok": True, "email": target, "removed": removed, "failed": failed}
 
     def _existing_account(email: str) -> str:
         target = _account_key(email)
