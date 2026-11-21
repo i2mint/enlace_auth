@@ -20,13 +20,19 @@ from enlace_auth.auth.pages import (
     render_login_page,
     render_shared_login_page,
 )
+from enlace_auth.passkeys.pages import render_signin_section
 from enlace_auth.signup.pages import render_email_section, render_link_page
 
 
 def _email_step() -> str:
     section = render_email_section(
-        lang="en", next_url="/app/page/", app="app", challenge="c",
-        min_seconds=0, mode="invite", code_minutes=10,
+        lang="en",
+        next_url="/app/page/",
+        app="app",
+        challenge="c",
+        min_seconds=0,
+        mode="invite",
+        code_minutes=10,
     )
     return render_login_page(next_url="/app/page/", email_section=section)
 
@@ -38,6 +44,14 @@ PAGES = {
     ),
     "email code": _email_step,
 }
+
+
+def test_the_passkey_button_leaves_through_the_helper():
+    """Its own IIFE and copy of the helper, for the server's ``next`` or the page's."""
+    html = render_signin_section(lang="en", next_url="/app/page/")
+    assert "function nextUrl(next)" in html
+    assert "location.assign(nextUrl(next || NEXT))" in html
+    assert "location.hash" not in html.replace(_NEXT_JS, "")
 
 
 @pytest.mark.parametrize("name", PAGES)

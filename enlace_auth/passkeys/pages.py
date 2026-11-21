@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 
-from enlace_auth.auth.pages import _js_string
+from enlace_auth.auth.pages import _NEXT_JS, _js_string
 from enlace_auth.passkeys.texts import t, texts_for
 
 _SCRIPT = '<script src="/auth/passkeys/passkeys.js"></script>'
@@ -40,6 +40,7 @@ def render_signin_section(*, lang: str, next_url: str) -> str:
 {_SCRIPT}
 <script>
 (function(){{
+{_NEXT_JS}
 const P = window.enlacePasskeys, T = JSON.parse({texts});
 const NEXT = {_js_string(next_url)};
 if (!P || !P.supported()) return;
@@ -47,10 +48,7 @@ const btn = document.getElementById('pk-signin'), msg = document.getElementById(
 btn.hidden = false;
 let ctrl = null, prepared = null;
 function arm() {{ P.prepareSignIn().then((p) => {{ prepared = p; }}, () => {{ prepared = null; }}); }}
-function go(next) {{
-  const n = next || NEXT || '/';
-  window.location.assign(n.indexOf('#') < 0 && window.location.hash ? n + window.location.hash : n);
-}}
+function go(next) {{ window.location.assign(nextUrl(next || NEXT)); }}
 function say(text) {{ msg.textContent = text || ''; msg.className = 'msg' + (text ? ' err' : ''); }}
 async function autofill() {{
   if (!(await P.conditionalAvailable())) return;
@@ -114,6 +112,7 @@ def render_account_section(*, lang: str) -> str:
 {_SCRIPT}
 <script>
 (function(){{
+{_NEXT_JS}
 const P = window.enlacePasskeys, T = JSON.parse({texts});
 const list = document.getElementById('pk-list'), msg = document.getElementById('pk-msg');
 const add = document.getElementById('pk-add'), reauth = document.getElementById('pk-reauth');
