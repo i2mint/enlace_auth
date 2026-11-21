@@ -211,16 +211,49 @@ def _original_target(scope) -> str:
     return f"{raw_path}?{raw_qs.decode('latin-1')}" if raw_qs else raw_path
 
 
-def _redirect_target(scope, login_path: str) -> str:
-    """Build the login-redirect URL, preserving the original path as ``next``."""
+def _sign_in_origins(scope, cookie_domain: Optional[str]) -> Optional[tuple[str, str]]:
+    """``(this origin, the sign-in origin)`` for an app host under *cookie_domain*.
+
+    Such a request is sent to sign in on *cookie_domain* itself, with an absolute
+    ``next`` back to this host (#94); the parent host and any host outside the
+    domain sign in where they are, as before (None). A port in ``Host`` is kept
+    on both: the parent is served where its apps are.
+    """
+    if not cookie_domain:
+        return None
+    from enlace_auth.auth.cookie_policy import host_within, request_host, request_port
+
+    headers = scope.get("headers", [])
+    host = request_host(headers)
+    if host and host != cookie_domain and host_within(host, cookie_domain):
+        port = request_port(headers)
+        suffix = f":{port}" if port else ""
+        return f"https://{host}{suffix}", f"https://{cookie_domain}{suffix}"
+    return None
+
+
+def _redirect_target(
+    scope, login_path: str, *, cookie_domain: Optional[str] = None
+) -> str:
+    """Build the login-redirect URL, preserving the original path as ``next``.
+
+    On an app host under *cookie_domain*, the sign-in page is the parent's and
+    ``next`` is this request's absolute ``https://`` URL.
+    """
     from urllib.parse import quote
 
     sep = "&" if "?" in login_path else "?"
-    nxt = quote(_original_target(scope), safe="")
-    return f"{login_path}{sep}login_required=1&next={nxt}"
+    target = _original_target(scope)
+    prefix = ""
+    if origins := _sign_in_origins(scope, cookie_domain):
+        target, prefix = origins[0] + target, origins[1]
+    nxt = quote(target, safe="")
+    return f"{prefix}{login_path}{sep}login_required=1&next={nxt}"
 
 
-def _shared_redirect_target(scope, shared_login_path: str, app_id: str) -> str:
+def _shared_redirect_target(
+    scope, shared_login_path: str, app_id: str, *, cookie_domain: Optional[str] = None
+) -> str:
     """Build the shared-password redirect URL: the app's form, then ``next``.
 
     A ``protected:shared`` app is opened with its shared password, never with a
@@ -231,8 +264,12 @@ def _shared_redirect_target(scope, shared_login_path: str, app_id: str) -> str:
     from urllib.parse import quote
 
     sep = "&" if "?" in shared_login_path else "?"
-    nxt = quote(_original_target(scope), safe="")
-    return f"{shared_login_path}{sep}app={quote(app_id, safe='')}&next={nxt}"
+    target = _original_target(scope)
+    prefix = ""
+    if origins := _sign_in_origins(scope, cookie_domain):
+        target, prefix = origins[0] + target, origins[1]
+    nxt = quote(target, safe="")
+    return f"{prefix}{shared_login_path}{sep}app={quote(app_id, safe='')}&next={nxt}"
 
 
 class PlatformAuthMiddleware:
@@ -251,6 +288,7 @@ class PlatformAuthMiddleware:
         login_redirect_path: str = "/",
         shared_login_path: Optional[str] = None,
         dynamic_allowed_users: Optional[Callable[[str], set[str]]] = None,
+        cookie_domain: Optional[str] = None,
     ):
         self.app = app
         self._rules = list(access_rules)
@@ -269,6 +307,9 @@ class PlatformAuthMiddleware:
         # static ``allowed_users``. When None (the default), behavior is
         # identical to a config-only whitelist.
         self._dynamic = dynamic_allowed_users
+        # ``[auth] cookie_domain`` (#94): a browser denied on an app host under it
+        # is sent to sign in on the domain itself, which sets the shared cookie.
+        self._cookie_domain = cookie_domain
 
     async def __call__(self, scope, receive, send):
         if scope["type"] not in ("http", "websocket"):
@@ -413,7 +454,9 @@ class PlatformAuthMiddleware:
                 email = (scope.get("state") or {}).get("user_email")
                 page = render_forbidden_page(
                     email=email,
-                    switch_url=_redirect_target(scope, self._login_redirect),
+                    switch_url=_redirect_target(
+                        scope, self._login_redirect, cookie_domain=self._cookie_domain
+                    ),
                 )
                 head = scope.get("method", "GET").upper() == "HEAD"
                 await _send_html_response(send, 403, page, head=head)
@@ -424,9 +467,16 @@ class PlatformAuthMiddleware:
             return
         if _wants_html(scope):
             if kind == "shared" and app_id:
-                target = _shared_redirect_target(scope, self._shared_login, app_id)
+                target = _shared_redirect_target(
+                    scope,
+                    self._shared_login,
+                    app_id,
+                    cookie_domain=self._cookie_domain,
+                )
             else:
-                target = _redirect_target(scope, self._login_redirect)
+                target = _redirect_target(
+                    scope, self._login_redirect, cookie_domain=self._cookie_domain
+                )
             await _send_redirect(send, target)
             return
         await _send_json_response(
@@ -437,6 +487,20 @@ class PlatformAuthMiddleware:
 # ---------------------------------------------------------------------------
 # CSRF middleware
 # ---------------------------------------------------------------------------
+
+
+def _is_https(scope) -> bool:
+    """Whether the request came over HTTPS (directly, or per the proxy's header).
+
+    ``X-Forwarded-Proto`` is trusted only to *add* ``Secure``, which a forged
+    header can do no harm with.
+    """
+    if scope.get("scheme") == "https":
+        return True
+    for k, v in scope.get("headers", []):
+        if k.lower() == b"x-forwarded-proto":
+            return v.decode("latin-1").split(",")[0].strip().lower() == "https"
+    return False
 
 
 _SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
@@ -478,6 +542,7 @@ class CSRFMiddleware:
         ),
         enforce_prefixes: Iterable[str] = (),
         mint_prefixes: Optional[Iterable[str]] = None,
+        secure: bool = False,
     ):
         """``enforce_prefixes`` are checked even under an exempt prefix: the per-user
         store routes (``/api/{app}/store``) sit under ``/api/`` but carry data a
@@ -485,10 +550,16 @@ class CSRFMiddleware:
 
         ``mint_prefixes``: path prefixes (whole segments: ``/auth`` matches
         ``/auth`` and ``/auth/x``, not ``/authors``) where the cookie may be
-        set. ``None`` means everywhere."""
+        set. ``None`` means everywhere.
+
+        ``secure`` marks the cookie ``Secure`` (the plugin passes ``[auth]
+        secure_cookies``); it is marked so on any HTTPS request regardless (#78).
+        The cookie stays host-only under ``cookie_domain``: each host mints its
+        own, and the double-submit check works per host."""
         self.app = app
         self._signing_key = signing_key
         self._cookie = cookie_name
+        self._secure = secure
         self._enforce = tuple(p.rstrip("/") for p in enforce_prefixes)
         self._header = header_name.lower().encode("latin-1")
         self._exempt = tuple(exempt_prefixes)
@@ -558,9 +629,10 @@ class CSRFMiddleware:
 
         new_value = secrets.token_urlsafe(32)
         signed = sign_cookie(new_value, self._signing_key, salt="csrf")
-        cookie_header = (f"{self._cookie}={signed}; Path=/; SameSite=Lax").encode(
-            "latin-1"
-        )
+        attrs = f"{self._cookie}={signed}; Path=/; SameSite=Lax"
+        if self._secure or _is_https(scope):
+            attrs += "; Secure"
+        cookie_header = attrs.encode("latin-1")
 
         # Expose the minted unsigned value to downstream handlers (e.g.
         # /auth/csrf) so they can return it in the body without minting a

@@ -39,6 +39,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response
 from pydantic import BaseModel
 
 from enlace_auth.auth.accounts import DISABLED_DETAIL, is_disabled, open_session
+from enlace_auth.auth.cookie_policy import CookiePolicy, request_host
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.pages import safe_next
 from enlace_auth.passkeys.core import (
@@ -93,6 +94,7 @@ def make_passkey_router(
     cookie_name: str = "enlace_session",
     session_max_age: int = 86400,
     secure_cookies: bool = True,
+    cookie_domain: Optional[str] = None,
     fresh_seconds: int = 900,
     public_base_url: Optional[str] = None,
     pick_lang: Callable[[Optional[str]], str] = lambda _header: "en",
@@ -109,6 +111,8 @@ def make_passkey_router(
             (``None``: no notice).
         on_credentials_changed: ``hook(email, *, keep=None)`` run after a
             removal (default: none; the plugin passes the platform's).
+        cookie_domain: ``[auth] cookie_domain`` (#94), for the session cookie a
+            passkey sign-in sets and the ``next`` it may return to.
         fresh_seconds: how recent a sign-in must be to add or remove a passkey.
         public_base_url: the site named in notices (else the request's base URL).
         pick_lang: ``(accept-language header) -> lang`` for the notices.
@@ -189,17 +193,18 @@ def make_passkey_router(
             body=t(lang, f"mail_{which}_body", name=name, email=email, site=site),
         )
 
-    def _set_session_cookie(response: Response, session_id: str) -> None:
-        attrs = [
-            f"{cookie_name}={sign_cookie(session_id, signing_key, salt='session')}",
-            "Path=/",
-            "HttpOnly",
-            f"Max-Age={session_max_age}",
-            "SameSite=Lax",
-        ]
-        if secure_cookies:
-            attrs.append("Secure")
-        response.headers.append("set-cookie", "; ".join(attrs))
+    cookies = CookiePolicy(secure=secure_cookies, domain=cookie_domain)
+
+    def _set_session_cookie(
+        request: Request, response: Response, session_id: str
+    ) -> None:
+        cookies.set_cookie(
+            response,
+            cookie_name,
+            sign_cookie(session_id, signing_key, salt="session"),
+            max_age=session_max_age,
+            host=request_host(request.headers),
+        )
 
     # ----- the browser helper ----------------------------------------------
 
@@ -300,8 +305,9 @@ def make_passkey_router(
         if is_disabled(record):
             raise HTTPException(status_code=403, detail=DISABLED_DETAIL)
         session_id = open_session(session_store, user_store, email, method="passkey")
-        _set_session_cookie(response, session_id)
-        return {"ok": True, "email": email, "next": safe_next(body.next)}
+        _set_session_cookie(request, response, session_id)
+        next_url = safe_next(body.next, cookie_domain=cookie_domain)
+        return {"ok": True, "email": email, "next": next_url}
 
     # ----- step-up ----------------------------------------------------------
 

@@ -687,6 +687,7 @@ def _wire_signup(
         cookie_name=auth_cfg.session_cookie_name,
         session_max_age=auth_cfg.session_max_age_seconds,
         secure_cookies=auth_cfg.secure_cookies,
+        cookie_domain=auth_cfg.cookie_domain,
         public_base_url=_public_base_url(config, auth_cfg),
         terms_version=cfg.terms_version,
     )
@@ -1081,6 +1082,7 @@ def wire(parent: "FastAPI", config) -> None:
         cookie_name=auth_cfg.session_cookie_name,
         session_max_age=auth_cfg.session_max_age_seconds,
         secure_cookies=auth_cfg.secure_cookies,
+        cookie_domain=auth_cfg.cookie_domain,
         shared_password_for=shared_hashes.get,
         send_email=email_sender,
         public_base_url=_public_base_url(config, auth_cfg),
@@ -1111,6 +1113,7 @@ def wire(parent: "FastAPI", config) -> None:
                 cookie_name=auth_cfg.session_cookie_name,
                 session_max_age=auth_cfg.session_max_age_seconds,
                 secure_cookies=auth_cfg.secure_cookies,
+                cookie_domain=auth_cfg.cookie_domain,
                 fresh_seconds=auth_cfg.passkeys.fresh_seconds,
                 public_base_url=_public_base_url(config, auth_cfg),
                 pick_lang=pick_lang,
@@ -1130,6 +1133,7 @@ def wire(parent: "FastAPI", config) -> None:
                 cookie_name=auth_cfg.session_cookie_name,
                 session_max_age=auth_cfg.session_max_age_seconds,
                 secure_cookies=auth_cfg.secure_cookies,
+                cookie_domain=auth_cfg.cookie_domain,
                 can_register=can_register,
                 admin_emails=admin_emails,
             )
@@ -1329,6 +1333,8 @@ def wire(parent: "FastAPI", config) -> None:
         exempt_prefixes=csrf_exempt,
         enforce_prefixes=[f"/api/{name}/store" for name in sorted(store_apps)],
         mint_prefixes=csrf_mint,
+        # Secure as the session cookie is, and on any HTTPS request (#78).
+        secure=auth_cfg.secure_cookies,
     )
     parent.add_middleware(StoreInjectionMiddleware, base_store=user_data_backend)
     parent.add_middleware(
@@ -1346,6 +1352,7 @@ def wire(parent: "FastAPI", config) -> None:
         # Consult runtime grants live, per request, on top of each rule's static
         # allowed_users. ``now`` is evaluated at call time so expiry is exact.
         dynamic_allowed_users=grants_resolver,
+        cookie_domain=auth_cfg.cookie_domain,
     )
 
 
