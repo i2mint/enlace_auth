@@ -112,7 +112,6 @@ def render_account_section(*, lang: str) -> str:
 {_SCRIPT}
 <script>
 (function(){{
-{_NEXT_JS}
 const P = window.enlacePasskeys, T = JSON.parse({texts});
 const list = document.getElementById('pk-list'), msg = document.getElementById('pk-msg');
 const add = document.getElementById('pk-add'), reauth = document.getElementById('pk-reauth');

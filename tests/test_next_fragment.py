@@ -102,3 +102,10 @@ def _run(next_value, hash_value: str) -> str:
 )
 def test_next_url_keeps_the_fragment(next_value, hash_value, want):
     assert _run(next_value, hash_value) == want
+
+
+def test_the_account_section_carries_no_sign_in_helper():
+    """Only the sign-in section leaves for ``next``; the account card does not."""
+    from enlace_auth.passkeys.pages import render_account_section
+
+    assert "function nextUrl(next)" not in render_account_section(lang="en")
