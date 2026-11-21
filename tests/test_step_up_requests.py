@@ -201,7 +201,7 @@ def test_step_up_returns_the_assertion_it_verified_in_js():
 
     script = files("enlace_auth.passkeys").joinpath("passkeys.js").read_text()
     assert "out.credential = credential" in script
-    assert "{ request: actionOrRequest.request }" in script
+    assert "{ request: a.request }" in script  # a backend request id
 
 
 # -- the proof component itself ------------------------------------------------
