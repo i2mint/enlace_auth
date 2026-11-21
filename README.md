@@ -292,6 +292,10 @@ Plus environment variables:
 - `ENLACE_SMTP_HOST` (+ `_PORT`, `_USER`, `_PASSWORD`, `_FROM`, `_TLS`) — mail
   sender for password-reset emails. Unset means **no email is sent**; see below.
 
+#### Mounting the authorization server behind another login
+
+`make_oauth_server_router` does not need enlace's login. Three keyword arguments replace the parts that are enlace's, each defaulting to the platform's behaviour: `current_identity(request) -> Identity(email, binding) | None` (who is signed in; `binding` is opaque, a session id or a revocation epoch), `login_url(next) -> url` (where an unauthenticated `/authorize` goes), and `may_authorize(email, resource, binding) -> reason | None` (consulted at consent, at the code exchange and on every refresh, with the binding the code or refresh family recorded; a custom one replaces the resource allowlist and `is_active`, so it applies its own policy). The stateless checks (PKCE S256, redirect-URI vetting with `https_hosts=` and `allow_loopback=`, refresh-token hashing, the RS256 key) are public in `enlace_auth.oauth_rules`, which imports no web framework.
+
 ## CSRF
 
 Every `POST`, `PUT`, `PATCH` and `DELETE` must carry an `X-CSRF-Token` header that matches the signed `enlace_csrf` cookie. That covers `/auth`, `/_admin`, `/_apps/{name}/meta` and the per-user store `/api/{app}/store`. Exempt: `/auth/callback`, `/auth/login/<provider>`, `/auth/oauth/`, other sub-app APIs under `/api/`, and proxied `process` and `external` apps. A client gets the token from `GET /auth/csrf`, which also sets the cookie.
