@@ -181,7 +181,7 @@ def make_signup_router(
     limits: Optional[dict] = None,
     client_ip: Callable[[Request], str] = _peer_host,
     known_apps: Iterable[str] = (),
-    delete_account: Optional[Callable[[str], None]] = None,
+    delete_account: Optional[Callable[[str], Any]] = None,
     cookie_name: str = "enlace_session",
     session_max_age: int = 86400,
     secure_cookies: bool = True,

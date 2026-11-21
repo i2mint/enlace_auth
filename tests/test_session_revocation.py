@@ -167,7 +167,9 @@ def test_deleting_a_user_ends_sessions_even_if_share_cleanup_fails(
     admin_client, monkeypatch
 ):
     """Revocation comes first, so a failure while removing the account's shares
-    can never leave a deleted account signed in (review of #66)."""
+    can never leave a deleted account signed in (review of #66). Since the admin
+    deletion goes through the account deleter (#92), the failure is reported in the
+    response and the remaining stores are still cleaned, instead of a 500 halfway."""
     from enlace_auth.auth.shares import ShareStore
 
     def boom(self, email):
@@ -175,6 +177,9 @@ def test_deleting_a_user_ends_sessions_even_if_share_cleanup_fails(
 
     monkeypatch.setattr(ShareStore, "remove_account", boom)
     csrf, holder = _setup_admin_and_user(admin_client)
-    with pytest.raises(RuntimeError, match="unreadable"):
-        admin_client.delete("/_admin/api/users/vic@example.com", headers=csrf)
+    r = admin_client.delete("/_admin/api/users/vic@example.com", headers=csrf)
+    assert r.status_code == 200, r.text
+    assert r.json()["failed"] == ["shares"]
+    assert r.json()["ok"] is False  # a partial erasure is not "ok"
+    assert r.json()["removed"]["shares"] is None
     assert holder.get("/api/lobby/").status_code == 401

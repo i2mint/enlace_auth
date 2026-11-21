@@ -247,7 +247,7 @@ def make_account_deleter(
     user_data: Any = None,
     sign_ins: Any = None,
     passkeys: Any = None,
-) -> Callable[[str], None]:
+) -> Callable[[str], dict]:
     """Return ``delete(email)``: remove an account and what hangs off it.
 
     The record goes first, then its sessions and connector refresh families
@@ -259,37 +259,58 @@ def make_account_deleter(
     ``KeyError`` when there is no such account; a damaged grant or data key is
     logged and skipped.
 
+    It returns what it removed: ``{what: count}`` for each store it was given,
+    and ``None`` for a step that failed (logged; the account is gone anyway), so
+    an operator can tell a partial erasure from a complete one.
+
     >>> users, ended = {"a@x.io": {}, "b@x.io": {}}, []
     >>> data = {"a@x.io/game/progress": 1, "b@x.io/game/progress": 2}
     >>> delete = make_account_deleter(
     ...     user_store=users, credentials_changed=ended.append, user_data=data
     ... )
     >>> delete("a@x.io")
+    {'user data': 1}
     >>> sorted(users), ended, sorted(data)
     (['b@x.io'], ['a@x.io'], ['b@x.io/game/progress'])
     """
 
-    def _remove_grants(email: str) -> None:
-        for rec in grant_store.list_all():
-            if rec.get("email") == email and rec.get("app_id"):
-                grant_store.remove_exact(rec["app_id"], email)
+    def _remove_grants(email: str) -> int:
+        from enlace_auth.emails import account_spellings
 
-    def _remove_user_data(email: str) -> None:
+        # A grant admits the account in either spelling of an internationalized
+        # domain, so one written in the other spelling goes too, unless that
+        # spelling is another account's key.
+        names = {email} | {
+            other for other in account_spellings(email) if other not in user_store
+        }
+        gone = 0
+        for rec in grant_store.list_all():
+            if rec.get("email") in names and rec.get("app_id"):
+                gone += bool(grant_store.remove_exact(rec["app_id"], rec["email"]))
+        return gone
+
+    def _remove_user_data(email: str) -> int:
         from enlace_auth.stores.validation import sanitize_key
 
         prefix = f"{sanitize_key(email)}/"
         under = getattr(user_data, "keys_under", None)
         keys = list(under(prefix)) if callable(under) else list(user_data)
+        gone = 0
         for key in keys:
             if isinstance(key, str) and key.startswith(prefix):
                 with contextlib.suppress(KeyError):
                     del user_data[key]
+                    gone += 1
+        return gone
 
-    def _forget_sign_in(email: str) -> None:
-        with contextlib.suppress(KeyError):
+    def _forget_sign_in(email: str) -> int:
+        try:
             del sign_ins[email.lower()]
+        except KeyError:
+            return 0
+        return 1
 
-    def delete(email: str) -> None:
+    def delete(email: str) -> dict:
         del user_store[email]
         credentials_changed(email)
         steps = [
@@ -299,14 +320,17 @@ def make_account_deleter(
             ("last sign-in", sign_ins is not None and _forget_sign_in),
             ("passkeys", passkeys is not None and passkeys.remove_account),
         ]
+        removed: dict = {}
         for what, step in steps:
             if not step:
                 continue
             try:
-                step(email)
+                removed[what] = int(step(email) or 0)
             except Exception:  # noqa: BLE001 - the account is gone; report the rest
+                removed[what] = None
                 _logger.exception(
                     "enlace_auth: deleting %r: could not remove its %s", email, what
                 )
+        return removed
 
     return delete

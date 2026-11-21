@@ -441,8 +441,13 @@ document.querySelector("#users").addEventListener("click", async (ev) => {
   } else if (btn.dataset.act === "delete") {
     if (!confirm(`Delete user ${email}? This cannot be undone.`)) return;
     try {
-      await api("DELETE", `/users/${encodeURIComponent(email)}`);
-      flash(`Deleted ${email}.`);
+      const r = await api("DELETE", `/users/${encodeURIComponent(email)}`);
+      const failed = (r && r.failed) || [];
+      if (failed.length) {
+        flash(`Deleted ${email}, but could not remove its ${failed.join(", ")} (see the server log).`, false);
+      } else {
+        flash(`Deleted ${email} and its data.`);
+      }
       loadUsers();
     } catch (e) {
       flash("Delete failed: " + e.message, false);

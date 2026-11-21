@@ -13,6 +13,7 @@ Usage::
     enlace-auth list-users [--json]
     enlace-auth add-user <email>
     enlace-auth set-password <email>
+    enlace-auth delete-user <email> [--keep-data]
     enlace-auth reset-link <email> [--base-url URL] [--hours N]
     enlace-auth grant <app_id> <email> [--expires YYYY-MM-DD] [--note ...]
     enlace-auth revoke-grant <app_id> <email>
@@ -327,6 +328,75 @@ def set_password(email: str, *, toml: str = "platform.toml"):
         f"Password updated for {key}; {revoked} existing session(s) and "
         f"{families} connector session(s) revoked."
     )
+
+
+def _load_user_data(toml_path: Path = Path("platform.toml")):
+    """Open the platform's per-user data store (``[stores.user_data]``), or None."""
+    from enlace_auth.config import coerce_stores_map
+    from enlace_auth.stores import make_file_store_factory
+
+    config = PlatformConfig.from_toml(toml_path)
+    cfg = coerce_stores_map(getattr(config, "stores", None)).get("user_data")
+    return None if cfg is None else make_file_store_factory(cfg.path)("user_data")
+
+
+def delete_user(email: str, *, keep_data: bool = False, toml: str = "platform.toml"):
+    """Delete an account and everything that hangs off it, as the admin page does.
+
+    Removes the account record, ends its sessions and connector sessions, then
+    removes its shares, runtime grants, per-user data, last sign-in time and
+    passkeys, and prints what went from each. The same deleter serves the
+    self-service deletion and the admin page, so all three erase the same things.
+
+    Args:
+        email: The account (either spelling of an internationalized domain).
+        keep_data: Keep the account's per-user data (every key under
+            ``{email}/`` in ``[stores.user_data]``); remove everything else.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    from enlace_auth.auth.accounts import make_account_deleter
+    from enlace_auth.emails import resolve_account
+    from enlace_auth.stores import make_file_store_factory
+
+    toml_path = Path(toml)
+    users = _load_user_store(toml_path)
+    # Exactly as stored, as the admin page resolves it: normalizing first would
+    # fold a look-alike spelling onto someone else's account.
+    typed = email.strip()
+    key = resolve_account(typed, users.__contains__) or typed.lower()
+    if key not in users:
+        print(f"No user {key!r} in store.", file=sys.stderr)
+        sys.exit(1)
+    auth = coerce_auth_config(PlatformConfig.from_toml(toml_path).auth)
+    sessions = _load_session_store(toml_path)
+    ended = {}
+
+    def credentials_changed(account: str, **_) -> None:
+        ended["sessions"] = sessions.revoke_user(account)
+        try:
+            ended["connector sessions"] = _revoke_connector_subject(account, toml_path)
+        except Exception as e:  # noqa: BLE001 - go on removing; report it below
+            print(f"Could not revoke connector sessions: {e}", file=sys.stderr)
+            ended["connector sessions"] = None
+
+    delete = make_account_deleter(
+        user_store=users,
+        credentials_changed=credentials_changed,
+        share_store=_load_share_store(toml_path),
+        grant_store=_load_grant_store(toml_path),
+        user_data=None if keep_data else _load_user_data(toml_path),
+        sign_ins=make_file_store_factory(auth.stores.path)("sign_ins"),
+        passkeys=_load_passkeys(toml_path),
+    )
+    removed = {**ended, **delete(key)}
+    failed = [what for what, n in removed.items() if n is None]
+    print(f"Deleted {key}.")
+    for what, n in removed.items():
+        print(f"  {what}: {'FAILED (see the log)' if n is None else n}")
+    if keep_data:
+        print("  user data: kept (--keep-data)")
+    if failed:
+        sys.exit(1)
 
 
 def reset_link(
@@ -881,6 +951,7 @@ COMMANDS = [
     list_users,
     add_user,
     set_password,
+    delete_user,
     reset_link,
     grant,
     revoke_grant,
