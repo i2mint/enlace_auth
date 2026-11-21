@@ -32,6 +32,7 @@ from pydantic import BaseModel, EmailStr
 
 from enlace_auth.auth import pages
 from enlace_auth.auth.accounts import DISABLED_DETAIL, is_disabled, open_session
+from enlace_auth.auth.cookie_policy import CookiePolicy, request_host
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.email import EmailSender, make_console_sender
 from enlace_auth.auth.passwords import (
@@ -92,6 +93,7 @@ def make_auth_router(
     cookie_name: str = "enlace_session",
     session_max_age: int = 86400,
     secure_cookies: bool = True,
+    cookie_domain: Optional[str] = None,
     shared_password_for: Callable[[str], Optional[str]] = lambda _: None,
     send_email: Optional[EmailSender] = None,
     reset_token_max_age: int = DEFAULT_EMAIL_TTL,
@@ -107,6 +109,11 @@ def make_auth_router(
         session_store / user_store: backing stores.
         signing_key: HMAC key for session, CSRF, shared, and reset tokens.
         cookie_name / session_max_age / secure_cookies: session-cookie policy.
+        cookie_domain: ``[auth] cookie_domain`` (#94). Sign-in cookies set on
+            that host or one under it carry ``Domain``, so one sign-in serves
+            apps on sibling subdomains; ``?next=`` may then name an ``https://``
+            URL on such a host; and a signed-in visit to the sign-in page moves
+            an older host-only session cookie onto the domain. None: host-only.
         shared_password_for: maps an app id to its shared-password hash.
         send_email: delivers password-reset emails. ``None`` means no delivery
             channel is configured: the flow falls back to the console sender
@@ -141,26 +148,22 @@ def make_auth_router(
     email_delivery_configured = send_email is not None
     email_sender: EmailSender = send_email or make_console_sender()
 
-    def _set_session_cookie(
-        response: Response, value: str, *, max_age: int, salt: str, name: str
-    ):
-        signed = sign_cookie(value, signing_key, salt=salt)
-        attrs = [
-            f"{name}={signed}",
-            "Path=/",
-            "HttpOnly",
-            f"Max-Age={max_age}",
-            "SameSite=Lax",
-        ]
-        if secure_cookies:
-            attrs.append("Secure")
-        response.headers.append("set-cookie", "; ".join(attrs))
+    cookies = CookiePolicy(secure=secure_cookies, domain=cookie_domain)
 
-    def _clear_cookie(response: Response, name: str):
-        response.headers.append(
-            "set-cookie",
-            f"{name}=; Path=/; Max-Age=0; SameSite=Lax"
-            + ("; Secure" if secure_cookies else ""),
+    def _set_session_cookie(
+        request: Request, response: Response, session_id: str
+    ) -> None:
+        cookies.set_cookie(
+            response,
+            cookie_name,
+            sign_cookie(session_id, signing_key, salt="session"),
+            max_age=session_max_age,
+            host=request_host(request.headers),
+        )
+
+    def _safe_next(request: Request) -> str:
+        return pages.safe_next(
+            request.query_params.get("next"), cookie_domain=cookie_domain
         )
 
     def _current_session_id(request: Request) -> Optional[str]:
@@ -173,7 +176,9 @@ def make_auth_router(
         )
 
     @router.post("/login")
-    async def login(body: _LoginBody, response: Response) -> dict[str, Any]:
+    async def login(
+        body: _LoginBody, request: Request, response: Response
+    ) -> dict[str, Any]:
         email = body.email.lower()
         try:
             record = user_store[email]
@@ -189,13 +194,7 @@ def make_auth_router(
         if is_disabled(record):
             raise HTTPException(status_code=403, detail=DISABLED_DETAIL)
         session_id = open_session(session_store, user_store, email, method="password")
-        _set_session_cookie(
-            response,
-            session_id,
-            max_age=session_max_age,
-            salt="session",
-            name=cookie_name,
-        )
+        _set_session_cookie(request, response, session_id)
         return {"ok": True, "email": email}
 
     @router.post("/logout")
@@ -205,7 +204,7 @@ def make_auth_router(
             session_id = verify_cookie(token, signing_key, salt="session")
             if session_id:
                 session_store.delete(session_id)
-        _clear_cookie(response, cookie_name)
+        cookies.clear_cookie(response, cookie_name)
         return {"ok": True}
 
     @router.get("/shared-login", response_class=HTMLResponse, include_in_schema=False)
@@ -217,7 +216,7 @@ def make_auth_router(
         shared cookie for the app is already present.
         """
         app = request.query_params.get("app", "")
-        next_url = pages.safe_next(request.query_params.get("next"))
+        next_url = _safe_next(request)
         if not app or shared_password_for(app) is None:
             return HTMLResponse(
                 pages.render_notice_page(
@@ -244,7 +243,7 @@ def make_auth_router(
 
     @router.post("/shared-login")
     async def shared_login(
-        body: _SharedLoginBody, response: Response
+        body: _SharedLoginBody, request: Request, response: Response
     ) -> dict[str, Any]:
         stored_hash = shared_password_for(body.app)
         if not stored_hash:
@@ -258,17 +257,13 @@ def make_auth_router(
             signing_key,
             salt=f"shared:{body.app}",
         )
-        cookie_name_shared = f"shared_auth_{body.app}"
-        attrs = [
-            f"{cookie_name_shared}={token}",
-            "Path=/",
-            "HttpOnly",
-            f"Max-Age={session_max_age}",
-            "SameSite=Lax",
-        ]
-        if secure_cookies:
-            attrs.append("Secure")
-        response.headers.append("set-cookie", "; ".join(attrs))
+        cookies.set_cookie(
+            response,
+            f"shared_auth_{body.app}",
+            token,
+            max_age=session_max_age,
+            host=request_host(request.headers),
+        )
         return {"ok": True, "app": body.app}
 
     @router.get("/whoami")
@@ -314,9 +309,22 @@ def make_auth_router(
     @router.get("/login", response_class=HTMLResponse, include_in_schema=False)
     async def login_page(request: Request):
         """Serve the sign-in form. Honors ``?next=``; skipped if already in."""
-        next_url = pages.safe_next(request.query_params.get("next"))
+        next_url = _safe_next(request)
         if getattr(request.state, "user_id", None):
-            return RedirectResponse(next_url, status_code=303)
+            response = RedirectResponse(next_url, status_code=303)
+            host = request_host(request.headers)
+            token = request.cookies.get(cookie_name)
+            if token and cookies.domain_for(host):
+                # A session from before cookie_domain was set is host-only, so
+                # the apps' hosts never see it: move it onto the domain (same
+                # signed value, so its age is unchanged) instead of asking for
+                # a new sign-in.
+                for header in cookies.clear_headers(cookie_name)[:1]:
+                    response.headers.append("set-cookie", header)
+                cookies.set_cookie(
+                    response, cookie_name, token, max_age=session_max_age, host=host
+                )
+            return response
         extras = login_page_extras(request, next_url) if login_page_extras else {}
         return HTMLResponse(pages.render_login_page(next_url=next_url, **extras))
 
@@ -427,7 +435,7 @@ def make_auth_router(
 
     @router.post("/password-reset/confirm")
     async def password_reset_confirm(
-        body: _ResetConfirmBody, response: Response
+        body: _ResetConfirmBody, request: Request, response: Response
     ) -> dict[str, Any]:
         """Set a new password from a valid reset token and sign the user in."""
         if problem := password_problem(body.new_password):
@@ -460,13 +468,7 @@ def make_auth_router(
         session_id = open_session(
             session_store, user_store, email, method="password-reset"
         )
-        _set_session_cookie(
-            response,
-            session_id,
-            max_age=session_max_age,
-            salt="session",
-            name=cookie_name,
-        )
+        _set_session_cookie(request, response, session_id)
         return {"ok": True, "email": email}
 
     @router.get("/csrf")

@@ -244,15 +244,32 @@ def _msg_div(error: Optional[str]) -> str:
     return '<div id="msg" class="msg"></div>'
 
 
-def safe_next(raw: Optional[str], *, default: str = "/") -> str:
+def safe_next(
+    raw: Optional[str], *, default: str = "/", cookie_domain: Optional[str] = None
+) -> str:
     """Return a same-origin path safe to redirect to, or ``default``.
 
     Guards against open-redirect: only local absolute paths are accepted —
     no scheme, no ``//host`` form, no control characters. This is applied to
     every ``?next=`` value before it reaches a page or a redirect.
+
+    With ``cookie_domain`` (``[auth] cookie_domain``, #94), an ``https://`` URL on
+    that host or one under it is accepted too, so sign-in on the parent host can
+    return to an app on a sibling subdomain. Nothing else absolute is.
+
+    >>> safe_next("https://a.apps.example.com/x", cookie_domain="apps.example.com")
+    'https://a.apps.example.com/x'
+    >>> safe_next("https://a.apps.example.com/x")
+    '/'
+    >>> safe_next("https://evil.example.com/", cookie_domain="apps.example.com")
+    '/'
     """
     if not raw or not isinstance(raw, str):
         return default
+    if cookie_domain and raw.lower().startswith("https://"):
+        from enlace_auth.auth.cookie_policy import absolute_next_problem
+
+        return default if absolute_next_problem(raw, cookie_domain) else raw
     if not raw.startswith("/") or raw.startswith("//") or raw.startswith("/\\"):
         return default
     if any(c in raw for c in ("\n", "\r", "\t", "\\")) or ":" in raw.split("?", 1)[0]:

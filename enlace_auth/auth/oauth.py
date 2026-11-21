@@ -44,6 +44,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 
 from enlace_auth.auth.accounts import DISABLED_DETAIL, is_disabled, open_session
+from enlace_auth.auth.cookie_policy import CookiePolicy, request_host
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.sessions import SessionStore
 from enlace_auth.config import OAuthProviderConfig
@@ -261,6 +262,7 @@ def make_oauth_router(
     cookie_name: str = "enlace_session",
     session_max_age: int = 86400,
     secure_cookies: bool = True,
+    cookie_domain: Optional[str] = None,
     can_register: Callable[[str], bool] = lambda _: False,
     admin_emails: Iterable[str] = (),
     state_cookie_name: str = "enlace_oauth_state",
@@ -272,6 +274,9 @@ def make_oauth_router(
     carries Authlib's per-login state between ``/auth/login/{provider}`` and the
     callback (see the module docstring). It is only used when no Starlette
     ``SessionMiddleware`` already provides ``request.session``.
+
+    *cookie_domain* (``[auth] cookie_domain``, #94) goes on the session cookie
+    when the callback ran on that host or one under it.
 
     *admin_emails* may create their account by a first sign-in, whatever
     *can_register* says, but only when the provider itself verified the address
@@ -286,18 +291,16 @@ def make_oauth_router(
     oauth = _build_oauth_registry(providers)
     router = APIRouter(prefix="/auth")
 
-    def _set_session_cookie(response: Response, session_id: str):
-        signed = sign_cookie(session_id, signing_key, salt="session")
-        attrs = [
-            f"{cookie_name}={signed}",
-            "Path=/",
-            "HttpOnly",
-            f"Max-Age={session_max_age}",
-            "SameSite=Lax",
-        ]
-        if secure_cookies:
-            attrs.append("Secure")
-        response.headers.append("set-cookie", "; ".join(attrs))
+    cookies = CookiePolicy(secure=secure_cookies, domain=cookie_domain)
+
+    def _set_session_cookie(request: Request, response: Response, session_id: str):
+        cookies.set_cookie(
+            response,
+            cookie_name,
+            sign_cookie(session_id, signing_key, salt="session"),
+            max_age=session_max_age,
+            host=request_host(request.headers),
+        )
 
     _state_salt = "oauth-state"
 
@@ -511,7 +514,7 @@ def make_oauth_router(
                 }
         session_id = open_session(session_store, user_store, email, method="oauth")
         resp = JSONResponse({"ok": True, "email": email})
-        _set_session_cookie(resp, session_id)
+        _set_session_cookie(request, resp, session_id)
         return resp
 
     return router

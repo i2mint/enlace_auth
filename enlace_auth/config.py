@@ -395,6 +395,16 @@ class AuthConfig(_StrictModel):
     session_max_age_seconds: int = 86400
     signing_key_env: str = "ENLACE_SIGNING_KEY"
     secure_cookies: bool = True
+    cookie_domain: Optional[str] = Field(
+        default=None,
+        description=(
+            "One sign-in for apps on sibling subdomains of this host (#94): "
+            "sign-in cookies carry Domain=<cookie_domain>, an app host under it "
+            "sends its visitors to sign in on it, and ?next= may name an https:// "
+            "URL under it. Every host under it must be one the platform serves. "
+            "Unset: host-only cookies, relative next only."
+        ),
+    )
     stores: StoreBackendConfig = Field(default_factory=StoreBackendConfig)
     oauth: dict[str, OAuthProviderConfig] = Field(default_factory=dict)
     oauth_server: OAuthServerConfig = Field(default_factory=OAuthServerConfig)
@@ -405,6 +415,18 @@ class AuthConfig(_StrictModel):
             "reviewable config change. Unioned with the admin_emails_env list."
         ),
     )
+
+    @field_validator("cookie_domain")
+    @classmethod
+    def _check_cookie_domain(cls, domain: Optional[str]) -> Optional[str]:
+        """A plain lower-case host name with a dot, or a clear error at load."""
+        if domain is None:
+            return None
+        from enlace_auth.auth.cookie_policy import cookie_domain_problem
+
+        if problem := cookie_domain_problem(domain):
+            raise ValueError(f"[auth] cookie_domain: {problem}")
+        return domain
 
     @field_validator("admin_emails")
     @classmethod

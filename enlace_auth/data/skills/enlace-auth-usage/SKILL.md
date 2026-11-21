@@ -37,6 +37,8 @@ With `uvicorn --factory enlace.compose:create_app`, set `ENLACE_PLUGINS=enlace_a
 
 An app declares `access` in its `app.toml`: `public`, `protected:shared` (one shared password, `shared_password_env` holds its argon2 hash from `python -m enlace_auth hash-password`) or `protected:user` (a signed-in account, optionally narrowed by `allowed_users`). **An app with no `access` is `local`, which the gate treats as open to everyone.** Always write `access` explicitly. A request path that matches no app falls under the platform's public root rule, and an unrecognized `access` value is denied.
 
+Apps on sibling subdomains (`a.apps.example.com`, each its own origin) share one sign-in with `[auth] cookie_domain = "apps.example.com"`: sign-in cookies carry that `Domain`, an app host sends visitors to sign in on the parent, and `next` may then be an `https://` URL under it. Every host under it receives the session cookie, so each must be served by the platform.
+
 ## 3. Accounts and access from the CLI
 
 All commands take `--toml platform.toml`.

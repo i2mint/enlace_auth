@@ -49,6 +49,7 @@ from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
 from enlace_auth.auth.accounts import open_session
+from enlace_auth.auth.cookie_policy import CookiePolicy, request_host
 from enlace_auth.auth.cookies import sign_cookie
 from enlace_auth.auth.email import EmailSender
 from enlace_auth.auth.pages import safe_next
@@ -185,6 +186,7 @@ def make_signup_router(
     cookie_name: str = "enlace_session",
     session_max_age: int = 86400,
     secure_cookies: bool = True,
+    cookie_domain: Optional[str] = None,
     public_base_url: Optional[str] = None,
     terms_version: Optional[str] = None,
 ) -> APIRouter:
@@ -206,6 +208,9 @@ def make_signup_router(
         known_apps: app names a sign-up may name, directly or through ``next``.
         delete_account: ``delete(email)``, removing an account and its data;
             ``None`` leaves the deletion endpoints unmounted.
+        cookie_domain: ``[auth] cookie_domain`` (#94): the session cookie a
+            verified code sets carries it, and ``next`` may name an ``https://``
+            URL under it (see :mod:`enlace_auth.auth.cookie_policy`).
         public_base_url: the origin put in mailed links. Without it the link is
             built from the request's ``Host``, which the requester controls.
         terms_version: stored on each account created, as the terms accepted.
@@ -242,6 +247,11 @@ def make_signup_router(
 
     def _base(request: Request) -> str:
         return (public_base_url or str(request.base_url)).rstrip("/")
+
+    session_cookies = CookiePolicy(secure=secure_cookies, domain=cookie_domain)
+
+    def _safe_next(raw) -> str:
+        return safe_next(raw, cookie_domain=cookie_domain)
 
     def _cookie(response: Response, name: str, value: str, *, max_age: int, path: str):
         attrs = [f"{name}={value}", f"Path={path}", "HttpOnly", f"Max-Age={max_age}"]
@@ -287,7 +297,7 @@ def make_signup_router(
         extra: Optional[dict] = None,
     ) -> JSONResponse:
         """Store a pending code (a decoy when it must not verify) and mail."""
-        next_url = safe_next(body.next)
+        next_url = _safe_next(body.next)
         app = _app_for(body.app, next_url)
         lang = pick_lang(request.headers.get("accept-language"), explicit=body.lang)
         base = _base(request)
@@ -403,19 +413,19 @@ def make_signup_router(
                 on_created(email)
             key = email
         session_id = open_session(session_store, user_store, key, method="email-code")
-        _cookie(
+        session_cookies.set_cookie(
             response,
             cookie_name,
             sign_cookie(session_id, signing_key, salt="session"),
             max_age=session_max_age,
-            path="/",
+            host=request_host(request.headers),
         )
         _cookie(response, NONCE_COOKIE, "", max_age=0, path="/auth")
         return {
             "ok": True,
             "email": key,
             "created": created,
-            "next": safe_next(data.get("next")),
+            "next": _safe_next(data.get("next")),
         }
 
     @router.get("/email/link", response_class=HTMLResponse, include_in_schema=False)
@@ -471,7 +481,7 @@ def make_signup_router(
             delete_account(email)
         except KeyError:
             raise HTTPException(status_code=404, detail="User not found") from None
-        _cookie(response, cookie_name, "", max_age=0, path="/")
+        session_cookies.clear_cookie(response, cookie_name)
         return {"ok": True, "email": email}
 
     return router
