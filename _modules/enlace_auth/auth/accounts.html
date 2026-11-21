@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=393d09ac"></script>
+    <script src="../../../_static/documentation_options.js?v=d127aa6e"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.57" />
+  <meta name="docsearch:version" content="0.1.58" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -984,7 +984,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">user_data</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">sign_ins</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">passkeys</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">dict</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Return ``delete(email)``: remove an account and what hangs off it.</span>
 
 <span class="sd">    The record goes first, then its sessions and connector refresh families</span>
@@ -996,37 +996,58 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    ``KeyError`` when there is no such account; a damaged grant or data key is</span>
 <span class="sd">    logged and skipped.</span>
 
+<span class="sd">    It returns what it removed: ``{what: count}`` for each store it was given,</span>
+<span class="sd">    and ``None`` for a step that failed (logged; the account is gone anyway), so</span>
+<span class="sd">    an operator can tell a partial erasure from a complete one.</span>
+
 <span class="sd">    &gt;&gt;&gt; users, ended = {"a@x.io": {}, "b@x.io": {}}, []</span>
 <span class="sd">    &gt;&gt;&gt; data = {"a@x.io/game/progress": 1, "b@x.io/game/progress": 2}</span>
 <span class="sd">    &gt;&gt;&gt; delete = make_account_deleter(</span>
 <span class="sd">    ...     user_store=users, credentials_changed=ended.append, user_data=data</span>
 <span class="sd">    ... )</span>
 <span class="sd">    &gt;&gt;&gt; delete("a@x.io")</span>
+<span class="sd">    {'user data': 1}</span>
 <span class="sd">    &gt;&gt;&gt; sorted(users), ended, sorted(data)</span>
 <span class="sd">    (['b@x.io'], ['a@x.io'], ['b@x.io/game/progress'])</span>
 <span class="sd">    """</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_remove_grants</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="n">grant_store</span><span class="o">.</span><span class="n">list_all</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">rec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">)</span> <span class="o">==</span> <span class="n">email</span> <span class="ow">and</span> <span class="n">rec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"app_id"</span><span class="p">):</span>
-                <span class="n">grant_store</span><span class="o">.</span><span class="n">remove_exact</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="s2">"app_id"</span><span class="p">],</span> <span class="n">email</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_remove_grants</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.emails</span><span class="w"> </span><span class="kn">import</span> <span class="n">account_spellings</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_remove_user_data</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># A grant admits the account in either spelling of an internationalized</span>
+        <span class="c1"># domain, so one written in the other spelling goes too, unless that</span>
+        <span class="c1"># spelling is another account's key.</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">{</span><span class="n">email</span><span class="p">}</span> <span class="o">|</span> <span class="p">{</span>
+            <span class="n">other</span> <span class="k">for</span> <span class="n">other</span> <span class="ow">in</span> <span class="n">account_spellings</span><span class="p">(</span><span class="n">email</span><span class="p">)</span> <span class="k">if</span> <span class="n">other</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">user_store</span>
+        <span class="p">}</span>
+        <span class="n">gone</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="n">grant_store</span><span class="o">.</span><span class="n">list_all</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">rec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">)</span> <span class="ow">in</span> <span class="n">names</span> <span class="ow">and</span> <span class="n">rec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"app_id"</span><span class="p">):</span>
+                <span class="n">gone</span> <span class="o">+=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">grant_store</span><span class="o">.</span><span class="n">remove_exact</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="s2">"app_id"</span><span class="p">],</span> <span class="n">rec</span><span class="p">[</span><span class="s2">"email"</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">gone</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_remove_user_data</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.stores.validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">sanitize_key</span>
 
         <span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sanitize_key</span><span class="p">(</span><span class="n">email</span><span class="p">)</span><span class="si">}</span><span class="s2">/"</span>
         <span class="n">under</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">user_data</span><span class="p">,</span> <span class="s2">"keys_under"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">under</span><span class="p">(</span><span class="n">prefix</span><span class="p">))</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">under</span><span class="p">)</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">user_data</span><span class="p">)</span>
+        <span class="n">gone</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">):</span>
                 <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">suppress</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
                     <span class="k">del</span> <span class="n">user_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                    <span class="n">gone</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">gone</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_forget_sign_in</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">suppress</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_forget_sign_in</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
             <span class="k">del</span> <span class="n">sign_ins</span><span class="p">[</span><span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="mi">1</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="k">del</span> <span class="n">user_store</span><span class="p">[</span><span class="n">email</span><span class="p">]</span>
         <span class="n">credentials_changed</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
         <span class="n">steps</span> <span class="o">=</span> <span class="p">[</span>
@@ -1036,15 +1057,18 @@ window.runMermaid = runMermaid;</script>
             <span class="p">(</span><span class="s2">"last sign-in"</span><span class="p">,</span> <span class="n">sign_ins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_forget_sign_in</span><span class="p">),</span>
             <span class="p">(</span><span class="s2">"passkeys"</span><span class="p">,</span> <span class="n">passkeys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">passkeys</span><span class="o">.</span><span class="n">remove_account</span><span class="p">),</span>
         <span class="p">]</span>
+        <span class="n">removed</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">what</span><span class="p">,</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">step</span><span class="p">:</span>
                 <span class="k">continue</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">step</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+                <span class="n">removed</span><span class="p">[</span><span class="n">what</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">step</span><span class="p">(</span><span class="n">email</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - the account is gone; report the rest</span>
+                <span class="n">removed</span><span class="p">[</span><span class="n">what</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="n">_logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span>
                     <span class="s2">"enlace_auth: deleting </span><span class="si">%r</span><span class="s2">: could not remove its </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">what</span>
                 <span class="p">)</span>
+        <span class="k">return</span> <span class="n">removed</span>
 
     <span class="k">return</span> <span class="n">delete</span></div>
 

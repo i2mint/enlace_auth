@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=393d09ac"></script>
+    <script src="../_static/documentation_options.js?v=d127aa6e"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.57" />
+  <meta name="docsearch:version" content="0.1.58" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -585,19 +585,23 @@ address may be another account), its per-user data (every key under
 <code class="docutils literal notranslate"><span class="pre">{email}/</span></code> in the base store), its last-sign-in time, and its passkeys. Raises
 <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> when there is no such account; a damaged grant or data key is
 logged and skipped.</p>
+<p>It returns what it removed: <code class="docutils literal notranslate"><span class="pre">{what:</span> <span class="pre">count}</span></code> for each store it was given,
+and <code class="docutils literal notranslate"><span class="pre">None</span></code> for a step that failed (logged; the account is gone anyway), so
+an operator can tell a partial erasure from a complete one.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">users</span><span class="p">,</span> <span class="n">ended</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"a@x.io"</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">"b@x.io"</span><span class="p">:</span> <span class="p">{}},</span> <span class="p">[]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"a@x.io/game/progress"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"b@x.io/game/progress"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">delete</span> <span class="o">=</span> <span class="n">make_account_deleter</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">user_store</span><span class="o">=</span><span class="n">users</span><span class="p">,</span> <span class="n">credentials_changed</span><span class="o">=</span><span class="n">ended</span><span class="o">.</span><span class="n">append</span><span class="p">,</span> <span class="n">user_data</span><span class="o">=</span><span class="n">data</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">delete</span><span class="p">(</span><span class="s2">"a@x.io"</span><span class="p">)</span>
+<span class="go">{'user data': 1}</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">sorted</span><span class="p">(</span><span class="n">users</span><span class="p">),</span> <span class="n">ended</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 <span class="go">(['b@x.io'], ['a@x.io'], ['b@x.io/game/progress'])</span>
 </pre></div>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>

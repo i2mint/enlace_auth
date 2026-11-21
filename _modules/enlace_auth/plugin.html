@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=393d09ac"></script>
+    <script src="../../_static/documentation_options.js?v=d127aa6e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.57" />
+  <meta name="docsearch:version" content="0.1.58" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1768,6 +1768,17 @@ window.runMermaid = runMermaid;</script>
         <span class="n">session_store</span><span class="p">,</span> <span class="o">**</span><span class="n">_connector_revocation</span>
     <span class="p">)</span>
 
+    <span class="c1"># One deleter for the self-service deletion and the admin's (#92): both</span>
+    <span class="c1"># remove the account and everything that hangs off it.</span>
+    <span class="n">delete_account</span> <span class="o">=</span> <span class="n">make_account_deleter</span><span class="p">(</span>
+        <span class="n">user_store</span><span class="o">=</span><span class="n">user_backend</span><span class="p">,</span>
+        <span class="n">credentials_changed</span><span class="o">=</span><span class="n">on_credentials_changed</span><span class="p">,</span>
+        <span class="n">share_store</span><span class="o">=</span><span class="n">share_store</span><span class="p">,</span>
+        <span class="n">grant_store</span><span class="o">=</span><span class="n">grant_store</span><span class="p">,</span>
+        <span class="n">user_data</span><span class="o">=</span><span class="n">user_data_backend</span><span class="p">,</span>
+        <span class="n">sign_ins</span><span class="o">=</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">"sign_ins"</span><span class="p">),</span>
+        <span class="n">passkeys</span><span class="o">=</span><span class="n">passkeys</span><span class="p">[</span><span class="s2">"service"</span><span class="p">]</span> <span class="k">if</span> <span class="n">passkeys</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">signup</span> <span class="o">=</span> <span class="n">_wire_signup</span><span class="p">(</span>
         <span class="n">config</span><span class="p">,</span>
         <span class="n">auth_cfg</span><span class="p">,</span>
@@ -1778,15 +1789,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">email_sender</span><span class="o">=</span><span class="n">email_sender</span><span class="p">,</span>
         <span class="n">policy</span><span class="o">=</span><span class="n">signup_policy</span><span class="p">,</span>
         <span class="n">admin_emails</span><span class="o">=</span><span class="n">admin_emails</span><span class="p">,</span>
-        <span class="n">delete_account</span><span class="o">=</span><span class="n">make_account_deleter</span><span class="p">(</span>
-            <span class="n">user_store</span><span class="o">=</span><span class="n">user_backend</span><span class="p">,</span>
-            <span class="n">credentials_changed</span><span class="o">=</span><span class="n">on_credentials_changed</span><span class="p">,</span>
-            <span class="n">share_store</span><span class="o">=</span><span class="n">share_store</span><span class="p">,</span>
-            <span class="n">grant_store</span><span class="o">=</span><span class="n">grant_store</span><span class="p">,</span>
-            <span class="n">user_data</span><span class="o">=</span><span class="n">user_data_backend</span><span class="p">,</span>
-            <span class="n">sign_ins</span><span class="o">=</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">"sign_ins"</span><span class="p">),</span>
-            <span class="n">passkeys</span><span class="o">=</span><span class="n">passkeys</span><span class="p">[</span><span class="s2">"service"</span><span class="p">]</span> <span class="k">if</span> <span class="n">passkeys</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="p">),</span>
+        <span class="n">delete_account</span><span class="o">=</span><span class="n">delete_account</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">passkey_pages</span> <span class="o">=</span> <span class="n">_passkey_page_extras</span><span class="p">(</span><span class="n">passkeys</span><span class="p">,</span> <span class="n">signup</span><span class="p">)</span>
 
@@ -1993,6 +1996,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">oauth_server_enabled</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">oauth_server</span><span class="o">.</span><span class="n">enabled</span><span class="p">,</span>
         <span class="n">public_base_url</span><span class="o">=</span><span class="n">_public_base_url</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">auth_cfg</span><span class="p">),</span>
         <span class="n">on_credentials_changed</span><span class="o">=</span><span class="n">on_credentials_changed</span><span class="p">,</span>
+        <span class="n">delete_account</span><span class="o">=</span><span class="n">delete_account</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parent</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">admin_router</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">admin_emails</span><span class="p">:</span>

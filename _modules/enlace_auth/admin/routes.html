@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=393d09ac"></script>
+    <script src="../../../_static/documentation_options.js?v=d127aa6e"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.57" />
+  <meta name="docsearch:version" content="0.1.58" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -832,6 +832,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">oauth_server_enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">public_base_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">on_credentials_changed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># CredentialsChanged; default: sessions only</span>
+    <span class="n">delete_account</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># delete(email) -&gt; {what: count}; default: built here</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">APIRouter</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build a FastAPI router exposing ``/_admin/api/*`` endpoints.</span>
 
@@ -868,11 +869,26 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    user is deleted or has their password set. The default revokes the</span>
 <span class="sd">    account's browser sessions; the plugin injects one that also revokes its</span>
 <span class="sd">    OAuth connector refresh families (``enlace_auth.auth.revocation``).</span>
+
+<span class="sd">    ``delete_account`` (``delete(email) -&gt; {what: count}``, see</span>
+<span class="sd">    :func:`~enlace_auth.auth.accounts.make_account_deleter`) removes a deleted</span>
+<span class="sd">    user's account and everything that hangs off it. The default is built from</span>
+<span class="sd">    the stores given here (the record, sessions, shares, grants); the plugin</span>
+<span class="sd">    injects the one the self-service deletion uses, which also removes the</span>
+<span class="sd">    account's per-user data, last sign-in and passkeys, so an operator deleting</span>
+<span class="sd">    an account on someone's behalf erases as much as they would themselves.</span>
 <span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.accounts</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_account_deleter</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.revocation</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_on_credentials_changed</span>
 
     <span class="n">credentials_changed</span> <span class="o">=</span> <span class="n">on_credentials_changed</span> <span class="ow">or</span> <span class="n">make_on_credentials_changed</span><span class="p">(</span>
         <span class="n">session_store</span>
+    <span class="p">)</span>
+    <span class="n">delete_account</span> <span class="o">=</span> <span class="n">delete_account</span> <span class="ow">or</span> <span class="n">make_account_deleter</span><span class="p">(</span>
+        <span class="n">user_store</span><span class="o">=</span><span class="n">user_store</span><span class="p">,</span>
+        <span class="n">credentials_changed</span><span class="o">=</span><span class="n">credentials_changed</span><span class="p">,</span>
+        <span class="n">share_store</span><span class="o">=</span><span class="n">share_store</span><span class="p">,</span>
+        <span class="n">grant_store</span><span class="o">=</span><span class="n">grant_store</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">admin_set</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">admin_emails</span><span class="p">)</span>
     <span class="n">apps_snapshot</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">apps</span><span class="p">)</span>
@@ -1021,22 +1037,18 @@ window.runMermaid = runMermaid;</script>
                     <span class="n">status_code</span><span class="o">=</span><span class="mi">409</span><span class="p">,</span>
                     <span class="n">detail</span><span class="o">=</span><span class="s2">"Cannot delete the last admin user"</span><span class="p">,</span>
                 <span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">del</span> <span class="n">user_store</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"User not found"</span><span class="p">)</span>
-        <span class="c1"># Sessions are not checked against the user store on each request, so</span>
-        <span class="c1"># a deleted account keeps working until its cookie expires unless its</span>
-        <span class="c1"># sessions go too. (An actor deleting themselves is logged out.) This</span>
-        <span class="c1"># comes before the share cleanup so a failure there cannot leave a</span>
-        <span class="c1"># deleted account signed in.</span>
+        <span class="c1"># The deleter removes the record, then ends its sessions and connector</span>
+        <span class="c1"># sessions (before anything else, so a later failure cannot leave a</span>
+        <span class="c1"># deleted account signed in; an actor deleting themselves is logged</span>
+        <span class="c1"># out), then its shares, grants, per-user data, last sign-in and</span>
+        <span class="c1"># passkeys. A share or grant never outlives the account it names (ADR</span>
+        <span class="c1"># 0001 §2): the address is free to be registered again by someone else.</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">actor</span>
-        <span class="n">credentials_changed</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
-        <span class="c1"># A share never outlives an account it names (ADR 0001 §2): the email is</span>
-        <span class="c1"># free to be registered again by someone else.</span>
-        <span class="k">if</span> <span class="n">share_store</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">share_store</span><span class="o">.</span><span class="n">remove_account</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">"ok"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">:</span> <span class="n">target</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">target</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">user_store</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"User not found"</span><span class="p">)</span>
+        <span class="n">removed</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">delete_account</span><span class="p">(</span><span class="n">target</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="n">failed</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">what</span> <span class="k">for</span> <span class="n">what</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">removed</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"ok"</span><span class="p">:</span> <span class="ow">not</span> <span class="n">failed</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">:</span> <span class="n">target</span><span class="p">,</span> <span class="s2">"removed"</span><span class="p">:</span> <span class="n">removed</span><span class="p">,</span> <span class="s2">"failed"</span><span class="p">:</span> <span class="n">failed</span><span class="p">}</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_existing_account</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">target</span> <span class="o">=</span> <span class="n">_account_key</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>

@@ -112,7 +112,7 @@ Build the sign-up router. See the module docstring for the endpoints.
   * **client_ip** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`Request`], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – `(request) -> str`, the client a rate limit counts (the
     plugin reads `X-Forwarded-For` only from a trusted proxy).
   * **known_apps** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – app names a sign-up may name, directly or through `next`.
-  * **delete_account** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]]) – `delete(email)`, removing an account and its data;
+  * **delete_account** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]) – `delete(email)`, removing an account and its data;
     `None` leaves the deletion endpoints unmounted.
   * **public_base_url** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – the origin put in mailed links. Without it the link is
     built from the request’s `Host`, which the requester controls.

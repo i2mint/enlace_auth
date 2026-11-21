@@ -118,6 +118,10 @@ address may be another account), its per-user data (every key under
 `KeyError` when there is no such account; a damaged grant or data key is
 logged and skipped.
 
+It returns what it removed: `{what: count}` for each store it was given,
+and `None` for a step that failed (logged; the account is gone anyway), so
+an operator can tell a partial erasure from a complete one.
+
 ```pycon
 >>> users, ended = {"a@x.io": {}, "b@x.io": {}}, []
 >>> data = {"a@x.io/game/progress": 1, "b@x.io/game/progress": 2}
@@ -125,12 +129,13 @@ logged and skipped.
 ...     user_store=users, credentials_changed=ended.append, user_data=data
 ... )
 >>> delete("a@x.io")
+{'user data': 1}
 >>> sorted(users), ended, sorted(data)
 (['b@x.io'], ['a@x.io'], ['b@x.io/game/progress'])
 ```
 
 * **Return type:**
-  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
 ### enlace_auth.auth.accounts.make_account_records(store_factory)
 

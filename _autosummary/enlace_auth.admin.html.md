@@ -15,7 +15,7 @@ authenticated user” gate for self-service endpoints like `/me/password`.
 | [`make_admin_router`](#enlace_auth.admin.make_admin_router)(\*, user_store, session_store)   | Build a FastAPI router exposing `/_admin/api/*` endpoints.   |
 |-----------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
 
-### enlace_auth.admin.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), share_store=None, store_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, oauth_server_enabled=False, public_base_url=None, on_credentials_changed=None)
+### enlace_auth.admin.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), share_store=None, store_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, oauth_server_enabled=False, public_base_url=None, on_credentials_changed=None, delete_account=None)
 
 Build a FastAPI router exposing `/_admin/api/*` endpoints.
 
@@ -52,6 +52,14 @@ open to every account when the server runs without one.
 user is deleted or has their password set. The default revokes the
 account’s browser sessions; the plugin injects one that also revokes its
 OAuth connector refresh families (`enlace_auth.auth.revocation`).
+
+`delete_account` (`delete(email) -> {what: count}`, see
+[`make_account_deleter()`](enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.make_account_deleter)) removes a deleted
+user’s account and everything that hangs off it. The default is built from
+the stores given here (the record, sessions, shares, grants); the plugin
+injects the one the self-service deletion uses, which also removes the
+account’s per-user data, last sign-in and passkeys, so an operator deleting
+an account on someone’s behalf erases as much as they would themselves.
 
 * **Return type:**
   `APIRouter`

@@ -1,4 +1,4 @@
-> built 2026-11-21 22:28 UTC from 9025361 (main) · enlace_auth 0.1.57. Details: build_info.json
+> built 2026-11-21 22:39 UTC from c72e217 (main) · enlace_auth 0.1.58. Details: build_info.json
 
 # index.html.md
 
@@ -161,6 +161,7 @@ terms_version = "2026-11"
 - The mail goes through `ENLACE_SMTP_*` (SMTP). Without it the sign-in page does not offer the email step, and the code only reaches the server log. Set SPF, DKIM and DMARC for the sending domain.
 - Mail and code checks are rate-limited per address, per IP and overall (`[auth.signup.limits]`), and the form carries a honeypot plus a time-to-submit check. Behind a proxy, run uvicorn with `--forwarded-allow-ips` set to the proxy so the per-IP limit sees real clients.
 - A signed-in user deletes their own account from `/auth/account`, confirmed by a mailed code; that removes its sessions, connector sessions, shares, grants and per-user data.
+- An operator deletes an account on someone’s behalf (a data-erasure request, say) from the **Delete** button in `/_admin/` or with `enlace-auth delete-user EMAIL` (add `--keep-data` to keep its per-user data). Both remove exactly what the self-service deletion removes, the last sign-in time and passkeys included, and say what they removed from each store.
 - `registration_open = true` still works and means `default = "open"`. `/auth/register` (email plus a password of at least 15 characters) now mails a code too, and creates the account at verify.
 
 ### Passkeys and step-up
@@ -429,7 +430,7 @@ authenticated user” gate for self-service endpoints like `/me/password`.
 | [`make_admin_router`](_autosummary/enlace_auth.admin.html.md#enlace_auth.admin.make_admin_router)(\*, user_store, session_store)   | Build a FastAPI router exposing `/_admin/api/*` endpoints.   |
 |-----------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
 
-### enlace_auth.admin.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), share_store=None, store_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, oauth_server_enabled=False, public_base_url=None, on_credentials_changed=None)
+### enlace_auth.admin.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), share_store=None, store_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, oauth_server_enabled=False, public_base_url=None, on_credentials_changed=None, delete_account=None)
 
 Build a FastAPI router exposing `/_admin/api/*` endpoints.
 
@@ -466,6 +467,14 @@ open to every account when the server runs without one.
 user is deleted or has their password set. The default revokes the
 account’s browser sessions; the plugin injects one that also revokes its
 OAuth connector refresh families (`enlace_auth.auth.revocation`).
+
+`delete_account` (`delete(email) -> {what: count}`, see
+[`make_account_deleter()`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.make_account_deleter)) removes a deleted
+user’s account and everything that hangs off it. The default is built from
+the stores given here (the record, sessions, shares, grants); the plugin
+injects the one the self-service deletion uses, which also removes the
+account’s per-user data, last sign-in and passkeys, so an operator deleting
+an account on someone’s behalf erases as much as they would themselves.
 
 * **Return type:**
   `APIRouter`
@@ -523,7 +532,7 @@ Runtime grants are ADDITIVE on top of each app’s static `app.toml`
 |-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | [`make_admin_ui_router`](_autosummary/enlace_auth.admin.routes.html.md#enlace_auth.admin.routes.make_admin_ui_router)()                             | Build a FastAPI router that serves the bundled HTML dashboard. |
 
-### enlace_auth.admin.routes.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), share_store=None, store_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, oauth_server_enabled=False, public_base_url=None, on_credentials_changed=None)
+### enlace_auth.admin.routes.make_admin_router(, user_store, session_store, admin_emails=(), apps=(), grant_store=None, protected_user_apps=(), share_store=None, store_apps=(), signing_key=None, reset_link_ttl=259200, resource_allowlist=None, oauth_server_enabled=False, public_base_url=None, on_credentials_changed=None, delete_account=None)
 
 Build a FastAPI router exposing `/_admin/api/*` endpoints.
 
@@ -560,6 +569,14 @@ open to every account when the server runs without one.
 user is deleted or has their password set. The default revokes the
 account’s browser sessions; the plugin injects one that also revokes its
 OAuth connector refresh families (`enlace_auth.auth.revocation`).
+
+`delete_account` (`delete(email) -> {what: count}`, see
+[`make_account_deleter()`](_autosummary/enlace_auth.auth.accounts.html.md#enlace_auth.auth.accounts.make_account_deleter)) removes a deleted
+user’s account and everything that hangs off it. The default is built from
+the stores given here (the record, sessions, shares, grants); the plugin
+injects the one the self-service deletion uses, which also removes the
+account’s per-user data, last sign-in and passkeys, so an operator deleting
+an account on someone’s behalf erases as much as they would themselves.
 
 * **Return type:**
   `APIRouter`
@@ -771,6 +788,10 @@ address may be another account), its per-user data (every key under
 `KeyError` when there is no such account; a damaged grant or data key is
 logged and skipped.
 
+It returns what it removed: `{what: count}` for each store it was given,
+and `None` for a step that failed (logged; the account is gone anyway), so
+an operator can tell a partial erasure from a complete one.
+
 ```pycon
 >>> users, ended = {"a@x.io": {}, "b@x.io": {}}, []
 >>> data = {"a@x.io/game/progress": 1, "b@x.io/game/progress": 2}
@@ -778,12 +799,13 @@ logged and skipped.
 ...     user_store=users, credentials_changed=ended.append, user_data=data
 ... )
 >>> delete("a@x.io")
+{'user data': 1}
 >>> sorted(users), ended, sorted(data)
 (['b@x.io'], ['a@x.io'], ['b@x.io/game/progress'])
 ```
 
 * **Return type:**
-  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
 ### enlace_auth.auth.accounts.make_account_records(store_factory)
 
@@ -4835,7 +4857,7 @@ Build the sign-up router. See the module docstring for the endpoints.
   * **client_ip** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`Request`], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – `(request) -> str`, the client a rate limit counts (the
     plugin reads `X-Forwarded-For` only from a trusted proxy).
   * **known_apps** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – app names a sign-up may name, directly or through `next`.
-  * **delete_account** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]]) – `delete(email)`, removing an account and its data;
+  * **delete_account** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]) – `delete(email)`, removing an account and its data;
     `None` leaves the deletion endpoints unmounted.
   * **public_base_url** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – the origin put in mailed links. Without it the link is
     built from the request’s `Host`, which the requester controls.
@@ -5212,18 +5234,16 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-11-21 22:28 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/90253616f4a22fb14a0055fdf0aae4bc8e6a9de9"><code>9025361</code></a> on branch <code>main</code>, for **enlace_auth 0.1.57** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-21 22:39 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/c72e21730f17e1ec1fe77f3e32fb7ff91a74f793"><code>c72e217</code></a> on branch <code>main</code>, for **enlace_auth 0.1.58** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.1.57) is behind the latest release on PyPI (0.1.58): `pip install enlace_auth` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/90253616f4a22fb14a0055fdf0aae4bc8e6a9de9"><code>90253616f4a22fb14a0055fdf0aae4bc8e6a9de9</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/c72e21730f17e1ec1fe77f3e32fb7ff91a74f793"><code>c72e21730f17e1ec1fe77f3e32fb7ff91a74f793</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -5234,9 +5254,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/44956616496">44956616496</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/44957563879">44957563879</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>90253616f4a22fb14a0055fdf0aae4bc8e6a9de9</code> (in the history of the built commit) |
+| Event commit | <code>c72e21730f17e1ec1fe77f3e32fb7ff91a74f793</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -5261,13 +5281,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.58/">0.1.58</a>, newer than the documented version (0.1.57).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.58/">0.1.58</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 90253616f4a22fb14a0055fdf0aae4bc8e6a9de9
+git checkout c72e21730f17e1ec1fe77f3e32fb7ff91a74f793
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

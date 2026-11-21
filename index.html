@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="_static/documentation_options.js?v=393d09ac"></script>
+    <script src="_static/documentation_options.js?v=d127aa6e"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.57" />
+  <meta name="docsearch:version" content="0.1.58" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -494,6 +494,7 @@ skill<span class="w"> </span>link-skills<span class="w"> </span><span class="s2"
 <li><p>The mail goes through <code class="docutils literal notranslate"><span class="pre">ENLACE_SMTP_*</span></code> (SMTP). Without it the sign-in page does not offer the email step, and the code only reaches the server log. Set SPF, DKIM and DMARC for the sending domain.</p></li>
 <li><p>Mail and code checks are rate-limited per address, per IP and overall (<code class="docutils literal notranslate"><span class="pre">[auth.signup.limits]</span></code>), and the form carries a honeypot plus a time-to-submit check. Behind a proxy, run uvicorn with <code class="docutils literal notranslate"><span class="pre">--forwarded-allow-ips</span></code> set to the proxy so the per-IP limit sees real clients.</p></li>
 <li><p>A signed-in user deletes their own account from <code class="docutils literal notranslate"><span class="pre">/auth/account</span></code>, confirmed by a mailed code; that removes its sessions, connector sessions, shares, grants and per-user data.</p></li>
+<li><p>An operator deletes an account on someone’s behalf (a data-erasure request, say) from the <strong>Delete</strong> button in <code class="docutils literal notranslate"><span class="pre">/_admin/</span></code> or with <code class="docutils literal notranslate"><span class="pre">enlace-auth</span> <span class="pre">delete-user</span> <span class="pre">EMAIL</span></code> (add <code class="docutils literal notranslate"><span class="pre">--keep-data</span></code> to keep its per-user data). Both remove exactly what the self-service deletion removes, the last sign-in time and passkeys included, and say what they removed from each store.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">registration_open</span> <span class="pre">=</span> <span class="pre">true</span></code> still works and means <code class="docutils literal notranslate"><span class="pre">default</span> <span class="pre">=</span> <span class="pre">&quot;open&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">/auth/register</span></code> (email plus a password of at least 15 characters) now mails a code too, and creates the account at verify.</p></li>
 </ul>
 </section>
@@ -735,7 +736,7 @@ python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> <
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-21 22:28 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/90253616f4a22fb14a0055fdf0aae4bc8e6a9de9">9025361</a> (main) · enlace_auth 0.1.57 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-21 22:39 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/c72e21730f17e1ec1fe77f3e32fb7ff91a74f793">c72e217</a> (main) · enlace_auth 0.1.58 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               
