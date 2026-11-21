@@ -360,8 +360,10 @@ def delete_user(email: str, *, keep_data: bool = False, toml: str = "platform.to
 
     toml_path = Path(toml)
     users = _load_user_store(toml_path)
-    typed = _normalized_email(email)
-    key = resolve_account(typed, users.__contains__) or typed
+    # Exactly as stored, as the admin page resolves it: normalizing first would
+    # fold a look-alike spelling onto someone else's account.
+    typed = email.strip()
+    key = resolve_account(typed, users.__contains__) or typed.lower()
     if key not in users:
         print(f"No user {key!r} in store.", file=sys.stderr)
         sys.exit(1)
@@ -371,7 +373,11 @@ def delete_user(email: str, *, keep_data: bool = False, toml: str = "platform.to
 
     def credentials_changed(account: str, **_) -> None:
         ended["sessions"] = sessions.revoke_user(account)
-        ended["connector sessions"] = _revoke_connector_subject(account, toml_path)
+        try:
+            ended["connector sessions"] = _revoke_connector_subject(account, toml_path)
+        except Exception as e:  # noqa: BLE001 - go on removing; report it below
+            print(f"Could not revoke connector sessions: {e}", file=sys.stderr)
+            ended["connector sessions"] = None
 
     delete = make_account_deleter(
         user_store=users,

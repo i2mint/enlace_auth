@@ -142,3 +142,44 @@ def test_cli_delete_user_unknown_account_exits_1(tmp_path):
         delete_user("ghost@example.com", toml=str(toml))
     assert e.value.code == 1
     assert f"{VIC}/game/progress" in data
+
+
+def test_cli_delete_user_deletes_the_spelling_typed_not_a_look_alike(tmp_path):
+    """Normalizing first would fold a fullwidth letter onto another account."""
+    toml, _ = _cli_platform(tmp_path)
+    users = _load_user_store(toml)
+    plain, look_alike = "ann@bücher.example", "ann@ｂücher.example"
+    users[plain] = {"password_hash": "x"}
+    users[look_alike] = {"password_hash": "y"}
+    delete_user(look_alike, toml=str(toml))
+    users = _load_user_store(toml)
+    assert plain in users and look_alike not in users
+
+
+def test_cli_delete_user_takes_an_address_email_validation_refuses(tmp_path):
+    toml, _ = _cli_platform(tmp_path)
+    _load_user_store(toml)["ann@corp.local"] = {"password_hash": "x"}
+    delete_user("ann@corp.local", toml=str(toml))
+    assert "ann@corp.local" not in _load_user_store(toml)
+
+
+def test_a_grant_in_the_other_spelling_goes_with_the_account(tmp_path):
+    toml, _ = _cli_platform(tmp_path)
+    _load_user_store(toml)["ann@bücher.example"] = {"password_hash": "x"}
+    grants = _load_grant_store(toml)
+    grants.grant("vault", "ann@xn--bcher-kva.example")
+    delete_user("ann@bücher.example", toml=str(toml))
+    assert _load_grant_store(toml).get("vault", "ann@xn--bcher-kva.example") is None
+
+
+def test_a_grant_in_the_other_spelling_stays_when_that_spelling_is_an_account(
+    tmp_path,
+):
+    toml, _ = _cli_platform(tmp_path)
+    users = _load_user_store(toml)
+    users["ann@bücher.example"] = {"password_hash": "x"}
+    users["ann@xn--bcher-kva.example"] = {"password_hash": "y"}
+    _load_grant_store(toml).grant("vault", "ann@xn--bcher-kva.example")
+    delete_user("ann@bücher.example", toml=str(toml))
+    grants = _load_grant_store(toml)
+    assert grants.get("vault", "ann@xn--bcher-kva.example") is not None

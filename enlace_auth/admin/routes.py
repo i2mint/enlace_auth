@@ -328,13 +328,11 @@ def make_admin_router(
         # passkeys. A share or grant never outlives the account it names (ADR
         # 0001 §2): the address is free to be registered again by someone else.
         _ = actor
-        try:
-            removed = delete_account(target)
-        except KeyError:
+        if target not in user_store:
             raise HTTPException(status_code=404, detail="User not found")
-        removed = dict(removed or {})
+        removed = dict(delete_account(target) or {})
         failed = sorted(what for what, n in removed.items() if n is None)
-        return {"ok": True, "email": target, "removed": removed, "failed": failed}
+        return {"ok": not failed, "email": target, "removed": removed, "failed": failed}
 
     def _existing_account(email: str) -> str:
         target = _account_key(email)

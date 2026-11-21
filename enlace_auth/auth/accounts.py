@@ -275,10 +275,18 @@ def make_account_deleter(
     """
 
     def _remove_grants(email: str) -> int:
+        from enlace_auth.emails import account_spellings
+
+        # A grant admits the account in either spelling of an internationalized
+        # domain, so one written in the other spelling goes too, unless that
+        # spelling is another account's key.
+        names = {email} | {
+            other for other in account_spellings(email) if other not in user_store
+        }
         gone = 0
         for rec in grant_store.list_all():
-            if rec.get("email") == email and rec.get("app_id"):
-                gone += bool(grant_store.remove_exact(rec["app_id"], email))
+            if rec.get("email") in names and rec.get("app_id"):
+                gone += bool(grant_store.remove_exact(rec["app_id"], rec["email"]))
         return gone
 
     def _remove_user_data(email: str) -> int:
