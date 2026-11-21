@@ -183,7 +183,7 @@ def _make_dol_factory(root: Path) -> StoreFactory:
             except ValueError as exc:
                 raise KeyError(f"unsafe store key: {exc}") from None
 
-        return wrap_kvs(base, postget=_postget, preset=_preset, id_of_key=_id_of_key)
+        return wrap_kvs(base, postget=_postget, preset=_preset, key_encoder=_id_of_key)
 
     return factory
 
