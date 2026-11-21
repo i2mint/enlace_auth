@@ -221,7 +221,8 @@ class PasskeyService:
         usage: ``sha256(id) hex -> {sign_count, last_used_at}`` (default: a dict).
         claim_once: ``claim(sha256 hex) -> bool``, True once per key; spends
             challenges and proofs (default: :func:`memory_claim`).
-        challenge_ttl / proof_ttl: lifetimes in seconds.
+        challenge_ttl / proof_ttl / request_ttl: lifetimes in seconds (a
+            backend's step-up request must outlive a sign-in on the way).
         clock: ``() -> epoch seconds``; tests pass a fake.
     """
 
@@ -234,6 +235,7 @@ class PasskeyService:
         claim_once: Optional[Callable[[str], bool]] = None,
         challenge_ttl: int = 300,
         proof_ttl: int = 120,
+        request_ttl: int = 900,
         clock: Callable[[], float] = time.time,
     ):
         self.credentials = credentials
@@ -250,7 +252,8 @@ class PasskeyService:
             signing_key,
             claim_once=self._claim,
             ttl=proof_ttl,
-            request_ttl=challenge_ttl,
+            # Long enough to sign in first (a password, then an emailed code).
+            request_ttl=request_ttl,
             clock=lambda: self._clock(),
         )
 

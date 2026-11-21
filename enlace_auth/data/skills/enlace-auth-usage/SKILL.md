@@ -72,7 +72,7 @@ Off by default: set `[auth.passkeys] enabled = true` (py_webauthn comes with enl
 
 **Step-up: a backend asks the account holder to confirm one action in person.** The proof is single-use, lives 120 seconds (`step_up_ttl_seconds`), and names the account and the exact action text it was signed for.
 
-**Prefer the backend-requested form.** The backend writes the action, the platform's own page shows it with the backend's audience, and the proof redeems only for that audience. No page script chooses the words the person sees, and a proof made for one app never redeems at another.
+**Prefer the backend-requested form.** The backend writes the action, the platform's own page shows it with the backend's audience, and the one proof it mints redeems only for that audience: no page chooses the action a proof is for, and a proof made for one app never redeems at another. What the person *sees* is guaranteed only when `/auth` is on an origin no app shares (apps on their own hosts with `[auth] cookie_domain`, passkey `origins` naming only the parent): on one shared origin an app's script can drive the same calls or script the page. The request id is signed, not encrypted, so never put a secret in the action text.
 
 1. Once, the operator gives the backend its audience key: `enlace-auth step-up-key myapp` (keep it with the backend's secrets; it rotates with the signing key).
 2. The backend creates the request and sends the person to the confirmation page:

@@ -12,12 +12,21 @@ no audience never redeems at a backend that names one, so a backend that states
 its audience accepts only proofs made for it.
 
 A **request** is how a backend asks for a confirmation without letting any page
-choose the words the person sees. The backend signs ``{email, action, audience,
+choose the words the proof is for. The backend signs ``{email, action, audience,
 return_url}`` with its audience key (:func:`audience_key`, which the operator
 gives it: ``enlace-auth step-up-key AUDIENCE``) and posts it to
 ``/auth/passkeys/step-up/request``; the platform answers with a request id, and
 the browser opens the platform's own confirmation page for it, which shows the
-action and the audience and mints the proof. A page script never names the text.
+action and the audience. The proof binds the backend's action and audience, and
+is minted once per request. A request id is signed, not encrypted: its email and
+action can be read from it (and from the confirmation URL, so from access logs
+and browser history); never put a secret in an action.
+
+What the person SEES is guaranteed only when the platform's pages are on an
+origin no app shares: on one origin, an app's script can run the same calls as
+the confirmation page, or script that page, so it can still show other words
+while the person taps. Serve apps on their own hosts (``[auth] cookie_domain``)
+and keep ``/auth`` on the parent, with passkey ``origins`` naming only it.
 
 >>> proofs = StepUpProofs("k" * 32, clock=lambda: 1000)
 >>> act, who = "app: delete 7", "ann@x.io"
@@ -49,6 +58,33 @@ _REQUEST_SALT = "enlace-step-up-request"
 
 class StepUpError(ValueError):
     """A step-up proof or request is refused; the message is safe to show."""
+
+
+def _same(a: Any, b: Any) -> bool:
+    """Constant-time equality of two texts, any characters (UTF-8 bytes).
+
+    ``hmac.compare_digest`` raises on a non-ASCII ``str``, which would turn an
+    action in French ("Supprimer le dépôt") into a 500.
+    """
+    return hmac.compare_digest(str(a).encode("utf-8"), str(b).encode("utf-8"))
+
+
+def same_account(a: Any, b: Any) -> bool:
+    """Whether two written addresses name one account (either IDN spelling).
+
+    >>> same_account("Ann@XN--BCHER-KVA.example", "ann@bücher.example")
+    True
+    >>> same_account("ann@x.io", "bob@x.io")
+    False
+    """
+    from enlace_auth.emails import account_spellings
+
+    if not isinstance(a, str) or not isinstance(b, str) or not a or not b:
+        return False
+    theirs = account_spellings(b.strip())
+    return any(
+        _same(mine, other) for mine in account_spellings(a.strip()) for other in theirs
+    )
 
 
 def clean_action(action: Any) -> str:
@@ -226,11 +262,9 @@ class StepUpProofs:
         fresh = isinstance(at, (int, float)) and 0 <= self._clock() - at <= self.ttl
         if not fresh:
             raise StepUpError("This step-up proof has expired.")
-        if not hmac.compare_digest(str(payload.get("a", "")), action):
+        if not _same(payload.get("a", ""), action):
             raise StepUpError("This step-up proof is for another action.")
-        if not isinstance(email, str) or not hmac.compare_digest(
-            str(payload.get("e", "")).lower(), email.strip().lower()
-        ):
+        if not same_account(payload.get("e", ""), email):
             raise StepUpError("This step-up proof is for another account.")
         if (payload.get("u") or None) != audience:
             raise StepUpError("This step-up proof is for another audience.")
@@ -270,14 +304,14 @@ class StepUpProofs:
         audience = clean_audience(audience)
         if audience is None:
             raise StepUpError("A step-up request names its audience.")
-        if not isinstance(key, str) or not hmac.compare_digest(
+        if not isinstance(key, str) or not _same(
             key, audience_key(self._signing_key, audience)
         ):
             raise StepUpError("Not this audience's key.")
         if not isinstance(email, str) or "@" not in email:
             raise StepUpError("A step-up request names the account that confirms.")
         payload = {
-            "e": email.strip().lower(),
+            "e": email.strip(),
             "a": clean_action(action),
             "u": audience,
             "t": self._clock(),
@@ -286,6 +320,17 @@ class StepUpProofs:
         if return_url:
             payload["r"] = str(return_url)
         return self._serializer(_REQUEST_SALT).dumps(payload)
+
+    def spend_request(self, request_id: str) -> None:
+        """Mark a request confirmed; a second confirmation of it is refused.
+
+        One request, one proof: a backend that acts once per redeemed proof must
+        not be handed two for one request.
+        """
+        payload = self._load(request_id, _REQUEST_SALT, "request")
+        nonce = str(payload.get("n", ""))
+        if not self._claim(hashlib.sha256(b"request|" + nonce.encode()).hexdigest()):
+            raise StepUpError("This confirmation request was already used.")
 
     def read_request(self, request_id: Any) -> dict:
         """``{email, action, audience, return_url}`` of a valid, unexpired request."""

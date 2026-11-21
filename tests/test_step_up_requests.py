@@ -246,3 +246,70 @@ def test_the_cli_prints_the_audience_key(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("ENLACE_SIGNING_KEY", KEY)
     step_up_key(APP, toml=str(_make_platform_toml(tmp_path)))
     assert capsys.readouterr().out.strip() == audience_key(KEY, APP)
+
+
+# -- review of #103 ---------------------------------------------------------------
+
+
+def test_a_non_ascii_action_redeems_instead_of_crashing(platform):
+    client, (device,) = _enrolled(platform)
+    action = "jobs: supprimer le dépôt « notes »"
+    request_id = _request(platform(), action=action).json()["request"]
+    proof = _confirm(client, device, request_id).json()["proof"]
+    r = _redeem(platform(), proof, action=action)
+    assert r.status_code == 200, r.text
+    wrong = _redeem(platform(), proof, action="jobs: supprimer le dépôt « autre »")
+    assert wrong.status_code == 400
+
+
+def test_a_non_ascii_key_is_refused_not_a_crash(platform):
+    r = platform().post(
+        "/auth/passkeys/step-up/request",
+        json={"email": OWNER, "action": ACTION, "audience": APP},
+        headers={"Authorization": "Bearer clé".encode("latin-1")},
+    )
+    assert r.status_code == 401
+
+
+def test_one_request_yields_one_proof(platform):
+    client, (device,) = _enrolled(platform)
+    request_id = _request(platform()).json()["request"]
+    assert _confirm(client, device, request_id).status_code == 200
+    again = _confirm(client, device, request_id)
+    assert again.status_code == 400
+    assert "already used" in again.json()["detail"]
+
+
+def test_a_failed_confirmation_does_not_spend_the_request(platform):
+    client, (device,) = _enrolled(platform)
+    request_id = _request(platform()).json()["request"]
+    csrf = _csrf(client)
+    options = client.post(
+        "/auth/passkeys/step-up/options", json={"request": request_id}, headers=csrf
+    ).json()
+    device.uv = False  # no user verification: refused
+    bad = device.get(options)
+    device.uv = True
+    r = client.post(
+        "/auth/passkeys/step-up/verify",
+        json={"request": request_id, "credential": bad},
+        headers=csrf,
+    )
+    assert r.status_code == 400
+    assert _confirm(client, device, request_id).status_code == 200
+
+
+def test_a_request_and_a_redeem_may_use_either_idn_spelling():
+    from enlace_auth.auth.step_up import same_account
+
+    proofs = StepUpProofs("k" * 32, clock=lambda: 1000)
+    minted = proofs.mint("ann@bücher.example", ACTION, method="passkey")
+    assert proofs.redeem(minted["proof"], ACTION, email="ann@xn--bcher-kva.example")
+    assert same_account("ann@xn--bcher-kva.example", "Ann@bücher.example")
+    assert not same_account("ann@ｂücher.example", "ann@bücher.example")
+
+
+def test_a_request_outlives_a_sign_in_by_default():
+    from enlace_auth.config import PasskeysConfig
+
+    assert PasskeysConfig().step_up_request_ttl_seconds >= 600

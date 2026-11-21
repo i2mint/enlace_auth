@@ -40,8 +40,10 @@ backend that names its audience refuses it. The strong way: the backend creates
 the request (``step-up/request``, CSRF-exempt, authenticated by the audience key
 ``enlace-auth step-up-key AUDIENCE`` prints), and the browser opens the
 platform's ``/auth/passkeys/confirm`` page, which shows the backend's action and
-audience and mints a proof only that audience redeems. A page script never
-chooses the text, and the page refuses to be framed.
+audience and mints one proof that only that audience redeems. No page chooses
+the action a proof is for, and the page refuses to be framed. What the person
+sees is guaranteed only when ``/auth`` is on an origin no app shares (see
+:mod:`enlace_auth.auth.step_up`).
 """
 
 from __future__ import annotations
@@ -60,7 +62,7 @@ from enlace_auth.auth.accounts import DISABLED_DETAIL, is_disabled, open_session
 from enlace_auth.auth.cookie_policy import CookiePolicy, request_host
 from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.pages import safe_next
-from enlace_auth.auth.step_up import StepUpError
+from enlace_auth.auth.step_up import StepUpError, same_account
 from enlace_auth.passkeys.core import (
     PasskeyError,
     PasskeyPolicy,
@@ -364,7 +366,7 @@ def make_passkey_router(
             wanted = service.proofs.read_request(body.request)
         except StepUpError as e:
             raise HTTPException(status_code=400, detail=str(e)) from None
-        if wanted["email"] != email.lower():
+        if not same_account(wanted["email"], email):
             raise HTTPException(
                 status_code=403, detail="This confirmation is for another account."
             )
@@ -429,7 +431,7 @@ def make_passkey_router(
                 status_code=303,
                 headers=_CONFIRM_HEADERS,
             )
-        if current.lower() != wanted["email"]:
+        if not same_account(current, wanted["email"]):
             page = render_notice_page(
                 title=t(lang, "confirm_title"),
                 heading=t(lang, "confirm_title"),
@@ -476,11 +478,16 @@ def make_passkey_router(
         email = _signed_in(request)
         action, audience = _what_to_confirm(email, body)
         try:
-            return service.step_up(
+            proven = service.step_up(
                 email, action, body.credential, _rp(request), audience=audience
             )
-        except PasskeyError as e:
+            if body.request is not None:
+                # Spent only once the passkey checked out, and before the proof
+                # leaves: one request, one proof.
+                service.proofs.spend_request(body.request)
+        except (PasskeyError, StepUpError) as e:
             raise _refused(e) from None
+        return proven
 
     @router.post("/step-up/redeem")
     async def step_up_redeem(body: _RedeemBody) -> dict[str, Any]:
