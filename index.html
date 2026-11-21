@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="_static/documentation_options.js?v=755f2e77"></script>
+    <script src="_static/documentation_options.js?v=5fe4e9ad"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.59" />
+  <meta name="docsearch:version" content="0.1.60" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -520,7 +520,7 @@ skill<span class="w"> </span>link-skills<span class="w"> </span><span class="s2"
 </div>
 <ul class="simple">
 <li><p>Any signed-in account adds passkeys from <code class="docutils literal notranslate"><span class="pre">/auth/account</span></code>. Adding or removing one needs a sign-in from the last 15 minutes, made with a passkey once the account has one; each change is mailed to the account, and a removal ends its other sessions. The sign-in page gets a passkey button and passkey autofill on its email field.</p></li>
-<li><p><strong>Step-up</strong>: a page prepares <code class="docutils literal notranslate"><span class="pre">enlacePasskeys.prepareStepUp(&quot;myapp:</span> <span class="pre">start</span> <span class="pre">job</span> <span class="pre">42&quot;)</span></code> (from <code class="docutils literal notranslate"><span class="pre">/auth/passkeys/passkeys.js</span></code>), then on the tap calls <code class="docutils literal notranslate"><span class="pre">enlacePasskeys.stepUp(prepared)</span></code>; the user confirms with Face ID or Touch ID and gets a proof, valid once for 120 seconds; the app or connector backend calls <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/auth/passkeys/step-up/redeem</span> <span class="pre">{proof,</span> <span class="pre">action,</span> <span class="pre">email}</span></code> before acting. The answer the authenticator signs commits to the action text, so a proof for one action never redeems for another. Details in the consumer skill (<code class="docutils literal notranslate"><span class="pre">enlace_auth/data/skills/enlace-auth-usage</span></code>).</p></li>
+<li><p><strong>Step-up</strong>: a page prepares <code class="docutils literal notranslate"><span class="pre">enlacePasskeys.prepareStepUp(&quot;myapp:</span> <span class="pre">start</span> <span class="pre">job</span> <span class="pre">42&quot;)</span></code> (from <code class="docutils literal notranslate"><span class="pre">/auth/passkeys/passkeys.js</span></code>), then on the tap calls <code class="docutils literal notranslate"><span class="pre">enlacePasskeys.stepUp(prepared)</span></code>; the user confirms with Face ID or Touch ID and gets a proof, valid once for 120 seconds; the app or connector backend calls <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/auth/passkeys/step-up/redeem</span> <span class="pre">{proof,</span> <span class="pre">action,</span> <span class="pre">email}</span></code> before acting. The answer the authenticator signs commits to the action text, so a proof for one action never redeems for another. Stronger: the backend creates the request itself (<code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/auth/passkeys/step-up/request</span></code>, authenticated by its audience key from <code class="docutils literal notranslate"><span class="pre">enlace-auth</span> <span class="pre">step-up-key</span> <span class="pre">AUDIENCE</span></code>), the platform’s own page <code class="docutils literal notranslate"><span class="pre">/auth/passkeys/confirm</span></code> shows the backend’s text, and the one proof it mints redeems only where that audience is named. The displayed text is guaranteed only when <code class="docutils literal notranslate"><span class="pre">/auth</span></code> is on an origin no app shares (<code class="docutils literal notranslate"><span class="pre">cookie_domain</span></code>); on one origin an app’s script can drive the same calls. Proofs are method-agnostic (<code class="docutils literal notranslate"><span class="pre">enlace_auth/auth/step_up.py</span></code>): <code class="docutils literal notranslate"><span class="pre">redeem</span></code> reports the <code class="docutils literal notranslate"><span class="pre">method</span></code> and accepts <code class="docutils literal notranslate"><span class="pre">methods=[...]</span></code> to refuse weaker ones. Details in the consumer skill (<code class="docutils literal notranslate"><span class="pre">enlace_auth/data/skills/enlace-auth-usage</span></code>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">required</span></code> accounts refuse every other sign-in method once they have <code class="docutils literal notranslate"><span class="pre">enforce_from</span></code> passkeys (or one synced passkey). A lost device is removed with <code class="docutils literal notranslate"><span class="pre">enlace-auth</span> <span class="pre">remove-passkey</span> <span class="pre">EMAIL</span> <span class="pre">--passkey-id</span> <span class="pre">ID</span></code>.</p></li>
 </ul>
 </section>
@@ -619,6 +619,10 @@ shared-password apps once.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">ENLACE_SMTP_HOST</span></code> (+ <code class="docutils literal notranslate"><span class="pre">_PORT</span></code>, <code class="docutils literal notranslate"><span class="pre">_USER</span></code>, <code class="docutils literal notranslate"><span class="pre">_PASSWORD</span></code>, <code class="docutils literal notranslate"><span class="pre">_FROM</span></code>, <code class="docutils literal notranslate"><span class="pre">_TLS</span></code>) — mail
 sender for password-reset emails. Unset means <strong>no email is sent</strong>; see below.</p></li>
 </ul>
+</section>
+<section id="mounting-the-authorization-server-behind-another-login">
+<h4>Mounting the authorization server behind another login<a class="headerlink" href="#mounting-the-authorization-server-behind-another-login" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">make_oauth_server_router</span></code> does not need enlace’s login. Three keyword arguments replace the parts that are enlace’s, each defaulting to the platform’s behaviour: <code class="docutils literal notranslate"><span class="pre">current_identity(request)</span> <span class="pre">-&gt;</span> <span class="pre">Identity(email,</span> <span class="pre">binding)</span> <span class="pre">|</span> <span class="pre">None</span></code> (who is signed in; <code class="docutils literal notranslate"><span class="pre">binding</span></code> is opaque, a session id or a revocation epoch), <code class="docutils literal notranslate"><span class="pre">login_url(next)</span> <span class="pre">-&gt;</span> <span class="pre">url</span></code> (where an unauthenticated <code class="docutils literal notranslate"><span class="pre">/authorize</span></code> goes), and <code class="docutils literal notranslate"><span class="pre">may_authorize(email,</span> <span class="pre">resource,</span> <span class="pre">binding)</span> <span class="pre">-&gt;</span> <span class="pre">reason</span> <span class="pre">|</span> <span class="pre">None</span></code> (consulted at consent, at the code exchange and on every refresh, with the binding the code or refresh family recorded; a custom one replaces the resource allowlist and <code class="docutils literal notranslate"><span class="pre">is_active</span></code>, so it applies its own policy). The stateless checks (PKCE S256, redirect-URI vetting with <code class="docutils literal notranslate"><span class="pre">https_hosts=</span></code> and <code class="docutils literal notranslate"><span class="pre">allow_loopback=</span></code>, refresh-token hashing, the RS256 key) are public in <code class="docutils literal notranslate"><span class="pre">enlace_auth.oauth_rules</span></code>, which itself imports no web framework (importing it through the package still loads the plugin and FastAPI). <code class="docutils literal notranslate"><span class="pre">may_authorize</span></code> must return <code class="docutils literal notranslate"><span class="pre">None</span></code> or a non-empty reason (anything else raises, so a yes/no answer cannot fail open), and should refuse a <code class="docutils literal notranslate"><span class="pre">None</span></code> binding (a record minted before the seam existed) when its rule needs one.</p>
 </section>
 </section>
 </section>
@@ -746,7 +750,7 @@ python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> <
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-21 22:58 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/d248e99d088dbb8d27c7e036f94dbec94493d38c">d248e99</a> (main) · enlace_auth 0.1.59 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-21 23:11 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/d23d2e4b24997efd6fe2e111766afa03e92dee97">d23d2e4</a> (main) · enlace_auth 0.1.60 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               
@@ -794,6 +798,7 @@ python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> <
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#passkeys-and-step-up">Passkeys and step-up</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#oauth-2-1-authorization-server-mcp-connectors">OAuth 2.1 authorization server (MCP connectors)</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#keeping-a-connector-alive">Keeping a connector alive</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mounting-the-authorization-server-behind-another-login">Mounting the authorization server behind another login</a></li>
 </ul>
 </li>
 </ul>

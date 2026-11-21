@@ -112,6 +112,7 @@ Plugin entry point. Safe to call when auth is disabled — does nothing.
 | [`diagnostics`](enlace_auth.diagnostics.html.md#module-enlace_auth.diagnostics)         | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`.                         |
 | [`emails`](enlace_auth.emails.html.md#module-enlace_auth.emails)                   | One normal form for an email address, wherever one is compared.                                |
 | [`groups`](enlace_auth.groups.html.md#module-enlace_auth.groups)                   | Named groups of accounts: one list of emails, referenced as `@name` wherever an email list is. |
+| [`oauth_rules`](enlace_auth.oauth_rules.html.md#module-enlace_auth.oauth_rules)         | The stateless rules of the OAuth 2.1 authorization server, importable alone.                   |
 | [`passkeys`](enlace_auth.passkeys.html.md#module-enlace_auth.passkeys)               | Passkeys (WebAuthn): sign-in, a step-up confirmation, and a per-account requirement.           |
 | [`ratelimit`](enlace_auth.ratelimit.html.md#module-enlace_auth.ratelimit)             | A sliding-window rate limiter over any `MutableMapping`.                                       |
 | [`resource_policy`](enlace_auth.resource_policy.html.md#module-enlace_auth.resource_policy) | The OAuth per-connector allowlist: its shape, its parsing and its one rule.                    |

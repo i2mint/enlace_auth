@@ -9,6 +9,7 @@ enlace\_auth.passkeys.routes
    .. autosummary::
    
       REDEEM_PATH
+      REQUEST_PATH
       REAUTH_HEADER
    
    .. rubric:: Functions

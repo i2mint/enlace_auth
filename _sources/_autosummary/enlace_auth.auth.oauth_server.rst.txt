@@ -14,5 +14,6 @@ enlace\_auth.auth.oauth\_server
 
    .. autosummary::
    
+      Identity
       OAuthKeys
    

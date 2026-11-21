@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=755f2e77"></script>
+    <script src="../_static/documentation_options.js?v=5fe4e9ad"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.59" />
+  <meta name="docsearch:version" content="0.1.60" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -342,12 +342,14 @@
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.sessions.html">enlace_auth.auth.sessions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.share_routes.html">enlace_auth.auth.share_routes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.shares.html">enlace_auth.auth.shares</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.step_up.html">enlace_auth.auth.step_up</a></li>
 </ul>
 </details></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.config.html">enlace_auth.config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.diagnostics.html">enlace_auth.diagnostics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.emails.html">enlace_auth.emails</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.groups.html">enlace_auth.groups</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_auth.oauth_rules.html">enlace_auth.oauth_rules</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.passkeys.html">enlace_auth.passkeys</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.core.html">enlace_auth.passkeys.core</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.pages.html">enlace_auth.passkeys.pages</a></li>
@@ -603,19 +605,22 @@ changes platform behavior unless the operator opts in.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.groups.html#module-enlace_auth.groups" title="enlace_auth.groups"><code class="xref py py-obj docutils literal notranslate"><span class="pre">groups</span></code></a></p></td>
 <td><p>Named groups of accounts: one list of emails, referenced as <code class="docutils literal notranslate"><span class="pre">&#64;name</span></code> wherever an email list is.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.passkeys.html#module-enlace_auth.passkeys" title="enlace_auth.passkeys"><code class="xref py py-obj docutils literal notranslate"><span class="pre">passkeys</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.oauth_rules.html#module-enlace_auth.oauth_rules" title="enlace_auth.oauth_rules"><code class="xref py py-obj docutils literal notranslate"><span class="pre">oauth_rules</span></code></a></p></td>
+<td><p>The stateless rules of the OAuth 2.1 authorization server, importable alone.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.passkeys.html#module-enlace_auth.passkeys" title="enlace_auth.passkeys"><code class="xref py py-obj docutils literal notranslate"><span class="pre">passkeys</span></code></a></p></td>
 <td><p>Passkeys (WebAuthn): sign-in, a step-up confirmation, and a per-account requirement.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.ratelimit.html#module-enlace_auth.ratelimit" title="enlace_auth.ratelimit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ratelimit</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.ratelimit.html#module-enlace_auth.ratelimit" title="enlace_auth.ratelimit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ratelimit</span></code></a></p></td>
 <td><p>A sliding-window rate limiter over any <code class="docutils literal notranslate"><span class="pre">MutableMapping</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.resource_policy.html#module-enlace_auth.resource_policy" title="enlace_auth.resource_policy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resource_policy</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.resource_policy.html#module-enlace_auth.resource_policy" title="enlace_auth.resource_policy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resource_policy</span></code></a></p></td>
 <td><p>The OAuth per-connector allowlist: its shape, its parsing and its one rule.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.signup.html#module-enlace_auth.signup" title="enlace_auth.signup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">signup</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.signup.html#module-enlace_auth.signup" title="enlace_auth.signup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">signup</span></code></a></p></td>
 <td><p>Self-service sign-up and email-code sign-in.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.stores.html#module-enlace_auth.stores" title="enlace_auth.stores"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stores</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.stores.html#module-enlace_auth.stores" title="enlace_auth.stores"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stores</span></code></a></p></td>
 <td><p>Per-user stores for enlace.</p></td>
 </tr>
 </tbody>

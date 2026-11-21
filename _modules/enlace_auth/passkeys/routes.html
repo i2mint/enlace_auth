@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=755f2e77"></script>
+    <script src="../../../_static/documentation_options.js?v=5fe4e9ad"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.59" />
+  <meta name="docsearch:version" content="0.1.60" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -723,9 +723,16 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">- ``DELETE /auth/passkeys/{id}``              removes one (fresh sign-in needed)</span>
 <span class="sd">- ``POST   /auth/passkeys/login/options``     request options for a sign-in by passkey</span>
 <span class="sd">- ``POST   /auth/passkeys/login/verify``      ``{credential, next?}``: opens a session</span>
-<span class="sd">- ``POST   /auth/passkeys/step-up/options``   ``{action}``: options bound to the action</span>
-<span class="sd">- ``POST   /auth/passkeys/step-up/verify``    ``{action, credential}``: ``{proof, ...}``</span>
-<span class="sd">- ``POST   /auth/passkeys/step-up/redeem``    ``{proof, action, email}``: spends it</span>
+<span class="sd">- ``POST   /auth/passkeys/step-up/request``   a backend's ``{email, action, audience,</span>
+<span class="sd">  return_url?}`` with ``Authorization: Bearer &lt;audience key&gt;``: ``{request,</span>
+<span class="sd">  confirm_url, expires_in}``</span>
+<span class="sd">- ``GET    /auth/passkeys/confirm?r=&lt;request&gt;`` the platform's confirmation page</span>
+<span class="sd">- ``POST   /auth/passkeys/step-up/options``   ``{action}`` or ``{request}``: options</span>
+<span class="sd">  bound to the action (and the request's audience)</span>
+<span class="sd">- ``POST   /auth/passkeys/step-up/verify``    ``{action | request, credential}``:</span>
+<span class="sd">  ``{proof, ...}``</span>
+<span class="sd">- ``POST   /auth/passkeys/step-up/redeem``    ``{proof, action, email, audience?,</span>
+<span class="sd">  methods?}``: spends it</span>
 <span class="sd">- ``GET    /auth/passkeys/passkeys.js``       the browser helper, ``enlacePasskeys``</span>
 
 <span class="sd">Adding or removing a passkey needs a session opened within ``fresh_seconds``:</span>
@@ -738,8 +745,19 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">``step-up/redeem`` is called by a backend, not a browser: no cookie</span>
 <span class="sd">authenticates it, the proof in the body is the credential, so it is exempt from</span>
 <span class="sd">the CSRF double-submit (the plugin lists it). The caller names the action AND the</span>
-<span class="sd">account it expects; the answer (``{email, action, verified_at, method,</span>
+<span class="sd">account it expects; the answer (``{email, action, audience, verified_at, method,</span>
 <span class="sd">passkey}``) comes once.</span>
+
+<span class="sd">Two ways to ask for a step-up (i2mint/enlace_auth#95). A page may still call</span>
+<span class="sd">``step-up/options {action}`` itself; such a proof carries no audience, so a</span>
+<span class="sd">backend that names its audience refuses it. The strong way: the backend creates</span>
+<span class="sd">the request (``step-up/request``, CSRF-exempt, authenticated by the audience key</span>
+<span class="sd">``enlace-auth step-up-key AUDIENCE`` prints), and the browser opens the</span>
+<span class="sd">platform's ``/auth/passkeys/confirm`` page, which shows the backend's action and</span>
+<span class="sd">audience and mints one proof that only that audience redeems. No page chooses</span>
+<span class="sd">the action a proof is for, and the page refuses to be framed. What the person</span>
+<span class="sd">sees is guaranteed only when ``/auth`` is on an origin no app shares (see</span>
+<span class="sd">:mod:`enlace_auth.auth.step_up`).</span>
 <span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -748,14 +766,17 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">importlib.resources</span><span class="w"> </span><span class="kn">import</span> <span class="n">files</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">quote</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">BackgroundTasks</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">Response</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTMLResponse</span><span class="p">,</span> <span class="n">RedirectResponse</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.accounts</span><span class="w"> </span><span class="kn">import</span> <span class="n">DISABLED_DETAIL</span><span class="p">,</span> <span class="n">is_disabled</span><span class="p">,</span> <span class="n">open_session</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.cookie_policy</span><span class="w"> </span><span class="kn">import</span> <span class="n">CookiePolicy</span><span class="p">,</span> <span class="n">request_host</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.cookies</span><span class="w"> </span><span class="kn">import</span> <span class="n">sign_cookie</span><span class="p">,</span> <span class="n">verify_cookie</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.pages</span><span class="w"> </span><span class="kn">import</span> <span class="n">safe_next</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.step_up</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepUpError</span><span class="p">,</span> <span class="n">same_account</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.passkeys.core</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PasskeyError</span><span class="p">,</span>
     <span class="n">PasskeyPolicy</span><span class="p">,</span>
@@ -766,6 +787,15 @@ window.runMermaid = runMermaid;</script>
 
 <span class="c1">#: The redeem endpoint, which the plugin exempts from the CSRF check.</span>
 <span class="n">REDEEM_PATH</span> <span class="o">=</span> <span class="s2">"/auth/passkeys/step-up/redeem"</span>
+<span class="c1">#: The backend's request endpoint, exempt likewise (a bearer key, no cookie).</span>
+<span class="n">REQUEST_PATH</span> <span class="o">=</span> <span class="s2">"/auth/passkeys/step-up/request"</span>
+<span class="c1">#: Headers of the confirmation page: never framed, never cached.</span>
+<span class="n">_CONFIRM_HEADERS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"Content-Security-Policy"</span><span class="p">:</span> <span class="s2">"frame-ancestors 'none'"</span><span class="p">,</span>
+    <span class="s2">"X-Frame-Options"</span><span class="p">:</span> <span class="s2">"DENY"</span><span class="p">,</span>
+    <span class="s2">"Cache-Control"</span><span class="p">:</span> <span class="s2">"no-store"</span><span class="p">,</span>
+    <span class="s2">"Referrer-Policy"</span><span class="p">:</span> <span class="s2">"no-referrer"</span><span class="p">,</span>
+<span class="p">}</span>
 <span class="c1">#: Set on a 403 that a fresh sign-in would turn into a success.</span>
 <span class="n">REAUTH_HEADER</span> <span class="o">=</span> <span class="s2">"X-Enlace-Reauth"</span>
 
@@ -781,11 +811,13 @@ window.runMermaid = runMermaid;</script>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_ActionBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-    <span class="n">action</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">action</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_StepUpBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-    <span class="n">action</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">action</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">credential</span><span class="p">:</span> <span class="nb">dict</span>
 
 
@@ -793,6 +825,15 @@ window.runMermaid = runMermaid;</script>
     <span class="n">proof</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">action</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">email</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">audience</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">methods</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_RequestBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">email</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">action</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">audience</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">return_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <div class="viewcode-block" id="make_passkey_router">
@@ -1027,11 +1068,123 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># ----- step-up ----------------------------------------------------------</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_what_to_confirm</span><span class="p">(</span>
+        <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">_ActionBody</span> <span class="o">|</span> <span class="n">_StepUpBody</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""``(action, audience)``: the page's action, or a backend's request.</span>
+
+<span class="sd">        A page cannot name an audience: only a request signed with the</span>
+<span class="sd">        audience's key carries one. A request is for one account only.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">body</span><span class="o">.</span><span class="n">request</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">body</span><span class="o">.</span><span class="n">action</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">wanted</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">proofs</span><span class="o">.</span><span class="n">read_request</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">StepUpError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">same_account</span><span class="p">(</span><span class="n">wanted</span><span class="p">[</span><span class="s2">"email"</span><span class="p">],</span> <span class="n">email</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"This confirmation is for another account."</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">wanted</span><span class="p">[</span><span class="s2">"action"</span><span class="p">],</span> <span class="n">wanted</span><span class="p">[</span><span class="s2">"audience"</span><span class="p">]</span>
+
+    <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/step-up/request"</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">step_up_request</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">_RequestBody</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""A backend asks the account holder to confirm *action* for its audience."""</span>
+        <span class="n">scheme</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"authorization"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">" "</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">scheme</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">"bearer"</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">key</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">401</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"An audience key is needed."</span><span class="p">)</span>
+        <span class="n">back</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">body</span><span class="o">.</span><span class="n">return_url</span><span class="p">:</span>
+            <span class="n">back</span> <span class="o">=</span> <span class="n">safe_next</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">return_url</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span> <span class="n">cookie_domain</span><span class="o">=</span><span class="n">cookie_domain</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">back</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                    <span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span>
+                    <span class="n">detail</span><span class="o">=</span><span class="s2">"return_url must be a path on this site (or an https URL "</span>
+                    <span class="s2">"under [auth] cookie_domain)."</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">request_id</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">proofs</span><span class="o">.</span><span class="n">create_request</span><span class="p">(</span>
+                <span class="n">email</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">email</span><span class="p">,</span>
+                <span class="n">action</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">action</span><span class="p">,</span>
+                <span class="n">audience</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">audience</span><span class="p">,</span>
+                <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+                <span class="n">return_url</span><span class="o">=</span><span class="n">back</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="n">StepUpError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="mi">401</span> <span class="k">if</span> <span class="s2">"key"</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">else</span> <span class="mi">400</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="p">(</span><span class="n">public_base_url</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">base_url</span><span class="p">))</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"request"</span><span class="p">:</span> <span class="n">request_id</span><span class="p">,</span>
+            <span class="s2">"confirm_url"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">/auth/passkeys/confirm?r=</span><span class="si">{</span><span class="n">quote</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+            <span class="s2">"expires_in"</span><span class="p">:</span> <span class="n">service</span><span class="o">.</span><span class="n">proofs</span><span class="o">.</span><span class="n">request_ttl</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/confirm"</span><span class="p">,</span> <span class="n">response_class</span><span class="o">=</span><span class="n">HTMLResponse</span><span class="p">,</span> <span class="n">include_in_schema</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">confirm_page</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The platform's page for confirming a backend's request."""</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.pages</span><span class="w"> </span><span class="kn">import</span> <span class="n">_page</span><span class="p">,</span> <span class="n">render_notice_page</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.passkeys.pages</span><span class="w"> </span><span class="kn">import</span> <span class="n">render_confirm_section</span>
+
+        <span class="n">lang</span> <span class="o">=</span> <span class="n">pick_lang</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"accept-language"</span><span class="p">))</span>
+        <span class="n">request_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">query_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"r"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">wanted</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">proofs</span><span class="o">.</span><span class="n">read_request</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">StepUpError</span><span class="p">:</span>
+            <span class="n">page</span> <span class="o">=</span> <span class="n">render_notice_page</span><span class="p">(</span>
+                <span class="n">title</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"confirm_title"</span><span class="p">),</span>
+                <span class="n">heading</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"confirm_title"</span><span class="p">),</span>
+                <span class="n">message</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"confirm_invalid"</span><span class="p">),</span>
+                <span class="n">links</span><span class="o">=</span><span class="p">[],</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">HTMLResponse</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">_CONFIRM_HEADERS</span><span class="p">)</span>
+        <span class="n">here</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"/auth/passkeys/confirm?r=</span><span class="si">{</span><span class="n">quote</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="s2">"user_email"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">current</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">RedirectResponse</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"/auth/login?login_required=1&amp;next=</span><span class="si">{</span><span class="n">quote</span><span class="p">(</span><span class="n">here</span><span class="p">,</span><span class="w"> </span><span class="n">safe</span><span class="o">=</span><span class="s1">''</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="mi">303</span><span class="p">,</span>
+                <span class="n">headers</span><span class="o">=</span><span class="n">_CONFIRM_HEADERS</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">same_account</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="n">wanted</span><span class="p">[</span><span class="s2">"email"</span><span class="p">]):</span>
+            <span class="n">page</span> <span class="o">=</span> <span class="n">render_notice_page</span><span class="p">(</span>
+                <span class="n">title</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"confirm_title"</span><span class="p">),</span>
+                <span class="n">heading</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"confirm_title"</span><span class="p">),</span>
+                <span class="n">message</span><span class="o">=</span><span class="n">t</span><span class="p">(</span>
+                    <span class="n">lang</span><span class="p">,</span>
+                    <span class="s2">"confirm_other_account"</span><span class="p">,</span>
+                    <span class="n">email</span><span class="o">=</span><span class="n">wanted</span><span class="p">[</span><span class="s2">"email"</span><span class="p">],</span>
+                    <span class="n">current</span><span class="o">=</span><span class="n">current</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">links</span><span class="o">=</span><span class="p">[</span>
+                    <span class="p">(</span>
+                        <span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"confirm_switch"</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">wanted</span><span class="p">[</span><span class="s2">"email"</span><span class="p">]),</span>
+                        <span class="sa">f</span><span class="s2">"/auth/login?next=</span><span class="si">{</span><span class="n">quote</span><span class="p">(</span><span class="n">here</span><span class="p">,</span><span class="w"> </span><span class="n">safe</span><span class="o">=</span><span class="s1">''</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                        <span class="kc">True</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">],</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">HTMLResponse</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">_CONFIRM_HEADERS</span><span class="p">)</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="n">render_confirm_section</span><span class="p">(</span>
+            <span class="n">lang</span><span class="o">=</span><span class="n">lang</span><span class="p">,</span>
+            <span class="n">request_id</span><span class="o">=</span><span class="n">request_id</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="n">wanted</span><span class="p">[</span><span class="s2">"action"</span><span class="p">],</span>
+            <span class="n">audience</span><span class="o">=</span><span class="n">wanted</span><span class="p">[</span><span class="s2">"audience"</span><span class="p">],</span>
+            <span class="n">return_url</span><span class="o">=</span><span class="n">wanted</span><span class="p">[</span><span class="s2">"return_url"</span><span class="p">]</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">HTMLResponse</span><span class="p">(</span>
+            <span class="n">_page</span><span class="p">(</span><span class="n">t</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="s2">"confirm_title"</span><span class="p">),</span> <span class="n">body</span><span class="p">,</span> <span class="n">lang</span><span class="o">=</span><span class="n">lang</span><span class="p">),</span> <span class="n">headers</span><span class="o">=</span><span class="n">_CONFIRM_HEADERS</span>
+        <span class="p">)</span>
+
     <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/step-up/options"</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">step_up_options</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">_ActionBody</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">email</span> <span class="o">=</span> <span class="n">_signed_in</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">action</span><span class="p">,</span> <span class="n">audience</span> <span class="o">=</span> <span class="n">_what_to_confirm</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">service</span><span class="o">.</span><span class="n">step_up_options</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">body</span><span class="o">.</span><span class="n">action</span><span class="p">,</span> <span class="n">_rp</span><span class="p">(</span><span class="n">request</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">service</span><span class="o">.</span><span class="n">step_up_options</span><span class="p">(</span>
+                <span class="n">email</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">_rp</span><span class="p">(</span><span class="n">request</span><span class="p">),</span> <span class="n">audience</span><span class="o">=</span><span class="n">audience</span>
+            <span class="p">)</span>
         <span class="k">except</span> <span class="n">PasskeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">status</span> <span class="o">=</span> <span class="mi">409</span> <span class="k">if</span> <span class="n">service</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">email</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">400</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
@@ -1039,15 +1192,29 @@ window.runMermaid = runMermaid;</script>
     <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/step-up/verify"</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">step_up_verify</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">_StepUpBody</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">email</span> <span class="o">=</span> <span class="n">_signed_in</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">action</span><span class="p">,</span> <span class="n">audience</span> <span class="o">=</span> <span class="n">_what_to_confirm</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">service</span><span class="o">.</span><span class="n">step_up</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">body</span><span class="o">.</span><span class="n">action</span><span class="p">,</span> <span class="n">body</span><span class="o">.</span><span class="n">credential</span><span class="p">,</span> <span class="n">_rp</span><span class="p">(</span><span class="n">request</span><span class="p">))</span>
-        <span class="k">except</span> <span class="n">PasskeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">proven</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">step_up</span><span class="p">(</span>
+                <span class="n">email</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">body</span><span class="o">.</span><span class="n">credential</span><span class="p">,</span> <span class="n">_rp</span><span class="p">(</span><span class="n">request</span><span class="p">),</span> <span class="n">audience</span><span class="o">=</span><span class="n">audience</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">body</span><span class="o">.</span><span class="n">request</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Spent only once the passkey checked out, and before the proof</span>
+                <span class="c1"># leaves: one request, one proof.</span>
+                <span class="n">service</span><span class="o">.</span><span class="n">proofs</span><span class="o">.</span><span class="n">spend_request</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">PasskeyError</span><span class="p">,</span> <span class="n">StepUpError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">_refused</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+        <span class="k">return</span> <span class="n">proven</span>
 
     <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/step-up/redeem"</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">step_up_redeem</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">_RedeemBody</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">proven</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">redeem</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">proof</span><span class="p">,</span> <span class="n">body</span><span class="o">.</span><span class="n">action</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">email</span><span class="p">)</span>
+            <span class="n">proven</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">redeem</span><span class="p">(</span>
+                <span class="n">body</span><span class="o">.</span><span class="n">proof</span><span class="p">,</span>
+                <span class="n">body</span><span class="o">.</span><span class="n">action</span><span class="p">,</span>
+                <span class="n">email</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">email</span><span class="p">,</span>
+                <span class="n">audience</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">audience</span><span class="p">,</span>
+                <span class="n">methods</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">methods</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">except</span> <span class="n">PasskeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">_refused</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
         <span class="k">try</span><span class="p">:</span>

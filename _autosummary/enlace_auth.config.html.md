@@ -75,7 +75,7 @@ session login. See [`enlace_auth.auth.oauth_server`](enlace_auth.auth.oauth_serv
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* enlace_auth.config.PasskeysConfig(\*, enabled=False, rp_id=None, rp_name=None, origins=<factory>, required=<factory>, enforce_from=2, fresh_seconds=900, challenge_ttl_seconds=300, step_up_ttl_seconds=120)
+### *class* enlace_auth.config.PasskeysConfig(\*, enabled=False, rp_id=None, rp_name=None, origins=<factory>, required=<factory>, enforce_from=2, fresh_seconds=900, challenge_ttl_seconds=300, step_up_ttl_seconds=120, step_up_request_ttl_seconds=900)
 
 Bases: `_StrictModel`
 

@@ -1,0 +1,21 @@
+enlace\_auth.oauth\_rules
+=========================
+
+.. automodule:: enlace_auth.oauth_rules
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      b64url
+      hash_refresh
+      redirect_uri_problem
+      verify_pkce_s256
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      OAuthKeys
+   

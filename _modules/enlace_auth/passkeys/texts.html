@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=755f2e77"></script>
+    <script src="../../../_static/documentation_options.js?v=5fe4e9ad"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.59" />
+  <meta name="docsearch:version" content="0.1.60" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -748,6 +748,16 @@ window.runMermaid = runMermaid;</script>
         <span class="s2">"never_used"</span><span class="p">:</span> <span class="s2">"never used"</span><span class="p">,</span>
         <span class="s2">"synced"</span><span class="p">:</span> <span class="s2">"synced"</span><span class="p">,</span>
         <span class="s2">"signin"</span><span class="p">:</span> <span class="s2">"Sign in with a passkey"</span><span class="p">,</span>
+        <span class="s2">"confirm_title"</span><span class="p">:</span> <span class="s2">"Confirm an action"</span><span class="p">,</span>
+        <span class="s2">"confirm_asks"</span><span class="p">:</span> <span class="s2">"</span><span class="si">{audience}</span><span class="s2"> asks you to confirm:"</span><span class="p">,</span>
+        <span class="s2">"confirm_button"</span><span class="p">:</span> <span class="s2">"Confirm with my passkey"</span><span class="p">,</span>
+        <span class="s2">"confirm_waiting"</span><span class="p">:</span> <span class="s2">"Waiting for your device…"</span><span class="p">,</span>
+        <span class="s2">"confirm_done"</span><span class="p">:</span> <span class="s2">"Confirmed. You can close this page."</span><span class="p">,</span>
+        <span class="s2">"confirm_other_account"</span><span class="p">:</span> <span class="p">(</span>
+            <span class="s2">"This confirmation is for </span><span class="si">{email}</span><span class="s2">, and you are signed in as </span><span class="si">{current}</span><span class="s2">."</span>
+        <span class="p">),</span>
+        <span class="s2">"confirm_switch"</span><span class="p">:</span> <span class="s2">"Sign in as </span><span class="si">{email}</span><span class="s2">"</span><span class="p">,</span>
+        <span class="s2">"confirm_invalid"</span><span class="p">:</span> <span class="s2">"This confirmation link is not valid or has expired."</span><span class="p">,</span>
         <span class="s2">"mail_added_subject"</span><span class="p">:</span> <span class="s2">"A passkey was added to your account"</span><span class="p">,</span>
         <span class="s2">"mail_added_body"</span><span class="p">:</span> <span class="p">(</span>
             <span class="s2">"A passkey named “</span><span class="si">{name}</span><span class="s2">” was just added to your account </span><span class="si">{email}</span><span class="s2"> on "</span>
@@ -789,6 +799,17 @@ window.runMermaid = runMermaid;</script>
         <span class="s2">"never_used"</span><span class="p">:</span> <span class="s2">"jamais utilisée"</span><span class="p">,</span>
         <span class="s2">"synced"</span><span class="p">:</span> <span class="s2">"synchronisée"</span><span class="p">,</span>
         <span class="s2">"signin"</span><span class="p">:</span> <span class="s2">"Se connecter avec une clé d'accès"</span><span class="p">,</span>
+        <span class="s2">"confirm_title"</span><span class="p">:</span> <span class="s2">"Confirmer une action"</span><span class="p">,</span>
+        <span class="s2">"confirm_asks"</span><span class="p">:</span> <span class="s2">"</span><span class="si">{audience}</span><span class="s2"> vous demande de confirmer :"</span><span class="p">,</span>
+        <span class="s2">"confirm_button"</span><span class="p">:</span> <span class="s2">"Confirmer avec ma clé d'accès"</span><span class="p">,</span>
+        <span class="s2">"confirm_waiting"</span><span class="p">:</span> <span class="s2">"En attente de votre appareil…"</span><span class="p">,</span>
+        <span class="s2">"confirm_done"</span><span class="p">:</span> <span class="s2">"Confirmé. Vous pouvez fermer cette page."</span><span class="p">,</span>
+        <span class="s2">"confirm_other_account"</span><span class="p">:</span> <span class="p">(</span>
+            <span class="s2">"Cette confirmation est pour </span><span class="si">{email}</span><span class="s2">, et vous êtes connecté en tant que "</span>
+            <span class="s2">"</span><span class="si">{current}</span><span class="s2">."</span>
+        <span class="p">),</span>
+        <span class="s2">"confirm_switch"</span><span class="p">:</span> <span class="s2">"Se connecter en tant que </span><span class="si">{email}</span><span class="s2">"</span><span class="p">,</span>
+        <span class="s2">"confirm_invalid"</span><span class="p">:</span> <span class="s2">"Ce lien de confirmation n'est pas valide ou a expiré."</span><span class="p">,</span>
         <span class="s2">"mail_added_subject"</span><span class="p">:</span> <span class="s2">"Une clé d'accès a été ajoutée à votre compte"</span><span class="p">,</span>
         <span class="s2">"mail_added_body"</span><span class="p">:</span> <span class="p">(</span>
             <span class="s2">"Une clé d'accès nommée « </span><span class="si">{name}</span><span class="s2"> » vient d'être ajoutée à votre compte "</span>

@@ -17,10 +17,12 @@ So a step-up challenge commits to the action: an answer signed for one action
 cannot be presented for another.
 
 A verified step-up returns a **proof**: a signed token, valid for
-`proof_ttl` seconds, that names the account and the action. An app or a
-connector backend redeems it once ([`PasskeyService.redeem()`](#enlace_auth.passkeys.core.PasskeyService.redeem)), stating the
-action it is about to perform; a proof for another action, an expired one or a
-spent one is refused.
+`proof_ttl` seconds, that names the account, the action and (for a step-up a
+backend requested) the audience. An app or a connector backend redeems it once
+([`PasskeyService.redeem()`](#enlace_auth.passkeys.core.PasskeyService.redeem)), stating the action it is about to perform; a
+proof for another action or audience, an expired one or a spent one is refused.
+Proofs and requests are method-agnostic ([`enlace_auth.auth.step_up`](enlace_auth.auth.step_up.html.md#module-enlace_auth.auth.step_up)); the
+passkey is one method that mints them.
 
 Records. A credential is stored under `sha256(credential id)` (hex, a safe
 file name) as `{email, credential_id, public_key, user_handle, name,
@@ -29,11 +31,6 @@ created_at, device_type, backed_up, transports}`. Its use (`sign_count`,
 writes an orphan usage record, never a resurrected credential. The WebAuthn user
 handle is `HMAC(signing key, email)`: opaque, stable, and kept on each
 credential so a sign-in compares against what was registered.
-
-### Module Attributes
-
-| [`MAX_ACTION_LEN`](#enlace_auth.passkeys.core.MAX_ACTION_LEN)   | Longest action description a step-up accepts (it is shown to the user).   |
-|-------------------------------------------------------------------|---------------------------------------------------------------------------|
 
 ### Functions
 
@@ -57,10 +54,6 @@ credential so a sign-in compares against what was registered.
 
 | [`PasskeyError`](#enlace_auth.passkeys.core.PasskeyError)   | A passkey request that cannot be honoured; the message is safe to show.   |
 |-----------------------------------------------------------------|---------------------------------------------------------------------------|
-
-### enlace_auth.passkeys.core.MAX_ACTION_LEN *= 300*
-
-Longest action description a step-up accepts (it is shown to the user).
 
 ### *exception* enlace_auth.passkeys.core.PasskeyError
 
@@ -103,7 +96,7 @@ True when *email* is required to use a passkey right now.
 * **Return type:**
   [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
-### *class* enlace_auth.passkeys.core.PasskeyService(credentials, \*, signing_key, usage=None, claim_once=None, challenge_ttl=300, proof_ttl=120, clock=<built-in function time>)
+### *class* enlace_auth.passkeys.core.PasskeyService(credentials, \*, signing_key, usage=None, claim_once=None, challenge_ttl=300, proof_ttl=120, request_ttl=900, clock=<built-in function time>)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -115,7 +108,8 @@ Register, sign in, step up, redeem and remove passkeys.
   * **usage** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)]) – `sha256(id) hex -> {sign_count, last_used_at}` (default: a dict).
   * **claim_once** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]]) – `claim(sha256 hex) -> bool`, True once per key; spends
     challenges and proofs (default: [`memory_claim()`](#enlace_auth.passkeys.core.memory_claim)).
-  * **proof_ttl** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – lifetimes in seconds.
+  * **request_ttl** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – lifetimes in seconds (a
+    backend’s step-up request must outlive a sign-in on the way).
   * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – `() -> epoch seconds`; tests pass a fake.
 
 #### count(email, , rp_id=None)
@@ -156,6 +150,10 @@ No `allowCredentials`: the authenticator offers the account’s passkey
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
+#### proofs
+
+Proofs and requests, shared with any other step-up method.
+
 #### records(email=None, , rp_id=None)
 
 `(key, record)` of every readable credential (of *email*, if given).
@@ -167,15 +165,16 @@ A damaged record is skipped, never raised: the store is hand-editable.
 * **Return type:**
   [`list`](#enlace_auth.passkeys.core.PasskeyService.list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]]
 
-#### redeem(proof, action, , email)
+#### redeem(proof, action, , email, audience=None, methods=None)
 
 Spend a step-up proof for *action* by *email*; return what it proves.
 
-`{email, action, verified_at, method, passkey}`. Raises
-[`PasskeyError`](#enlace_auth.passkeys.core.PasskeyError) for a forged, expired, spent, other-action or
-other-account proof, or one whose passkey has since been removed. The
-caller names the account it expects, so “someone confirmed” can never
-pass for “the owner confirmed”.
+`{email, action, audience, verified_at, method, passkey}`. Raises
+[`PasskeyError`](#enlace_auth.passkeys.core.PasskeyError) for a forged, expired, spent, other-action,
+other-account or other-audience proof, one confirmed by a method outside
+*methods*, or one whose passkey has since been removed. The caller names
+the account it expects, so “someone confirmed” can never pass for “the
+owner confirmed”.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
@@ -211,19 +210,22 @@ Remove every passkey of *email*; return how many went.
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
-#### step_up(email, action, credential, rp)
+#### step_up(email, action, credential, rp, , audience=None)
 
 Verify a step-up for *action*; return `{proof, action, expires_in}`.
+
+With *audience* (a step-up a backend requested), the challenge must have
+committed to it and the proof redeems only where it is named.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
-#### step_up_options(email, action, rp)
+#### step_up_options(email, action, rp, , audience=None)
 
 Request options for confirming *action* with one of *email*’s passkeys.
 
-The challenge commits to the action. Raises [`PasskeyError`](#enlace_auth.passkeys.core.PasskeyError) when the
-account has no passkey.
+The challenge commits to the action and the audience. Raises
+[`PasskeyError`](#enlace_auth.passkeys.core.PasskeyError) when the account has no passkey.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)

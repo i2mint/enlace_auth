@@ -186,7 +186,7 @@ enabled = true
 ```
 
 - Any signed-in account adds passkeys from `/auth/account`. Adding or removing one needs a sign-in from the last 15 minutes, made with a passkey once the account has one; each change is mailed to the account, and a removal ends its other sessions. The sign-in page gets a passkey button and passkey autofill on its email field.
-- **Step-up**: a page prepares `enlacePasskeys.prepareStepUp("myapp: start job 42")` (from `/auth/passkeys/passkeys.js`), then on the tap calls `enlacePasskeys.stepUp(prepared)`; the user confirms with Face ID or Touch ID and gets a proof, valid once for 120 seconds; the app or connector backend calls `POST /auth/passkeys/step-up/redeem {proof, action, email}` before acting. The answer the authenticator signs commits to the action text, so a proof for one action never redeems for another. Details in the consumer skill (`enlace_auth/data/skills/enlace-auth-usage`).
+- **Step-up**: a page prepares `enlacePasskeys.prepareStepUp("myapp: start job 42")` (from `/auth/passkeys/passkeys.js`), then on the tap calls `enlacePasskeys.stepUp(prepared)`; the user confirms with Face ID or Touch ID and gets a proof, valid once for 120 seconds; the app or connector backend calls `POST /auth/passkeys/step-up/redeem {proof, action, email}` before acting. The answer the authenticator signs commits to the action text, so a proof for one action never redeems for another. Stronger: the backend creates the request itself (`POST /auth/passkeys/step-up/request`, authenticated by its audience key from `enlace-auth step-up-key AUDIENCE`), the platform’s own page `/auth/passkeys/confirm` shows the backend’s text, and the one proof it mints redeems only where that audience is named. The displayed text is guaranteed only when `/auth` is on an origin no app shares (`cookie_domain`); on one origin an app’s script can drive the same calls. Proofs are method-agnostic (`enlace_auth/auth/step_up.py`): `redeem` reports the `method` and accepts `methods=[...]` to refuse weaker ones. Details in the consumer skill (`enlace_auth/data/skills/enlace-auth-usage`).
 - `required` accounts refuse every other sign-in method once they have `enforce_from` passkeys (or one synced passkey). A lost device is removed with `enlace-auth remove-passkey EMAIL --passkey-id ID`.
 
 ### OAuth 2.1 authorization server (MCP connectors)
@@ -292,6 +292,10 @@ Plus environment variables:
 - `ENLACE_ALLOW_UNSIGNED=1` — opt-out from fail-fast (diagnostics only).
 - `ENLACE_SMTP_HOST` (+ `_PORT`, `_USER`, `_PASSWORD`, `_FROM`, `_TLS`) — mail
   sender for password-reset emails. Unset means **no email is sent**; see below.
+
+#### Mounting the authorization server behind another login
+
+`make_oauth_server_router` does not need enlace’s login. Three keyword arguments replace the parts that are enlace’s, each defaulting to the platform’s behaviour: `current_identity(request) -> Identity(email, binding) | None` (who is signed in; `binding` is opaque, a session id or a revocation epoch), `login_url(next) -> url` (where an unauthenticated `/authorize` goes), and `may_authorize(email, resource, binding) -> reason | None` (consulted at consent, at the code exchange and on every refresh, with the binding the code or refresh family recorded; a custom one replaces the resource allowlist and `is_active`, so it applies its own policy). The stateless checks (PKCE S256, redirect-URI vetting with `https_hosts=` and `allow_loopback=`, refresh-token hashing, the RS256 key) are public in `enlace_auth.oauth_rules`, which itself imports no web framework (importing it through the package still loads the plugin and FastAPI). `may_authorize` must return `None` or a non-empty reason (anything else raises, so a yes/no answer cannot fail open), and should refuse a `None` binding (a record minted before the seam existed) when its rule needs one.
 
 ## CSRF
 

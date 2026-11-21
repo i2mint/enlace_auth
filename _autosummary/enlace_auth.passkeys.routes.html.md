@@ -11,9 +11,16 @@ except `step-up/redeem`, see below):
 - `DELETE /auth/passkeys/{id}`              removes one (fresh sign-in needed)
 - `POST   /auth/passkeys/login/options`     request options for a sign-in by passkey
 - `POST   /auth/passkeys/login/verify`      `{credential, next?}`: opens a session
-- `POST   /auth/passkeys/step-up/options`   `{action}`: options bound to the action
-- `POST   /auth/passkeys/step-up/verify`    `{action, credential}`: `{proof, ...}`
-- `POST   /auth/passkeys/step-up/redeem`    `{proof, action, email}`: spends it
+- `POST   /auth/passkeys/step-up/request`   a backend’s `{email, action, audience,
+  return_url?}` with `Authorization: Bearer <audience key>`: `{request,
+  confirm_url, expires_in}`
+- `GET    /auth/passkeys/confirm?r=<request>` the platform’s confirmation page
+- `POST   /auth/passkeys/step-up/options`   `{action}` or `{request}`: options
+  bound to the action (and the request’s audience)
+- `POST   /auth/passkeys/step-up/verify`    `{action | request, credential}`:
+  `{proof, ...}`
+- `POST   /auth/passkeys/step-up/redeem`    `{proof, action, email, audience?,
+  methods?}`: spends it
 - `GET    /auth/passkeys/passkeys.js`       the browser helper, `enlacePasskeys`
 
 Adding or removing a passkey needs a session opened within `fresh_seconds`:
@@ -26,14 +33,26 @@ the account’s other sessions and connector refresh families
 `step-up/redeem` is called by a backend, not a browser: no cookie
 authenticates it, the proof in the body is the credential, so it is exempt from
 the CSRF double-submit (the plugin lists it). The caller names the action AND the
-account it expects; the answer (`{email, action, verified_at, method,
+account it expects; the answer (`{email, action, audience, verified_at, method,
 passkey}`) comes once.
+
+Two ways to ask for a step-up (i2mint/enlace_auth#95). A page may still call
+`step-up/options {action}` itself; such a proof carries no audience, so a
+backend that names its audience refuses it. The strong way: the backend creates
+the request (`step-up/request`, CSRF-exempt, authenticated by the audience key
+`enlace-auth step-up-key AUDIENCE` prints), and the browser opens the
+platform’s `/auth/passkeys/confirm` page, which shows the backend’s action and
+audience and mints one proof that only that audience redeems. No page chooses
+the action a proof is for, and the page refuses to be framed. What the person
+sees is guaranteed only when `/auth` is on an origin no app shares (see
+[`enlace_auth.auth.step_up`](enlace_auth.auth.step_up.html.md#module-enlace_auth.auth.step_up)).
 
 ### Module Attributes
 
-| [`REDEEM_PATH`](#enlace_auth.passkeys.routes.REDEEM_PATH)   | The redeem endpoint, which the plugin exempts from the CSRF check.   |
-|----------------------------------------------------------------|----------------------------------------------------------------------|
-| [`REAUTH_HEADER`](#enlace_auth.passkeys.routes.REAUTH_HEADER) | Set on a 403 that a fresh sign-in would turn into a success.         |
+| [`REDEEM_PATH`](#enlace_auth.passkeys.routes.REDEEM_PATH)   | The redeem endpoint, which the plugin exempts from the CSRF check.         |
+|----------------------------------------------------------------|----------------------------------------------------------------------------|
+| [`REQUEST_PATH`](#enlace_auth.passkeys.routes.REQUEST_PATH)  | The backend's request endpoint, exempt likewise (a bearer key, no cookie). |
+| [`REAUTH_HEADER`](#enlace_auth.passkeys.routes.REAUTH_HEADER) | Set on a 403 that a fresh sign-in would turn into a success.               |
 
 ### Functions
 
@@ -47,6 +66,10 @@ Set on a 403 that a fresh sign-in would turn into a success.
 ### enlace_auth.passkeys.routes.REDEEM_PATH *= '/auth/passkeys/step-up/redeem'*
 
 The redeem endpoint, which the plugin exempts from the CSRF check.
+
+### enlace_auth.passkeys.routes.REQUEST_PATH *= '/auth/passkeys/step-up/request'*
+
+The backend’s request endpoint, exempt likewise (a bearer key, no cookie).
 
 ### enlace_auth.passkeys.routes.make_passkey_router(\*, service, session_store, user_store, signing_key, relying_party, policy=None, send_email=None, on_credentials_changed=None, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, cookie_domain=None, fresh_seconds=900, public_base_url=None, pick_lang=<function <lambda>>)
 

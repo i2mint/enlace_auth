@@ -48,8 +48,19 @@ POST /auth/oauth/token                            code + PKCE → JWT
 
 ### Classes
 
-| [`OAuthKeys`](#enlace_auth.auth.oauth_server.OAuthKeys)(key_dir)   | The server's RSA signing key — persisted, exposed as a JWKS.   |
-|-----------------------------------------------------------------------|----------------------------------------------------------------|
+| [`Identity`](#enlace_auth.auth.oauth_server.Identity)(email[, binding])   | Who is signed in, as the authorization server sees it (#98).   |
+|-------------------------------------------------------------------------------|----------------------------------------------------------------|
+| [`OAuthKeys`](#enlace_auth.auth.oauth_server.OAuthKeys)(key_dir)           | The server's RSA signing key — persisted, exposed as a JWKS.   |
+
+### *class* enlace_auth.auth.oauth_server.Identity(email, binding=None)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Who is signed in, as the authorization server sees it (#98).
+
+*binding* is opaque: the platform’s session id, or another gateway’s
+revocation epoch. The consent form is bound to it, and codes and refresh
+families carry it, so *may_authorize* can re-check it on every refresh.
 
 ### *class* enlace_auth.auth.oauth_server.OAuthKeys(key_dir)
 
@@ -62,7 +73,7 @@ mode 0600) and reuses it thereafter, so tokens stay verifiable across restarts.
 Signs JWTs (RS256) and publishes the public half as a one-key JWKS for the
 connector’s verifier to fetch.
 
-### enlace_auth.auth.oauth_server.make_oauth_server_router(, session_store, signing_key, cookie_name, session_max_age, client_store, code_store, keys, issuer=None, refresh_store=None, claim_once=None, release_claim=None, consent_claim_once=None, is_active=None, access_token_ttl=3600, refresh_token_ttl=2592000, refresh_reuse_grace=60, refresh_reuse_detection=86400, refresh_family_max_lifetime=7776000, client_ttl=15552000, code_ttl=120, consent_ttl=600, scopes_supported=('mcp:read',), require_consent=True, resource_allowlist=None, allow_unlisted_resources=False, resource_display_names=None)
+### enlace_auth.auth.oauth_server.make_oauth_server_router(, session_store, signing_key, cookie_name, session_max_age, client_store, code_store, keys, issuer=None, refresh_store=None, claim_once=None, release_claim=None, consent_claim_once=None, is_active=None, access_token_ttl=3600, refresh_token_ttl=2592000, refresh_reuse_grace=60, refresh_reuse_detection=86400, refresh_family_max_lifetime=7776000, client_ttl=15552000, code_ttl=120, consent_ttl=600, scopes_supported=('mcp:read',), require_consent=True, resource_allowlist=None, allow_unlisted_resources=False, resource_display_names=None, current_identity=None, login_url=None, may_authorize=None)
 
 Build the OAuth 2.1 authorization-server router (see the module docstring).
 
@@ -142,6 +153,24 @@ is correct for one connector and wrong — and disclosing — for every other. A
 resource with no entry gets generic copy that names no product at all; never
 default to a specific connector’s name, or the next connector added inherits
 it.
+
+Three seams let a login other than enlace’s sit in front of this server
+(#98), each defaulting to the platform’s own behaviour:
+
+- *current_identity* `(request) -> Identity | None`: who is signed in. The
+  default reads the platform session cookie (*cookie_name*, *session_store*);
+  its binding is the session id.
+- *login_url* `(next) -> url`: where an unauthenticated `/authorize` is
+  sent. The default is `/auth/login?next=...`.
+- *may_authorize* `(email, resource, binding) -> reason | None`: why an
+  identity may NOT hold a token for a resource, or `None`. Consulted at the
+  consent page, the consent submit, the code exchange and every refresh
+  (with the binding the code or family recorded; `None` for one minted
+  before #98). The default is *resource_allowlist* plus *is_active*. A
+  custom one replaces both, so it must apply its own resource policy. It
+  must return `None` or a non-empty string (anything else raises), and
+  should refuse a `None` binding when its rule depends on one. An identity
+  with an empty email counts as not signed in.
 
 * **Return type:**
   `APIRouter`

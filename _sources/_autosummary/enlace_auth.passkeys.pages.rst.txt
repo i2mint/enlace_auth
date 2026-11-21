@@ -4,10 +4,17 @@ enlace\_auth.passkeys.pages
 .. automodule:: enlace_auth.passkeys.pages
 
    
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      PROOF_FRAGMENT
+   
    .. rubric:: Functions
 
    .. autosummary::
    
       render_account_section
+      render_confirm_section
       render_signin_section
    

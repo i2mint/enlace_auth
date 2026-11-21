@@ -377,3 +377,4 @@ Return True iff `password` matches the stored `hashed` value.
 | [`sessions`](enlace_auth.auth.sessions.html.md#module-enlace_auth.auth.sessions)           | Session storage backed by a MutableMapping.                                         |
 | [`share_routes`](enlace_auth.auth.share_routes.html.md#module-enlace_auth.auth.share_routes)   | `/auth/shares/*` — the signed-in user manages the shares of their own data.         |
 | [`shares`](enlace_auth.auth.shares.html.md#module-enlace_auth.auth.shares)               | Owner-granted data shares: let named users at one user's per-user data in one app.  |
+| [`step_up`](enlace_auth.auth.step_up.html.md#module-enlace_auth.auth.step_up)             | Step-up proofs and step-up requests, independent of how the person confirmed.       |

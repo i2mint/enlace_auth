@@ -1,4 +1,4 @@
-> built 2026-11-21 22:58 UTC from d248e99 (main) · enlace_auth 0.1.59. Details: build_info.json
+> built 2026-11-21 23:11 UTC from d23d2e4 (main) · enlace_auth 0.1.60. Details: build_info.json
 
 # index.html.md
 
@@ -190,7 +190,7 @@ enabled = true
 ```
 
 - Any signed-in account adds passkeys from `/auth/account`. Adding or removing one needs a sign-in from the last 15 minutes, made with a passkey once the account has one; each change is mailed to the account, and a removal ends its other sessions. The sign-in page gets a passkey button and passkey autofill on its email field.
-- **Step-up**: a page prepares `enlacePasskeys.prepareStepUp("myapp: start job 42")` (from `/auth/passkeys/passkeys.js`), then on the tap calls `enlacePasskeys.stepUp(prepared)`; the user confirms with Face ID or Touch ID and gets a proof, valid once for 120 seconds; the app or connector backend calls `POST /auth/passkeys/step-up/redeem {proof, action, email}` before acting. The answer the authenticator signs commits to the action text, so a proof for one action never redeems for another. Details in the consumer skill (`enlace_auth/data/skills/enlace-auth-usage`).
+- **Step-up**: a page prepares `enlacePasskeys.prepareStepUp("myapp: start job 42")` (from `/auth/passkeys/passkeys.js`), then on the tap calls `enlacePasskeys.stepUp(prepared)`; the user confirms with Face ID or Touch ID and gets a proof, valid once for 120 seconds; the app or connector backend calls `POST /auth/passkeys/step-up/redeem {proof, action, email}` before acting. The answer the authenticator signs commits to the action text, so a proof for one action never redeems for another. Stronger: the backend creates the request itself (`POST /auth/passkeys/step-up/request`, authenticated by its audience key from `enlace-auth step-up-key AUDIENCE`), the platform’s own page `/auth/passkeys/confirm` shows the backend’s text, and the one proof it mints redeems only where that audience is named. The displayed text is guaranteed only when `/auth` is on an origin no app shares (`cookie_domain`); on one origin an app’s script can drive the same calls. Proofs are method-agnostic (`enlace_auth/auth/step_up.py`): `redeem` reports the `method` and accepts `methods=[...]` to refuse weaker ones. Details in the consumer skill (`enlace_auth/data/skills/enlace-auth-usage`).
 - `required` accounts refuse every other sign-in method once they have `enforce_from` passkeys (or one synced passkey). A lost device is removed with `enlace-auth remove-passkey EMAIL --passkey-id ID`.
 
 ### OAuth 2.1 authorization server (MCP connectors)
@@ -296,6 +296,10 @@ Plus environment variables:
 - `ENLACE_ALLOW_UNSIGNED=1` — opt-out from fail-fast (diagnostics only).
 - `ENLACE_SMTP_HOST` (+ `_PORT`, `_USER`, `_PASSWORD`, `_FROM`, `_TLS`) — mail
   sender for password-reset emails. Unset means **no email is sent**; see below.
+
+#### Mounting the authorization server behind another login
+
+`make_oauth_server_router` does not need enlace’s login. Three keyword arguments replace the parts that are enlace’s, each defaulting to the platform’s behaviour: `current_identity(request) -> Identity(email, binding) | None` (who is signed in; `binding` is opaque, a session id or a revocation epoch), `login_url(next) -> url` (where an unauthenticated `/authorize` goes), and `may_authorize(email, resource, binding) -> reason | None` (consulted at consent, at the code exchange and on every refresh, with the binding the code or refresh family recorded; a custom one replaces the resource allowlist and `is_active`, so it applies its own policy). The stateless checks (PKCE S256, redirect-URI vetting with `https_hosts=` and `allow_loopback=`, refresh-token hashing, the RS256 key) are public in `enlace_auth.oauth_rules`, which itself imports no web framework (importing it through the package still loads the plugin and FastAPI). `may_authorize` must return `None` or a non-empty reason (anything else raises, so a yes/no answer cannot fail open), and should refuse a `None` binding (a record minted before the seam existed) when its rule needs one.
 
 ## CSRF
 
@@ -1668,6 +1672,7 @@ Return True iff `password` matches the stored `hashed` value.
 | [`sessions`](_autosummary/enlace_auth.auth.sessions.html.md#module-enlace_auth.auth.sessions)           | Session storage backed by a MutableMapping.                                         |
 | [`share_routes`](_autosummary/enlace_auth.auth.share_routes.html.md#module-enlace_auth.auth.share_routes)   | `/auth/shares/*` — the signed-in user manages the shares of their own data.         |
 | [`shares`](_autosummary/enlace_auth.auth.shares.html.md#module-enlace_auth.auth.shares)               | Owner-granted data shares: let named users at one user's per-user data in one app.  |
+| [`step_up`](_autosummary/enlace_auth.auth.step_up.html.md#module-enlace_auth.auth.step_up)             | Step-up proofs and step-up requests, independent of how the person confirmed.       |
 
 
 # _autosummary/enlace_auth.auth.middleware.html.md
@@ -1864,8 +1869,19 @@ POST /auth/oauth/token                            code + PKCE → JWT
 
 ### Classes
 
-| [`OAuthKeys`](_autosummary/enlace_auth.auth.oauth_server.html.md#enlace_auth.auth.oauth_server.OAuthKeys)(key_dir)   | The server's RSA signing key — persisted, exposed as a JWKS.   |
-|-----------------------------------------------------------------------|----------------------------------------------------------------|
+| [`Identity`](_autosummary/enlace_auth.auth.oauth_server.html.md#enlace_auth.auth.oauth_server.Identity)(email[, binding])   | Who is signed in, as the authorization server sees it (#98).   |
+|-------------------------------------------------------------------------------|----------------------------------------------------------------|
+| [`OAuthKeys`](_autosummary/enlace_auth.auth.oauth_server.html.md#enlace_auth.auth.oauth_server.OAuthKeys)(key_dir)           | The server's RSA signing key — persisted, exposed as a JWKS.   |
+
+### *class* enlace_auth.auth.oauth_server.Identity(email, binding=None)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Who is signed in, as the authorization server sees it (#98).
+
+*binding* is opaque: the platform’s session id, or another gateway’s
+revocation epoch. The consent form is bound to it, and codes and refresh
+families carry it, so *may_authorize* can re-check it on every refresh.
 
 ### *class* enlace_auth.auth.oauth_server.OAuthKeys(key_dir)
 
@@ -1878,7 +1894,7 @@ mode 0600) and reuses it thereafter, so tokens stay verifiable across restarts.
 Signs JWTs (RS256) and publishes the public half as a one-key JWKS for the
 connector’s verifier to fetch.
 
-### enlace_auth.auth.oauth_server.make_oauth_server_router(, session_store, signing_key, cookie_name, session_max_age, client_store, code_store, keys, issuer=None, refresh_store=None, claim_once=None, release_claim=None, consent_claim_once=None, is_active=None, access_token_ttl=3600, refresh_token_ttl=2592000, refresh_reuse_grace=60, refresh_reuse_detection=86400, refresh_family_max_lifetime=7776000, client_ttl=15552000, code_ttl=120, consent_ttl=600, scopes_supported=('mcp:read',), require_consent=True, resource_allowlist=None, allow_unlisted_resources=False, resource_display_names=None)
+### enlace_auth.auth.oauth_server.make_oauth_server_router(, session_store, signing_key, cookie_name, session_max_age, client_store, code_store, keys, issuer=None, refresh_store=None, claim_once=None, release_claim=None, consent_claim_once=None, is_active=None, access_token_ttl=3600, refresh_token_ttl=2592000, refresh_reuse_grace=60, refresh_reuse_detection=86400, refresh_family_max_lifetime=7776000, client_ttl=15552000, code_ttl=120, consent_ttl=600, scopes_supported=('mcp:read',), require_consent=True, resource_allowlist=None, allow_unlisted_resources=False, resource_display_names=None, current_identity=None, login_url=None, may_authorize=None)
 
 Build the OAuth 2.1 authorization-server router (see the module docstring).
 
@@ -1958,6 +1974,24 @@ is correct for one connector and wrong — and disclosing — for every other. A
 resource with no entry gets generic copy that names no product at all; never
 default to a specific connector’s name, or the next connector added inherits
 it.
+
+Three seams let a login other than enlace’s sit in front of this server
+(#98), each defaulting to the platform’s own behaviour:
+
+- *current_identity* `(request) -> Identity | None`: who is signed in. The
+  default reads the platform session cookie (*cookie_name*, *session_store*);
+  its binding is the session id.
+- *login_url* `(next) -> url`: where an unauthenticated `/authorize` is
+  sent. The default is `/auth/login?next=...`.
+- *may_authorize* `(email, resource, binding) -> reason | None`: why an
+  identity may NOT hold a token for a resource, or `None`. Consulted at the
+  consent page, the consent submit, the code exchange and every refresh
+  (with the binding the code or family recorded; `None` for one minted
+  before #98). The default is *resource_allowlist* plus *is_active*. A
+  custom one replaces both, so it must apply its own resource policy. It
+  must return `None` or a non-empty string (anything else raises), and
+  should refuse a `None` binding when its rule depends on one. An identity
+  with an empty email counts as not signed in.
 
 * **Return type:**
   `APIRouter`
@@ -2791,6 +2825,219 @@ with [`enlace_auth.auth.grants.parse_expires_at()`](_autosummary/enlace_auth.aut
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
 
+# _autosummary/enlace_auth.auth.step_up.html.md
+
+# enlace_auth.auth.step_up
+
+Step-up proofs and step-up requests, independent of how the person confirmed.
+
+A **proof** says “this account confirmed this action, for this audience, by this
+method, just now”. It is a signed token, valid for `ttl` seconds and spendable
+once. Today the passkey ceremony mints them (`method="passkey"`); a TOTP or an
+emailed code could mint them beside it without changing a redeeming backend
+(i2mint/enlace_auth#95).
+
+An **audience** names who may redeem a proof (an app, a connector backend). A
+proof minted for one audience never redeems at another, and a proof minted with
+no audience never redeems at a backend that names one, so a backend that states
+its audience accepts only proofs made for it.
+
+A **request** is how a backend asks for a confirmation without letting any page
+choose the words the proof is for. The backend signs `{email, action, audience,
+return_url}` with its audience key ([`audience_key()`](_autosummary/enlace_auth.auth.step_up.html.md#enlace_auth.auth.step_up.audience_key), which the operator
+gives it: `enlace-auth step-up-key AUDIENCE`) and posts it to
+`/auth/passkeys/step-up/request`; the platform answers with a request id, and
+the browser opens the platform’s own confirmation page for it, which shows the
+action and the audience. The proof binds the backend’s action and audience, and
+is minted once per request. A request id is signed, not encrypted: its email and
+action can be read from it (and from the confirmation URL, so from access logs
+and browser history); never put a secret in an action.
+
+What the person SEES is guaranteed only when the platform’s pages are on an
+origin no app shares: on one origin, an app’s script can run the same calls as
+the confirmation page, or script that page, so it can still show other words
+while the person taps. Serve apps on their own hosts (`[auth] cookie_domain`)
+and keep `/auth` on the parent, with passkey `origins` naming only it.
+
+```pycon
+>>> proofs = StepUpProofs("k" * 32, clock=lambda: 1000)
+>>> act, who = "app: delete 7", "ann@x.io"
+>>> minted = proofs.mint(who, act, method="passkey", audience="app")
+>>> proofs.redeem(minted["proof"], act, email=who, audience="app")["method"]
+'passkey'
+>>> proofs.redeem(minted["proof"], act, email=who, audience="app")
+Traceback (most recent call last):
+  ...
+enlace_auth.auth.step_up.StepUpError: This step-up proof was already used.
+```
+
+### Module Attributes
+
+| [`MAX_ACTION_LEN`](_autosummary/enlace_auth.auth.step_up.html.md#enlace_auth.auth.step_up.MAX_ACTION_LEN)   | Longest action description a step-up accepts (it is shown to the user).   |
+|-------------------------------------------------------------------|---------------------------------------------------------------------------|
+| [`MAX_AUDIENCE_LEN`](_autosummary/enlace_auth.auth.step_up.html.md#enlace_auth.auth.step_up.MAX_AUDIENCE_LEN) | Longest audience name.                                                    |
+
+### Functions
+
+| [`audience_key`](_autosummary/enlace_auth.auth.step_up.html.md#enlace_auth.auth.step_up.audience_key)(signing_key, audience)   | The secret a backend proves it speaks for *audience* with.               |
+|----------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| [`challenge_binding`](_autosummary/enlace_auth.auth.step_up.html.md#enlace_auth.auth.step_up.challenge_binding)(action, audience)   | The text a step-up challenge commits to: the action, and its audience.   |
+| [`clean_action`](_autosummary/enlace_auth.auth.step_up.html.md#enlace_auth.auth.step_up.clean_action)(action)                  | The action text of a step-up, checked: 1..300 printable characters.      |
+| [`clean_audience`](_autosummary/enlace_auth.auth.step_up.html.md#enlace_auth.auth.step_up.clean_audience)(audience)              | An audience name (letters, digits, `._-`, at most 64), or None for none. |
+| [`same_account`](_autosummary/enlace_auth.auth.step_up.html.md#enlace_auth.auth.step_up.same_account)(a, b)                    | Whether two written addresses name one account (either IDN spelling).    |
+
+### Classes
+
+| [`StepUpProofs`](_autosummary/enlace_auth.auth.step_up.html.md#enlace_auth.auth.step_up.StepUpProofs)(signing_key, \*[, claim_once, ...])   | Mint and redeem step-up proofs; sign and read step-up requests.   |
+|-----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+
+### Exceptions
+
+| [`StepUpError`](_autosummary/enlace_auth.auth.step_up.html.md#enlace_auth.auth.step_up.StepUpError)   | A step-up proof or request is refused; the message is safe to show.   |
+|----------------------------------------------------------------|-----------------------------------------------------------------------|
+
+### enlace_auth.auth.step_up.MAX_ACTION_LEN *= 300*
+
+Longest action description a step-up accepts (it is shown to the user).
+
+### enlace_auth.auth.step_up.MAX_AUDIENCE_LEN *= 64*
+
+Longest audience name.
+
+### *exception* enlace_auth.auth.step_up.StepUpError
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+A step-up proof or request is refused; the message is safe to show.
+
+### *class* enlace_auth.auth.step_up.StepUpProofs(signing_key, \*, claim_once=None, ttl=120, request_ttl=300, clock=<built-in function time>)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Mint and redeem step-up proofs; sign and read step-up requests.
+
+* **Parameters:**
+  * **signing_key** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – the platform’s HMAC key.
+  * **claim_once** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]]) – `claim(key) -> bool`, True the first time; spends proofs
+    (default: in-process, right for one worker and tests).
+  * **ttl** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – how long a proof is valid, in seconds.
+  * **request_ttl** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – how long a step-up request is valid, in seconds.
+  * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – `() -> epoch seconds`.
+
+#### create_request(, email, action, audience, key, return_url=None)
+
+A signed step-up request, for a backend holding *audience*’s key.
+
+The request id carries the action, so the confirmation page shows what
+the backend wrote and nothing a page chose.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### mint(email, action, , method, audience=None, ref=None)
+
+A proof that *email* confirmed *action* by *method*.
+
+*ref* is the method’s own reference (a passkey’s key), returned on
+redemption so the method can check it still stands.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### read_request(request_id)
+
+`{email, action, audience, return_url}` of a valid, unexpired request.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### redeem(proof, action, , email, audience=None, methods=None, still_valid=None)
+
+Spend *proof* for *action* by *email*; return what it proves.
+
+`{email, action, audience, verified_at, method, ref}`. Refused (raises
+[`StepUpError`](_autosummary/enlace_auth.auth.step_up.html.md#enlace_auth.auth.step_up.StepUpError)): a forged, expired or spent proof; another action,
+account or audience (a proof with an audience redeems only where that
+audience is named, and one without only where none is); a method outside
+*methods*; or what *still_valid(payload)* objects to (a removed passkey).
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### spend_request(request_id)
+
+Mark a request confirmed; a second confirmation of it is refused.
+
+One request, one proof: a backend that acts once per redeemed proof must
+not be handed two for one request.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### enlace_auth.auth.step_up.audience_key(signing_key, audience)
+
+The secret a backend proves it speaks for *audience* with.
+
+Derived from the platform’s signing key, so nothing is stored; rotating the
+signing key rotates every audience key.
+
+```pycon
+>>> len(audience_key("k" * 32, "my_app"))
+64
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.auth.step_up.challenge_binding(action, audience)
+
+The text a step-up challenge commits to: the action, and its audience.
+
+The NUL cannot occur in a clean action or audience, so the pair is unambiguous,
+and an audience-less binding is the action alone (as before #95).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.auth.step_up.clean_action(action)
+
+The action text of a step-up, checked: 1..300 printable characters.
+
+```pycon
+>>> clean_action("  start job: repo, title ")
+'start job: repo, title'
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.auth.step_up.clean_audience(audience)
+
+An audience name (letters, digits, `._-`, at most 64), or None for none.
+
+```pycon
+>>> clean_audience("my_app"), clean_audience(None), clean_audience("")
+('my_app', None, None)
+```
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.auth.step_up.same_account(a, b)
+
+Whether two written addresses name one account (either IDN spelling).
+
+```pycon
+>>> same_account("Ann@XN--BCHER-KVA.example", "ann@bücher.example")
+True
+>>> same_account("ann@x.io", "bob@x.io")
+False
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+
 # _autosummary/enlace_auth.config.html.md
 
 # enlace_auth.config
@@ -2870,7 +3117,7 @@ session login. See [`enlace_auth.auth.oauth_server`](_autosummary/enlace_auth.au
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* enlace_auth.config.PasskeysConfig(\*, enabled=False, rp_id=None, rp_name=None, origins=<factory>, required=<factory>, enforce_from=2, fresh_seconds=900, challenge_ttl_seconds=300, step_up_ttl_seconds=120)
+### *class* enlace_auth.config.PasskeysConfig(\*, enabled=False, rp_id=None, rp_name=None, origins=<factory>, required=<factory>, enforce_from=2, fresh_seconds=900, challenge_ttl_seconds=300, step_up_ttl_seconds=120, step_up_request_ttl_seconds=900)
 
 Bases: `_StrictModel`
 
@@ -3532,11 +3779,118 @@ Plugin entry point. Safe to call when auth is disabled — does nothing.
 | [`diagnostics`](_autosummary/enlace_auth.diagnostics.html.md#module-enlace_auth.diagnostics)         | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`.                         |
 | [`emails`](_autosummary/enlace_auth.emails.html.md#module-enlace_auth.emails)                   | One normal form for an email address, wherever one is compared.                                |
 | [`groups`](_autosummary/enlace_auth.groups.html.md#module-enlace_auth.groups)                   | Named groups of accounts: one list of emails, referenced as `@name` wherever an email list is. |
+| [`oauth_rules`](_autosummary/enlace_auth.oauth_rules.html.md#module-enlace_auth.oauth_rules)         | The stateless rules of the OAuth 2.1 authorization server, importable alone.                   |
 | [`passkeys`](_autosummary/enlace_auth.passkeys.html.md#module-enlace_auth.passkeys)               | Passkeys (WebAuthn): sign-in, a step-up confirmation, and a per-account requirement.           |
 | [`ratelimit`](_autosummary/enlace_auth.ratelimit.html.md#module-enlace_auth.ratelimit)             | A sliding-window rate limiter over any `MutableMapping`.                                       |
 | [`resource_policy`](_autosummary/enlace_auth.resource_policy.html.md#module-enlace_auth.resource_policy) | The OAuth per-connector allowlist: its shape, its parsing and its one rule.                    |
 | [`signup`](_autosummary/enlace_auth.signup.html.md#module-enlace_auth.signup)                   | Self-service sign-up and email-code sign-in.                                                   |
 | [`stores`](_autosummary/enlace_auth.stores.html.md#module-enlace_auth.stores)                   | Per-user stores for enlace.                                                                    |
+
+
+# _autosummary/enlace_auth.oauth_rules.html.md
+
+# enlace_auth.oauth_rules
+
+The stateless rules of the OAuth 2.1 authorization server, importable alone.
+
+PKCE S256 verification, redirect-URI vetting, refresh-token hashing and the RS256
+signing key: the security-critical checks a second gateway would otherwise copy
+and let drift (i2mint/enlace_auth#98). No web framework is imported here;
+`OAuthKeys` needs `cryptography` and `joserfc` (the `oauth` extra), on
+first use. [`enlace_auth.auth.oauth_server`](_autosummary/enlace_auth.auth.oauth_server.html.md#module-enlace_auth.auth.oauth_server) uses these same functions.
+
+```pycon
+>>> import base64, hashlib
+>>> verifier = "a" * 43
+>>> challenge = b64url(hashlib.sha256(verifier.encode()).digest())
+>>> verify_pkce_s256(verifier, challenge), verify_pkce_s256("b" * 43, challenge)
+(True, False)
+>>> len(hash_refresh("token")), hash_refresh("token") == hash_refresh("token")
+(64, True)
+```
+
+### Functions
+
+| [`b64url`](_autosummary/enlace_auth.oauth_rules.html.md#enlace_auth.oauth_rules.b64url)(raw)                                       | URL-safe base64 without padding (the PKCE / JOSE encoding).                |
+|----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| [`hash_refresh`](_autosummary/enlace_auth.oauth_rules.html.md#enlace_auth.oauth_rules.hash_refresh)(token)                               | Storage key for a refresh token — the token itself is never persisted.     |
+| [`redirect_uri_problem`](_autosummary/enlace_auth.oauth_rules.html.md#enlace_auth.oauth_rules.redirect_uri_problem)(uri, \*[, https_hosts, ...]) | Why *uri* is not an acceptable registered redirect URI, or `None`.         |
+| [`verify_pkce_s256`](_autosummary/enlace_auth.oauth_rules.html.md#enlace_auth.oauth_rules.verify_pkce_s256)(verifier, challenge)             | True iff `BASE64URL(SHA256(verifier)) == challenge` (PKCE S256, RFC 7636). |
+
+### Classes
+
+| [`OAuthKeys`](_autosummary/enlace_auth.oauth_rules.html.md#enlace_auth.oauth_rules.OAuthKeys)(key_dir)   | The server's RSA signing key — persisted, exposed as a JWKS.   |
+|-----------------------------------------------------------------------|----------------------------------------------------------------|
+
+### *class* enlace_auth.oauth_rules.OAuthKeys(key_dir)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+The server’s RSA signing key — persisted, exposed as a JWKS.
+
+Generates a 2048-bit RSA key on first use under *key_dir* (`private_key.pem`,
+mode 0600) and reuses it thereafter, so tokens stay verifiable across restarts.
+Signs JWTs (RS256) and publishes the public half as a one-key JWKS for the
+connector’s verifier to fetch.
+
+### enlace_auth.oauth_rules.b64url(raw)
+
+URL-safe base64 without padding (the PKCE / JOSE encoding).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.oauth_rules.hash_refresh(token)
+
+Storage key for a refresh token — the token itself is never persisted.
+
+Refresh tokens are long-lived credentials. Storing them verbatim would make a
+read of the store (a backup, a stray `cat`, a misconfigured store API) a
+credential dump. Hashing means the store holds only something that can
+*recognise* a token presented back to us, never mint one.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.oauth_rules.redirect_uri_problem(uri, , https_hosts=None, allow_loopback=True, allow_private_schemes=True)
+
+Why *uri* is not an acceptable registered redirect URI, or `None`.
+
+Follows OAuth 2.1 / RFC 8252 for public clients: an absolute URI with no
+fragment; `https` for web clients; plain `http` only on a loopback host
+(native apps on a local port); private-use schemes (`cursor://...`) are
+allowed for native apps; script- and local-content schemes never are.
+Registration is anonymous, so this is the only gate on where an
+authorization code can be sent.
+
+*https_hosts*, when given, narrows `https` redirects to those hosts (a
+gateway whose clients are known); it does not touch the other kinds, so a
+server that wants only those hosts also passes *allow_loopback* False (no
+loopback `http`) and *allow_private_schemes* False (no `cursor://`).
+
+```pycon
+>>> redirect_uri_problem("cursor://cb", allow_private_schemes=False)
+"redirect_uri scheme 'cursor' is not allowed here"
+```
+
+```pycon
+>>> redirect_uri_problem("https://claude.ai/api/mcp/auth_callback") is None
+True
+>>> redirect_uri_problem("http://127.0.0.1:8765/cb", allow_loopback=False)
+'plain-http redirect_uri is only allowed on a loopback host'
+>>> redirect_uri_problem("https://evil.example/cb", https_hosts=["claude.ai"])
+"redirect_uri host 'evil.example' is not one this server accepts"
+```
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.oauth_rules.verify_pkce_s256(verifier, challenge)
+
+True iff `BASE64URL(SHA256(verifier)) == challenge` (PKCE S256, RFC 7636).
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 
 # _autosummary/enlace_auth.passkeys.core.html.md
@@ -3560,10 +3914,12 @@ So a step-up challenge commits to the action: an answer signed for one action
 cannot be presented for another.
 
 A verified step-up returns a **proof**: a signed token, valid for
-`proof_ttl` seconds, that names the account and the action. An app or a
-connector backend redeems it once ([`PasskeyService.redeem()`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyService.redeem)), stating the
-action it is about to perform; a proof for another action, an expired one or a
-spent one is refused.
+`proof_ttl` seconds, that names the account, the action and (for a step-up a
+backend requested) the audience. An app or a connector backend redeems it once
+([`PasskeyService.redeem()`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyService.redeem)), stating the action it is about to perform; a
+proof for another action or audience, an expired one or a spent one is refused.
+Proofs and requests are method-agnostic ([`enlace_auth.auth.step_up`](_autosummary/enlace_auth.auth.step_up.html.md#module-enlace_auth.auth.step_up)); the
+passkey is one method that mints them.
 
 Records. A credential is stored under `sha256(credential id)` (hex, a safe
 file name) as `{email, credential_id, public_key, user_handle, name,
@@ -3572,11 +3928,6 @@ created_at, device_type, backed_up, transports}`. Its use (`sign_count`,
 writes an orphan usage record, never a resurrected credential. The WebAuthn user
 handle is `HMAC(signing key, email)`: opaque, stable, and kept on each
 credential so a sign-in compares against what was registered.
-
-### Module Attributes
-
-| [`MAX_ACTION_LEN`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.MAX_ACTION_LEN)   | Longest action description a step-up accepts (it is shown to the user).   |
-|-------------------------------------------------------------------|---------------------------------------------------------------------------|
 
 ### Functions
 
@@ -3600,10 +3951,6 @@ credential so a sign-in compares against what was registered.
 
 | [`PasskeyError`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyError)   | A passkey request that cannot be honoured; the message is safe to show.   |
 |-----------------------------------------------------------------|---------------------------------------------------------------------------|
-
-### enlace_auth.passkeys.core.MAX_ACTION_LEN *= 300*
-
-Longest action description a step-up accepts (it is shown to the user).
 
 ### *exception* enlace_auth.passkeys.core.PasskeyError
 
@@ -3646,7 +3993,7 @@ True when *email* is required to use a passkey right now.
 * **Return type:**
   [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
-### *class* enlace_auth.passkeys.core.PasskeyService(credentials, \*, signing_key, usage=None, claim_once=None, challenge_ttl=300, proof_ttl=120, clock=<built-in function time>)
+### *class* enlace_auth.passkeys.core.PasskeyService(credentials, \*, signing_key, usage=None, claim_once=None, challenge_ttl=300, proof_ttl=120, request_ttl=900, clock=<built-in function time>)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -3658,7 +4005,8 @@ Register, sign in, step up, redeem and remove passkeys.
   * **usage** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)]) – `sha256(id) hex -> {sign_count, last_used_at}` (default: a dict).
   * **claim_once** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]]) – `claim(sha256 hex) -> bool`, True once per key; spends
     challenges and proofs (default: [`memory_claim()`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.memory_claim)).
-  * **proof_ttl** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – lifetimes in seconds.
+  * **request_ttl** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – lifetimes in seconds (a
+    backend’s step-up request must outlive a sign-in on the way).
   * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – `() -> epoch seconds`; tests pass a fake.
 
 #### count(email, , rp_id=None)
@@ -3699,6 +4047,10 @@ No `allowCredentials`: the authenticator offers the account’s passkey
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
+#### proofs
+
+Proofs and requests, shared with any other step-up method.
+
 #### records(email=None, , rp_id=None)
 
 `(key, record)` of every readable credential (of *email*, if given).
@@ -3710,15 +4062,16 @@ A damaged record is skipped, never raised: the store is hand-editable.
 * **Return type:**
   [`list`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyService.list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]]
 
-#### redeem(proof, action, , email)
+#### redeem(proof, action, , email, audience=None, methods=None)
 
 Spend a step-up proof for *action* by *email*; return what it proves.
 
-`{email, action, verified_at, method, passkey}`. Raises
-[`PasskeyError`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyError) for a forged, expired, spent, other-action or
-other-account proof, or one whose passkey has since been removed. The
-caller names the account it expects, so “someone confirmed” can never
-pass for “the owner confirmed”.
+`{email, action, audience, verified_at, method, passkey}`. Raises
+[`PasskeyError`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyError) for a forged, expired, spent, other-action,
+other-account or other-audience proof, one confirmed by a method outside
+*methods*, or one whose passkey has since been removed. The caller names
+the account it expects, so “someone confirmed” can never pass for “the
+owner confirmed”.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
@@ -3754,19 +4107,22 @@ Remove every passkey of *email*; return how many went.
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
-#### step_up(email, action, credential, rp)
+#### step_up(email, action, credential, rp, , audience=None)
 
 Verify a step-up for *action*; return `{proof, action, expires_in}`.
+
+With *audience* (a step-up a backend requested), the challenge must have
+committed to it and the proof redeems only where it is named.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
-#### step_up_options(email, action, rp)
+#### step_up_options(email, action, rp, , audience=None)
 
 Request options for confirming *action* with one of *email*’s passkeys.
 
-The challenge commits to the action. Raises [`PasskeyError`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyError) when the
-account has no passkey.
+The challenge commits to the action and the audience. Raises
+[`PasskeyError`](_autosummary/enlace_auth.passkeys.core.html.md#enlace_auth.passkeys.core.PasskeyError) when the account has no passkey.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
@@ -3984,7 +4340,7 @@ True when *email* is required to use a passkey right now.
 * **Return type:**
   [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
-### *class* enlace_auth.passkeys.PasskeyService(credentials, \*, signing_key, usage=None, claim_once=None, challenge_ttl=300, proof_ttl=120, clock=<built-in function time>)
+### *class* enlace_auth.passkeys.PasskeyService(credentials, \*, signing_key, usage=None, claim_once=None, challenge_ttl=300, proof_ttl=120, request_ttl=900, clock=<built-in function time>)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -3996,7 +4352,8 @@ Register, sign in, step up, redeem and remove passkeys.
   * **usage** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)]) – `sha256(id) hex -> {sign_count, last_used_at}` (default: a dict).
   * **claim_once** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]]) – `claim(sha256 hex) -> bool`, True once per key; spends
     challenges and proofs (default: `memory_claim()`).
-  * **proof_ttl** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – lifetimes in seconds.
+  * **request_ttl** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – lifetimes in seconds (a
+    backend’s step-up request must outlive a sign-in on the way).
   * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – `() -> epoch seconds`; tests pass a fake.
 
 #### count(email, , rp_id=None)
@@ -4037,6 +4394,10 @@ No `allowCredentials`: the authenticator offers the account’s passkey
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
+#### proofs
+
+Proofs and requests, shared with any other step-up method.
+
 #### records(email=None, , rp_id=None)
 
 `(key, record)` of every readable credential (of *email*, if given).
@@ -4048,15 +4409,16 @@ A damaged record is skipped, never raised: the store is hand-editable.
 * **Return type:**
   [`list`](_autosummary/enlace_auth.passkeys.html.md#enlace_auth.passkeys.PasskeyService.list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]]
 
-#### redeem(proof, action, , email)
+#### redeem(proof, action, , email, audience=None, methods=None)
 
 Spend a step-up proof for *action* by *email*; return what it proves.
 
-`{email, action, verified_at, method, passkey}`. Raises
-[`PasskeyError`](_autosummary/enlace_auth.passkeys.html.md#enlace_auth.passkeys.PasskeyError) for a forged, expired, spent, other-action or
-other-account proof, or one whose passkey has since been removed. The
-caller names the account it expects, so “someone confirmed” can never
-pass for “the owner confirmed”.
+`{email, action, audience, verified_at, method, passkey}`. Raises
+[`PasskeyError`](_autosummary/enlace_auth.passkeys.html.md#enlace_auth.passkeys.PasskeyError) for a forged, expired, spent, other-action,
+other-account or other-audience proof, one confirmed by a method outside
+*methods*, or one whose passkey has since been removed. The caller names
+the account it expects, so “someone confirmed” can never pass for “the
+owner confirmed”.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
@@ -4092,19 +4454,22 @@ Remove every passkey of *email*; return how many went.
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
-#### step_up(email, action, credential, rp)
+#### step_up(email, action, credential, rp, , audience=None)
 
 Verify a step-up for *action*; return `{proof, action, expires_in}`.
+
+With *audience* (a step-up a backend requested), the challenge must have
+committed to it and the proof redeems only where it is named.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
-#### step_up_options(email, action, rp)
+#### step_up_options(email, action, rp, , audience=None)
 
 Request options for confirming *action* with one of *email*’s passkeys.
 
-The challenge commits to the action. Raises [`PasskeyError`](_autosummary/enlace_auth.passkeys.html.md#enlace_auth.passkeys.PasskeyError) when the
-account has no passkey.
+The challenge commits to the action and the audience. Raises
+[`PasskeyError`](_autosummary/enlace_auth.passkeys.html.md#enlace_auth.passkeys.PasskeyError) when the account has no passkey.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
@@ -4171,11 +4536,21 @@ Both are trusted fragments the auth pages embed (`passkey_section` on the
 sign-in page, a card in `extra_section` on the account page). The ceremonies
 run in `/auth/passkeys/passkeys.js`; these fragments only wire buttons to it.
 
+### Module Attributes
+
+| [`PROOF_FRAGMENT`](_autosummary/enlace_auth.passkeys.pages.html.md#enlace_auth.passkeys.pages.PROOF_FRAGMENT)   | The fragment key the confirmation page hands a proof back under.   |
+|-------------------------------------------------------------------|--------------------------------------------------------------------|
+
 ### Functions
 
-| [`render_account_section`](_autosummary/enlace_auth.passkeys.pages.html.md#enlace_auth.passkeys.pages.render_account_section)(\*, lang)          | The account page's passkey card: the list, add, remove, sign in again.        |
-|--------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| [`render_signin_section`](_autosummary/enlace_auth.passkeys.pages.html.md#enlace_auth.passkeys.pages.render_signin_section)(\*, lang, next_url) | The sign-in page's passkey button, plus passkey autofill on its email fields. |
+| [`render_account_section`](_autosummary/enlace_auth.passkeys.pages.html.md#enlace_auth.passkeys.pages.render_account_section)(\*, lang)                  | The account page's passkey card: the list, add, remove, sign in again.        |
+|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| [`render_confirm_section`](_autosummary/enlace_auth.passkeys.pages.html.md#enlace_auth.passkeys.pages.render_confirm_section)(\*, lang, request_id, ...) | The platform's confirmation page body: the action, as the backend wrote it.   |
+| [`render_signin_section`](_autosummary/enlace_auth.passkeys.pages.html.md#enlace_auth.passkeys.pages.render_signin_section)(\*, lang, next_url)         | The sign-in page's passkey button, plus passkey autofill on its email fields. |
+
+### enlace_auth.passkeys.pages.PROOF_FRAGMENT *= 'enlace_step_up'*
+
+The fragment key the confirmation page hands a proof back under.
 
 ### enlace_auth.passkeys.pages.render_account_section(, lang)
 
@@ -4184,6 +4559,18 @@ The account page’s passkey card: the list, add, remove, sign in again.
 The add request is prepared when the page loads (and again after each use),
 so the system prompt opens straight from the tap, as Safari requires; a
 refusal there (an old or password sign-in) shows “sign in again” at once.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.passkeys.pages.render_confirm_section(, lang, request_id, action, audience, return_url)
+
+The platform’s confirmation page body: the action, as the backend wrote it.
+
+The text comes from the signed request, never from a page, and the proof is
+minted for that request only. On success the browser goes to *return_url*
+(already checked with `safe_next`) with the proof in its fragment, which
+never reaches a server log; with no *return_url* the page says it is done.
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
@@ -4216,9 +4603,16 @@ except `step-up/redeem`, see below):
 - `DELETE /auth/passkeys/{id}`              removes one (fresh sign-in needed)
 - `POST   /auth/passkeys/login/options`     request options for a sign-in by passkey
 - `POST   /auth/passkeys/login/verify`      `{credential, next?}`: opens a session
-- `POST   /auth/passkeys/step-up/options`   `{action}`: options bound to the action
-- `POST   /auth/passkeys/step-up/verify`    `{action, credential}`: `{proof, ...}`
-- `POST   /auth/passkeys/step-up/redeem`    `{proof, action, email}`: spends it
+- `POST   /auth/passkeys/step-up/request`   a backend’s `{email, action, audience,
+  return_url?}` with `Authorization: Bearer <audience key>`: `{request,
+  confirm_url, expires_in}`
+- `GET    /auth/passkeys/confirm?r=<request>` the platform’s confirmation page
+- `POST   /auth/passkeys/step-up/options`   `{action}` or `{request}`: options
+  bound to the action (and the request’s audience)
+- `POST   /auth/passkeys/step-up/verify`    `{action | request, credential}`:
+  `{proof, ...}`
+- `POST   /auth/passkeys/step-up/redeem`    `{proof, action, email, audience?,
+  methods?}`: spends it
 - `GET    /auth/passkeys/passkeys.js`       the browser helper, `enlacePasskeys`
 
 Adding or removing a passkey needs a session opened within `fresh_seconds`:
@@ -4231,14 +4625,26 @@ the account’s other sessions and connector refresh families
 `step-up/redeem` is called by a backend, not a browser: no cookie
 authenticates it, the proof in the body is the credential, so it is exempt from
 the CSRF double-submit (the plugin lists it). The caller names the action AND the
-account it expects; the answer (`{email, action, verified_at, method,
+account it expects; the answer (`{email, action, audience, verified_at, method,
 passkey}`) comes once.
+
+Two ways to ask for a step-up (i2mint/enlace_auth#95). A page may still call
+`step-up/options {action}` itself; such a proof carries no audience, so a
+backend that names its audience refuses it. The strong way: the backend creates
+the request (`step-up/request`, CSRF-exempt, authenticated by the audience key
+`enlace-auth step-up-key AUDIENCE` prints), and the browser opens the
+platform’s `/auth/passkeys/confirm` page, which shows the backend’s action and
+audience and mints one proof that only that audience redeems. No page chooses
+the action a proof is for, and the page refuses to be framed. What the person
+sees is guaranteed only when `/auth` is on an origin no app shares (see
+[`enlace_auth.auth.step_up`](_autosummary/enlace_auth.auth.step_up.html.md#module-enlace_auth.auth.step_up)).
 
 ### Module Attributes
 
-| [`REDEEM_PATH`](_autosummary/enlace_auth.passkeys.routes.html.md#enlace_auth.passkeys.routes.REDEEM_PATH)   | The redeem endpoint, which the plugin exempts from the CSRF check.   |
-|----------------------------------------------------------------|----------------------------------------------------------------------|
-| [`REAUTH_HEADER`](_autosummary/enlace_auth.passkeys.routes.html.md#enlace_auth.passkeys.routes.REAUTH_HEADER) | Set on a 403 that a fresh sign-in would turn into a success.         |
+| [`REDEEM_PATH`](_autosummary/enlace_auth.passkeys.routes.html.md#enlace_auth.passkeys.routes.REDEEM_PATH)   | The redeem endpoint, which the plugin exempts from the CSRF check.         |
+|----------------------------------------------------------------|----------------------------------------------------------------------------|
+| [`REQUEST_PATH`](_autosummary/enlace_auth.passkeys.routes.html.md#enlace_auth.passkeys.routes.REQUEST_PATH)  | The backend's request endpoint, exempt likewise (a bearer key, no cookie). |
+| [`REAUTH_HEADER`](_autosummary/enlace_auth.passkeys.routes.html.md#enlace_auth.passkeys.routes.REAUTH_HEADER) | Set on a 403 that a fresh sign-in would turn into a success.               |
 
 ### Functions
 
@@ -4252,6 +4658,10 @@ Set on a 403 that a fresh sign-in would turn into a success.
 ### enlace_auth.passkeys.routes.REDEEM_PATH *= '/auth/passkeys/step-up/redeem'*
 
 The redeem endpoint, which the plugin exempts from the CSRF check.
+
+### enlace_auth.passkeys.routes.REQUEST_PATH *= '/auth/passkeys/step-up/request'*
+
+The backend’s request endpoint, exempt likewise (a bearer key, no cookie).
 
 ### enlace_auth.passkeys.routes.make_passkey_router(\*, service, session_store, user_store, signing_key, relying_party, policy=None, send_email=None, on_credentials_changed=None, cookie_name='enlace_session', session_max_age=86400, secure_cookies=True, cookie_domain=None, fresh_seconds=900, public_base_url=None, pick_lang=<function <lambda>>)
 
@@ -5462,16 +5872,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-11-21 22:58 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/d248e99d088dbb8d27c7e036f94dbec94493d38c"><code>d248e99</code></a> on branch <code>main</code>, for **enlace_auth 0.1.59** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-21 23:11 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/d23d2e4b24997efd6fe2e111766afa03e92dee97"><code>d23d2e4</code></a> on branch <code>main</code>, for **enlace_auth 0.1.60** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.60) is behind the latest release on PyPI (0.1.61): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/d248e99d088dbb8d27c7e036f94dbec94493d38c"><code>d248e99d088dbb8d27c7e036f94dbec94493d38c</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/d23d2e4b24997efd6fe2e111766afa03e92dee97"><code>d23d2e4b24997efd6fe2e111766afa03e92dee97</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -5482,9 +5894,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/44959172861">44959172861</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/44960300103">44960300103</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>d248e99d088dbb8d27c7e036f94dbec94493d38c</code> (in the history of the built commit) |
+| Event commit | <code>2150d176a986dc7275c85092314ab69f0b7dc0dc</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -5509,13 +5921,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.59/">0.1.59</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.61/">0.1.61</a>, newer than the documented version (0.1.60).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout d248e99d088dbb8d27c7e036f94dbec94493d38c
+git checkout d23d2e4b24997efd6fe2e111766afa03e92dee97
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

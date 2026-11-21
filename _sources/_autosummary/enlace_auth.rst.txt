@@ -38,6 +38,7 @@
    diagnostics
    emails
    groups
+   oauth_rules
    passkeys
    ratelimit
    resource_policy

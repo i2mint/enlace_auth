@@ -26,10 +26,12 @@
 - [enlace_auth.auth.sessions](enlace_auth.auth.sessions.html.md): Session storage backed by a MutableMapping.
 - [enlace_auth.auth.share_routes](enlace_auth.auth.share_routes.html.md): &#96;/auth/shares/&#42;&#96; — the signed-in user manages the shares of their own data.
 - [enlace_auth.auth.shares](enlace_auth.auth.shares.html.md): Owner-granted data shares: let named users at one user’s per-user data in one app.
+- [enlace_auth.auth.step_up](enlace_auth.auth.step_up.html.md): Step-up proofs and step-up requests, independent of how the person confirmed.
 - [enlace_auth.config](enlace_auth.config.html.md): Auth-side configuration models.
 - [enlace_auth.diagnostics](enlace_auth.diagnostics.html.md): Auth-specific doctor checks that plug into &#96;enlace.doctor.run_doctor&#96;.
 - [enlace_auth.emails](enlace_auth.emails.html.md): One normal form for an email address, wherever one is compared.
 - [enlace_auth.groups](enlace_auth.groups.html.md): Named groups of accounts: one list of emails, referenced as &#96;@name&#96; wherever an
+- [enlace_auth.oauth_rules](enlace_auth.oauth_rules.html.md): The stateless rules of the OAuth 2.1 authorization server, importable alone.
 - [enlace_auth.passkeys](enlace_auth.passkeys.html.md): Passkeys (WebAuthn): sign-in, a step-up confirmation, and a per-account requirement.
 - [enlace_auth.passkeys.core](enlace_auth.passkeys.core.html.md): Passkey ceremonies, the step-up proof, and the passkey-required policy.
 - [enlace_auth.passkeys.pages](enlace_auth.passkeys.pages.html.md): The passkey markup on the sign-in and account pages.

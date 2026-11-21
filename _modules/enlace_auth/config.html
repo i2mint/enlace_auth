@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=755f2e77"></script>
+    <script src="../../_static/documentation_options.js?v=5fe4e9ad"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.59" />
+  <meta name="docsearch:version" content="0.1.60" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1103,6 +1103,15 @@ window.runMermaid = runMermaid;</script>
         <span class="n">gt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="n">le</span><span class="o">=</span><span class="mi">900</span><span class="p">,</span>
         <span class="n">description</span><span class="o">=</span><span class="s2">"How long a step-up proof may wait before it is redeemed."</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">step_up_request_ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">900</span><span class="p">,</span>
+        <span class="n">gt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">le</span><span class="o">=</span><span class="mi">3600</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"How long a backend's step-up request stays confirmable; it must "</span>
+            <span class="s2">"cover a sign-in on the way to the confirmation page."</span>
+        <span class="p">),</span>
     <span class="p">)</span>
 
     <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"rp_id"</span><span class="p">)</span>

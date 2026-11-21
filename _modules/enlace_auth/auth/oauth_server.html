@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=755f2e77"></script>
+    <script src="../../../_static/documentation_options.js?v=5fe4e9ad"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.59" />
+  <meta name="docsearch:version" content="0.1.60" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -754,7 +754,6 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">hmac</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
@@ -764,7 +763,6 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">islice</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Optional</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlencode</span>
 
@@ -780,6 +778,18 @@ window.runMermaid = runMermaid;</script>
     <span class="n">subject_revoked_before</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.auth.sessions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SessionStore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.oauth_rules</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># the stateless rules (#98)</span>
+    <span class="n">OAuthKeys</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.oauth_rules</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">hash_refresh</span> <span class="k">as</span> <span class="n">_hash_refresh</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.oauth_rules</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">redirect_uri_problem</span> <span class="k">as</span> <span class="n">_redirect_uri_problem</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.oauth_rules</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">verify_pkce_s256</span> <span class="k">as</span> <span class="n">_verify_pkce_s256</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.resource_policy</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ANY_ACCOUNT</span><span class="p">,</span>
     <span class="n">check_require_consent</span><span class="p">,</span>
@@ -791,9 +801,8 @@ window.runMermaid = runMermaid;</script>
 
 <span class="n">_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">"enlace_auth"</span><span class="p">)</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"ANY_ACCOUNT"</span><span class="p">,</span> <span class="s2">"OAuthKeys"</span><span class="p">,</span> <span class="s2">"make_oauth_server_router"</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"ANY_ACCOUNT"</span><span class="p">,</span> <span class="s2">"Identity"</span><span class="p">,</span> <span class="s2">"OAuthKeys"</span><span class="p">,</span> <span class="s2">"make_oauth_server_router"</span><span class="p">]</span>
 
-<span class="n">_REFRESH_SALT</span> <span class="o">=</span> <span class="s2">"oauth-refresh"</span>  <span class="c1"># domain separation for refresh-token hashing</span>
 
 <span class="n">_CONSENT_SALT</span> <span class="o">=</span> <span class="s2">"oauth-consent"</span>  <span class="c1"># CSRF token salt for the consent form</span>
 <span class="n">_CONSENT_TTL</span> <span class="o">=</span> <span class="mi">600</span>  <span class="c1"># seconds a rendered consent form stays submittable (#49)</span>
@@ -808,22 +817,6 @@ window.runMermaid = runMermaid;</script>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_now</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_b64u</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""URL-safe base64 without padding (the PKCE / JOSE encoding)."""</span>
-    <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64encode</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="sa">b</span><span class="s2">"="</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"ascii"</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_hash_refresh</span><span class="p">(</span><span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Storage key for a refresh token — the token itself is never persisted.</span>
-
-<span class="sd">    Refresh tokens are long-lived credentials. Storing them verbatim would make a</span>
-<span class="sd">    read of the store (a backup, a stray ``cat``, a misconfigured store API) a</span>
-<span class="sd">    credential dump. Hashing means the store holds only something that can</span>
-<span class="sd">    *recognise* a token presented back to us, never mint one.</span>
-<span class="sd">    """</span>
-    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_REFRESH_SALT</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2">"</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_sweep_expired</span><span class="p">(</span>
@@ -876,62 +869,6 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">removed</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_verify_pkce_s256</span><span class="p">(</span><span class="n">verifier</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">challenge</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""True iff ``BASE64URL(SHA256(verifier)) == challenge`` (PKCE S256, RFC 7636)."""</span>
-    <span class="n">expected</span> <span class="o">=</span> <span class="n">_b64u</span><span class="p">(</span><span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">verifier</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"ascii"</span><span class="p">))</span><span class="o">.</span><span class="n">digest</span><span class="p">())</span>
-    <span class="k">return</span> <span class="n">secrets</span><span class="o">.</span><span class="n">compare_digest</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">challenge</span><span class="p">)</span>
-
-
-<div class="viewcode-block" id="OAuthKeys">
-<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.oauth_server.html#enlace_auth.auth.oauth_server.OAuthKeys">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">OAuthKeys</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""The server's RSA signing key — persisted, exposed as a JWKS.</span>
-
-<span class="sd">    Generates a 2048-bit RSA key on first use under *key_dir* (``private_key.pem``,</span>
-<span class="sd">    mode 0600) and reuses it thereafter, so tokens stay verifiable across restarts.</span>
-<span class="sd">    Signs JWTs (RS256) and publishes the public half as a one-key JWKS for the</span>
-<span class="sd">    connector's verifier to fetch.</span>
-<span class="sd">    """</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">key_dir</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_pem_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dir</span> <span class="o">/</span> <span class="s2">"private_key.pem"</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_pem</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_or_create</span><span class="p">()</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">joserfc.jwk</span><span class="w"> </span><span class="kn">import</span> <span class="n">RSAKey</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">_jwk</span> <span class="o">=</span> <span class="n">RSAKey</span><span class="o">.</span><span class="n">import_key</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pem</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">kid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_jwk</span><span class="o">.</span><span class="n">thumbprint</span><span class="p">()</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_load_or_create</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pem_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pem_path</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">()</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">cryptography.hazmat.primitives</span><span class="w"> </span><span class="kn">import</span> <span class="n">serialization</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">cryptography.hazmat.primitives.asymmetric</span><span class="w"> </span><span class="kn">import</span> <span class="n">rsa</span>
-
-        <span class="n">key</span> <span class="o">=</span> <span class="n">rsa</span><span class="o">.</span><span class="n">generate_private_key</span><span class="p">(</span><span class="n">public_exponent</span><span class="o">=</span><span class="mi">65537</span><span class="p">,</span> <span class="n">key_size</span><span class="o">=</span><span class="mi">2048</span><span class="p">)</span>
-        <span class="n">pem</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">private_bytes</span><span class="p">(</span>
-            <span class="n">serialization</span><span class="o">.</span><span class="n">Encoding</span><span class="o">.</span><span class="n">PEM</span><span class="p">,</span>
-            <span class="n">serialization</span><span class="o">.</span><span class="n">PrivateFormat</span><span class="o">.</span><span class="n">PKCS8</span><span class="p">,</span>
-            <span class="n">serialization</span><span class="o">.</span><span class="n">NoEncryption</span><span class="p">(),</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_pem_path</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span><span class="n">pem</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_pem_path</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="mo">0o600</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">pem</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">jwks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="n">pub</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_jwk</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(</span><span class="n">private</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">pub</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">"use"</span><span class="p">:</span> <span class="s2">"sig"</span><span class="p">,</span> <span class="s2">"alg"</span><span class="p">:</span> <span class="s2">"RS256"</span><span class="p">,</span> <span class="s2">"kid"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">kid</span><span class="p">})</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">"keys"</span><span class="p">:</span> <span class="p">[</span><span class="n">pub</span><span class="p">]}</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">sign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">claims</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">joserfc</span><span class="w"> </span><span class="kn">import</span> <span class="n">jwt</span>
-
-        <span class="n">header</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"alg"</span><span class="p">:</span> <span class="s2">"RS256"</span><span class="p">,</span> <span class="s2">"kid"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">kid</span><span class="p">,</span> <span class="s2">"typ"</span><span class="p">:</span> <span class="s2">"JWT"</span><span class="p">}</span>
-        <span class="k">return</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="n">claims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_jwk</span><span class="p">,</span> <span class="n">algorithms</span><span class="o">=</span><span class="p">[</span><span class="s2">"RS256"</span><span class="p">])</span></div>
-
-
-
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">_Authorized</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""A validated /authorize request (params parsed, client + redirect checked)."""</span>
@@ -942,6 +879,26 @@ window.runMermaid = runMermaid;</script>
     <span class="n">state</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">scope</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">resource</span><span class="p">:</span> <span class="nb">str</span>
+
+
+<div class="viewcode-block" id="Identity">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.oauth_server.html#enlace_auth.auth.oauth_server.Identity">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Identity</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Who is signed in, as the authorization server sees it (#98).</span>
+
+<span class="sd">    *binding* is opaque: the platform's session id, or another gateway's</span>
+<span class="sd">    revocation epoch. The consent form is bound to it, and codes and refresh</span>
+<span class="sd">    families carry it, so *may_authorize* can re-check it on every refresh.</span>
+<span class="sd">    """</span>
+
+    <span class="n">email</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">binding</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<span class="c1">#: ``may_authorize(email, resource, binding) -&gt; reason or None``.</span>
+<span class="n">MayAuthorize</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
 
 
 <div class="viewcode-block" id="make_oauth_server_router">
@@ -974,6 +931,9 @@ window.runMermaid = runMermaid;</script>
     <span class="n">resource_allowlist</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">allow_unlisted_resources</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">resource_display_names</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">current_identity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">Request</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Identity</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">login_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">may_authorize</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">MayAuthorize</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">APIRouter</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build the OAuth 2.1 authorization-server router (see the module docstring).</span>
 
@@ -1053,6 +1013,24 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    resource with no entry gets generic copy that names no product at all; never</span>
 <span class="sd">    default to a specific connector's name, or the next connector added inherits</span>
 <span class="sd">    it.</span>
+
+<span class="sd">    Three seams let a login other than enlace's sit in front of this server</span>
+<span class="sd">    (#98), each defaulting to the platform's own behaviour:</span>
+
+<span class="sd">    - *current_identity* ``(request) -&gt; Identity | None``: who is signed in. The</span>
+<span class="sd">      default reads the platform session cookie (*cookie_name*, *session_store*);</span>
+<span class="sd">      its binding is the session id.</span>
+<span class="sd">    - *login_url* ``(next) -&gt; url``: where an unauthenticated ``/authorize`` is</span>
+<span class="sd">      sent. The default is ``/auth/login?next=...``.</span>
+<span class="sd">    - *may_authorize* ``(email, resource, binding) -&gt; reason | None``: why an</span>
+<span class="sd">      identity may NOT hold a token for a resource, or ``None``. Consulted at the</span>
+<span class="sd">      consent page, the consent submit, the code exchange and every refresh</span>
+<span class="sd">      (with the binding the code or family recorded; ``None`` for one minted</span>
+<span class="sd">      before #98). The default is *resource_allowlist* plus *is_active*. A</span>
+<span class="sd">      custom one replaces both, so it must apply its own resource policy. It</span>
+<span class="sd">      must return ``None`` or a non-empty string (anything else raises), and</span>
+<span class="sd">      should refuse a ``None`` binding when its rule depends on one. An identity</span>
+<span class="sd">      with an empty email counts as not signed in.</span>
 <span class="sd">    """</span>
 
     <span class="n">check_require_consent</span><span class="p">(</span><span class="n">require_consent</span><span class="p">)</span>
@@ -1163,6 +1141,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">family_exp</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">now</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">binding</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Mint one refresh token and record its hash. Returns the plaintext.</span>
 
@@ -1185,6 +1164,7 @@ window.runMermaid = runMermaid;</script>
             <span class="s2">"family_exp"</span><span class="p">:</span> <span class="n">family_exp</span><span class="p">,</span>
             <span class="s2">"consumed_at"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="s2">"successor"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"binding"</span><span class="p">:</span> <span class="n">binding</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="k">return</span> <span class="n">token</span>
 
@@ -1284,6 +1264,67 @@ window.runMermaid = runMermaid;</script>
         <span class="n">session</span> <span class="o">=</span> <span class="n">session_store</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
         <span class="n">email</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">)</span> <span class="k">if</span> <span class="n">session</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">email</span><span class="p">)</span> <span class="k">if</span> <span class="n">email</span> <span class="k">else</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_platform_identity</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Identity</span><span class="p">]:</span>
+        <span class="n">sid</span><span class="p">,</span> <span class="n">email</span> <span class="o">=</span> <span class="n">_current_session</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Identity</span><span class="p">(</span><span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">,</span> <span class="n">binding</span><span class="o">=</span><span class="n">sid</span><span class="p">)</span> <span class="k">if</span> <span class="n">email</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_platform_login_url</span><span class="p">(</span><span class="n">next_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"/auth/login?</span><span class="si">{</span><span class="n">urlencode</span><span class="p">({</span><span class="s1">'next'</span><span class="p">:</span><span class="w"> </span><span class="n">next_url</span><span class="p">})</span><span class="si">}</span><span class="s2">"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_platform_may_authorize</span><span class="p">(</span>
+        <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">resource</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">binding</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_resource_allowed</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">email</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">"subject no longer on the resource allowlist"</span>
+        <span class="k">if</span> <span class="n">is_active</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_active</span><span class="p">(</span><span class="n">email</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">"subject no longer has an active account"</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_platform_consent_refusal</span><span class="p">(</span>
+        <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">resource</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">binding</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="c1"># The platform's consent screen checks the allowlist only, as before #98:</span>
+        <span class="c1"># a signed-in account is active, and the exchange re-checks it.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_resource_allowed</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">email</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">"subject not on the resource allowlist"</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_strict</span><span class="p">(</span><span class="n">check</span><span class="p">:</span> <span class="n">MayAuthorize</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MayAuthorize</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""A gateway's check, read strictly: ``None`` allows, a reason refuses.</span>
+
+<span class="sd">        Anything else (``True``/``False`` from a yes-or-no reading of the name,</span>
+<span class="sd">        an empty string) raises instead of being guessed at, since one of the</span>
+<span class="sd">        two guesses fails open.</span>
+<span class="sd">        """</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">checked</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">resource</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">binding</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+            <span class="n">reason</span> <span class="o">=</span> <span class="n">check</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">binding</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">reason</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reason</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">reason</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">reason</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">"may_authorize must return None (allowed) or a non-empty reason "</span>
+                <span class="sa">f</span><span class="s2">"string (refused), not </span><span class="si">{</span><span class="n">reason</span><span class="si">!r}</span><span class="s2">"</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">checked</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_signed_in</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Identity</span><span class="p">]:</span>
+        <span class="n">who</span> <span class="o">=</span> <span class="p">(</span><span class="n">current_identity</span> <span class="ow">or</span> <span class="n">_platform_identity</span><span class="p">)(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">who</span> <span class="k">if</span> <span class="n">who</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">who</span><span class="o">.</span><span class="n">email</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="n">_identity</span> <span class="o">=</span> <span class="n">_signed_in</span>
+    <span class="n">_login_url</span> <span class="o">=</span> <span class="n">login_url</span> <span class="ow">or</span> <span class="n">_platform_login_url</span>
+    <span class="n">_refusal</span> <span class="o">=</span> <span class="n">_strict</span><span class="p">(</span><span class="n">may_authorize</span><span class="p">)</span> <span class="k">if</span> <span class="n">may_authorize</span> <span class="k">else</span> <span class="n">_platform_may_authorize</span>
+    <span class="n">_consent_refusal</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">_strict</span><span class="p">(</span><span class="n">may_authorize</span><span class="p">)</span> <span class="k">if</span> <span class="n">may_authorize</span> <span class="k">else</span> <span class="n">_platform_consent_refusal</span>
+    <span class="p">)</span>
+    <span class="c1"># The platform's own binding is its session id, which only the consent</span>
+    <span class="c1"># form needs: it is not written into codes and refresh records, which must</span>
+    <span class="c1"># hold no credential. A gateway's binding (an epoch) is kept for its check.</span>
+    <span class="n">_kept</span> <span class="o">=</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">b</span><span class="p">:</span> <span class="n">b</span><span class="p">)</span> <span class="k">if</span> <span class="p">(</span><span class="n">current_identity</span> <span class="ow">or</span> <span class="n">may_authorize</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">b</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_redirect_error</span><span class="p">(</span>
         <span class="n">redirect_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">desc</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
@@ -1446,7 +1487,9 @@ window.runMermaid = runMermaid;</script>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">auth</span><span class="p">,</span> <span class="kc">None</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_issue_code</span><span class="p">(</span><span class="n">auth</span><span class="p">:</span> <span class="n">_Authorized</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">issued_at</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_issue_code</span><span class="p">(</span>
+        <span class="n">auth</span><span class="p">:</span> <span class="n">_Authorized</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">issued_at</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">binding</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Mint a code; *issued_at* is when the session was read, not written.</span>
 
 <span class="sd">        A credential change between reading the session and writing the code</span>
@@ -1462,6 +1505,7 @@ window.runMermaid = runMermaid;</script>
             <span class="s2">"scope"</span><span class="p">:</span> <span class="n">auth</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span>
             <span class="s2">"resource"</span><span class="p">:</span> <span class="n">auth</span><span class="o">.</span><span class="n">resource</span><span class="p">,</span>
             <span class="s2">"exp"</span><span class="p">:</span> <span class="n">_now</span><span class="p">()</span> <span class="o">+</span> <span class="n">code_ttl</span><span class="p">,</span>
+            <span class="s2">"binding"</span><span class="p">:</span> <span class="n">binding</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="k">return</span> <span class="n">code</span>
 
@@ -1480,15 +1524,14 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">auth</span><span class="o">.</span><span class="n">redirect_uri</span><span class="p">,</span> <span class="s2">"invalid_request"</span><span class="p">,</span> <span class="n">auth</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="s2">"PKCE S256 required"</span>
             <span class="p">)</span>
 
-        <span class="n">sid</span><span class="p">,</span> <span class="n">email</span> <span class="o">=</span> <span class="n">_current_session</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">email</span><span class="p">:</span>
+        <span class="n">who</span> <span class="o">=</span> <span class="n">_identity</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">who</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># Reuse the platform login, returning here once authenticated.</span>
             <span class="n">here</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">request</span><span class="o">.</span><span class="n">url</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">?</span><span class="si">{</span><span class="n">request</span><span class="o">.</span><span class="n">url</span><span class="o">.</span><span class="n">query</span><span class="si">}</span><span class="s2">"</span>
-            <span class="k">return</span> <span class="n">RedirectResponse</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"/auth/login?</span><span class="si">{</span><span class="n">urlencode</span><span class="p">({</span><span class="s1">'next'</span><span class="p">:</span><span class="w"> </span><span class="n">here</span><span class="p">})</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">302</span>
-            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">RedirectResponse</span><span class="p">(</span><span class="n">_login_url</span><span class="p">(</span><span class="n">here</span><span class="p">),</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">302</span><span class="p">)</span>
+        <span class="n">email</span><span class="p">,</span> <span class="n">sid</span> <span class="o">=</span> <span class="n">who</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="n">who</span><span class="o">.</span><span class="n">binding</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">_resource_allowed</span><span class="p">(</span><span class="n">auth</span><span class="o">.</span><span class="n">resource</span><span class="p">,</span> <span class="n">email</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">_consent_refusal</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">auth</span><span class="o">.</span><span class="n">resource</span><span class="p">,</span> <span class="n">sid</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">HTMLResponse</span><span class="p">(</span>
                 <span class="n">_denied_page</span><span class="p">(</span><span class="n">email</span><span class="p">),</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">_NO_FRAMING</span>
             <span class="p">)</span>
@@ -1496,7 +1539,7 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># Always a consent page, never a code: this GET is reachable by a</span>
         <span class="c1"># cross-site navigation from any self-registered client (#46).</span>
         <span class="n">csrf</span> <span class="o">=</span> <span class="n">sign_cookie</span><span class="p">(</span>
-            <span class="n">_consent_binding</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">,</span> <span class="n">session_id</span><span class="o">=</span><span class="n">sid</span><span class="p">),</span>
+            <span class="n">_consent_binding</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">,</span> <span class="n">session_id</span><span class="o">=</span><span class="n">sid</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">),</span>
             <span class="n">signing_key</span><span class="p">,</span>
             <span class="n">salt</span><span class="o">=</span><span class="n">_CONSENT_SALT</span><span class="p">,</span>
         <span class="p">)</span>
@@ -1518,9 +1561,10 @@ window.runMermaid = runMermaid;</script>
         <span class="n">decision</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Form</span><span class="p">(</span><span class="o">...</span><span class="p">),</span>
     <span class="p">):</span>
         <span class="n">session_read_at</span> <span class="o">=</span> <span class="n">_now</span><span class="p">()</span>
-        <span class="n">sid</span><span class="p">,</span> <span class="n">email</span> <span class="o">=</span> <span class="n">_current_session</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">email</span><span class="p">:</span>
+        <span class="n">who</span> <span class="o">=</span> <span class="n">_identity</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">who</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">JSONResponse</span><span class="p">({</span><span class="s2">"error"</span><span class="p">:</span> <span class="s2">"login_required"</span><span class="p">},</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">401</span><span class="p">)</span>
+        <span class="n">email</span><span class="p">,</span> <span class="n">sid</span> <span class="o">=</span> <span class="n">who</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="n">who</span><span class="o">.</span><span class="n">binding</span>
         <span class="n">auth</span> <span class="o">=</span> <span class="n">_Authorized</span><span class="p">(</span>
             <span class="n">client_id</span><span class="p">,</span>
             <span class="n">redirect_uri</span><span class="p">,</span>
@@ -1540,7 +1584,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">token</span> <span class="o">=</span> <span class="n">verify_cookie</span><span class="p">(</span>
             <span class="n">csrf</span><span class="p">,</span> <span class="n">signing_key</span><span class="p">,</span> <span class="n">max_age</span><span class="o">=</span><span class="n">consent_ttl</span><span class="p">,</span> <span class="n">salt</span><span class="o">=</span><span class="n">_CONSENT_SALT</span>
         <span class="p">)</span>
-        <span class="n">expected</span> <span class="o">=</span> <span class="n">_consent_binding</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">,</span> <span class="n">session_id</span><span class="o">=</span><span class="n">sid</span><span class="p">)</span>
+        <span class="n">expected</span> <span class="o">=</span> <span class="n">_consent_binding</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">,</span> <span class="n">session_id</span><span class="o">=</span><span class="n">sid</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
         <span class="c1"># Bytes: compare_digest raises on a non-ASCII str (an old, pre-#49 token</span>
         <span class="c1"># carried the bare email), which would turn a stale page into a 500.</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">hmac</span><span class="o">.</span><span class="n">compare_digest</span><span class="p">(</span>
@@ -1557,11 +1601,11 @@ window.runMermaid = runMermaid;</script>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">err</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">_resource_allowed</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">email</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">_consent_refusal</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">sid</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">_redirect_error</span><span class="p">(</span><span class="n">redirect_uri</span><span class="p">,</span> <span class="s2">"access_denied"</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">decision</span> <span class="o">!=</span> <span class="s2">"approve"</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">_redirect_error</span><span class="p">(</span><span class="n">redirect_uri</span><span class="p">,</span> <span class="s2">"access_denied"</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
-        <span class="n">code</span> <span class="o">=</span> <span class="n">_issue_code</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">issued_at</span><span class="o">=</span><span class="n">session_read_at</span><span class="p">)</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">_issue_code</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">issued_at</span><span class="o">=</span><span class="n">session_read_at</span><span class="p">,</span> <span class="n">binding</span><span class="o">=</span><span class="n">_kept</span><span class="p">(</span><span class="n">sid</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">RedirectResponse</span><span class="p">(</span>
             <span class="n">_with_query</span><span class="p">(</span><span class="n">redirect_uri</span><span class="p">,</span> <span class="p">{</span><span class="s2">"code"</span><span class="p">:</span> <span class="n">code</span><span class="p">,</span> <span class="s2">"state"</span><span class="p">:</span> <span class="n">state</span><span class="p">}),</span>
             <span class="n">status_code</span><span class="o">=</span><span class="mi">302</span><span class="p">,</span>
@@ -1613,6 +1657,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">family</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">family_exp</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">now</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">binding</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Build the token payload for both grants — one shape, one place.</span>
 
@@ -1644,6 +1689,7 @@ window.runMermaid = runMermaid;</script>
             <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">,</span>
             <span class="n">family_exp</span><span class="o">=</span><span class="n">family_exp</span><span class="p">,</span>
             <span class="n">now</span><span class="o">=</span><span class="n">now</span><span class="p">,</span>
+            <span class="n">binding</span><span class="o">=</span><span class="n">binding</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">body</span><span class="p">[</span><span class="s2">"refresh_token"</span><span class="p">]</span> <span class="o">=</span> <span class="n">plaintext</span>
         <span class="k">return</span> <span class="n">body</span><span class="p">,</span> <span class="n">plaintext</span>
@@ -1690,10 +1736,8 @@ window.runMermaid = runMermaid;</script>
             <span class="k">return</span> <span class="n">JSONResponse</span><span class="p">({</span><span class="s2">"error"</span><span class="p">:</span> <span class="s2">"invalid_grant"</span><span class="p">},</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
         <span class="c1"># The consent step checked this too; re-checking at issuance means no</span>
         <span class="c1"># code minted under another configuration becomes a token under this one.</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">_resource_allowed</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">"resource"</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s2">"email"</span><span class="p">]):</span>
-            <span class="k">return</span> <span class="n">JSONResponse</span><span class="p">({</span><span class="s2">"error"</span><span class="p">:</span> <span class="s2">"invalid_grant"</span><span class="p">},</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
         <span class="c1"># Deleted or disabled since the code was minted: no token, no family.</span>
-        <span class="k">if</span> <span class="n">is_active</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_active</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">"email"</span><span class="p">]):</span>
+        <span class="k">if</span> <span class="n">_refusal</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">"email"</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s2">"resource"</span><span class="p">],</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"binding"</span><span class="p">)):</span>
             <span class="k">return</span> <span class="n">JSONResponse</span><span class="p">({</span><span class="s2">"error"</span><span class="p">:</span> <span class="s2">"invalid_grant"</span><span class="p">},</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
 
         <span class="n">body</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_token_payload</span><span class="p">(</span>
@@ -1707,6 +1751,7 @@ window.runMermaid = runMermaid;</script>
             <span class="n">family</span><span class="o">=</span><span class="n">secrets</span><span class="o">.</span><span class="n">token_urlsafe</span><span class="p">(</span><span class="mi">16</span><span class="p">),</span>
             <span class="n">family_exp</span><span class="o">=</span><span class="n">now</span> <span class="o">+</span> <span class="n">refresh_family_max_lifetime</span><span class="p">,</span>
             <span class="n">now</span><span class="o">=</span><span class="n">now</span><span class="p">,</span>
+            <span class="n">binding</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"binding"</span><span class="p">),</span>
         <span class="p">)</span>
         <span class="c1"># Housekeeping on a path that required a valid authorization code, not on</span>
         <span class="c1"># one an anonymous caller can reach.</span>
@@ -1774,11 +1819,8 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># a session can be ended before its own expiry.</span>
         <span class="n">email</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
         <span class="n">resource</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"resource"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">_resource_allowed</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">email</span><span class="p">):</span>
-            <span class="n">_revoke_family</span><span class="p">(</span><span class="n">family</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"subject no longer on the resource allowlist"</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">JSONResponse</span><span class="p">({</span><span class="s2">"error"</span><span class="p">:</span> <span class="s2">"invalid_grant"</span><span class="p">},</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">is_active</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_active</span><span class="p">(</span><span class="n">email</span><span class="p">):</span>
-            <span class="n">_revoke_family</span><span class="p">(</span><span class="n">family</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"subject no longer has an active account"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">refused</span> <span class="o">:=</span> <span class="n">_refusal</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"binding"</span><span class="p">)):</span>
+            <span class="n">_revoke_family</span><span class="p">(</span><span class="n">family</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="n">refused</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">JSONResponse</span><span class="p">({</span><span class="s2">"error"</span><span class="p">:</span> <span class="s2">"invalid_grant"</span><span class="p">},</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
 
         <span class="c1"># Consume atomically or not at all -- see _claim.</span>
@@ -1877,6 +1919,7 @@ window.runMermaid = runMermaid;</script>
             <span class="s2">"family_exp"</span><span class="p">:</span> <span class="n">family_exp</span><span class="p">,</span>
             <span class="s2">"consumed_at"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="s2">"successor"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"binding"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"binding"</span><span class="p">),</span>
         <span class="p">}</span>
         <span class="c1"># Opportunistic garbage collection, on a path that required a real</span>
         <span class="c1"># credential to reach. Sweeping before dispatch made housekeeping</span>
@@ -1963,11 +2006,8 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># someone would be defeated by them simply retrying.</span>
         <span class="n">email</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
         <span class="n">resource</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"resource"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">_resource_allowed</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">email</span><span class="p">):</span>
-            <span class="n">_revoke_family</span><span class="p">(</span><span class="n">family</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"subject no longer on the resource allowlist"</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">JSONResponse</span><span class="p">({</span><span class="s2">"error"</span><span class="p">:</span> <span class="s2">"invalid_grant"</span><span class="p">},</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">is_active</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_active</span><span class="p">(</span><span class="n">email</span><span class="p">):</span>
-            <span class="n">_revoke_family</span><span class="p">(</span><span class="n">family</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"subject no longer has an active account"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">refused</span> <span class="o">:=</span> <span class="n">_refusal</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"binding"</span><span class="p">)):</span>
+            <span class="n">_revoke_family</span><span class="p">(</span><span class="n">family</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="n">refused</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">JSONResponse</span><span class="p">({</span><span class="s2">"error"</span><span class="p">:</span> <span class="s2">"invalid_grant"</span><span class="p">},</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
 
         <span class="n">successor_key</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"successor"</span><span class="p">)</span>
@@ -2059,59 +2099,6 @@ window.runMermaid = runMermaid;</script>
 <span class="s2">  &lt;button type="submit" name="decision" value="approve"&gt;Approve&lt;/button&gt;</span>
 <span class="s2">  &lt;button type="submit" name="decision" value="deny"&gt;Deny&lt;/button&gt;</span>
 <span class="s2">&lt;/form&gt;"""</span>
-
-
-<span class="c1"># Schemes a redirect_uri may never use: each either runs script in, or reads</span>
-<span class="c1"># local state from, the page it lands on. (Browsers already refuse most of</span>
-<span class="c1"># them as a Location target; refusing them at registration keeps them out of</span>
-<span class="c1"># the store and off the consent screen.)</span>
-<span class="n">_FORBIDDEN_REDIRECT_SCHEMES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
-    <span class="p">{</span><span class="s2">"javascript"</span><span class="p">,</span> <span class="s2">"data"</span><span class="p">,</span> <span class="s2">"vbscript"</span><span class="p">,</span> <span class="s2">"file"</span><span class="p">,</span> <span class="s2">"blob"</span><span class="p">,</span> <span class="s2">"about"</span><span class="p">,</span> <span class="s2">"filesystem"</span><span class="p">}</span>
-<span class="p">)</span>
-<span class="n">_LOOPBACK_HOSTS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"localhost"</span><span class="p">,</span> <span class="s2">"127.0.0.1"</span><span class="p">,</span> <span class="s2">"::1"</span><span class="p">})</span>
-<span class="n">_MAX_REDIRECT_URI_LEN</span> <span class="o">=</span> <span class="mi">2048</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_redirect_uri_problem</span><span class="p">(</span><span class="n">uri</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Why *uri* is not an acceptable registered redirect URI, or ``None``.</span>
-
-<span class="sd">    Follows OAuth 2.1 / RFC 8252 for public clients: an absolute URI with no</span>
-<span class="sd">    fragment; ``https`` for web clients; plain ``http`` only on a loopback host</span>
-<span class="sd">    (native apps on a local port); private-use schemes (``cursor://...``) are</span>
-<span class="sd">    allowed for native apps; script- and local-content schemes never are.</span>
-<span class="sd">    Registration is anonymous, so this is the only gate on where an</span>
-<span class="sd">    authorization code can be sent.</span>
-<span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlsplit</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">uri</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">uri</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">"each redirect_uri must be a non-empty string"</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">_MAX_REDIRECT_URI_LEN</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">"redirect_uri is too long"</span>
-    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">isspace</span><span class="p">()</span> <span class="ow">or</span> <span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mh">0x20</span> <span class="ow">or</span> <span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="mh">0x7F</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">uri</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s2">"redirect_uri must not contain whitespace or control characters"</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">parts</span> <span class="o">=</span> <span class="n">urlsplit</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span>
-        <span class="n">host</span> <span class="o">=</span> <span class="n">parts</span><span class="o">.</span><span class="n">hostname</span>
-    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">"redirect_uri is not a valid URI"</span>
-    <span class="n">scheme</span> <span class="o">=</span> <span class="n">parts</span><span class="o">.</span><span class="n">scheme</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">scheme</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">"redirect_uri must be an absolute URI"</span>
-    <span class="k">if</span> <span class="n">parts</span><span class="o">.</span><span class="n">fragment</span> <span class="ow">or</span> <span class="n">uri</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"#"</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s2">"redirect_uri must not contain a fragment"</span>
-    <span class="k">if</span> <span class="n">scheme</span> <span class="ow">in</span> <span class="n">_FORBIDDEN_REDIRECT_SCHEMES</span><span class="p">:</span>
-        <span class="k">return</span> <span class="sa">f</span><span class="s2">"redirect_uri scheme </span><span class="si">{</span><span class="n">scheme</span><span class="si">!r}</span><span class="s2"> is not allowed"</span>
-    <span class="k">if</span> <span class="n">scheme</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"http"</span><span class="p">,</span> <span class="s2">"https"</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">host</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">"redirect_uri must name a host"</span>
-    <span class="k">if</span> <span class="s2">"@"</span> <span class="ow">in</span> <span class="n">parts</span><span class="o">.</span><span class="n">netloc</span> <span class="ow">or</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">"</span> <span class="ow">in</span> <span class="n">uri</span><span class="p">:</span>
-        <span class="c1"># Userinfo (``https://trusted@evil/``) and backslashes are where URL</span>
-        <span class="c1"># parsers disagree with browsers, and they let a destination read as a</span>
-        <span class="c1"># different host than the one a browser actually visits.</span>
-        <span class="k">return</span> <span class="s2">"redirect_uri must not contain userinfo or backslashes"</span>
-    <span class="k">if</span> <span class="n">scheme</span> <span class="o">==</span> <span class="s2">"http"</span> <span class="ow">and</span> <span class="n">host</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_LOOPBACK_HOSTS</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">"plain-http redirect_uri is only allowed on a loopback host"</span>
-    <span class="k">return</span> <span class="kc">None</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_redirect_destination</span><span class="p">(</span><span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>

@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=755f2e77"></script>
+    <script src="../_static/documentation_options.js?v=5fe4e9ad"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.59" />
+  <meta name="docsearch:version" content="0.1.60" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -342,12 +342,14 @@
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.sessions.html">enlace_auth.auth.sessions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.share_routes.html">enlace_auth.auth.share_routes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.shares.html">enlace_auth.auth.shares</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.step_up.html">enlace_auth.auth.step_up</a></li>
 </ul>
 </details></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.config.html">enlace_auth.config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.diagnostics.html">enlace_auth.diagnostics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.emails.html">enlace_auth.emails</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.groups.html">enlace_auth.groups</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_auth.oauth_rules.html">enlace_auth.oauth_rules</a></li>
 <li class="toctree-l2 current active has-children"><a class="reference internal" href="enlace_auth.passkeys.html">enlace_auth.passkeys</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l3 current active"><a aria-current="page" class="current reference internal" href="#">enlace_auth.passkeys.core</a></li>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.pages.html">enlace_auth.passkeys.pages</a></li>
@@ -457,10 +459,12 @@ mac from what it expects, and spends the challenge once through <em>claim_once</
 So a step-up challenge commits to the action: an answer signed for one action
 cannot be presented for another.</p>
 <p>A verified step-up returns a <strong>proof</strong>: a signed token, valid for
-<code class="docutils literal notranslate"><span class="pre">proof_ttl</span></code> seconds, that names the account and the action. An app or a
-connector backend redeems it once (<a class="reference internal" href="#enlace_auth.passkeys.core.PasskeyService.redeem" title="enlace_auth.passkeys.core.PasskeyService.redeem"><code class="xref py py-meth docutils literal notranslate"><span class="pre">PasskeyService.redeem()</span></code></a>), stating the
-action it is about to perform; a proof for another action, an expired one or a
-spent one is refused.</p>
+<code class="docutils literal notranslate"><span class="pre">proof_ttl</span></code> seconds, that names the account, the action and (for a step-up a
+backend requested) the audience. An app or a connector backend redeems it once
+(<a class="reference internal" href="#enlace_auth.passkeys.core.PasskeyService.redeem" title="enlace_auth.passkeys.core.PasskeyService.redeem"><code class="xref py py-meth docutils literal notranslate"><span class="pre">PasskeyService.redeem()</span></code></a>), stating the action it is about to perform; a
+proof for another action or audience, an expired one or a spent one is refused.
+Proofs and requests are method-agnostic (<a class="reference internal" href="enlace_auth.auth.step_up.html#module-enlace_auth.auth.step_up" title="enlace_auth.auth.step_up"><code class="xref py py-mod docutils literal notranslate"><span class="pre">enlace_auth.auth.step_up</span></code></a>); the
+passkey is one method that mints them.</p>
 <p>Records. A credential is stored under <code class="docutils literal notranslate"><span class="pre">sha256(credential</span> <span class="pre">id)</span></code> (hex, a safe
 file name) as <code class="docutils literal notranslate"><span class="pre">{email,</span> <span class="pre">credential_id,</span> <span class="pre">public_key,</span> <span class="pre">user_handle,</span> <span class="pre">name,</span>
 <span class="pre">created_at,</span> <span class="pre">device_type,</span> <span class="pre">backed_up,</span> <span class="pre">transports}</span></code>. Its use (<code class="docutils literal notranslate"><span class="pre">sign_count</span></code>,
@@ -468,15 +472,6 @@ file name) as <code class="docutils literal notranslate"><span class="pre">{emai
 writes an orphan usage record, never a resurrected credential. The WebAuthn user
 handle is <code class="docutils literal notranslate"><span class="pre">HMAC(signing</span> <span class="pre">key,</span> <span class="pre">email)</span></code>: opaque, stable, and kept on each
 credential so a sign-in compares against what was registered.</p>
-<p class="rubric">Module Attributes</p>
-<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.passkeys.core.MAX_ACTION_LEN" title="enlace_auth.passkeys.core.MAX_ACTION_LEN"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MAX_ACTION_LEN</span></code></a></p></td>
-<td><p>Longest action description a step-up accepts (it is shown to the user).</p></td>
-</tr>
-</tbody>
-</table>
-</div>
 <p class="rubric">Functions</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
@@ -528,12 +523,6 @@ credential so a sign-in compares against what was registered.</p>
 </tbody>
 </table>
 </div>
-<dl class="py data">
-<dt class="sig sig-object py" id="enlace_auth.passkeys.core.MAX_ACTION_LEN">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.passkeys.core.</span></span><span class="sig-name descname"><span class="pre">MAX_ACTION_LEN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">300</span></span><a class="headerlink" href="#enlace_auth.passkeys.core.MAX_ACTION_LEN" title="Link to this definition">#</a></dt>
-<dd><p>Longest action description a step-up accepts (it is shown to the user).</p>
-</dd></dl>
-
 <dl class="py exception">
 <dt class="sig sig-object py" id="enlace_auth.passkeys.core.PasskeyError">
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.passkeys.core.</span></span><span class="sig-name descname"><span class="pre">PasskeyError</span></span><a class="reference internal" href="../_modules/enlace_auth/passkeys/core.html#PasskeyError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.passkeys.core.PasskeyError" title="Link to this definition">#</a></dt>
@@ -587,7 +576,7 @@ guard: one lost device must not lock an account out).</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="enlace_auth.passkeys.core.PasskeyService">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.passkeys.core.</span></span><span class="sig-name descname"><span class="pre">PasskeyService</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">credentials</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">usage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claim_once</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">challenge_ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proof_ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">120</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">time&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/passkeys/core.html#PasskeyService"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.passkeys.core.PasskeyService" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.passkeys.core.</span></span><span class="sig-name descname"><span class="pre">PasskeyService</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">credentials</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">usage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">claim_once</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">challenge_ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proof_ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">120</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">900</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">time&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/passkeys/core.html#PasskeyService"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.passkeys.core.PasskeyService" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Register, sign in, step up, redeem and remove passkeys.</p>
 <dl class="field-list simple">
@@ -598,7 +587,8 @@ guard: one lost device must not lock an account out).</p>
 <li><p><strong>usage</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">MutableMapping</span></code></a>]</span>) – <code class="docutils literal notranslate"><span class="pre">sha256(id)</span> <span class="pre">hex</span> <span class="pre">-&gt;</span> <span class="pre">{sign_count,</span> <span class="pre">last_used_at}</span></code> (default: a dict).</p></li>
 <li><p><strong>claim_once</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>]]</span>) – <code class="docutils literal notranslate"><span class="pre">claim(sha256</span> <span class="pre">hex)</span> <span class="pre">-&gt;</span> <span class="pre">bool</span></code>, True once per key; spends
 challenges and proofs (default: <a class="reference internal" href="#enlace_auth.passkeys.core.memory_claim" title="enlace_auth.passkeys.core.memory_claim"><code class="xref py py-func docutils literal notranslate"><span class="pre">memory_claim()</span></code></a>).</p></li>
-<li><p><strong>proof_ttl</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – lifetimes in seconds.</p></li>
+<li><p><strong>request_ttl</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – lifetimes in seconds (a
+backend’s step-up request must outlive a sign-in on the way).</p></li>
 <li><p><strong>clock</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></a>[[], <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]</span>) – <code class="docutils literal notranslate"><span class="pre">()</span> <span class="pre">-&gt;</span> <span class="pre">epoch</span> <span class="pre">seconds</span></code>; tests pass a fake.</p></li>
 </ul>
 </dd>
@@ -660,6 +650,12 @@ challenges and proofs (default: <a class="reference internal" href="#enlace_auth
 </dl>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_auth.passkeys.core.PasskeyService.proofs">
+<span class="sig-name descname"><span class="pre">proofs</span></span><a class="headerlink" href="#enlace_auth.passkeys.core.PasskeyService.proofs" title="Link to this definition">#</a></dt>
+<dd><p>Proofs and requests, shared with any other step-up method.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="enlace_auth.passkeys.core.PasskeyService.records">
 <span class="sig-name descname"><span class="pre">records</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">email</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">rp_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/passkeys/core.html#PasskeyService.records"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.passkeys.core.PasskeyService.records" title="Link to this definition">#</a></dt>
@@ -676,13 +672,14 @@ A damaged record is skipped, never raised: the store is hand-editable.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="enlace_auth.passkeys.core.PasskeyService.redeem">
-<span class="sig-name descname"><span class="pre">redeem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proof</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">email</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/passkeys/core.html#PasskeyService.redeem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.passkeys.core.PasskeyService.redeem" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">redeem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proof</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">methods</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/passkeys/core.html#PasskeyService.redeem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.passkeys.core.PasskeyService.redeem" title="Link to this definition">#</a></dt>
 <dd><p>Spend a step-up proof for <em>action</em> by <em>email</em>; return what it proves.</p>
-<p><code class="docutils literal notranslate"><span class="pre">{email,</span> <span class="pre">action,</span> <span class="pre">verified_at,</span> <span class="pre">method,</span> <span class="pre">passkey}</span></code>. Raises
-<a class="reference internal" href="#enlace_auth.passkeys.core.PasskeyError" title="enlace_auth.passkeys.core.PasskeyError"><code class="xref py py-class docutils literal notranslate"><span class="pre">PasskeyError</span></code></a> for a forged, expired, spent, other-action or
-other-account proof, or one whose passkey has since been removed. The
-caller names the account it expects, so “someone confirmed” can never
-pass for “the owner confirmed”.</p>
+<p><code class="docutils literal notranslate"><span class="pre">{email,</span> <span class="pre">action,</span> <span class="pre">audience,</span> <span class="pre">verified_at,</span> <span class="pre">method,</span> <span class="pre">passkey}</span></code>. Raises
+<a class="reference internal" href="#enlace_auth.passkeys.core.PasskeyError" title="enlace_auth.passkeys.core.PasskeyError"><code class="xref py py-class docutils literal notranslate"><span class="pre">PasskeyError</span></code></a> for a forged, expired, spent, other-action,
+other-account or other-audience proof, one confirmed by a method outside
+<em>methods</em>, or one whose passkey has since been removed. The caller names
+the account it expects, so “someone confirmed” can never pass for “the
+owner confirmed”.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
@@ -738,8 +735,10 @@ excluding the account’s existing ones so a device is not enrolled twice.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="enlace_auth.passkeys.core.PasskeyService.step_up">
-<span class="sig-name descname"><span class="pre">step_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">credential</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/passkeys/core.html#PasskeyService.step_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.passkeys.core.PasskeyService.step_up" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">step_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">credential</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rp</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/passkeys/core.html#PasskeyService.step_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.passkeys.core.PasskeyService.step_up" title="Link to this definition">#</a></dt>
 <dd><p>Verify a step-up for <em>action</em>; return <code class="docutils literal notranslate"><span class="pre">{proof,</span> <span class="pre">action,</span> <span class="pre">expires_in}</span></code>.</p>
+<p>With <em>audience</em> (a step-up a backend requested), the challenge must have
+committed to it and the proof redeems only where it is named.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
@@ -749,10 +748,10 @@ excluding the account’s existing ones so a device is not enrolled twice.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="enlace_auth.passkeys.core.PasskeyService.step_up_options">
-<span class="sig-name descname"><span class="pre">step_up_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/passkeys/core.html#PasskeyService.step_up_options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.passkeys.core.PasskeyService.step_up_options" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">step_up_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rp</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/passkeys/core.html#PasskeyService.step_up_options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.passkeys.core.PasskeyService.step_up_options" title="Link to this definition">#</a></dt>
 <dd><p>Request options for confirming <em>action</em> with one of <em>email</em>’s passkeys.</p>
-<p>The challenge commits to the action. Raises <a class="reference internal" href="#enlace_auth.passkeys.core.PasskeyError" title="enlace_auth.passkeys.core.PasskeyError"><code class="xref py py-class docutils literal notranslate"><span class="pre">PasskeyError</span></code></a> when the
-account has no passkey.</p>
+<p>The challenge commits to the action and the audience. Raises
+<a class="reference internal" href="#enlace_auth.passkeys.core.PasskeyError" title="enlace_auth.passkeys.core.PasskeyError"><code class="xref py py-class docutils literal notranslate"><span class="pre">PasskeyError</span></code></a> when the account has no passkey.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
@@ -976,7 +975,6 @@ uses the same <code class="docutils literal notranslate"><span class="pre">O_EXC
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.passkeys.core.MAX_ACTION_LEN"><code class="docutils literal notranslate"><span class="pre">MAX_ACTION_LEN</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.passkeys.core.PasskeyError"><code class="docutils literal notranslate"><span class="pre">PasskeyError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.passkeys.core.PasskeyPolicy"><code class="docutils literal notranslate"><span class="pre">PasskeyPolicy</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.passkeys.core.PasskeyPolicy.enforced"><code class="docutils literal notranslate"><span class="pre">PasskeyPolicy.enforced()</span></code></a></li>
@@ -989,6 +987,7 @@ uses the same <code class="docutils literal notranslate"><span class="pre">O_EXC
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.passkeys.core.PasskeyService.list"><code class="docutils literal notranslate"><span class="pre">PasskeyService.list()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.passkeys.core.PasskeyService.login"><code class="docutils literal notranslate"><span class="pre">PasskeyService.login()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.passkeys.core.PasskeyService.login_options"><code class="docutils literal notranslate"><span class="pre">PasskeyService.login_options()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.passkeys.core.PasskeyService.proofs"><code class="docutils literal notranslate"><span class="pre">PasskeyService.proofs</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.passkeys.core.PasskeyService.records"><code class="docutils literal notranslate"><span class="pre">PasskeyService.records()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.passkeys.core.PasskeyService.redeem"><code class="docutils literal notranslate"><span class="pre">PasskeyService.redeem()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.passkeys.core.PasskeyService.register"><code class="docutils literal notranslate"><span class="pre">PasskeyService.register()</span></code></a></li>
