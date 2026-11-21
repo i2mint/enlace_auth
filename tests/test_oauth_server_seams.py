@@ -272,3 +272,68 @@ def test_the_rules_module_imports_no_web_framework():
 )
 def test_redirect_uri_vetting_knobs(uri, kw, ok):
     assert (oauth_rules.redirect_uri_problem(uri, **kw) is None) is ok
+
+
+# -- review of #104 ---------------------------------------------------------------
+
+
+@pytest.mark.parametrize("answer", [True, False, ""])
+def test_a_yes_or_no_answer_from_may_authorize_raises_instead_of_failing_open(
+    tmp_path, answer
+):
+    gateway = _Gateway()
+    gateway.may_authorize = lambda email, resource, binding: answer
+    client = _build(tmp_path, gateway)
+    _, challenge = _pkce()
+    with pytest.raises(TypeError, match="may_authorize must return"):
+        client.get(
+            "/auth/oauth/authorize",
+            params=_authorize_params(_register(client), challenge),
+            headers={HEADER: EMAIL},
+        )
+
+
+def test_an_identity_with_no_email_is_not_signed_in(tmp_path):
+    gateway = _Gateway()
+    gateway.identity = lambda request: Identity(email="", binding="1")
+    client = _build(tmp_path, gateway)
+    _, challenge = _pkce()
+    r = client.get(
+        "/auth/oauth/authorize",
+        params=_authorize_params(_register(client), challenge),
+        follow_redirects=False,
+    )
+    assert r.status_code == 302 and "gw.example" in r.headers["location"]
+
+
+def test_the_platforms_session_id_is_not_written_into_codes_or_families(tmp_path):
+    """With the default seams the binding is the session id: never persisted."""
+    from tests.test_oauth_server import _build as build_platform
+    from tests.test_oauth_server import _flow as platform_flow
+
+    refresh_store, code_store = {}, {}
+    client, cookie = build_platform(
+        tmp_path, refresh_store=refresh_store, code_store=code_store
+    )
+    cid = _register(client)
+    assert "refresh_token" in platform_flow(client, cookie, cid=cid)
+    records = list(refresh_store.values()) + list(code_store.values())
+    assert records and all(r.get("binding") is None for r in records)
+
+
+def test_a_gateways_binding_is_kept_in_the_family(tmp_path):
+    store = {}
+    gateway = _Gateway()
+    client = _build(tmp_path, gateway, refresh_store=store)
+    assert _flow(client, _register(client)).status_code == 200
+    assert {r.get("binding") for r in store.values() if "client_id" in r} == {"1"}
+
+
+def test_https_hosts_as_a_bare_string_is_refused():
+    with pytest.raises(TypeError, match="not a string"):
+        oauth_rules.redirect_uri_problem("https://c/cb", https_hosts="claude.ai")
+
+
+def test_a_server_can_refuse_private_schemes_too():
+    assert oauth_rules.redirect_uri_problem("cursor://cb") is None
+    assert oauth_rules.redirect_uri_problem("cursor://cb", allow_private_schemes=False)

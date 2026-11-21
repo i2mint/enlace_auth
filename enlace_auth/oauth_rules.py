@@ -96,6 +96,10 @@ class OAuthKeys:
         return jwt.encode(header, claims, self._jwk, algorithms=["RS256"])
 
 
+# Schemes a redirect_uri may never use: each either runs script in, or reads
+# local state from, the page it lands on. (Browsers already refuse most of
+# them as a Location target; refusing them at registration keeps them out of
+# the store and off the consent screen.)
 FORBIDDEN_REDIRECT_SCHEMES = frozenset(
     {"javascript", "data", "vbscript", "file", "blob", "about", "filesystem"}
 )
@@ -108,6 +112,7 @@ def redirect_uri_problem(
     *,
     https_hosts: Optional[Iterable[str]] = None,
     allow_loopback: bool = True,
+    allow_private_schemes: bool = True,
 ) -> Optional[str]:
     """Why *uri* is not an acceptable registered redirect URI, or ``None``.
 
@@ -119,8 +124,12 @@ def redirect_uri_problem(
     authorization code can be sent.
 
     *https_hosts*, when given, narrows ``https`` redirects to those hosts (a
-    gateway whose clients are known); *allow_loopback* False refuses the
-    loopback ``http`` exception (no native clients).
+    gateway whose clients are known); it does not touch the other kinds, so a
+    server that wants only those hosts also passes *allow_loopback* False (no
+    loopback ``http``) and *allow_private_schemes* False (no ``cursor://``).
+
+    >>> redirect_uri_problem("cursor://cb", allow_private_schemes=False)
+    "redirect_uri scheme 'cursor' is not allowed here"
 
     >>> redirect_uri_problem("https://claude.ai/api/mcp/auth_callback") is None
     True
@@ -158,6 +167,10 @@ def redirect_uri_problem(
         return "redirect_uri must not contain userinfo or backslashes"
     if scheme == "http" and (not allow_loopback or host not in LOOPBACK_HOSTS):
         return "plain-http redirect_uri is only allowed on a loopback host"
+    if not allow_private_schemes and scheme not in ("http", "https"):
+        return f"redirect_uri scheme {scheme!r} is not allowed here"
+    if isinstance(https_hosts, str):
+        raise TypeError("https_hosts is a collection of host names, not a string")
     if https_hosts is not None and scheme == "https":
         if (host or "").lower() not in {h.lower() for h in https_hosts}:
             return f"redirect_uri host {host!r} is not one this server accepts"

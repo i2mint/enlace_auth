@@ -87,7 +87,7 @@ from enlace_auth.stores.validation import sanitize_key
 
 _logger = logging.getLogger("enlace_auth")
 
-__all__ = ["ANY_ACCOUNT", "OAuthKeys", "make_oauth_server_router"]
+__all__ = ["ANY_ACCOUNT", "Identity", "OAuthKeys", "make_oauth_server_router"]
 
 
 _CONSENT_SALT = "oauth-consent"  # CSRF token salt for the consent form
@@ -308,7 +308,10 @@ def make_oauth_server_router(
       consent page, the consent submit, the code exchange and every refresh
       (with the binding the code or family recorded; ``None`` for one minted
       before #98). The default is *resource_allowlist* plus *is_active*. A
-      custom one replaces both, so it must apply its own resource policy.
+      custom one replaces both, so it must apply its own resource policy. It
+      must return ``None`` or a non-empty string (anything else raises), and
+      should refuse a ``None`` binding when its rule depends on one. An identity
+      with an empty email counts as not signed in.
     """
 
     check_require_consent(require_consent)
@@ -568,10 +571,41 @@ def make_oauth_server_router(
             return "subject not on the resource allowlist"
         return None
 
-    _identity = current_identity or _platform_identity
+    def _strict(check: MayAuthorize) -> MayAuthorize:
+        """A gateway's check, read strictly: ``None`` allows, a reason refuses.
+
+        Anything else (``True``/``False`` from a yes-or-no reading of the name,
+        an empty string) raises instead of being guessed at, since one of the
+        two guesses fails open.
+        """
+
+        def checked(email: str, resource: str, binding: Optional[str]):
+            reason = check(email, resource, binding)
+            if reason is None:
+                return None
+            if isinstance(reason, str) and reason:
+                return reason
+            raise TypeError(
+                "may_authorize must return None (allowed) or a non-empty reason "
+                f"string (refused), not {reason!r}"
+            )
+
+        return checked
+
+    def _signed_in(request: Request) -> Optional[Identity]:
+        who = (current_identity or _platform_identity)(request)
+        return who if who is not None and who.email else None
+
+    _identity = _signed_in
     _login_url = login_url or _platform_login_url
-    _refusal = may_authorize or _platform_may_authorize
-    _consent_refusal = may_authorize or _platform_consent_refusal
+    _refusal = _strict(may_authorize) if may_authorize else _platform_may_authorize
+    _consent_refusal = (
+        _strict(may_authorize) if may_authorize else _platform_consent_refusal
+    )
+    # The platform's own binding is its session id, which only the consent
+    # form needs: it is not written into codes and refresh records, which must
+    # hold no credential. A gateway's binding (an epoch) is kept for its check.
+    _kept = (lambda b: b) if (current_identity or may_authorize) else (lambda b: None)
 
     def _redirect_error(
         redirect_uri: str, error: str, state: str, desc: str = ""
@@ -852,7 +886,7 @@ def make_oauth_server_router(
             return _redirect_error(redirect_uri, "access_denied", state)
         if decision != "approve":
             return _redirect_error(redirect_uri, "access_denied", state)
-        code = _issue_code(auth, email, issued_at=session_read_at, binding=sid)
+        code = _issue_code(auth, email, issued_at=session_read_at, binding=_kept(sid))
         return RedirectResponse(
             _with_query(redirect_uri, {"code": code, "state": state}),
             status_code=302,
@@ -1347,10 +1381,6 @@ _CONSENT_FORM = """<form method="post" action="/auth/oauth/authorize">
 </form>"""
 
 
-# Schemes a redirect_uri may never use: each either runs script in, or reads
-# local state from, the page it lands on. (Browsers already refuse most of
-# them as a Location target; refusing them at registration keeps them out of
-# the store and off the consent screen.)
 def _redirect_destination(uri: str) -> str:
     """The part of a redirect URI a person can judge: its origin, or scheme."""
     from urllib.parse import urlsplit
