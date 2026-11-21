@@ -373,6 +373,15 @@ class PasskeysConfig(_StrictModel):
         le=900,
         description="How long a step-up proof may wait before it is redeemed.",
     )
+    step_up_request_ttl_seconds: int = Field(
+        default=900,
+        gt=0,
+        le=3600,
+        description=(
+            "How long a backend's step-up request stays confirmable; it must "
+            "cover a sign-in on the way to the confirmation page."
+        ),
+    )
 
     @field_validator("rp_id")
     @classmethod

@@ -72,6 +72,30 @@ Off by default: set `[auth.passkeys] enabled = true` (py_webauthn comes with enl
 
 **Step-up: a backend asks the account holder to confirm one action in person.** The proof is single-use, lives 120 seconds (`step_up_ttl_seconds`), and names the account and the exact action text it was signed for.
 
+**Prefer the backend-requested form.** The backend writes the action, the platform's own page shows it with the backend's audience, and the one proof it mints redeems only for that audience: no page chooses the action a proof is for, and a proof made for one app never redeems at another. What the person *sees* is guaranteed only when `/auth` is on an origin no app shares (apps on their own hosts with `[auth] cookie_domain`, passkey `origins` naming only the parent): on one shared origin an app's script can drive the same calls or script the page. The request id is signed, not encrypted, so never put a secret in the action text.
+
+1. Once, the operator gives the backend its audience key: `enlace-auth step-up-key myapp` (keep it with the backend's secrets; it rotates with the signing key).
+2. The backend creates the request and sends the person to the confirmation page:
+
+   ```python
+   r = httpx.post(
+       f"{PLATFORM}/auth/passkeys/step-up/request",
+       json={
+           "email": owner_email,
+           "action": "myapp: start job 42",
+           "audience": "myapp",
+           "return_url": "/myapp/jobs/42",
+       },  # a path on the platform
+       headers={"Authorization": f"Bearer {MYAPP_STEP_UP_KEY}"},
+   )
+   confirm_url = r.json()["confirm_url"]  # open it (link, redirect, window)
+   ```
+
+   After Face ID or Touch ID, the page goes to `return_url#enlace_step_up=<proof>`; the page there reads the proof from the fragment and posts it to its backend.
+3. The backend redeems it naming its audience: `{"proof", "action", "email", "audience": "myapp"}`. Add `"methods": ["passkey"]` to refuse any weaker step-up method added later. A proof from the page-driven form below has no audience, so this redeem refuses it.
+
+The page-driven form, still supported:
+
 1. On a page of a signed-in user (any app on the platform), show the action and **prepare the request before the tap** (Safari only opens the passkey prompt straight from a tap):
 
    ```html
@@ -95,10 +119,12 @@ Off by default: set `[auth.passkeys] enabled = true` (py_webauthn comes with enl
        json={"proof": proof, "action": action, "email": owner_email},
    )
    confirmed = r.status_code == 200
-   # 200 -> {"ok": true, "email", "action", "verified_at", "method": "passkey", "passkey"}
+   # 200 -> {"ok": true, "email", "action", "audience", "verified_at", "method": "passkey", "passkey"}
    ```
 
    A proof for another action or another account, a second redemption, an expired proof, or one whose passkey was removed answers 400; a disabled account 403; a missing field 422. Build the action text on the backend from the job itself (never from what the browser sends back) and prefix it with your app's name, since every app on the platform shares the origin.
+
+`stepUp` also resolves with `credential`, the signed WebAuthn assertion that was verified, for a verifier that checks it against public keys it pinned.
 
 Raw endpoints, for a client without the helper: `POST /auth/passkeys/step-up/options {action}` returns WebAuthn request options (base64url JSON, user verification required); `POST /auth/passkeys/step-up/verify {action, credential}` takes the `PublicKeyCredential` as JSON and returns `{proof, action, expires_in}`. Both need the session cookie and the CSRF pair.
 

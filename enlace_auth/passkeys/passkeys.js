@@ -12,6 +12,12 @@
  *     // POST /auth/passkeys/step-up/redeem {proof, action, email} before acting.
  *   };
  *
+ * A step-up a backend requested (the strong form: the text and the audience are
+ * the backend's, and the proof redeems only for that audience) is confirmed on the
+ * platform's own page, /auth/passkeys/confirm?r=<request>, which uses
+ * prepareStepUp({request: id}). stepUp resolves to {proof, action, expires_in,
+ * credential}: credential is the signed assertion that was verified.
+ *
  * Prepare first: Safari on iPhone and Mac only lets a page call the passkey
  * prompt straight from a tap, so the network round trips (CSRF token, options)
  * must happen before it. A prepared request is good for four minutes; an older
@@ -80,6 +86,7 @@
       allowCredentials: descriptors(o.allowCredentials),
     });
     delete out.action;
+    delete out.audience;
     return out;
   }
   function credentialJSON(c) {
@@ -150,18 +157,25 @@
       next: opts.next || null,
     }, p.token);
   }
-  function prepareStepUp(action) {
-    return prepare("/auth/passkeys/step-up/options", { action: action });
+  function prepareStepUp(actionOrRequest) {
+    var body = typeof actionOrRequest === "string"
+      ? { action: actionOrRequest }
+      : { request: actionOrRequest.request };
+    return prepare("/auth/passkeys/step-up/options", body);
   }
   async function stepUp(actionOrPrepared) {
     var p = typeof actionOrPrepared === "string"
       ? await prepareStepUp(actionOrPrepared)
       : await ready(actionOrPrepared, "/auth/passkeys/step-up/options", actionOrPrepared.body);
     var c = await navigator.credentials.get({ publicKey: requestOptions(p.options) });
-    return send("POST", "/auth/passkeys/step-up/verify", {
-      action: p.options.action,
-      credential: credentialJSON(c),
-    }, p.token);
+    var credential = credentialJSON(c);
+    var body = p.body && p.body.request
+      ? { request: p.body.request, credential: credential }
+      : { action: p.options.action, credential: credential };
+    var out = await send("POST", "/auth/passkeys/step-up/verify", body, p.token);
+    // The signed assertion too, for a verifier that checks it against keys it pinned.
+    out.credential = credential;
+    return out;
   }
   async function signOut() {
     return send("POST", "/auth/logout", {});

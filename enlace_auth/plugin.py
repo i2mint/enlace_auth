@@ -763,10 +763,16 @@ def _build_passkeys(
         usage=platform_factory("passkey_usage"),
         claim_once=_make_file_claim(
             Path(os.path.expanduser(auth_cfg.stores.path)) / "passkey_claims",
-            keep_seconds=2 * max(cfg.challenge_ttl_seconds, cfg.step_up_ttl_seconds),
+            keep_seconds=2
+            * max(
+                cfg.challenge_ttl_seconds,
+                cfg.step_up_ttl_seconds,
+                cfg.step_up_request_ttl_seconds,
+            ),
         ),
         challenge_ttl=cfg.challenge_ttl_seconds,
         proof_ttl=cfg.step_up_ttl_seconds,
+        request_ttl=cfg.step_up_request_ttl_seconds,
     )
     required = _expand_allowed_users(
         cfg.required,
@@ -1297,9 +1303,11 @@ def wire(parent: "FastAPI", config) -> None:
     if passkeys:
         # A backend redeems a step-up proof with no cookie at all: the proof in
         # the body is the credential, so a double-submit token protects nothing.
-        from enlace_auth.passkeys.routes import REDEEM_PATH
+        from enlace_auth.passkeys.routes import REDEEM_PATH, REQUEST_PATH
 
         csrf_exempt.append(REDEEM_PATH)
+        # A backend creates a step-up request with its audience key, no cookie.
+        csrf_exempt.append(REQUEST_PATH)
     if auth_cfg.oauth_server.enabled:
         # OAuth 2.1 server endpoints: /register + /token are cookieless
         # machine-to-machine calls (protected by PKCE + client validation), and
