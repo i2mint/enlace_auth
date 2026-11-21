@@ -124,6 +124,8 @@ The page-driven form, still supported:
 
    A proof for another action or another account, a second redemption, an expired proof, or one whose passkey was removed answers 400; a disabled account 403; a missing field 422. Build the action text on the backend from the job itself (never from what the browser sends back) and prefix it with your app's name, since every app on the platform shares the origin.
 
+**Purpose-bound passkeys** (one passkey for one kind of action, recognisable at the tap): enrol with `enlacePasskeys.prepareRegister({purpose: "confirm-jobs", label: "Start a job on my Mac"})`, then `register("", prepared)`. The system sheet names it by the label, the authenticator keeps it beside the sign-in passkey, sign-in refuses it, and a step-up uses it only when it names the purpose: `prepareStepUp({action, purpose})`, or `"purpose"` in the backend's `step-up/request`. It does not count toward `enforce_from`. `GET /auth/passkeys?purpose=confirm-jobs` returns the account's own ones with `credential_id` and `public_key` (COSE, base64url) for a verifier that pins them.
+
 `stepUp` also resolves with `credential`, the signed WebAuthn assertion that was verified, for a verifier that checks it against public keys it pinned.
 
 Raw endpoints, for a client without the helper: `POST /auth/passkeys/step-up/options {action}` returns WebAuthn request options (base64url JSON, user verification required); `POST /auth/passkeys/step-up/verify {action, credential}` takes the `PublicKeyCredential` as JSON and returns `{proof, action, expires_in}`. Both need the session cookie and the CSRF pair.

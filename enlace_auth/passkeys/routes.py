@@ -64,10 +64,12 @@ from enlace_auth.auth.cookies import sign_cookie, verify_cookie
 from enlace_auth.auth.pages import safe_next
 from enlace_auth.auth.step_up import StepUpError, same_account
 from enlace_auth.passkeys.core import (
+    ANY_PURPOSE,
     PasskeyError,
     PasskeyPolicy,
     PasskeyService,
     RelyingParty,
+    clean_purpose,
 )
 from enlace_auth.passkeys.texts import t
 
@@ -89,6 +91,12 @@ REAUTH_HEADER = "X-Enlace-Reauth"
 class _RegisterBody(BaseModel):
     credential: dict
     name: str = ""
+    purpose: Optional[str] = None
+
+
+class _RegisterOptionsBody(BaseModel):
+    purpose: Optional[str] = None
+    label: str = ""
 
 
 class _LoginBody(BaseModel):
@@ -99,11 +107,13 @@ class _LoginBody(BaseModel):
 class _ActionBody(BaseModel):
     action: Optional[str] = None
     request: Optional[str] = None
+    purpose: Optional[str] = None
 
 
 class _StepUpBody(BaseModel):
     action: Optional[str] = None
     request: Optional[str] = None
+    purpose: Optional[str] = None
     credential: dict
 
 
@@ -113,6 +123,7 @@ class _RedeemBody(BaseModel):
     email: str
     audience: Optional[str] = None
     methods: Optional[list[str]] = None
+    purpose: Optional[str] = None
 
 
 class _RequestBody(BaseModel):
@@ -120,6 +131,7 @@ class _RequestBody(BaseModel):
     action: str
     audience: str
     return_url: Optional[str] = None
+    purpose: Optional[str] = None
 
 
 def make_passkey_router(
@@ -207,7 +219,12 @@ def make_passkey_router(
                 ),
                 headers={REAUTH_HEADER: "1"},
             )
-        if record.get("method") != "passkey" and service.count(email) > 0:
+        # Any passkey, purpose-bound ones included: a password holder must not
+        # plant a second purpose passkey beside the owner's, nor remove it.
+        if (
+            record.get("method") != "passkey"
+            and service.count(email, purpose=ANY_PURPOSE) > 0
+        ):
             raise HTTPException(
                 status_code=403,
                 detail=(
@@ -263,19 +280,48 @@ def make_passkey_router(
 
     @router.get("")
     async def list_passkeys(request: Request) -> dict[str, Any]:
-        """The signed-in account's passkeys, and whether it must use one."""
+        """The signed-in account's passkeys, and whether it must use one.
+
+        ``?purpose=X`` lists only the account's passkeys for X, with each one's
+        credential id and COSE public key, for a verifier that pins them.
+        """
         email = _signed_in(request)
+        wanted = request.query_params.get("purpose")
+        try:
+            listing = (
+                service.list(email)
+                if not wanted
+                else service.list(email, purpose=clean_purpose(wanted))
+            )
+        except PasskeyError as e:
+            raise _refused(e) from None
         return {
-            "passkeys": service.list(email),
+            "passkeys": listing,
             "required": policy.requires(email),
             "enforced": policy.enforced(email),
             "enforce_from": policy.enforce_from,
         }
 
     @router.post("/register/options")
-    async def register_options(request: Request) -> dict[str, Any]:
+    async def register_options(
+        request: Request, body: Optional[_RegisterOptionsBody] = None
+    ) -> dict[str, Any]:
         email, _ = _fresh(request)
-        return service.registration_options(email, _rp(request))
+        body = body or _RegisterOptionsBody()
+        if body.purpose and service.count(email) == 0:
+            # Purpose passkeys never sign in, and changing passkeys needs a
+            # passkey sign-in once any exists: without a general one first, the
+            # account could never change its passkeys again (#97).
+            raise HTTPException(
+                status_code=409,
+                detail="Add a passkey for signing in first, then this one.",
+            )
+        try:
+            return service.registration_options(
+                email, _rp(request), purpose=body.purpose, label=body.label
+            )
+        except PasskeyError as e:
+            raise _refused(e) from None
 
     @router.post("/register/verify")
     async def register_verify(
@@ -285,7 +331,11 @@ def make_passkey_router(
         was_enforced = policy.enforced(email)
         try:
             view = service.register(
-                email, body.credential, _rp(request), name=body.name
+                email,
+                body.credential,
+                _rp(request),
+                name=body.name,
+                purpose=body.purpose,
             )
         except PasskeyError as e:
             raise _refused(e) from None
@@ -305,7 +355,24 @@ def make_passkey_router(
         passkey_id: str, request: Request, background: BackgroundTasks
     ) -> dict[str, Any]:
         email, sid = _fresh(request)
-        if policy.requires(email) and service.count(email) <= policy.enforce_from:
+        target = service.credentials.get(passkey_id)
+        bound = isinstance(target, dict) and target.get("purpose") is not None
+        general = service.count(email)
+        if (
+            not bound
+            and general <= 1
+            and service.count(email, purpose=ANY_PURPOSE) > general
+        ):
+            # Purpose passkeys never sign in, so the last general one is what
+            # lets this account sign in with a passkey to change them.
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Remove this account's purpose-bound passkeys first: this is "
+                    "the passkey that signs in to change them."
+                ),
+            )
+        if not bound and policy.requires(email) and general <= policy.enforce_from:
             # Removing one would let the password back in: only the admin's
             # CLI (remove-passkey) may take a required account below the rule.
             raise HTTPException(
@@ -354,14 +421,15 @@ def make_passkey_router(
 
     def _what_to_confirm(
         email: str, body: _ActionBody | _StepUpBody
-    ) -> tuple[Any, Optional[str]]:
-        """``(action, audience)``: the page's action, or a backend's request.
+    ) -> tuple[Any, Optional[str], Optional[str]]:
+        """``(action, audience, purpose)``: the page's, or a backend's request's.
 
         A page cannot name an audience: only a request signed with the
-        audience's key carries one. A request is for one account only.
+        audience's key carries one. A request is for one account only, and its
+        passkey purpose is the backend's (a page cannot swap it).
         """
         if body.request is None:
-            return body.action, None
+            return body.action, None, body.purpose
         try:
             wanted = service.proofs.read_request(body.request)
         except StepUpError as e:
@@ -370,7 +438,7 @@ def make_passkey_router(
             raise HTTPException(
                 status_code=403, detail="This confirmation is for another account."
             )
-        return wanted["action"], wanted["audience"]
+        return wanted["action"], wanted["audience"], wanted.get("purpose")
 
     @router.post("/step-up/request")
     async def step_up_request(body: _RequestBody, request: Request) -> dict[str, Any]:
@@ -394,8 +462,9 @@ def make_passkey_router(
                 audience=body.audience,
                 key=key.strip(),
                 return_url=back,
+                purpose=clean_purpose(body.purpose),
             )
-        except StepUpError as e:
+        except (StepUpError, PasskeyError) as e:
             status = 401 if "key" in str(e) else 400
             raise HTTPException(status_code=status, detail=str(e)) from None
         base = (public_base_url or str(request.base_url)).rstrip("/")
@@ -464,22 +533,32 @@ def make_passkey_router(
     @router.post("/step-up/options")
     async def step_up_options(body: _ActionBody, request: Request) -> dict[str, Any]:
         email = _signed_in(request)
-        action, audience = _what_to_confirm(email, body)
+        action, audience, purpose = _what_to_confirm(email, body)
         try:
             return service.step_up_options(
-                email, action, _rp(request), audience=audience
+                email, action, _rp(request), audience=audience, purpose=purpose
             )
         except PasskeyError as e:
-            status = 409 if service.count(email) == 0 else 400
+            none_yet = (
+                service.count(email, purpose=purpose) == 0
+                if purpose
+                else (service.count(email) == 0)
+            )
+            status = 409 if none_yet else 400
             raise HTTPException(status_code=status, detail=str(e)) from None
 
     @router.post("/step-up/verify")
     async def step_up_verify(body: _StepUpBody, request: Request) -> dict[str, Any]:
         email = _signed_in(request)
-        action, audience = _what_to_confirm(email, body)
+        action, audience, purpose = _what_to_confirm(email, body)
         try:
             proven = service.step_up(
-                email, action, body.credential, _rp(request), audience=audience
+                email,
+                action,
+                body.credential,
+                _rp(request),
+                audience=audience,
+                purpose=purpose,
             )
             if body.request is not None:
                 # Spent only once the passkey checked out, and before the proof
@@ -498,6 +577,7 @@ def make_passkey_router(
                 email=body.email,
                 audience=body.audience,
                 methods=body.methods,
+                purpose=body.purpose,
             )
         except PasskeyError as e:
             raise _refused(e) from None

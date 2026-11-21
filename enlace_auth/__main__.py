@@ -923,7 +923,11 @@ def remove_passkey(
     # The account may be keyed under either spelling of its address (an OAuth
     # sign-up keeps the punycode one): try both.
     spellings = account_spellings(_normalized_email(email))
-    key = next((k for k in spellings if service.count(k)), spellings[0])
+    from enlace_auth.passkeys.core import ANY_PURPOSE
+
+    key = next(
+        (k for k in spellings if service.count(k, purpose=ANY_PURPOSE)), spellings[0]
+    )
     if all:
         removed = service.remove_account(key)
     elif passkey_id:

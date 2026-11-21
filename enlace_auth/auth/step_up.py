@@ -140,13 +140,40 @@ def audience_key(signing_key: str, audience: str) -> str:
     ).hexdigest()
 
 
-def challenge_binding(action: str, audience: Optional[str]) -> str:
-    """The text a step-up challenge commits to: the action, and its audience.
+def challenge_binding(
+    action: str, audience: Optional[str], purpose: Optional[str] = None
+) -> str:
+    """The text a step-up challenge commits to: the action, audience and purpose.
 
-    The NUL cannot occur in a clean action or audience, so the pair is unambiguous,
-    and an audience-less binding is the action alone (as before #95).
+    NUL and SOH cannot occur in a clean action, audience or purpose, and each
+    has its own separator, so the triple is unambiguous; an audience-less,
+    purpose-less binding is the action alone (as before #95).
     """
-    return action if audience is None else f"{audience}\x00{action}"
+    bound = action if audience is None else f"{audience}\x00{action}"
+    return bound if purpose is None else f"{bound}\x01{purpose}"
+
+
+def purpose_problem(purpose: Optional[str], audience: Optional[str]) -> Optional[str]:
+    """Why a backend for *audience* may not ask for a passkey of *purpose*, or None.
+
+    A purpose belongs to the audience whose name it starts with (``jobs`` or
+    ``jobs.confirm`` for the audience ``jobs``), so no backend can borrow another
+    app's purpose passkey, and so its label, for its own action (#97).
+
+    >>> purpose_problem("jobs.confirm", "jobs") is None
+    True
+    >>> purpose_problem("jobs.confirm", "billing")  # doctest: +ELLIPSIS
+    "purpose 'jobs.confirm' is not one of audience 'billing' (...)"
+    """
+    if purpose is None or (
+        audience is not None
+        and (purpose == audience or purpose.startswith(audience + "."))
+    ):
+        return None
+    return (
+        f"purpose {purpose!r} is not one of audience {audience!r} "
+        f"({audience!r} or '{audience}.<name>')"
+    )
 
 
 class StepUpProofs:
@@ -209,8 +236,12 @@ class StepUpProofs:
         method: str,
         audience: Optional[str] = None,
         ref: Optional[str] = None,
+        purpose: Optional[str] = None,
     ) -> dict:
         """A proof that *email* confirmed *action* by *method*.
+
+        *purpose* records which purpose-bound credential confirmed it (#97):
+        such a proof redeems only where that purpose is named.
 
         *ref* is the method's own reference (a passkey's key), returned on
         redemption so the method can check it still stands.
@@ -228,6 +259,8 @@ class StepUpProofs:
             payload["k"] = ref
         if audience is not None:
             payload["u"] = audience
+        if purpose is not None:
+            payload["p"] = clean_audience(purpose)
         out = {
             "proof": self._serializer(_PROOF_SALT).dumps(payload),
             "action": action,
@@ -246,6 +279,7 @@ class StepUpProofs:
         audience: Optional[str] = None,
         methods: Optional[Iterable[str]] = None,
         still_valid: Optional[Callable[[dict], Optional[str]]] = None,
+        purpose: Optional[str] = None,
     ) -> dict:
         """Spend *proof* for *action* by *email*; return what it proves.
 
@@ -268,6 +302,8 @@ class StepUpProofs:
             raise StepUpError("This step-up proof is for another account.")
         if (payload.get("u") or None) != audience:
             raise StepUpError("This step-up proof is for another audience.")
+        if (payload.get("p") or None) != clean_audience(purpose):
+            raise StepUpError("This step-up proof was made with another passkey kind.")
         method = payload.get("m") or "passkey"  # minted before #95: passkey only
         if methods is not None and method not in set(methods):
             raise StepUpError(f"This step-up was confirmed by {method}, refused here.")
@@ -295,6 +331,7 @@ class StepUpProofs:
         audience: Any,
         key: str,
         return_url: Optional[str] = None,
+        purpose: Optional[str] = None,
     ) -> str:
         """A signed step-up request, for a backend holding *audience*'s key.
 
@@ -319,6 +356,11 @@ class StepUpProofs:
         }
         if return_url:
             payload["r"] = str(return_url)
+        if purpose is not None:
+            purpose = clean_audience(purpose)  # a passkey purpose (#97)
+            if problem := purpose_problem(purpose, audience):
+                raise StepUpError(problem)
+            payload["p"] = purpose
         return self._serializer(_REQUEST_SALT).dumps(payload)
 
     def spend_request(self, request_id: str) -> None:
@@ -346,6 +388,7 @@ class StepUpProofs:
                 "action": clean_action(payload["a"]),
                 "audience": clean_audience(payload["u"]),
                 "return_url": payload.get("r"),
+                "purpose": clean_audience(payload.get("p")),
             }
         except KeyError:
             raise StepUpError("Not a step-up request.") from None

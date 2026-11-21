@@ -97,6 +97,7 @@ def render_account_section(*, lang: str) -> str:
         "last_used",
         "never_used",
         "synced",
+        "for_purpose",
     )
     texts = _js_string(json.dumps(texts_for(lang, keys)))
     return f"""{_CSS}<div class="card" id="pk-card">
@@ -147,7 +148,8 @@ async function refresh() {{
     const meta = document.createElement('span'); meta.className = 'meta';
     meta.textContent = T.created + ' ' + when(pk.created_at) + ' · ' +
       (pk.last_used_at ? T.last_used + ' ' + when(pk.last_used_at) : T.never_used) +
-      (pk.synced ? ' · ' + T.synced : '');
+      (pk.synced ? ' · ' + T.synced : '') +
+      (pk.purpose ? ' · ' + T.for_purpose.replace('{{purpose}}', pk.purpose) : '');
     label.appendChild(meta);
     const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'danger';
     rm.textContent = T.remove;
