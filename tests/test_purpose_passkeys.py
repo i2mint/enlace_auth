@@ -329,3 +329,15 @@ def test_an_empty_purpose_filter_lists_without_key_material(platform):
     client, _, _ = _with_purpose_passkey(platform)
     listed = client.get("/auth/passkeys", params={"purpose": ""}).json()["passkeys"]
     assert all("public_key" not in p for p in listed)
+
+
+def test_a_purpose_passkey_needs_a_sign_in_passkey_first(platform):
+    """So an account always keeps a passkey it can sign in with to change them."""
+    client = platform()
+    assert _sign_in(client).status_code == 200
+    r = client.post(
+        "/auth/passkeys/register/options",
+        json={"purpose": PURPOSE, "label": LABEL},
+        headers=_csrf(client),
+    )
+    assert r.status_code == 409

@@ -308,6 +308,14 @@ def make_passkey_router(
     ) -> dict[str, Any]:
         email, _ = _fresh(request)
         body = body or _RegisterOptionsBody()
+        if body.purpose and service.count(email) == 0:
+            # Purpose passkeys never sign in, and changing passkeys needs a
+            # passkey sign-in once any exists: without a general one first, the
+            # account could never change its passkeys again (#97).
+            raise HTTPException(
+                status_code=409,
+                detail="Add a passkey for signing in first, then this one.",
+            )
         try:
             return service.registration_options(
                 email, _rp(request), purpose=body.purpose, label=body.label
