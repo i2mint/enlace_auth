@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="_static/documentation_options.js?v=cc64e7de"></script>
+    <script src="_static/documentation_options.js?v=681c63c7"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.62" />
+  <meta name="docsearch:version" content="0.1.63" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -341,7 +341,7 @@
 <p>Humans who still type their code by hand: <a class="reference internal" href="#for-the-free-range-hand-coded-developer">For the free-range, hand-coded developer</a>.</p>
 <section id="for-coding-agents">
 <h2>For coding agents<a class="headerlink" href="#for-coding-agents" title="Link to this heading">#</a></h2>
-<p>Read <a class="reference internal" href="#CLAUDE.md"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">CLAUDE.md</span></code></span></a> first: it has the architecture map, the test command and the invariants a change must keep. This package is the security boundary of the platform, so a behavior change here is a security change.</p>
+<p>Read <a class="reference external" href="https://github.com/i2mint/enlace_auth/blob/HEAD/CLAUDE.md"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">CLAUDE.md</span></code></span></a> first: it has the architecture map, the test command and the invariants a change must keep. This package is the security boundary of the platform, so a behavior change here is a security change.</p>
 <p>Two skills live in this repo:</p>
 <div class="pst-scrollable-table-container"><table class="table">
 <thead>
@@ -712,7 +712,7 @@ enlace-auth<span class="w"> </span>revoke-share<span class="w"> </span>practice<
 </div>
 <p>A signed-in owner manages their own shares at <code class="docutils literal notranslate"><span class="pre">/auth/shares/{app}</span></code> (<code class="docutils literal notranslate"><span class="pre">GET</span></code>, <code class="docutils literal notranslate"><span class="pre">PUT</span> <span class="pre">…/{grantee}</span></code>, <code class="docutils literal notranslate"><span class="pre">DELETE</span> <span class="pre">…/{grantee}</span></code>; a grantee leaves with <code class="docutils literal notranslate"><span class="pre">DELETE</span> <span class="pre">…/received/{owner}</span></code>); an admin uses <code class="docutils literal notranslate"><span class="pre">/_admin/api/shares</span></code>. A grantee then reads the owner’s data with <code class="docutils literal notranslate"><span class="pre">?owner=&lt;email&gt;</span></code> on the per-user store: <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/{app}/store?prefix=…&amp;owner=…</span></code> lists it, and every route takes <code class="docutils literal notranslate"><span class="pre">If-Match</span></code> so two devices cannot silently overwrite each other. A share names existing accounts only and is removed with either account.</p>
 <p>Upgrading: store writes (<code class="docutils literal notranslate"><span class="pre">PUT</span></code>/<code class="docutils literal notranslate"><span class="pre">DELETE</span> <span class="pre">/api/{app}/store/...</span></code>) now require the <code class="docutils literal notranslate"><span class="pre">X-CSRF-Token</span></code> header (from <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/auth/csrf</span></code>), and <code class="docutils literal notranslate"><span class="pre">/api/{app}/store</span></code> is reserved for the platform. A share does not bypass an app’s <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code>.</p>
-<p>An app gets a per-user store when its <code class="docutils literal notranslate"><span class="pre">access</span></code> is <code class="docutils literal notranslate"><span class="pre">protected:user</span></code>, or when its <code class="docutils literal notranslate"><span class="pre">app.toml</span></code> sets <code class="docutils literal notranslate"><span class="pre">user_store</span> <span class="pre">=</span> <span class="pre">true</span></code> — which lets a <strong>public</strong> app keep data for the visitors who sign in while staying open to everyone else. The design and its review are in <a class="reference internal" href="#misc/docs/decisions/0001-owner-granted-data-shares.md"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">misc/docs/decisions/0001-owner-granted-data-shares.md</span></code></span></a>.</p>
+<p>An app gets a per-user store when its <code class="docutils literal notranslate"><span class="pre">access</span></code> is <code class="docutils literal notranslate"><span class="pre">protected:user</span></code>, or when its <code class="docutils literal notranslate"><span class="pre">app.toml</span></code> sets <code class="docutils literal notranslate"><span class="pre">user_store</span> <span class="pre">=</span> <span class="pre">true</span></code> — which lets a <strong>public</strong> app keep data for the visitors who sign in while staying open to everyone else. The design and its review are in <a class="reference external" href="https://github.com/i2mint/enlace_auth/blob/HEAD/misc/docs/decisions/0001-owner-granted-data-shares.md"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">misc/docs/decisions/0001-owner-granted-data-shares.md</span></code></span></a>.</p>
 </section>
 <section id="doctor-checks">
 <h2>Doctor checks<a class="headerlink" href="#doctor-checks" title="Link to this heading">#</a></h2>
@@ -738,7 +738,7 @@ python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> <
 </pre></div>
 </div>
 <ul class="simple">
-<li><p><strong>Design.</strong> Pure ASGI middleware, deny by default, storage behind <code class="docutils literal notranslate"><span class="pre">MutableMapping</span></code>s so tests use dicts or a temp directory. The reasoning for owner-granted shares is in <a class="reference internal" href="#misc/docs/decisions/0001-owner-granted-data-shares.md"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">misc/docs/decisions/0001-owner-granted-data-shares.md</span></code></span></a>.</p></li>
+<li><p><strong>Design.</strong> Pure ASGI middleware, deny by default, storage behind <code class="docutils literal notranslate"><span class="pre">MutableMapping</span></code>s so tests use dicts or a temp directory. The reasoning for owner-granted shares is in <a class="reference external" href="https://github.com/i2mint/enlace_auth/blob/HEAD/misc/docs/decisions/0001-owner-granted-data-shares.md"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">misc/docs/decisions/0001-owner-granted-data-shares.md</span></code></span></a>.</p></li>
 <li><p><strong>Status.</strong> Extracted from <code class="docutils literal notranslate"><span class="pre">enlace</span></code> 0.0.11. The Python API is stable; an admin frontend ships separately as a normal enlaced app.</p></li>
 <li><p><strong>Contributing.</strong> Open an issue first for anything larger than a focused fix. A fix comes with a test that fails without it. CI formats the code and bumps the version, so leave <code class="docutils literal notranslate"><span class="pre">version</span></code> alone.</p></li>
 <li><p><strong>Questions and bugs.</strong> <a class="reference external" href="https://github.com/i2mint/enlace_auth/issues">GitHub issues</a>.</p></li>
@@ -750,7 +750,7 @@ python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> <
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-21 23:28 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/3c9328a800af25fadb47d51929f442e1826bad89">3c9328a</a> (main) · enlace_auth 0.1.62 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-25 09:55 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/cb77efbd24432ebe44ceac4e884dd5b7489237b3">cb77efb</a> (main) · enlace_auth 0.1.63 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               

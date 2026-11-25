@@ -17,6 +17,14 @@ Runs before any mounted sub-app. Responsibilities:
    session from `SessionStore`, set `user_id` / `user_email`; on
    failure return 401 (JSON) or redirect browsers to `login_redirect_path`.
 
+Wherever `user_email` is set, `user_groups` is set beside it: a `frozenset` of the
+group names the account belongs to (`[auth.groups]`, plus `"admins"`), from the
+`groups_of` resolver. All three are assigned at the top of every request, never
+`setdefault`, so neither a client (headers are stripped, the session cookie is
+signed) nor another app’s lifespan state can seed them; with no account they are empty.
+A `protected:shared` app reads no user session, so its `user_groups` is always
+empty (i2mint/enlace_auth#108).
+
 Browser vs. API deny behavior: GET/HEAD navigations that look like a browser
 (`Accept` header contains `text/html`) get a 303 redirect to the login
 page with `?login_required=1&next=<original-path>`, so the user lands
@@ -67,7 +75,7 @@ pre-enlace apps working out of the box without each having to implement
 the `/auth/csrf` double-submit flow. The auth endpoints themselves
 (`/auth/login`, `/auth/register`, `/auth/logout`) stay protected.
 
-### *class* enlace_auth.auth.middleware.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', shared_login_path=None, dynamic_allowed_users=None, cookie_domain=None)
+### *class* enlace_auth.auth.middleware.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', shared_login_path=None, dynamic_allowed_users=None, cookie_domain=None, groups_of=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 

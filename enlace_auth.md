@@ -1,4 +1,4 @@
-> built 2026-11-21 23:28 UTC from 3c9328a (main) · enlace_auth 0.1.62. Details: build_info.json
+> built 2026-11-25 09:55 UTC from cb77efb (main) · enlace_auth 0.1.63. Details: build_info.json
 
 # index.html.md
 
@@ -1427,7 +1427,7 @@ Unicode), which is why the caller is told which.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
-### *class* enlace_auth.auth.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', shared_login_path=None, dynamic_allowed_users=None, cookie_domain=None)
+### *class* enlace_auth.auth.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', shared_login_path=None, dynamic_allowed_users=None, cookie_domain=None, groups_of=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -1696,6 +1696,14 @@ Runs before any mounted sub-app. Responsibilities:
    session from `SessionStore`, set `user_id` / `user_email`; on
    failure return 401 (JSON) or redirect browsers to `login_redirect_path`.
 
+Wherever `user_email` is set, `user_groups` is set beside it: a `frozenset` of the
+group names the account belongs to (`[auth.groups]`, plus `"admins"`), from the
+`groups_of` resolver. All three are assigned at the top of every request, never
+`setdefault`, so neither a client (headers are stripped, the session cookie is
+signed) nor another app’s lifespan state can seed them; with no account they are empty.
+A `protected:shared` app reads no user session, so its `user_groups` is always
+empty (i2mint/enlace_auth#108).
+
 Browser vs. API deny behavior: GET/HEAD navigations that look like a browser
 (`Accept` header contains `text/html`) get a 303 redirect to the login
 page with `?login_required=1&next=<original-path>`, so the user lands
@@ -1746,7 +1754,7 @@ pre-enlace apps working out of the box without each having to implement
 the `/auth/csrf` double-submit flow. The auth endpoints themselves
 (`/auth/login`, `/auth/register`, `/auth/logout`) stay protected.
 
-### *class* enlace_auth.auth.middleware.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', shared_login_path=None, dynamic_allowed_users=None, cookie_domain=None)
+### *class* enlace_auth.auth.middleware.PlatformAuthMiddleware(app, , access_rules, session_store, signing_key, cookie_name='enlace_session', max_age=86400, auth_path_prefix='/auth', login_redirect_path='/', shared_login_path=None, dynamic_allowed_users=None, cookie_domain=None, groups_of=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -5931,16 +5939,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-11-21 23:28 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/3c9328a800af25fadb47d51929f442e1826bad89"><code>3c9328a</code></a> on branch <code>main</code>, for **enlace_auth 0.1.62** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-25 09:55 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/cb77efbd24432ebe44ceac4e884dd5b7489237b3"><code>cb77efb</code></a> on branch <code>main</code>, for **enlace_auth 0.1.63** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.63) is behind the latest release on PyPI (0.1.64): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/3c9328a800af25fadb47d51929f442e1826bad89"><code>3c9328a800af25fadb47d51929f442e1826bad89</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/cb77efbd24432ebe44ceac4e884dd5b7489237b3"><code>cb77efbd24432ebe44ceac4e884dd5b7489237b3</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -5951,15 +5961,15 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/44961735242">44961735242</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/45589513913">45589513913</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>3c9328a800af25fadb47d51929f442e1826bad89</code> (in the history of the built commit) |
+| Event commit | <code>cb77efbd24432ebe44ceac4e884dd5b7489237b3</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.23  |
+| epythet  | 0.2.25  |
 | Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
 | Python   | 3.12.16 |
@@ -5978,14 +5988,14 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.62/">0.1.62</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.64/">0.1.64</a>, newer than the documented version (0.1.63).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout 3c9328a800af25fadb47d51929f442e1826bad89
-pip install "epythet==0.2.23"
+git checkout cb77efbd24432ebe44ceac4e884dd5b7489237b3
+pip install "epythet==0.2.25"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

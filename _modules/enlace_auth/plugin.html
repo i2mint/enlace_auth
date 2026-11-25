@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=cc64e7de"></script>
+    <script src="../../_static/documentation_options.js?v=681c63c7"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.62" />
+  <meta name="docsearch:version" content="0.1.63" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1159,6 +1159,45 @@ window.runMermaid = runMermaid;</script>
         <span class="n">forms</span> <span class="o">=</span> <span class="n">account_spellings</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">entry</span><span class="p">,)</span>
         <span class="n">out</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">forms</span> <span class="k">if</span> <span class="n">f</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">out</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">user_groups_resolver</span><span class="p">(</span>
+    <span class="n">groups</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">admin_emails</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""``email -&gt; frozenset`` of the group names that email belongs to, for</span>
+<span class="sd">    ``request.state.user_groups`` (i2mint/enlace_auth#108).</span>
+
+<span class="sd">    The names are those of ``[auth.groups]``, plus ``"admins"`` for a platform admin.</span>
+<span class="sd">    Membership is decided exactly as the gate decides ``@name`` in an app's</span>
+<span class="sd">    ``allowed_users`` (the same expansion, compared case-insensitively), so</span>
+<span class="sd">    ``"x" in request.state.user_groups`` holds exactly when ``allowed_users = ["@x"]``</span>
+<span class="sd">    would admit the account. No email (anonymous, shared-password) is in no group.</span>
+
+<span class="sd">    &gt;&gt;&gt; of = user_groups_resolver({"editors": ["ann@x.io"]}, ("boss@x.io",))</span>
+<span class="sd">    &gt;&gt;&gt; sorted(of("Ann@x.io")), sorted(of("boss@x.io")), of("eve@x.io"), of(None)</span>
+<span class="sd">    (['editors'], ['admins'], frozenset(), frozenset())</span>
+<span class="sd">    """</span>
+    <span class="n">members</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">(</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="c1"># no admins passed: parse_groups refuses "@admins" inside a group, and</span>
+            <span class="c1"># "admins" is added below from admin_emails, as the gate does</span>
+            <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">_expand_allowed_users</span><span class="p">([</span><span class="sa">f</span><span class="s2">"@</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">],</span> <span class="p">(),</span> <span class="n">groups</span><span class="o">=</span><span class="n">groups</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_group_ref</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>  <span class="c1"># an empty group is kept verbatim: no members</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="n">groups</span> <span class="ow">or</span> <span class="p">{})</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">admin_emails</span><span class="p">:</span>
+        <span class="n">members</span><span class="p">[</span><span class="n">ADMINS_ALIAS</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">admin_emails</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">groups_of</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">email</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">frozenset</span><span class="p">()</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">emails</span> <span class="ow">in</span> <span class="n">members</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">emails</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">groups_of</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_require_user_gate_for_admins_alias</span><span class="p">(</span><span class="n">app</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -2080,6 +2119,8 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># allowed_users. ``now`` is evaluated at call time so expiry is exact.</span>
         <span class="n">dynamic_allowed_users</span><span class="o">=</span><span class="n">grants_resolver</span><span class="p">,</span>
         <span class="n">cookie_domain</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">cookie_domain</span><span class="p">,</span>
+        <span class="c1"># request.state.user_groups: [auth.groups] names + "admins" (#108).</span>
+        <span class="n">groups_of</span><span class="o">=</span><span class="n">user_groups_resolver</span><span class="p">(</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span> <span class="n">admin_emails</span><span class="p">),</span>
     <span class="p">)</span></div>
 
 

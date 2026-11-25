@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=cc64e7de"></script>
+    <script src="../../../_static/documentation_options.js?v=681c63c7"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.62" />
+  <meta name="docsearch:version" content="0.1.63" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -729,6 +729,14 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">   session from ``SessionStore``, set ``user_id`` / ``user_email``; on</span>
 <span class="sd">   failure return 401 (JSON) or redirect browsers to ``login_redirect_path``.</span>
 
+<span class="sd">Wherever ``user_email`` is set, ``user_groups`` is set beside it: a ``frozenset`` of the</span>
+<span class="sd">group names the account belongs to (``[auth.groups]``, plus ``"admins"``), from the</span>
+<span class="sd">``groups_of`` resolver. All three are assigned at the top of every request, never</span>
+<span class="sd">``setdefault``, so neither a client (headers are stripped, the session cookie is</span>
+<span class="sd">signed) nor another app's lifespan state can seed them; with no account they are empty.</span>
+<span class="sd">A ``protected:shared`` app reads no user session, so its ``user_groups`` is always</span>
+<span class="sd">empty (i2mint/enlace_auth#108).</span>
+
 <span class="sd">Browser vs. API deny behavior: GET/HEAD navigations that look like a browser</span>
 <span class="sd">(``Accept`` header contains ``text/html``) get a 303 redirect to the login</span>
 <span class="sd">page with ``?login_required=1&amp;next=&lt;original-path&gt;``, so the user lands</span>
@@ -766,6 +774,8 @@ window.runMermaid = runMermaid;</script>
     <span class="sa">b</span><span class="s2">"x-remote-user"</span><span class="p">,</span>
     <span class="sa">b</span><span class="s2">"x-remote-email"</span><span class="p">,</span>
     <span class="sa">b</span><span class="s2">"x-auth-user"</span><span class="p">,</span>
+    <span class="sa">b</span><span class="s2">"x-user-groups"</span><span class="p">,</span>
+    <span class="sa">b</span><span class="s2">"x-forwarded-groups"</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="c1"># Traversal markers that should never appear in a normalized path. We reject</span>
@@ -1008,6 +1018,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">shared_login_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">dynamic_allowed_users</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">cookie_domain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">groups_of</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">app</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_rules</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">access_rules</span><span class="p">)</span>
@@ -1029,6 +1040,16 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># ``[auth] cookie_domain`` (#94): a browser denied on an app host under it</span>
         <span class="c1"># is sent to sign in on the domain itself, which sets the shared cookie.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cookie_domain</span> <span class="o">=</span> <span class="n">cookie_domain</span>
+        <span class="c1"># ``email -&gt; frozenset[group name]`` for ``request.state.user_groups``</span>
+        <span class="c1"># (#108); None means no groups are configured, so every account is in none.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_groups_of</span> <span class="o">=</span> <span class="n">groups_of</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_identity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Copy the session's account into *state*, with its groups."""</span>
+        <span class="n">state</span><span class="p">[</span><span class="s2">"user_id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"user_id"</span><span class="p">)</span>
+        <span class="n">state</span><span class="p">[</span><span class="s2">"user_email"</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups_of</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">"user_groups"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups_of</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">"user_email"</span><span class="p">]))</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">scope</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"http"</span><span class="p">,</span> <span class="s2">"websocket"</span><span class="p">):</span>
@@ -1046,8 +1067,12 @@ window.runMermaid = runMermaid;</script>
 
         <span class="n">scope</span><span class="p">[</span><span class="s2">"headers"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_strip_identity_headers</span><span class="p">(</span><span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"headers"</span><span class="p">,</span> <span class="p">[]))</span>
         <span class="n">state</span> <span class="o">=</span> <span class="n">scope</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"state"</span><span class="p">,</span> <span class="p">{})</span>
-        <span class="n">state</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"user_id"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="n">state</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"user_email"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="c1"># Assigned, never setdefault: scope["state"] starts as a copy of the lifespan</span>
+        <span class="c1"># state, which any app's lifespan can add keys to, so identity seeded there</span>
+        <span class="c1"># would reach every request. Only _set_identity sets these (#108).</span>
+        <span class="n">state</span><span class="p">[</span><span class="s2">"user_id"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">state</span><span class="p">[</span><span class="s2">"user_email"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">state</span><span class="p">[</span><span class="s2">"user_groups"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">()</span>
 
         <span class="c1"># /auth/* endpoints bypass the access-rule check (login/register/etc.</span>
         <span class="c1"># must stay reachable to anonymous users), but we still opportunistically</span>
@@ -1065,8 +1090,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="p">)</span>
                 <span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sessions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span> <span class="k">if</span> <span class="n">session_id</span> <span class="k">else</span> <span class="kc">None</span>
                 <span class="k">if</span> <span class="n">session</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">state</span><span class="p">[</span><span class="s2">"user_id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"user_id"</span><span class="p">)</span>
-                    <span class="n">state</span><span class="p">[</span><span class="s2">"user_email"</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_set_identity</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">)</span>
             <span class="k">return</span>
 
@@ -1089,8 +1113,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="p">)</span>
                 <span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sessions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span> <span class="k">if</span> <span class="n">session_id</span> <span class="k">else</span> <span class="kc">None</span>
                 <span class="k">if</span> <span class="n">session</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">state</span><span class="p">[</span><span class="s2">"user_id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"user_id"</span><span class="p">)</span>
-                    <span class="n">state</span><span class="p">[</span><span class="s2">"user_email"</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_set_identity</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">)</span>
             <span class="k">return</span>
 
@@ -1128,8 +1151,7 @@ window.runMermaid = runMermaid;</script>
             <span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sessions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span> <span class="k">if</span> <span class="n">session_id</span> <span class="k">else</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="n">session</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deny</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">send</span><span class="p">,</span> <span class="s2">"user"</span><span class="p">)</span>
-            <span class="n">state</span><span class="p">[</span><span class="s2">"user_id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"user_id"</span><span class="p">)</span>
-            <span class="n">state</span><span class="p">[</span><span class="s2">"user_email"</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"email"</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_identity</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
             <span class="c1"># Per-app user whitelist = static config ``allowed_users`` ∪ active</span>
             <span class="c1"># runtime grants (the dynamic resolver, when wired), decided by</span>
             <span class="c1"># enlace core's ``is_user_allowed`` — the SAME predicate the /_apps</span>
