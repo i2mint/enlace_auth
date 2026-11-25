@@ -15,6 +15,12 @@ Runs before any mounted sub-app. Responsibilities:
    session from ``SessionStore``, set ``user_id`` / ``user_email``; on
    failure return 401 (JSON) or redirect browsers to ``login_redirect_path``.
 
+Wherever ``user_email`` is set, ``user_groups`` is set beside it: a ``frozenset`` of the
+group names the account belongs to (``[auth.groups]``, plus ``"admins"``), from the
+``groups_of`` resolver. It is always assigned, never ``setdefault``, so nothing a
+client sends (headers are stripped, the session cookie is signed) can put a name in it;
+with no account it is empty (i2mint/enlace_auth#108).
+
 Browser vs. API deny behavior: GET/HEAD navigations that look like a browser
 (``Accept`` header contains ``text/html``) get a 303 redirect to the login
 page with ``?login_required=1&next=<original-path>``, so the user lands
@@ -52,6 +58,8 @@ _IDENTITY_HEADERS = (
     b"x-remote-user",
     b"x-remote-email",
     b"x-auth-user",
+    b"x-user-groups",
+    b"x-forwarded-groups",
 )
 
 # Traversal markers that should never appear in a normalized path. We reject
@@ -289,6 +297,7 @@ class PlatformAuthMiddleware:
         shared_login_path: Optional[str] = None,
         dynamic_allowed_users: Optional[Callable[[str], set[str]]] = None,
         cookie_domain: Optional[str] = None,
+        groups_of: Optional[Callable[[Optional[str]], frozenset[str]]] = None,
     ):
         self.app = app
         self._rules = list(access_rules)
@@ -310,6 +319,16 @@ class PlatformAuthMiddleware:
         # ``[auth] cookie_domain`` (#94): a browser denied on an app host under it
         # is sent to sign in on the domain itself, which sets the shared cookie.
         self._cookie_domain = cookie_domain
+        # ``email -> frozenset[group name]`` for ``request.state.user_groups``
+        # (#108); None means no groups are configured, so every account is in none.
+        self._groups_of = groups_of
+
+    def _set_identity(self, state, session) -> None:
+        """Copy the session's account into *state*, with its groups."""
+        state["user_id"] = session.get("user_id")
+        state["user_email"] = session.get("email")
+        if self._groups_of is not None:
+            state["user_groups"] = frozenset(self._groups_of(state["user_email"]))
 
     async def __call__(self, scope, receive, send):
         if scope["type"] not in ("http", "websocket"):
@@ -329,6 +348,8 @@ class PlatformAuthMiddleware:
         state = scope.setdefault("state", {})
         state.setdefault("user_id", None)
         state.setdefault("user_email", None)
+        # Assigned, not setdefault: only _set_identity may put a group here (#108).
+        state["user_groups"] = frozenset()
 
         # /auth/* endpoints bypass the access-rule check (login/register/etc.
         # must stay reachable to anonymous users), but we still opportunistically
@@ -346,8 +367,7 @@ class PlatformAuthMiddleware:
                 )
                 session = self._sessions.get(session_id) if session_id else None
                 if session is not None:
-                    state["user_id"] = session.get("user_id")
-                    state["user_email"] = session.get("email")
+                    self._set_identity(state, session)
             await self.app(scope, receive, send)
             return
 
@@ -370,8 +390,7 @@ class PlatformAuthMiddleware:
                 )
                 session = self._sessions.get(session_id) if session_id else None
                 if session is not None:
-                    state["user_id"] = session.get("user_id")
-                    state["user_email"] = session.get("email")
+                    self._set_identity(state, session)
             await self.app(scope, receive, send)
             return
 
@@ -409,8 +428,7 @@ class PlatformAuthMiddleware:
             session = self._sessions.get(session_id) if session_id else None
             if session is None:
                 return await self._deny(scope, send, "user")
-            state["user_id"] = session.get("user_id")
-            state["user_email"] = session.get("email")
+            self._set_identity(state, session)
             # Per-app user whitelist = static config ``allowed_users`` ∪ active
             # runtime grants (the dynamic resolver, when wired), decided by
             # enlace core's ``is_user_allowed`` — the SAME predicate the /_apps

@@ -147,6 +147,8 @@ The cookie is set only by `/auth/*`, `/_admin` and `protected:*` apps. Public pa
 
 For `protected:user` apps (and public apps with `user_store = true`), read `request.state.user_id`, `request.state.user_email` and `request.state.store`, a `MutableMapping` scoped to that user and app. Never trust an `X-User-ID`-style header: the middleware strips them.
 
+To let only some signed-in people do something (edit a public app, say), read `request.state.user_groups`: a `frozenset[str]` of the account's `[auth.groups]` names, plus `"admins"` for a platform admin, set on every app (public included) whenever there is a session, empty otherwise. Write `"editors" in request.state.user_groups` and declare `editors = [...]` under `[auth.groups]` in `platform.toml`, rather than keeping an allowlist in the app: membership then has one source, and it matches `allowed_users = ["@editors"]` exactly. `GET /auth/whoami` returns the same names as `groups`, for a frontend deciding whether to show edit controls (the backend still checks).
+
 ## Gotchas
 
 - Changing a password, deleting a user or rotating a shared password ends the affected sessions (and connector refresh tokens). That is intended.

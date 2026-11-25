@@ -444,6 +444,43 @@ def _with_all_spellings(entries: Iterable[str]) -> list[str]:
     return out
 
 
+def user_groups_resolver(
+    groups: Mapping[str, Iterable[str]] | None,
+    admin_emails: tuple[str, ...],
+) -> Callable[[Optional[str]], frozenset[str]]:
+    """``email -> frozenset`` of the group names that email belongs to, for
+    ``request.state.user_groups`` (i2mint/enlace_auth#108).
+
+    The names are those of ``[auth.groups]``, plus ``"admins"`` for a platform admin.
+    Membership is decided exactly as the gate decides ``@name`` in an app's
+    ``allowed_users`` (the same expansion, compared case-insensitively), so
+    ``"x" in request.state.user_groups`` holds exactly when ``allowed_users = ["@x"]``
+    would admit the account. No email (anonymous, shared-password) is in no group.
+
+    >>> of = user_groups_resolver({"editors": ["ann@x.io"]}, ("boss@x.io",))
+    >>> sorted(of("Ann@x.io")), sorted(of("boss@x.io")), of("eve@x.io"), of(None)
+    (['editors'], ['admins'], frozenset(), frozenset())
+    """
+    members: dict[str, frozenset[str]] = {
+        name: frozenset(
+            e.lower()
+            for e in _expand_allowed_users([f"@{name}"], (), groups=groups)
+            if not is_group_ref(e)  # an empty group is kept verbatim: no members
+        )
+        for name in (groups or {})
+    }
+    if admin_emails:
+        members[ADMINS_ALIAS[1:]] = frozenset(e.lower() for e in admin_emails)
+
+    def groups_of(email: Optional[str]) -> frozenset[str]:
+        if not email:
+            return frozenset()
+        key = email.lower()
+        return frozenset(name for name, emails in members.items() if key in emails)
+
+    return groups_of
+
+
 def _require_user_gate_for_admins_alias(app) -> None:
     """Make an app that names :data:`ADMINS_ALIAS` (or any ``@group``) protected:user.
 
@@ -1361,6 +1398,8 @@ def wire(parent: "FastAPI", config) -> None:
         # allowed_users. ``now`` is evaluated at call time so expiry is exact.
         dynamic_allowed_users=grants_resolver,
         cookie_domain=auth_cfg.cookie_domain,
+        # request.state.user_groups: [auth.groups] names + "admins" (#108).
+        groups_of=user_groups_resolver(auth_cfg.groups, admin_emails),
     )
 
 

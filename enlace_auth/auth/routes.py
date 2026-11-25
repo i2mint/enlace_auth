@@ -271,6 +271,8 @@ def make_auth_router(
         return {
             "user_id": getattr(request.state, "user_id", None),
             "email": getattr(request.state, "user_email", None),
+            # [auth.groups] names + "admins" (#108), so a frontend can show edit UI.
+            "groups": sorted(getattr(request.state, "user_groups", ()) or ()),
         }
 
     @router.post("/me/password")
