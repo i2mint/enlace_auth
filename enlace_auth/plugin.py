@@ -464,6 +464,8 @@ def user_groups_resolver(
     members: dict[str, frozenset[str]] = {
         name: frozenset(
             e.lower()
+            # no admins passed: parse_groups refuses "@admins" inside a group, and
+            # "admins" is added below from admin_emails, as the gate does
             for e in _expand_allowed_users([f"@{name}"], (), groups=groups)
             if not is_group_ref(e)  # an empty group is kept verbatim: no members
         )

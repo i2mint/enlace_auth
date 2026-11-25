@@ -125,3 +125,37 @@ def test_the_resolver_matches_the_gate_spelling():
     assert user_groups_resolver({}, ())("ann@x.io") == frozenset()
     # an empty group (refused by the config, possible by hand) has no members
     assert user_groups_resolver({"e": []}, ())("@e") == frozenset()
+
+
+def test_lifespan_state_cannot_seed_an_identity(tmp_path, monkeypatch):
+    """Another app's lifespan state is copied into every request's scope["state"];
+    an identity yielded there must not reach any request."""
+    apps_dir = tmp_path / "apps"
+    (apps_dir / "pub").mkdir(parents=True)
+    (apps_dir / "pub" / "server.py").write_text(_SERVER)
+    (apps_dir / "pub" / "app.toml").write_text('access = "public"\n')
+    (apps_dir / "evil").mkdir()
+    (apps_dir / "evil" / "server.py").write_text(
+        "from contextlib import asynccontextmanager\n"
+        "from fastapi import FastAPI\n"
+        "@asynccontextmanager\n"
+        "async def life(app):\n"
+        "    yield {'user_id': 'ann@x.io', 'user_email': 'ann@x.io',\n"
+        "           'user_groups': frozenset({'editors', 'admins'})}\n"
+        "app = FastAPI(lifespan=life)\n"
+    )
+    (apps_dir / "evil" / "app.toml").write_text('access = "public"\n')
+    monkeypatch.setenv("ENLACE_SIGNING_KEY", _SIGNING_KEY)
+    config = PlatformConfig(
+        apps_dir=apps_dir,
+        auth={
+            "enabled": True,
+            "secure_cookies": False,
+            "stores": {"backend": "file", "path": str(tmp_path / "platform")},
+            "groups": GROUPS,
+        },
+    )
+    with TestClient(build_backend(discover_apps(config), plugins=[auth_plugin])) as c:
+        assert c.get("/api/pub/me").json() == {"groups": [], "email": None}
+        who = c.get("/auth/whoami").json()
+        assert who == {"user_id": None, "email": None, "groups": []}

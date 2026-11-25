@@ -17,9 +17,11 @@ Runs before any mounted sub-app. Responsibilities:
 
 Wherever ``user_email`` is set, ``user_groups`` is set beside it: a ``frozenset`` of the
 group names the account belongs to (``[auth.groups]``, plus ``"admins"``), from the
-``groups_of`` resolver. It is always assigned, never ``setdefault``, so nothing a
-client sends (headers are stripped, the session cookie is signed) can put a name in it;
-with no account it is empty (i2mint/enlace_auth#108).
+``groups_of`` resolver. All three are assigned at the top of every request, never
+``setdefault``, so neither a client (headers are stripped, the session cookie is
+signed) nor another app's lifespan state can seed them; with no account they are empty.
+A ``protected:shared`` app reads no user session, so its ``user_groups`` is always
+empty (i2mint/enlace_auth#108).
 
 Browser vs. API deny behavior: GET/HEAD navigations that look like a browser
 (``Accept`` header contains ``text/html``) get a 303 redirect to the login
@@ -346,9 +348,11 @@ class PlatformAuthMiddleware:
 
         scope["headers"] = _strip_identity_headers(scope.get("headers", []))
         state = scope.setdefault("state", {})
-        state.setdefault("user_id", None)
-        state.setdefault("user_email", None)
-        # Assigned, not setdefault: only _set_identity may put a group here (#108).
+        # Assigned, never setdefault: scope["state"] starts as a copy of the lifespan
+        # state, which any app's lifespan can add keys to, so identity seeded there
+        # would reach every request. Only _set_identity sets these (#108).
+        state["user_id"] = None
+        state["user_email"] = None
         state["user_groups"] = frozenset()
 
         # /auth/* endpoints bypass the access-rule check (login/register/etc.
