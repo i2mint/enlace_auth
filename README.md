@@ -300,6 +300,15 @@ Plus environment variables:
 
 Every `POST`, `PUT`, `PATCH` and `DELETE` must carry an `X-CSRF-Token` header that matches the signed `enlace_csrf` cookie. That covers `/auth`, `/_admin`, `/_apps/{name}/meta` and the per-user store `/api/{app}/store`. Exempt: `/auth/callback`, `/auth/login/<provider>`, `/auth/oauth/`, other sub-app APIs under `/api/`, and proxied `process` and `external` apps. A client gets the token from `GET /auth/csrf`, which also sets the cookie.
 
+An app can put its own write paths under the check with one `app.toml` key (enlace >= 0.1.69):
+
+```toml
+csrf = ["edit"]   # POST/PUT/PATCH/DELETE under /api/{app}/edit and /{app}/edit
+# csrf = true     # every state-changing request to the app
+```
+
+Its client then fetches `GET /auth/csrf` and sends `X-CSRF-Token` on those requests, exactly as for the store. Use it when a `public` app lets some signed-in people write (`request.state.user_groups`): `SameSite=Lax` does not stop a page on a sibling host under `cookie_domain` from posting with the visitor's session, and the token does. It works for proxied `process` and `external` apps too. The listed sub-paths match by whole segments, ignoring case, repeated slashes, dot segments, `;params` and one extra level of percent-encoding; `true` is the safer choice when the app's router is lenient in other ways (a format suffix such as `/edit.json`). A websocket handshake under those paths is refused when its `Origin` is not the host it was sent to (a proxy in front must pass the public `Host` on, as Caddy does by default). `GET` is never checked, so a write must not be reachable by `GET` either way. Every state-changing request there needs the pair, so a client that calls with a bearer token and no cookie (a connector) has to fetch `/auth/csrf` too, or use a path outside the list. The platform refuses to start when a `csrf` path is, or contains, a platform path (`/api`, `/auth`, `/_admin`, `/_apps`, the exempt callbacks) or another app's mount, or when the app is served at the site root. A value other than `true`, `false` or a list of plain sub-paths, or a near miss such as `csrf_paths` or `CSRF`, fails discovery. Without the key nothing changes.
+
 The cookie is set only on `/auth/*`, `/_admin` and `protected:*` apps. A `public` app's pages set no cookie, so an app that promises "nothing is stored on your device" keeps that promise on this platform. A public page that has to `POST` to the auth routes fetches `/auth/csrf` first. Sub-app APIs under `/api/` are exempt from the check because the session cookie is `SameSite=Lax`, except the per-user store routes.
 
 The cookie is `Secure` when `secure_cookies` is on, and on any HTTPS request (directly, or per `X-Forwarded-Proto`). If you use `CSRFMiddleware` directly, pass `secure=True` to mark it always; `mint_prefixes` limits where it sets the cookie (default: every safe request); the check itself always runs.
