@@ -529,6 +529,8 @@ def app_csrf_prefixes(app) -> list[str]:
     # Re-validated here too: a value that skipped enlace's check must fail, not
     # read as "off".
     switch = validate_subpath_switch(getattr(app, "csrf", False), key="csrf")
+    if switch == []:
+        _logger.warning("app %r sets csrf = []: no path is checked", app.name)
     if switch is False or switch == []:
         return []
     if (app.route_prefix or "").rstrip("/") == "":
@@ -541,6 +543,57 @@ def app_csrf_prefixes(app) -> list[str]:
     return [
         f"{mount}/{sub}" if sub else mount for mount in app_mounts(app) for sub in subs
     ]
+
+
+# Platform-owned path prefixes, besides the CSRF-exempt ones, that no app's
+# ``csrf`` may cover (an app named ``api`` or ``auth`` would otherwise do so).
+PLATFORM_PREFIXES = ("/api", "/auth", "/_admin", "/_apps", "/_meta")
+
+
+def confined_csrf_prefixes(apps, *, platform_prefixes: Iterable[str]) -> list[str]:
+    """Every app's ``csrf`` prefixes, refusing any that reaches beyond its app.
+
+    A prefix that is, or contains, a platform prefix or another app's mount
+    would switch the check on for paths the app does not own (the OAuth
+    endpoints, a sibling app's API), so the platform refuses to start instead.
+    Compared as the CSRF middleware matches: whole segments, ignoring case.
+
+    >>> from types import SimpleNamespace as App
+    >>> ed = App(name="ed", route_prefix="/api/ed", csrf=True)
+    >>> confined_csrf_prefixes([ed], platform_prefixes=["/api", "/auth"])
+    ['/ed', '/api/ed']
+    >>> api = App(name="api", route_prefix="/api/api", csrf=True)
+    >>> confined_csrf_prefixes([api], platform_prefixes=["/api"])
+    Traceback (most recent call last):
+    ...
+    ValueError: app 'api' sets csrf on /api, which covers /api, not its own: ...
+    """
+    from enlace.response_headers import app_mounts
+
+    def norm(prefix: str) -> str:
+        return prefix.rstrip("/").lower()
+
+    def covers(prefix: str, other: str) -> bool:
+        return other == prefix or other.startswith(prefix + "/")
+
+    apps = list(apps)
+    platform = {norm(p) for p in platform_prefixes} - {""}
+    out = []
+    for app in apps:
+        prefixes = app_csrf_prefixes(app)
+        others = platform | {
+            norm(m) for a in apps if a is not app for m in app_mounts(a)
+        }
+        for prefix in prefixes:
+            hit = next((o for o in sorted(others) if covers(norm(prefix), o)), None)
+            if hit is not None:
+                raise ValueError(
+                    f"app {app.name!r} sets csrf on {prefix}, which covers {hit}, "
+                    "not its own: rename the app, give it a route of its own, or "
+                    "list sub-paths"
+                )
+        out += prefixes
+    return out
 
 
 def _public_base_url(config, auth_cfg) -> Optional[str]:
@@ -1388,6 +1441,8 @@ def wire(parent: "FastAPI", config) -> None:
         # the consent POST carries its own signed CSRF token — so the platform's
         # double-submit CSRF must not gate them.
         csrf_exempt.append("/auth/oauth/")
+    # What the platform itself owns; no app's ``csrf`` may cover it (#110).
+    platform_prefixes = [*PLATFORM_PREFIXES, *csrf_exempt]
     for app in getattr(config, "apps", []):
         if getattr(app, "mode", "asgi") in ("process", "external"):
             prefix = app.route_prefix
@@ -1416,11 +1471,9 @@ def wire(parent: "FastAPI", config) -> None:
         # The store routes always, and every path an app opted in with app.toml
         # ``csrf`` (#110), even under the exempt /api/ and proxied prefixes.
         enforce_prefixes=[f"/api/{name}/store" for name in sorted(store_apps)]
-        + [
-            prefix
-            for app in getattr(config, "apps", [])
-            for prefix in app_csrf_prefixes(app)
-        ],
+        + confined_csrf_prefixes(
+            getattr(config, "apps", []), platform_prefixes=platform_prefixes
+        ),
         mint_prefixes=csrf_mint,
         # Secure as the session cookie is, and on any HTTPS request (#78).
         secure=auth_cfg.secure_cookies,

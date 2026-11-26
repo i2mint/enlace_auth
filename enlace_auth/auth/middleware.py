@@ -540,10 +540,37 @@ def _path_spellings(path: str) -> set[str]:
     """
     from enlace.ratelimit import normalize_path
 
-    forms = {path, normalize_path(path)}
+    forms = {path, unquote(path)}  # unquote: an upstream that decodes twice
+    forms |= {normalize_path(f) for f in forms}
     forms |= {"/".join(seg.split(";", 1)[0] for seg in f.split("/")) for f in forms}
     forms |= {normalize_path(f) for f in forms}
     return {f.lower() for f in forms}
+
+
+def _cross_origin_handshake(scope) -> bool:
+    """Whether a websocket handshake names an ``Origin`` other than its ``Host``.
+
+    Browsers always send ``Origin`` on a websocket handshake and the CSRF
+    header cannot ride on one, so a page on another host (a sibling under
+    ``cookie_domain``) is told apart by its origin. No ``Origin`` is not a
+    browser, hence not a forgery.
+
+    >>> _cross_origin_handshake({"headers": [(b"host", b"a.io"), (b"origin", b"https://a.io")]})
+    False
+    >>> _cross_origin_handshake({"headers": [(b"host", b"a.io"), (b"origin", b"https://b.a.io")]})
+    True
+    """
+    from urllib.parse import urlsplit
+
+    headers = {k.lower(): v.decode("latin-1") for k, v in scope.get("headers", [])}
+    origin = headers.get(b"origin")
+    if origin is None:
+        return False
+    try:
+        netloc = urlsplit(origin.strip()).netloc
+    except ValueError:
+        return True
+    return netloc.lower() != headers.get(b"host", "").strip().lower()
 
 
 def _under_any(path: str, prefixes: tuple[str, ...]) -> bool:
@@ -640,6 +667,17 @@ class CSRFMiddleware:
         return any(path == p or path.startswith(p + "/") for p in self._mint)
 
     async def __call__(self, scope, receive, send):
+        if scope["type"] == "websocket":
+            # A handshake carries no CSRF header; under an enforced prefix a
+            # page on another origin must not open one with the visitor's
+            # cookies (#110).
+            if _under_any(scope.get("path", "/"), self._enforce) and (
+                _cross_origin_handshake(scope)
+            ):
+                await _reject_websocket(send)
+                return
+            await self.app(scope, receive, send)
+            return
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return

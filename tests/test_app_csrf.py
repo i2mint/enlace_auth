@@ -26,7 +26,7 @@ from tests.signup_helpers import sign_up
 KEY = "app-csrf-key-32bytes-minimum-len!!"
 _SERVER = textwrap.dedent(
     """
-    from fastapi import FastAPI, Request
+    from fastapi import FastAPI, Request, WebSocket
     app = FastAPI()
     @app.api_route("/edit", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
     def edit(request: Request):
@@ -40,6 +40,11 @@ _SERVER = textwrap.dedent(
     @app.post("/open")
     def open_write():
         return {"wrote": "open"}
+    @app.websocket("/edit/live")
+    async def live(ws: WebSocket):
+        await ws.accept()
+        await ws.send_json({"live": True})
+        await ws.close()
     """
 ).strip()
 
@@ -233,3 +238,47 @@ def test_a_proxied_app_can_opt_in(tmp_path, monkeypatch):
 def test_a_root_route_app_cannot_opt_in(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="site root"):
         _platform(tmp_path, monkeypatch, {"rooty": 'route = "/"\ncsrf = true\n'})
+
+
+@pytest.mark.parametrize(
+    "apps",
+    [
+        {"api": 'access = "public"\ncsrf = true\n'},  # would cover every /api/ app
+        {"auth": 'access = "public"\ncsrf = true\n'},  # would cover /auth/*
+        {"x": 'access = "public"\nroute = "/api"\ncsrf = true\n'},
+        {"x": 'access = "public"\nroute = "/auth/login"\ncsrf = true\n'},
+        {
+            "ed": 'access = "public"\ncsrf = true\n',
+            "sub": 'access = "public"\nroute = "/api/ed/sub"\n',
+        },
+    ],
+)
+def test_an_opt_in_cannot_reach_beyond_its_app(tmp_path, monkeypatch, apps):
+    """One app's key must never switch the check on for the platform or a sibling."""
+    with pytest.raises(ValueError, match="not its own"):
+        _platform(tmp_path, monkeypatch, apps)
+
+
+def test_a_twice_encoded_spelling_is_checked_too():
+    assert _under_any("/api/ed/%65dit", ("/api/ed/edit",))
+    assert _under_any("/api/ed/%2565dit", ("/api/ed/edit",)) is False  # thrice: no
+
+
+def test_a_cross_origin_websocket_is_refused_under_an_opted_in_path(client):
+    from starlette.websockets import WebSocketDisconnect
+
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(
+            "/api/ed/edit/live", headers={"origin": "https://sibling.example.com"}
+        ) as ws:
+            ws.receive_json()
+    for headers in ({"origin": "http://testserver"}, {}):
+        with client.websocket_connect("/api/ed/edit/live", headers=headers) as ws:
+            assert ws.receive_json() == {"live": True}
+
+
+def test_websockets_of_apps_without_the_key_are_unchanged(client):
+    with client.websocket_connect(
+        "/api/plain/edit/live", headers={"origin": "https://sibling.example.com"}
+    ) as ws:
+        assert ws.receive_json() == {"live": True}
