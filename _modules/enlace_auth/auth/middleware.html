@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=681c63c7"></script>
+    <script src="../../../_static/documentation_options.js?v=a395f30a"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.63" />
+  <meta name="docsearch:version" content="0.1.64" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -1248,6 +1248,75 @@ window.runMermaid = runMermaid;</script>
 <span class="n">_SAFE_METHODS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"GET"</span><span class="p">,</span> <span class="s2">"HEAD"</span><span class="p">,</span> <span class="s2">"OPTIONS"</span><span class="p">}</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_path_spellings</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The forms of *path* an upstream router might resolve to the same handler.</span>
+
+<span class="sd">    Compared against enforced prefixes so that a spelling the browser sends</span>
+<span class="sd">    verbatim (``//``, a different case, a ``;param`` suffix) cannot step out</span>
+<span class="sd">    from under one. Every form only ever adds enforcement.</span>
+
+<span class="sd">    &gt;&gt;&gt; sorted(_path_spellings("/api/X//edit;v=1/"))</span>
+<span class="sd">    ['/api/x//edit/', '/api/x//edit;v=1/', '/api/x/edit/', '/api/x/edit;v=1/']</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace.ratelimit</span><span class="w"> </span><span class="kn">import</span> <span class="n">normalize_path</span>
+
+    <span class="n">forms</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">,</span> <span class="n">unquote</span><span class="p">(</span><span class="n">path</span><span class="p">)}</span>  <span class="c1"># unquote: an upstream that decodes twice</span>
+    <span class="n">forms</span> <span class="o">|=</span> <span class="p">{</span><span class="n">normalize_path</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">forms</span><span class="p">}</span>
+    <span class="n">forms</span> <span class="o">|=</span> <span class="p">{</span><span class="s2">"/"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">seg</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">";"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">seg</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">))</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">forms</span><span class="p">}</span>
+    <span class="n">forms</span> <span class="o">|=</span> <span class="p">{</span><span class="n">normalize_path</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">forms</span><span class="p">}</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">f</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">forms</span><span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_cross_origin_handshake</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether a websocket handshake names an ``Origin`` other than its ``Host``.</span>
+
+<span class="sd">    Browsers always send ``Origin`` on a websocket handshake and the CSRF</span>
+<span class="sd">    header cannot ride on one, so a page on another host (a sibling under</span>
+<span class="sd">    ``cookie_domain``) is told apart by its origin. No ``Origin`` is not a</span>
+<span class="sd">    browser, hence not a forgery. A proxy that rewrites ``Host`` must pass the</span>
+<span class="sd">    public one on, or same-origin handshakes there are refused (fails closed).</span>
+
+<span class="sd">    &gt;&gt;&gt; _cross_origin_handshake({"headers": [(b"host", b"a.io"), (b"origin", b"https://a.io")]})</span>
+<span class="sd">    False</span>
+<span class="sd">    &gt;&gt;&gt; _cross_origin_handshake({"headers": [(b"host", b"a.io"), (b"origin", b"https://b.a.io")]})</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; _cross_origin_handshake({"headers": [(b"host", b"a.io:443"), (b"origin", b"https://a.io")]})</span>
+<span class="sd">    False</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlsplit</span>
+
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span> <span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"latin-1"</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"headers"</span><span class="p">,</span> <span class="p">[])}</span>
+    <span class="n">origin</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">b</span><span class="s2">"origin"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">origin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="n">urlsplit</span><span class="p">(</span><span class="n">origin</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="n">scheme</span><span class="p">,</span> <span class="n">netloc</span> <span class="o">=</span> <span class="n">parts</span><span class="o">.</span><span class="n">scheme</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">parts</span><span class="o">.</span><span class="n">netloc</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="n">host</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">b</span><span class="s2">"host"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">default</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"http"</span><span class="p">:</span> <span class="s2">":80"</span><span class="p">,</span> <span class="s2">"https"</span><span class="p">:</span> <span class="s2">":443"</span><span class="p">,</span> <span class="s2">"ws"</span><span class="p">:</span> <span class="s2">":80"</span><span class="p">,</span> <span class="s2">"wss"</span><span class="p">:</span> <span class="s2">":443"</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">scheme</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">default</span><span class="p">:</span>  <span class="c1"># a.io and a.io:443 are the same origin over https</span>
+        <span class="n">netloc</span><span class="p">,</span> <span class="n">host</span> <span class="o">=</span> <span class="n">netloc</span><span class="o">.</span><span class="n">removesuffix</span><span class="p">(</span><span class="n">default</span><span class="p">),</span> <span class="n">host</span><span class="o">.</span><span class="n">removesuffix</span><span class="p">(</span><span class="n">default</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">netloc</span> <span class="o">!=</span> <span class="n">host</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_under_any</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">prefixes</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether some spelling of *path* is one of *prefixes* or below it.</span>
+
+<span class="sd">    Prefixes are lower-case with no trailing slash; matching is by whole</span>
+<span class="sd">    segments, so ``/api/x/edit`` never covers ``/api/x/editor``.</span>
+
+<span class="sd">    &gt;&gt;&gt; _under_any("/API/x/Edit/1", ("/api/x/edit",))</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; _under_any("/api/x/editor", ("/api/x/edit",))</span>
+<span class="sd">    False</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="nb">any</span><span class="p">(</span>
+        <span class="n">f</span> <span class="o">==</span> <span class="n">p</span> <span class="ow">or</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">p</span> <span class="o">+</span> <span class="s2">"/"</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">_path_spellings</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">prefixes</span>
+    <span class="p">)</span>
+
+
 <div class="viewcode-block" id="CSRFMiddleware">
 <a class="viewcode-back" href="../../../_autosummary/enlace_auth.auth.middleware.html#enlace_auth.auth.CSRFMiddleware">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CSRFMiddleware</span><span class="p">:</span>
@@ -1290,7 +1359,11 @@ window.runMermaid = runMermaid;</script>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""``enforce_prefixes`` are checked even under an exempt prefix: the per-user</span>
 <span class="sd">        store routes (``/api/{app}/store``) sit under ``/api/`` but carry data a</span>
-<span class="sd">        share can expose to someone else's cookie, so they never skip the check.</span>
+<span class="sd">        share can expose to someone else's cookie, so they never skip the check,</span>
+<span class="sd">        and neither do the paths an app opts in with app.toml ``csrf``</span>
+<span class="sd">        (i2mint/enlace_auth#110). They match by whole segments, ignoring case,</span>
+<span class="sd">        repeated slashes, dot segments and ``;params``: a looser match only</span>
+<span class="sd">        enforces more.</span>
 
 <span class="sd">        ``mint_prefixes``: path prefixes (whole segments: ``/auth`` matches</span>
 <span class="sd">        ``/auth`` and ``/auth/x``, not ``/authors``) where the cookie may be</span>
@@ -1304,7 +1377,12 @@ window.runMermaid = runMermaid;</script>
         <span class="bp">self</span><span class="o">.</span><span class="n">_signing_key</span> <span class="o">=</span> <span class="n">signing_key</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cookie</span> <span class="o">=</span> <span class="n">cookie_name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_secure</span> <span class="o">=</span> <span class="n">secure</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_enforce</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">enforce_prefixes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_enforce</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">enforce_prefixes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">""</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enforce</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"an enforce prefix cannot be the site root: it would put the "</span>
+                <span class="s2">"check on every path, the exempt auth callbacks included"</span>
+            <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_header</span> <span class="o">=</span> <span class="n">header_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"latin-1"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_exempt</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">exempt_prefixes</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_mint</span> <span class="o">=</span> <span class="p">(</span>
@@ -1319,6 +1397,17 @@ window.runMermaid = runMermaid;</script>
         <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">path</span> <span class="o">==</span> <span class="n">p</span> <span class="ow">or</span> <span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">p</span> <span class="o">+</span> <span class="s2">"/"</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mint</span><span class="p">)</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">scope</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"websocket"</span><span class="p">:</span>
+            <span class="c1"># A handshake carries no CSRF header; under an enforced prefix a</span>
+            <span class="c1"># page on another origin must not open one with the visitor's</span>
+            <span class="c1"># cookies (#110).</span>
+            <span class="k">if</span> <span class="n">_under_any</span><span class="p">(</span><span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"path"</span><span class="p">,</span> <span class="s2">"/"</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enforce</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="n">_cross_origin_handshake</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">await</span> <span class="n">_reject_websocket</span><span class="p">(</span><span class="n">send</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">)</span>
+            <span class="k">return</span>
         <span class="k">if</span> <span class="n">scope</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"http"</span><span class="p">:</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">)</span>
             <span class="k">return</span>
@@ -1327,8 +1416,8 @@ window.runMermaid = runMermaid;</script>
         <span class="n">path</span> <span class="o">=</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"path"</span><span class="p">,</span> <span class="s2">"/"</span><span class="p">)</span>
 
         <span class="c1"># Exempt paths skip the check entirely.</span>
-        <span class="n">is_exempt</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exempt</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
-            <span class="n">path</span> <span class="o">==</span> <span class="n">p</span> <span class="ow">or</span> <span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">p</span> <span class="o">+</span> <span class="s2">"/"</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enforce</span>
+        <span class="n">is_exempt</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exempt</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_under_any</span><span class="p">(</span>
+            <span class="n">path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enforce</span>
         <span class="p">)</span>
 
         <span class="n">cookies</span> <span class="o">=</span> <span class="n">_get_cookies</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span>

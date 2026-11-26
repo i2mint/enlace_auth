@@ -1,4 +1,4 @@
-> built 2026-11-25 09:55 UTC from cb77efb (main) · enlace_auth 0.1.63. Details: build_info.json
+> built 2026-11-26 15:10 UTC from a03f00e (main) · enlace_auth 0.1.64. Details: build_info.json
 
 # index.html.md
 
@@ -304,6 +304,15 @@ Plus environment variables:
 ## CSRF
 
 Every `POST`, `PUT`, `PATCH` and `DELETE` must carry an `X-CSRF-Token` header that matches the signed `enlace_csrf` cookie. That covers `/auth`, `/_admin`, `/_apps/{name}/meta` and the per-user store `/api/{app}/store`. Exempt: `/auth/callback`, `/auth/login/<provider>`, `/auth/oauth/`, other sub-app APIs under `/api/`, and proxied `process` and `external` apps. A client gets the token from `GET /auth/csrf`, which also sets the cookie.
+
+An app can put its own write paths under the check with one `app.toml` key (enlace >= 0.1.69):
+
+```toml
+csrf = ["edit"]   # POST/PUT/PATCH/DELETE under /api/{app}/edit and /{app}/edit
+# csrf = true     # every state-changing request to the app
+```
+
+Its client then fetches `GET /auth/csrf` and sends `X-CSRF-Token` on those requests, exactly as for the store. Use it when a `public` app lets some signed-in people write (`request.state.user_groups`): `SameSite=Lax` does not stop a page on a sibling host under `cookie_domain` from posting with the visitor’s session, and the token does. It works for proxied `process` and `external` apps too. The listed sub-paths match by whole segments, ignoring case, repeated slashes, dot segments, `;params` and one extra level of percent-encoding; `true` is the safer choice when the app’s router is lenient in other ways (a format suffix such as `/edit.json`). A websocket handshake under those paths is refused when its `Origin` is not the host it was sent to (a proxy in front must pass the public `Host` on, as Caddy does by default). `GET` is never checked, so a write must not be reachable by `GET` either way. Every state-changing request there needs the pair, so a client that calls with a bearer token and no cookie (a connector) has to fetch `/auth/csrf` too, or use a path outside the list. The platform refuses to start when a `csrf` path is, or contains, a platform path (`/api`, `/auth`, `/_admin`, `/_apps`, the exempt callbacks) or another app’s mount, or when the app is served at the site root. A value other than `true`, `false` or a list of plain sub-paths, or a near miss such as `csrf_paths` or `CSRF`, fails discovery. Without the key nothing changes.
 
 The cookie is set only on `/auth/*`, `/_admin` and `protected:*` apps. A `public` app’s pages set no cookie, so an app that promises “nothing is stored on your device” keeps that promise on this platform. A public page that has to `POST` to the auth routes fetches `/auth/csrf` first. Sub-app APIs under `/api/` are exempt from the check because the session cookie is `SameSite=Lax`, except the per-user store routes.
 
@@ -5939,18 +5948,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-11-25 09:55 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/cb77efbd24432ebe44ceac4e884dd5b7489237b3"><code>cb77efb</code></a> on branch <code>main</code>, for **enlace_auth 0.1.63** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-26 15:10 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/a03f00e6fa1ac17a680b084b63962b43c2be3d86"><code>a03f00e</code></a> on branch <code>main</code>, for **enlace_auth 0.1.64** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.63) is behind the latest release on PyPI (0.1.64): `pip install enlace_auth` gives newer code than these docs describe.
+- The documented version (0.1.64) is behind the latest release on PyPI (0.1.65): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/cb77efbd24432ebe44ceac4e884dd5b7489237b3"><code>cb77efbd24432ebe44ceac4e884dd5b7489237b3</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/a03f00e6fa1ac17a680b084b63962b43c2be3d86"><code>a03f00e6fa1ac17a680b084b63962b43c2be3d86</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -5961,9 +5970,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/45589513913">45589513913</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/45845737688">45845737688</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>cb77efbd24432ebe44ceac4e884dd5b7489237b3</code> (in the history of the built commit) |
+| Event commit | <code>a03f00e6fa1ac17a680b084b63962b43c2be3d86</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -5988,13 +5997,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.64/">0.1.64</a>, newer than the documented version (0.1.63).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.65/">0.1.65</a>, newer than the documented version (0.1.64).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout cb77efbd24432ebe44ceac4e884dd5b7489237b3
+git checkout a03f00e6fa1ac17a680b084b63962b43c2be3d86
 pip install "epythet==0.2.25"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

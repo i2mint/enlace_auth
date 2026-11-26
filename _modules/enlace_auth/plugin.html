@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=681c63c7"></script>
+    <script src="../../_static/documentation_options.js?v=a395f30a"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.63" />
+  <meta name="docsearch:version" content="0.1.64" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1223,6 +1223,94 @@ window.runMermaid = runMermaid;</script>
             <span class="n">app</span><span class="o">.</span><span class="n">access</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">app</span><span class="o">.</span><span class="n">access</span> <span class="o">=</span> <span class="s2">"protected:user"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">app_csrf_prefixes</span><span class="p">(</span><span class="n">app</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The path prefixes where an app's app.toml ``csrf`` asks for the CSRF check.</span>
+
+<span class="sd">    ``csrf = true`` covers the whole app, a list covers those sub-paths, under</span>
+<span class="sd">    both of the app's mounts (its API ``route_prefix`` and its page ``/{name}``).</span>
+<span class="sd">    Absent or false gives ``[]``: the app keeps the ``/api/`` exemption</span>
+<span class="sd">    (i2mint/enlace_auth#110).</span>
+
+<span class="sd">    &gt;&gt;&gt; from types import SimpleNamespace as App</span>
+<span class="sd">    &gt;&gt;&gt; app_csrf_prefixes(App(name="ed", route_prefix="/api/ed", csrf=["edit/"]))</span>
+<span class="sd">    ['/ed/edit', '/api/ed/edit']</span>
+<span class="sd">    &gt;&gt;&gt; app_csrf_prefixes(App(name="ed", route_prefix="/api/ed", csrf=True))</span>
+<span class="sd">    ['/ed', '/api/ed']</span>
+<span class="sd">    &gt;&gt;&gt; app_csrf_prefixes(App(name="ed", route_prefix="/api/ed"))</span>
+<span class="sd">    []</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace.response_headers</span><span class="w"> </span><span class="kn">import</span> <span class="n">app_mounts</span><span class="p">,</span> <span class="n">validate_subpath_switch</span>
+
+    <span class="c1"># Re-validated here too: a value that skipped enlace's check must fail, not</span>
+    <span class="c1"># read as "off".</span>
+    <span class="n">switch</span> <span class="o">=</span> <span class="n">validate_subpath_switch</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">"csrf"</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="s2">"csrf"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">switch</span> <span class="o">==</span> <span class="p">[]:</span>
+        <span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"app </span><span class="si">%r</span><span class="s2"> sets csrf = []: no path is checked"</span><span class="p">,</span> <span class="n">app</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">switch</span> <span class="ow">is</span> <span class="kc">False</span> <span class="ow">or</span> <span class="n">switch</span> <span class="o">==</span> <span class="p">[]:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">route_prefix</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">""</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"app </span><span class="si">{</span><span class="n">app</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> sets csrf but is served at the site root, where "</span>
+            <span class="s2">"its paths cannot be told apart from the platform's own; give it a "</span>
+            <span class="s2">"route of its own"</span>
+        <span class="p">)</span>
+    <span class="n">subs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">""</span><span class="p">]</span> <span class="k">if</span> <span class="n">switch</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="n">switch</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">mount</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">sub</span> <span class="k">else</span> <span class="n">mount</span> <span class="k">for</span> <span class="n">mount</span> <span class="ow">in</span> <span class="n">app_mounts</span><span class="p">(</span><span class="n">app</span><span class="p">)</span> <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">subs</span>
+    <span class="p">]</span>
+
+
+<span class="c1"># Platform-owned path prefixes, besides the CSRF-exempt ones, that no app's</span>
+<span class="c1"># ``csrf`` may cover (an app named ``api`` or ``auth`` would otherwise do so).</span>
+<span class="n">PLATFORM_PREFIXES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"/api"</span><span class="p">,</span> <span class="s2">"/auth"</span><span class="p">,</span> <span class="s2">"/_admin"</span><span class="p">,</span> <span class="s2">"/_apps"</span><span class="p">,</span> <span class="s2">"/_meta"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">confined_csrf_prefixes</span><span class="p">(</span><span class="n">apps</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">platform_prefixes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Every app's ``csrf`` prefixes, refusing any that reaches beyond its app.</span>
+
+<span class="sd">    A prefix that is, or contains, a platform prefix or another app's mount</span>
+<span class="sd">    would switch the check on for paths the app does not own (the OAuth</span>
+<span class="sd">    endpoints, a sibling app's API), so the platform refuses to start instead.</span>
+<span class="sd">    Compared as the CSRF middleware matches: whole segments, ignoring case.</span>
+
+<span class="sd">    &gt;&gt;&gt; from types import SimpleNamespace as App</span>
+<span class="sd">    &gt;&gt;&gt; ed = App(name="ed", route_prefix="/api/ed", csrf=True)</span>
+<span class="sd">    &gt;&gt;&gt; confined_csrf_prefixes([ed], platform_prefixes=["/api", "/auth"])</span>
+<span class="sd">    ['/ed', '/api/ed']</span>
+<span class="sd">    &gt;&gt;&gt; api = App(name="api", route_prefix="/api/api", csrf=True)</span>
+<span class="sd">    &gt;&gt;&gt; confined_csrf_prefixes([api], platform_prefixes=["/api"])</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">    ...</span>
+<span class="sd">    ValueError: app 'api' sets csrf on /api, which covers /api, not its own: ...</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace.response_headers</span><span class="w"> </span><span class="kn">import</span> <span class="n">app_mounts</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">norm</span><span class="p">(</span><span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">prefix</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">covers</span><span class="p">(</span><span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">other</span> <span class="o">==</span> <span class="n">prefix</span> <span class="ow">or</span> <span class="n">other</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">"/"</span><span class="p">)</span>
+
+    <span class="n">apps</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">apps</span><span class="p">)</span>
+    <span class="n">platform</span> <span class="o">=</span> <span class="p">{</span><span class="n">norm</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">platform_prefixes</span><span class="p">}</span> <span class="o">-</span> <span class="p">{</span><span class="s2">""</span><span class="p">}</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">app</span> <span class="ow">in</span> <span class="n">apps</span><span class="p">:</span>
+        <span class="n">prefixes</span> <span class="o">=</span> <span class="n">app_csrf_prefixes</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+        <span class="n">others</span> <span class="o">=</span> <span class="n">platform</span> <span class="o">|</span> <span class="p">{</span>
+            <span class="n">norm</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">apps</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">app</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">app_mounts</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="n">prefixes</span><span class="p">:</span>
+            <span class="n">hit</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">o</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">others</span><span class="p">)</span> <span class="k">if</span> <span class="n">covers</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">prefix</span><span class="p">),</span> <span class="n">o</span><span class="p">)),</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">hit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"app </span><span class="si">{</span><span class="n">app</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> sets csrf on </span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">, which covers </span><span class="si">{</span><span class="n">hit</span><span class="si">}</span><span class="s2">, "</span>
+                    <span class="s2">"not its own: rename the app, give it a route of its own, or "</span>
+                    <span class="s2">"list sub-paths"</span>
+                <span class="p">)</span>
+        <span class="n">out</span> <span class="o">+=</span> <span class="n">prefixes</span>
+    <span class="k">return</span> <span class="n">out</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_public_base_url</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">auth_cfg</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
@@ -2072,6 +2160,8 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># the consent POST carries its own signed CSRF token — so the platform's</span>
         <span class="c1"># double-submit CSRF must not gate them.</span>
         <span class="n">csrf_exempt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"/auth/oauth/"</span><span class="p">)</span>
+    <span class="c1"># What the platform itself owns; no app's ``csrf`` may cover it (#110).</span>
+    <span class="n">platform_prefixes</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">PLATFORM_PREFIXES</span><span class="p">,</span> <span class="o">*</span><span class="n">csrf_exempt</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">app</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">"apps"</span><span class="p">,</span> <span class="p">[]):</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">"mode"</span><span class="p">,</span> <span class="s2">"asgi"</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="s2">"external"</span><span class="p">):</span>
             <span class="n">prefix</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">route_prefix</span>
@@ -2097,7 +2187,12 @@ window.runMermaid = runMermaid;</script>
         <span class="n">CSRFMiddleware</span><span class="p">,</span>
         <span class="n">signing_key</span><span class="o">=</span><span class="n">signing_key</span><span class="p">,</span>
         <span class="n">exempt_prefixes</span><span class="o">=</span><span class="n">csrf_exempt</span><span class="p">,</span>
-        <span class="n">enforce_prefixes</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">"/api/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">/store"</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">store_apps</span><span class="p">)],</span>
+        <span class="c1"># The store routes always, and every path an app opted in with app.toml</span>
+        <span class="c1"># ``csrf`` (#110), even under the exempt /api/ and proxied prefixes.</span>
+        <span class="n">enforce_prefixes</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">"/api/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">/store"</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">store_apps</span><span class="p">)]</span>
+        <span class="o">+</span> <span class="n">confined_csrf_prefixes</span><span class="p">(</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">"apps"</span><span class="p">,</span> <span class="p">[]),</span> <span class="n">platform_prefixes</span><span class="o">=</span><span class="n">platform_prefixes</span>
+        <span class="p">),</span>
         <span class="n">mint_prefixes</span><span class="o">=</span><span class="n">csrf_mint</span><span class="p">,</span>
         <span class="c1"># Secure as the session cookie is, and on any HTTPS request (#78).</span>
         <span class="n">secure</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">secure_cookies</span><span class="p">,</span>
