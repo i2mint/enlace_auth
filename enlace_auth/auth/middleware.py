@@ -553,12 +553,15 @@ def _cross_origin_handshake(scope) -> bool:
     Browsers always send ``Origin`` on a websocket handshake and the CSRF
     header cannot ride on one, so a page on another host (a sibling under
     ``cookie_domain``) is told apart by its origin. No ``Origin`` is not a
-    browser, hence not a forgery.
+    browser, hence not a forgery. A proxy that rewrites ``Host`` must pass the
+    public one on, or same-origin handshakes there are refused (fails closed).
 
     >>> _cross_origin_handshake({"headers": [(b"host", b"a.io"), (b"origin", b"https://a.io")]})
     False
     >>> _cross_origin_handshake({"headers": [(b"host", b"a.io"), (b"origin", b"https://b.a.io")]})
     True
+    >>> _cross_origin_handshake({"headers": [(b"host", b"a.io:443"), (b"origin", b"https://a.io")]})
+    False
     """
     from urllib.parse import urlsplit
 
@@ -567,10 +570,15 @@ def _cross_origin_handshake(scope) -> bool:
     if origin is None:
         return False
     try:
-        netloc = urlsplit(origin.strip()).netloc
+        parts = urlsplit(origin.strip())
+        scheme, netloc = parts.scheme.lower(), parts.netloc.lower()
     except ValueError:
         return True
-    return netloc.lower() != headers.get(b"host", "").strip().lower()
+    host = headers.get(b"host", "").strip().lower()
+    default = {"http": ":80", "https": ":443", "ws": ":80", "wss": ":443"}.get(scheme)
+    if default:  # a.io and a.io:443 are the same origin over https
+        netloc, host = netloc.removesuffix(default), host.removesuffix(default)
+    return netloc != host
 
 
 def _under_any(path: str, prefixes: tuple[str, ...]) -> bool:
