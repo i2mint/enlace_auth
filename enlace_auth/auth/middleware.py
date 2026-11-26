@@ -528,6 +528,40 @@ def _is_https(scope) -> bool:
 _SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
 
+def _path_spellings(path: str) -> set[str]:
+    """The forms of *path* an upstream router might resolve to the same handler.
+
+    Compared against enforced prefixes so that a spelling the browser sends
+    verbatim (``//``, a different case, a ``;param`` suffix) cannot step out
+    from under one. Every form only ever adds enforcement.
+
+    >>> sorted(_path_spellings("/api/X//edit;v=1/"))
+    ['/api/x//edit/', '/api/x//edit;v=1/', '/api/x/edit/', '/api/x/edit;v=1/']
+    """
+    from enlace.ratelimit import normalize_path
+
+    forms = {path, normalize_path(path)}
+    forms |= {"/".join(seg.split(";", 1)[0] for seg in f.split("/")) for f in forms}
+    forms |= {normalize_path(f) for f in forms}
+    return {f.lower() for f in forms}
+
+
+def _under_any(path: str, prefixes: tuple[str, ...]) -> bool:
+    """Whether some spelling of *path* is one of *prefixes* or below it.
+
+    Prefixes are lower-case with no trailing slash; matching is by whole
+    segments, so ``/api/x/edit`` never covers ``/api/x/editor``.
+
+    >>> _under_any("/API/x/Edit/1", ("/api/x/edit",))
+    True
+    >>> _under_any("/api/x/editor", ("/api/x/edit",))
+    False
+    """
+    return any(
+        f == p or f.startswith(p + "/") for f in _path_spellings(path) for p in prefixes
+    )
+
+
 class CSRFMiddleware:
     """Signed double-submit CSRF for state-changing requests.
 
@@ -568,7 +602,11 @@ class CSRFMiddleware:
     ):
         """``enforce_prefixes`` are checked even under an exempt prefix: the per-user
         store routes (``/api/{app}/store``) sit under ``/api/`` but carry data a
-        share can expose to someone else's cookie, so they never skip the check.
+        share can expose to someone else's cookie, so they never skip the check,
+        and neither do the paths an app opts in with app.toml ``csrf``
+        (i2mint/enlace_auth#110). They match by whole segments, ignoring case,
+        repeated slashes, dot segments and ``;params``: a looser match only
+        enforces more.
 
         ``mint_prefixes``: path prefixes (whole segments: ``/auth`` matches
         ``/auth`` and ``/auth/x``, not ``/authors``) where the cookie may be
@@ -582,7 +620,12 @@ class CSRFMiddleware:
         self._signing_key = signing_key
         self._cookie = cookie_name
         self._secure = secure
-        self._enforce = tuple(p.rstrip("/") for p in enforce_prefixes)
+        self._enforce = tuple(p.rstrip("/").lower() for p in enforce_prefixes)
+        if "" in self._enforce:
+            raise ValueError(
+                "an enforce prefix cannot be the site root: it would put the "
+                "check on every path, the exempt auth callbacks included"
+            )
         self._header = header_name.lower().encode("latin-1")
         self._exempt = tuple(exempt_prefixes)
         self._mint = (
@@ -605,8 +648,8 @@ class CSRFMiddleware:
         path = scope.get("path", "/")
 
         # Exempt paths skip the check entirely.
-        is_exempt = any(path.startswith(p) for p in self._exempt) and not any(
-            path == p or path.startswith(p + "/") for p in self._enforce
+        is_exempt = any(path.startswith(p) for p in self._exempt) and not _under_any(
+            path, self._enforce
         )
 
         cookies = _get_cookies(scope)

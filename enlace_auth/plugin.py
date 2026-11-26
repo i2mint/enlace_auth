@@ -508,6 +508,41 @@ def _require_user_gate_for_admins_alias(app) -> None:
         app.access = "protected:user"
 
 
+def app_csrf_prefixes(app) -> list[str]:
+    """The path prefixes where an app's app.toml ``csrf`` asks for the CSRF check.
+
+    ``csrf = true`` covers the whole app, a list covers those sub-paths, under
+    both of the app's mounts (its API ``route_prefix`` and its page ``/{name}``).
+    Absent or false gives ``[]``: the app keeps the ``/api/`` exemption
+    (i2mint/enlace_auth#110).
+
+    >>> from types import SimpleNamespace as App
+    >>> app_csrf_prefixes(App(name="ed", route_prefix="/api/ed", csrf=["edit/"]))
+    ['/ed/edit', '/api/ed/edit']
+    >>> app_csrf_prefixes(App(name="ed", route_prefix="/api/ed", csrf=True))
+    ['/ed', '/api/ed']
+    >>> app_csrf_prefixes(App(name="ed", route_prefix="/api/ed"))
+    []
+    """
+    from enlace.response_headers import app_mounts, validate_subpath_switch
+
+    # Re-validated here too: a value that skipped enlace's check must fail, not
+    # read as "off".
+    switch = validate_subpath_switch(getattr(app, "csrf", False), key="csrf")
+    if switch is False or switch == []:
+        return []
+    if (app.route_prefix or "").rstrip("/") == "":
+        raise ValueError(
+            f"app {app.name!r} sets csrf but is served at the site root, where "
+            "its paths cannot be told apart from the platform's own; give it a "
+            "route of its own"
+        )
+    subs = [""] if switch is True else switch
+    return [
+        f"{mount}/{sub}" if sub else mount for mount in app_mounts(app) for sub in subs
+    ]
+
+
 def _public_base_url(config, auth_cfg) -> Optional[str]:
     """The platform's public origin, if the config pins one.
 
@@ -1378,7 +1413,14 @@ def wire(parent: "FastAPI", config) -> None:
         CSRFMiddleware,
         signing_key=signing_key,
         exempt_prefixes=csrf_exempt,
-        enforce_prefixes=[f"/api/{name}/store" for name in sorted(store_apps)],
+        # The store routes always, and every path an app opted in with app.toml
+        # ``csrf`` (#110), even under the exempt /api/ and proxied prefixes.
+        enforce_prefixes=[f"/api/{name}/store" for name in sorted(store_apps)]
+        + [
+            prefix
+            for app in getattr(config, "apps", [])
+            for prefix in app_csrf_prefixes(app)
+        ],
         mint_prefixes=csrf_mint,
         # Secure as the session cookie is, and on any HTTPS request (#78).
         secure=auth_cfg.secure_cookies,

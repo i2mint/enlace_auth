@@ -132,7 +132,7 @@ Raw endpoints, for a client without the helper: `POST /auth/passkeys/step-up/opt
 
 ## 4. Calling the HTTP API correctly
 
-Every POST, PUT, PATCH and DELETE needs the CSRF pair, except the OAuth callback and consent routes (`/auth/callback`, `/auth/login/<provider>`, `/auth/oauth/`), the step-up redeem (`/auth/passkeys/step-up/redeem`), sub-app APIs under `/api/` (but not `/api/{app}/store`), and proxied `process`/`external` apps. That covers `/auth`, `/_admin`, `/_apps/{name}/meta` and the per-user store. Fetch the token first, then echo it in a header:
+Every POST, PUT, PATCH and DELETE needs the CSRF pair, except the OAuth callback and consent routes (`/auth/callback`, `/auth/login/<provider>`, `/auth/oauth/`), the step-up redeem (`/auth/passkeys/step-up/redeem`), sub-app APIs under `/api/` (but not `/api/{app}/store`, nor the paths an app opts in with `csrf`), and proxied `process`/`external` apps. That covers `/auth`, `/_admin`, `/_apps/{name}/meta` and the per-user store. Fetch the token first, then echo it in a header:
 
 ```python
 token = client.get("/auth/csrf").json()["csrf"]
@@ -143,11 +143,13 @@ client.post(
 
 The cookie is set only by `/auth/*`, `/_admin` and `protected:*` apps. Public pages set no cookie, so a public page that must POST has to call `/auth/csrf` itself. Sub-app APIs under `/api/` are exempt because the session cookie is `SameSite=Lax`.
 
+An app opts its own write paths into the check from its `app.toml`: `csrf = ["edit"]` (those sub-paths, under both `/api/{app}/` and `/{app}/`) or `csrf = true` (the whole app, proxied apps included). Its client then fetches `/auth/csrf` and sends `X-CSRF-Token` on every POST, PUT, PATCH and DELETE there. Without the key nothing changes. An app served at the site root cannot opt in.
+
 ## 5. Inside an app
 
 For `protected:user` apps (and public apps with `user_store = true`), read `request.state.user_id`, `request.state.user_email` and `request.state.store`, a `MutableMapping` scoped to that user and app. Never trust an `X-User-ID`-style header: the middleware strips them.
 
-To let only some signed-in people do something (edit a public app, say), read `request.state.user_groups`: a `frozenset[str]` of the account's `[auth.groups]` names, plus `"admins"` for a platform admin, set on every `public` and `protected:user` app whenever there is a session, empty otherwise (and always empty on a `protected:shared` app, which reads no user session). Write `"editors" in request.state.user_groups` and declare `editors = [...]` under `[auth.groups]` in `platform.toml`, rather than keeping an allowlist in the app: membership then has one source, and it matches `allowed_users = ["@editors"]` exactly. `GET /auth/whoami` returns the same names as `groups`, for a frontend deciding whether to show edit controls (the backend still checks). Make every gated write a POST, PUT or DELETE, never a GET: the platform does not check CSRF under `/api/<app>/` (outside the per-user store), so a write that a link or top-level navigation can trigger is open to any site.
+To let only some signed-in people do something (edit a public app, say), read `request.state.user_groups`: a `frozenset[str]` of the account's `[auth.groups]` names, plus `"admins"` for a platform admin, set on every `public` and `protected:user` app whenever there is a session, empty otherwise (and always empty on a `protected:shared` app, which reads no user session). Write `"editors" in request.state.user_groups` and declare `editors = [...]` under `[auth.groups]` in `platform.toml`, rather than keeping an allowlist in the app: membership then has one source, and it matches `allowed_users = ["@editors"]` exactly. `GET /auth/whoami` returns the same names as `groups`, for a frontend deciding whether to show edit controls (the backend still checks). Make every gated write a POST, PUT or DELETE, never a GET, and set `csrf = true` (or list the write sub-paths) in the app's `app.toml`: without it the platform does not check CSRF under `/api/<app>/` (outside the per-user store), and `SameSite=Lax` does not stop a page on a sibling host from posting with the visitor's session. The check never covers GET, so a write that a link or top-level navigation can trigger stays open to any site.
 
 ## Gotchas
 
