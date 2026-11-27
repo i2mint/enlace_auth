@@ -396,6 +396,44 @@ class PasskeysConfig(_StrictModel):
         return rp_id
 
 
+class HandlesConfig(_StrictModel):
+    """``[auth.handles]``: usernames, the public name of each account.
+
+    On by default: every account gets a private default handle (its email's local
+    part, then ``1``, ``2`` ...), confirms or changes it once, and from then on apps
+    show it instead of the email. See :mod:`enlace_auth.handles`.
+    """
+
+    enabled: StrictBool = True
+    reserved: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Names no account may take, on top of the built-in list "
+            "(enlace_auth.handles.RESERVED) and the [auth.groups] names."
+        ),
+    )
+    min_length: int = Field(default=3, ge=1, le=64)
+    max_length: int = Field(default=30, ge=3, le=64)
+    quarantine_days: float = Field(
+        default=90,
+        ge=0,
+        description=(
+            "How long a released name (after a rename or an account deletion) "
+            "stays out of others' reach; a renamed one redirects meanwhile."
+        ),
+    )
+    rename_cooldown_days: float = Field(
+        default=30,
+        ge=0,
+        description="The least time between two renames (the first choice is free).",
+    )
+    check_per_minute: int = Field(
+        default=120,
+        ge=1,
+        description="Availability checks per account per minute (as-you-type).",
+    )
+
+
 class AuthConfig(_StrictModel):
     """Platform-wide authentication configuration."""
 
@@ -482,6 +520,7 @@ class AuthConfig(_StrictModel):
 
     signup: SignupConfig = Field(default_factory=SignupConfig)
     passkeys: PasskeysConfig = Field(default_factory=PasskeysConfig)
+    handles: HandlesConfig = Field(default_factory=HandlesConfig)
     groups: dict[str, list[str]] = Field(
         default_factory=dict,
         description=(

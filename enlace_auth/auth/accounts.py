@@ -247,6 +247,7 @@ def make_account_deleter(
     user_data: Any = None,
     sign_ins: Any = None,
     passkeys: Any = None,
+    handles: Any = None,
 ) -> Callable[[str], dict]:
     """Return ``delete(email)``: remove an account and what hangs off it.
 
@@ -255,7 +256,8 @@ def make_account_deleter(
     signed in. Then, each optional and each failing alone: the shares naming it,
     its runtime grants (stored under exactly its key: the other spelling of the
     address may be another account), its per-user data (every key under
-    ``{email}/`` in the base store), its last-sign-in time, and its passkeys. Raises
+    ``{email}/`` in the base store), its last-sign-in time, its passkeys, and its
+    handle (released into quarantine with the email erased). Raises
     ``KeyError`` when there is no such account; a damaged grant or data key is
     logged and skipped.
 
@@ -319,6 +321,7 @@ def make_account_deleter(
             ("user data", user_data is not None and _remove_user_data),
             ("last sign-in", sign_ins is not None and _forget_sign_in),
             ("passkeys", passkeys is not None and passkeys.remove_account),
+            ("handle", handles is not None and handles.release_account),
         ]
         removed: dict = {}
         for what, step in steps:
