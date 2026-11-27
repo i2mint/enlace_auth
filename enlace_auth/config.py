@@ -413,7 +413,7 @@ class HandlesConfig(_StrictModel):
         ),
     )
     min_length: int = Field(default=3, ge=1, le=64)
-    max_length: int = Field(default=30, ge=3, le=64)
+    max_length: int = Field(default=30, ge=12, le=64)
     quarantine_days: float = Field(
         default=90,
         ge=0,
@@ -432,6 +432,14 @@ class HandlesConfig(_StrictModel):
         ge=1,
         description="Availability checks per account per minute (as-you-type).",
     )
+
+    @model_validator(mode="after")
+    def _check_lengths(self) -> "HandlesConfig":
+        """Refuse lengths the default search could never satisfy (it would loop)."""
+        from enlace_auth.handles.core import HandlePolicy
+
+        HandlePolicy(min_length=self.min_length, max_length=self.max_length)
+        return self
 
 
 class AuthConfig(_StrictModel):

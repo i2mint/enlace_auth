@@ -35,6 +35,12 @@ class HandleDirectory:
     Only confirmed handles: an account that has not yet confirmed its default (made
     from its email) has none to show, and ``handle_of`` returns ``None``. An app
     then shows no name, or sends its user to its "choose your username" step.
+
+    This is a convenience for trusted server code, not a boundary between apps:
+    every app server on the platform runs in the platform's process and already
+    sees its own users' emails. What must never happen is an email reaching a
+    browser; that is the app's duty, and this view makes it easy by dealing in
+    handles.
     """
 
     def __init__(self, registry: HandleRegistry):

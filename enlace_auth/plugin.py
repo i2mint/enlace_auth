@@ -1186,17 +1186,18 @@ def wire(parent: "FastAPI", config) -> None:
     # One deleter for the self-service deletion and the admin's (#92): both
     # remove the account and everything that hangs off it.
     # Handles (usernames): the public name of each account; emails stay private.
-    handles = None
-    if auth_cfg.handles.enabled:
-        from enlace_auth.handles import make_handle_registry
+    # Built even when [auth.handles] is off, so deleting an account still releases
+    # (and erases the email from) handles kept while it was on.
+    from enlace_auth.handles import make_handle_registry
 
-        handles = make_handle_registry(
-            auth_cfg.handles,
-            store_factory=platform_factory,
-            store_root=auth_cfg.stores.path,
-            account_exists=lambda account: account in user_backend,
-            groups=[*auth_cfg.groups, "admins"],
-        )
+    handles_registry = make_handle_registry(
+        auth_cfg.handles,
+        store_factory=platform_factory,
+        store_root=auth_cfg.stores.path,
+        account_exists=lambda account: account in user_backend,
+        groups=[*auth_cfg.groups, "admins"],
+    )
+    handles = handles_registry if auth_cfg.handles.enabled else None
     delete_account = make_account_deleter(
         user_store=user_backend,
         credentials_changed=on_credentials_changed,
@@ -1205,7 +1206,7 @@ def wire(parent: "FastAPI", config) -> None:
         user_data=user_data_backend,
         sign_ins=platform_factory("sign_ins"),
         passkeys=passkeys["service"] if passkeys else None,
-        handles=handles,
+        handles=handles_registry,
     )
     if handles is not None:
         from enlace_auth.handles.routes import make_handle_router

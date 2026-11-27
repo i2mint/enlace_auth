@@ -391,7 +391,7 @@ def delete_user(email: str, *, keep_data: bool = False, toml: str = "platform.to
         user_data=None if keep_data else _load_user_data(toml_path),
         sign_ins=make_file_store_factory(auth.stores.path)("sign_ins"),
         passkeys=_load_passkeys(toml_path),
-        handles=_load_handles(toml_path) if auth.handles.enabled else None,
+        handles=_load_handles(toml_path),  # also when off: erase what it kept
     )
     removed = {**ended, **delete(key)}
     failed = [what for what, n in removed.items() if n is None]

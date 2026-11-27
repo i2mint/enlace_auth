@@ -7,14 +7,16 @@ not to the open web) and none of them ever returns an email.
   first call. While ``chosen`` is false, a frontend offers its "choose your
   username" step.
 - ``GET  /auth/handles/check?handle=<typed>`` -> ``{"handle", "available",
-  "problem", "code", "suggestions"}`` (rate-limited per account: it is called as
-  the person types).
+  "problem", "code", "suggestions"}``. Called as the person types.
 - ``POST /auth/handles/me`` body ``{"handle"}`` -> ``{"handle", "chosen"}``; posting
   the current handle confirms it. Errors are ``{"detail": {"code", "message",
   "suggestions"}}`` with 409 (taken), 429 (cooldown) or 422 (invalid, reserved).
   Under ``/auth/``, so the platform's double-submit CSRF check covers it.
 - ``GET  /auth/handles/{handle}`` -> ``{"handle"}`` or ``{"handle",
-  "renamed_from"}`` (a recent rename), 404 when no account holds it.
+  "renamed_from"}`` (a recent rename), 404 when no account holds it publicly.
+
+Every route but ``GET /me`` is rate-limited per account (429): the check and the
+lookup at *check_limit* per *check_window_seconds*, a claim at *claim_limit*.
 """
 
 from __future__ import annotations
@@ -34,6 +36,7 @@ _STATUS = {
     "taken": 409,
     "cooldown": 429,
     "no-account": 404,
+    "exhausted": 409,
 }
 
 
@@ -47,12 +50,14 @@ def make_handle_router(
     rate_limiter: Optional[RateLimiter] = None,
     check_limit: int = 120,
     check_window_seconds: float = 60.0,
+    claim_limit: int = 20,
 ) -> APIRouter:
     """Build the ``/auth/handles`` router over *registry*.
 
     *rate_limiter* (``allow(key, *, limit, window)``) bounds the availability
-    check to *check_limit* calls per account per *check_window_seconds*; the
-    default counts in memory, per process.
+    check and the lookup to *check_limit* calls per account per
+    *check_window_seconds*, and claims to *claim_limit*; the default counts in
+    memory, per process.
     """
     router = APIRouter(prefix="/auth/handles")
     allow = rate_limiter or SlidingWindowLimiter({})
@@ -62,6 +67,12 @@ def make_handle_router(
         if not user or user == "shared":
             raise HTTPException(status_code=401, detail="Not authenticated")
         return str(user).lower()
+
+    def _limit(what: str, account: str, limit: int) -> None:
+        if not allow(
+            f"handle-{what}:{account}", limit=limit, window=check_window_seconds
+        ):
+            raise HTTPException(status_code=429, detail="Too many requests; slow down.")
 
     def _refuse(err: HandleError) -> HTTPException:
         return HTTPException(
@@ -82,25 +93,22 @@ def make_handle_router(
 
     @router.post("/me")
     async def set_my_handle(body: _ClaimBody, request: Request) -> dict:
+        account = _me(request)
+        _limit("claim", account, claim_limit)
         try:
-            return registry.claim(_me(request), body.handle)
+            return registry.claim(account, body.handle[:200])
         except HandleError as err:
             raise _refuse(err) from None
 
     @router.get("/check")
     async def check(handle: str, request: Request) -> dict:
         account = _me(request)
-        if not allow(
-            f"handle-check:{account}",
-            limit=check_limit,
-            window=check_window_seconds,
-        ):
-            raise HTTPException(status_code=429, detail="Too many checks; slow down.")
+        _limit("check", account, check_limit)
         return registry.check(handle[:200], account=account)
 
     @router.get("/{handle}")
     async def lookup(handle: str, request: Request) -> dict:
-        _me(request)
+        _limit("check", _me(request), check_limit)
         found = registry.resolve(handle[:200])
         if found is None:
             raise HTTPException(status_code=404, detail="No such username")

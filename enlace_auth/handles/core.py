@@ -5,7 +5,8 @@ shown as ``@name``. The account itself stays keyed by its email, which no other 
 and no browser of another user ever sees. This module is pure (no web, no storage
 imports), so the rules can move unchanged; ``registry.py`` holds the state.
 
-The rules, and why (the research behind each is ``misc/docs/research/general/usernames.md``):
+The rules, and why (the research behind each is in
+``misc/docs/research/general/usernames.md``):
 
 - **ASCII only**: lowercase ``a-z``, digits, and the separators ``.``, ``_``, ``-``.
   Input is NFKC-normalised and case-folded first, so ``ThorWhalen`` and fullwidth
@@ -89,6 +90,7 @@ RESERVED = frozenset(
 # fmt: on
 
 _SEPARATORS = "._-"
+_MAX_WELL_FORMED = 64
 _ALLOWED = re.compile(r"^[a-z0-9._-]+$")
 _DOUBLE_SEPARATOR = re.compile(r"[._-]{2,}")
 
@@ -109,7 +111,25 @@ class HandlePolicy:
     #: sequential suffixes tried (``name1`` .. ``name<N>``) before random ones
     max_sequential: int = 99
     #: digits of the random suffix used once the sequential ones are spent
-    random_suffix_digits: int = 4
+    random_suffix_digits: int = 6
+    #: random suffixes tried before giving up (a crowded base, a tiny max_length)
+    random_tries: int = 1000
+
+    def __post_init__(self):
+        room = len(self.fallback_base) + 1 + self.random_suffix_digits
+        if not (1 <= self.min_length <= self.max_length):
+            raise ValueError(
+                f"handles: min_length ({self.min_length}) must be between 1 and "
+                f"max_length ({self.max_length})"
+            )
+        if self.max_length < room:
+            raise ValueError(
+                f"handles: max_length ({self.max_length}) must leave room for a "
+                f"fallback name and its suffix ({room} characters)"
+            )
+        base = self.fallback_base
+        if not (_ALLOWED.match(base) and any(c.isalpha() for c in base)):
+            raise ValueError(f"handles: fallback_base {base!r} is not a handle")
 
     def with_reserved(self, extra: Iterable[str]) -> "HandlePolicy":
         """This policy with *extra* names reserved too (a host's group names).
@@ -130,6 +150,17 @@ class HandlePolicy:
 
 
 DEFAULT_POLICY = HandlePolicy()
+
+
+def is_well_formed(handle: str) -> bool:
+    """Whether *handle* is shaped like a handle at all (charset and length cap), so
+    a lookup may reach the store. Reserved and short names pass: admins can hold one.
+
+    >>> is_well_formed("@Thor"), is_well_formed("a/../b"), is_well_formed("x" * 99)
+    (True, False, False)
+    """
+    text = normalize(handle)
+    return 0 < len(text) <= _MAX_WELL_FORMED and bool(_ALLOWED.match(text))
 
 
 def normalize(text: str) -> str:
@@ -244,10 +275,11 @@ def candidates(
     *,
     policy: HandlePolicy = DEFAULT_POLICY,
     limit: Optional[int] = None,
-    rng: Callable[[int, int], int] = random.randint,
+    rng: Optional[Callable[[int, int], int]] = None,
 ) -> Iterator[str]:
     """Valid handles to try, in order: *base*, ``base1`` .. ``base<max_sequential>``,
-    then ``base`` plus a random number of *policy.random_suffix_digits* digits.
+    then ``base`` plus a random number of *policy.random_suffix_digits* digits
+    (endless: callers take a bounded slice).
 
     Invalid ones (too short, reserved) are skipped, so ``bo`` starts at ``bo1``. The
     base is cut so the suffix fits. Sequential suffixes are what people expect (the
@@ -259,14 +291,16 @@ def candidates(
     >>> list(candidates("agent007", limit=2))
     ['agent007', 'agent007_1']
     >>> no_sequence = HandlePolicy(max_sequential=0)
-    >>> next(candidates("x", policy=no_sequence, rng=lambda a, b: 4242))
-    'x4242'
+    >>> list(candidates("xyz", policy=no_sequence, rng=lambda a, b: 424242, limit=2))
+    ['xyz', 'xyz424242']
     """
 
     def fit(suffix: str) -> str:
-        head = base[: policy.max_length - len(suffix) - 1].rstrip(_SEPARATORS)
+        head = base[: max(0, policy.max_length - len(suffix) - 1)].rstrip(_SEPARATORS)
         # agent007 + 1 is agent007_1, never agent0071
         return head + ("_" if head[-1:].isdigit() else "") + suffix
+
+    draw = rng or random.randint
 
     def sequence() -> Iterator[str]:
         yield base
@@ -274,7 +308,7 @@ def candidates(
             yield fit(str(n))
         low = 10 ** (policy.random_suffix_digits - 1)
         for _ in count():
-            yield fit(str(rng(low, 10 * low - 1)))
+            yield fit(str(draw(low, 10 * low - 1)))
 
     valid = (c for c in sequence() if handle_problem(c, policy=policy) is None)
     return islice(valid, limit) if limit is not None else valid

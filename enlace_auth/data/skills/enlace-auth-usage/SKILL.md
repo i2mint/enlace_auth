@@ -159,11 +159,13 @@ Every account has a handle: lowercase `a-z0-9` with `.` `_` `-` as separators, 3
 **In an app's server**, store the `user_id` of whoever made something and render the name when you show it:
 
 ```python
-handles = request.state.handles               # read-only, on every request
-handles.handle_of(item["owner"])              # "thorwhalen", or None (no confirmed handle yet)
-handles.handles_of(owners)                    # {user_id: handle} for a list page
-handles.account_of("@ThorWhalen")             # user_id, for "everything by @x" (never send it on)
-handles.resolve("old-name")                   # {"handle": "new", "renamed_from": "old-name"} after a rename
+handles = request.state.handles  # read-only, on every request
+handles.handle_of(item["owner"])  # "thorwhalen", or None (no confirmed handle yet)
+handles.handles_of(owners)  # {user_id: handle} for a list page
+handles.account_of("@ThorWhalen")  # user_id, for "everything by @x" (never send it on)
+handles.resolve(
+    "old-name"
+)  # {"handle": "new", "renamed_from": "old-name"} after a rename
 ```
 
 Never store the handle itself (renames would leave it stale) and never send `user_id` or the email to the browser. Show nothing, or a neutral word, when `handle_of` is `None`.

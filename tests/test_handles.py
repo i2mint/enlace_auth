@@ -69,9 +69,14 @@ def test_invalid_handles_are_refused(handle):
 
 def test_default_is_the_local_part_then_numbered_suffixes():
     reg = _registry()
-    got = [reg.ensure(f"sam@example{i}.com")["handle"] for i in range(12)]
+    got = []
+    for i in range(12):  # each one published before the next account arrives
+        account = f"sam@example{i}.com"
+        assert reg.record_of(account) is None
+        default = reg.ensure(account)
+        assert default["chosen"] is False
+        got.append(reg.claim(account, default["handle"])["handle"])
     assert got == ["sam"] + [f"sam{i}" for i in range(1, 12)]
-    assert all(not reg.record_of(f"sam@example{i}.com")["chosen"] for i in range(12))
 
 
 def test_lookalikes_cannot_pose_as_a_name():
@@ -173,8 +178,21 @@ def test_an_unconfirmed_default_is_private_and_gives_way():
     assert reg.account_of("ann") is None and reg.resolve("ann") is None
     assert reg.check("ann")["available"]  # the check does not reveal it either
     assert reg.claim("bob@example.com", "ann")["handle"] == "ann"
-    assert reg.record_of("ann@example.com") == {"handle": "ann1", "chosen": False}
+    # ann's default moves on when next read, and confirming the old one is refused
+    with pytest.raises(HandleError) as e:
+        reg.claim("ann@example.com", "ann")
+    assert e.value.code == "taken" and e.value.suggestions
+    assert reg.ensure("ann@example.com") == {"handle": "ann1", "chosen": False}
     assert reg.account_of("ann") == "bob@example.com"
+
+
+def test_another_accounts_private_default_tells_nothing():
+    # Review finding: avoiding others' private defaults leaked their local parts.
+    reg = _registry()
+    reg.ensure("jsmith@example.com")  # the victim, never confirmed
+    assert reg.ensure("jsm1th@example.org")["handle"] == "jsm1th"  # same key, no hint
+    reg2 = _registry()
+    assert reg2.ensure("jsm1th@example.org")["handle"] == "jsm1th"
 
 
 # ------------------------------------------------------------------- races
@@ -196,19 +214,24 @@ def test_concurrent_defaults_never_share_a_name(tmp_path):
     got = {}
     barrier = threading.Barrier(len(accounts))
 
-    def assign(account):
+    def claim(account):
         reg = registry()
         barrier.wait()
-        got[account] = reg.ensure(account)["handle"]
+        try:
+            got[account] = reg.claim(account, "kim")["handle"]
+        except HandleError as e:
+            got[account] = e.code
 
-    threads = [threading.Thread(target=assign, args=(a,)) for a in accounts]
+    threads = [threading.Thread(target=claim, args=(a,)) for a in accounts]
     for t in threads:
         t.start()
     for t in threads:
         t.join()
-    assert len(set(got.values())) == len(accounts)
+    assert sorted(got.values()) == ["kim"] + ["taken"] * 15
     reg = registry()
-    assert {a: reg.record_of(a)["handle"] for a in accounts} == got
+    winner = reg.account_of("kim")
+    assert got[winner] == "kim"
+    assert [a for a in accounts if reg.handle_of(a)] == [winner]
 
 
 def test_an_interrupted_rename_leaves_a_stale_entry_that_reads_as_free():
@@ -218,6 +241,124 @@ def test_an_interrupted_rename_leaves_a_stale_entry_that_reads_as_free():
     reg.handles["ghost"] = {"handle": "ghost", "account": "ann@example.com"}
     assert reg.account_of("ghost") is None
     assert reg.claim("bob@example.com", "ghost")["handle"] == "ghost"
+
+
+class _Crash(Exception):
+    pass
+
+
+class _CrashOn(dict):
+    """A mapping that dies on the n-th write: a worker killed mid-claim."""
+
+    def __init__(self, at: int):
+        super().__init__()
+        self.writes, self.at = 0, at
+
+    def __setitem__(self, key, value):
+        self.writes += 1
+        if self.writes == self.at:
+            raise _Crash(key)
+        super().__setitem__(key, value)
+
+    def __delitem__(self, key):
+        self.writes += 1
+        if self.writes == self.at:
+            raise _Crash(key)
+        super().__delitem__(key)
+
+
+@pytest.mark.parametrize("where, at", [("handles", 1), ("handles", 2), ("owners", 1)])
+def test_no_crash_point_in_a_rename_makes_two_owners_or_frees_a_name(where, at):
+    clock = Clock()
+    reg = _registry(clock)
+    reg.claim("ann@example.com", "first")
+    clock.t += 31 * DAY
+    crashing = _CrashOn(at)
+    crashing.update(getattr(reg, where))
+    crashing.writes = 0
+    setattr(reg, where, crashing)
+    with pytest.raises(_Crash):
+        reg.claim("ann@example.com", "second")
+    after = HandleRegistry(
+        dict(reg.handles), dict(reg.owners), account_exists=lambda a: True, clock=clock
+    )
+    with pytest.raises(HandleError):  # "first" is never free for someone else
+        after.claim("bob@example.com", "first")
+    published = [h for h in ("first", "second") if after.account_of(h)]
+    assert len(published) <= 1
+    # and the account recovers by confirming again
+    after.claim("ann@example.com", after.ensure("ann@example.com")["handle"])
+    assert after.handle_of("ann@example.com") in ("first", "second")
+
+
+def test_an_interrupted_deletion_publishes_nothing_twice():
+    clock = Clock()
+    reg = _registry(clock)
+    reg.claim("carol@example.com", "carol")
+    crashing = _CrashOn(1)  # dies deleting the record, after the entry was released
+    crashing.update(reg.owners)
+    crashing.writes = 0
+    reg.owners = crashing
+    with pytest.raises(_Crash):
+        reg.release_account("carol@example.com")
+    assert reg.handle_of("carol@example.com") is None
+    clock.t += 91 * DAY
+    assert reg.claim("dave@example.com", "carol")["handle"] == "carol"
+    assert reg.handle_of("carol@example.com") is None
+
+
+def test_an_account_deleted_before_the_claim_gets_the_lock_keeps_nothing():
+    alive = {"erin@example.com"}
+    reg = HandleRegistry({}, {}, account_exists=alive.__contains__)
+
+    class Interleave:
+        def __enter__(self):
+            alive.discard("erin@example.com")  # the deleter ran first
+
+        def __exit__(self, *exc):
+            return False
+
+    reg._lock = Interleave
+    with pytest.raises(HandleError) as e:
+        reg.claim("erin@example.com", "erin")
+    assert e.value.code == "no-account"
+    assert reg.owners == {} and reg.handles == {}
+
+
+def test_lookups_of_malformed_input_never_reach_the_store():
+    reg = _registry()
+    for bad in ("victim/x", "../etc", "a" * 500, ""):
+        assert reg.account_of(bad) is None and reg.resolve(bad) is None
+
+
+@pytest.mark.parametrize(
+    "lengths", [{"min_length": 20, "max_length": 12}, {"max_length": 5}]
+)
+def test_lengths_the_search_could_not_satisfy_are_refused(lengths):
+    from enlace_auth.config import coerce_auth_config
+
+    with pytest.raises(Exception):
+        coerce_auth_config({"handles": lengths})
+
+
+def test_a_crowded_base_ends_the_search():
+    from enlace_auth.handles import HandlePolicy
+
+    policy = HandlePolicy(max_sequential=2, random_tries=3)
+    reg = HandleRegistry({}, {}, policy=policy, account_exists=lambda a: True)
+    for name in ("zed", "zed1", "zed2"):
+        reg.claim(f"{name}@example.org", name)
+    import enlace_auth.handles.core as core
+
+    real = core.random.randint
+    core.random.randint = lambda a, b: 111111
+    try:
+        reg.claim("other@example.org", "zed111111")
+        with pytest.raises(HandleError) as e:
+            reg.ensure("zed@example.com")
+        assert e.value.code == "exhausted"
+    finally:
+        core.random.randint = real
 
 
 # ------------------------------------------------------- the platform surface
@@ -333,13 +474,13 @@ def test_apps_read_handles_from_request_state(platform):
     assert ghost.json() == {"handle": None}
 
 
-def test_the_check_is_rate_limited(platform):
+def test_the_check_and_the_lookup_are_rate_limited(platform):
     client = platform(check_per_minute=3)
     _sign_in(client, "bob@example.com")
     codes = [
         client.get("/auth/handles/check", params={"handle": f"bob{i}"}).status_code
-        for i in range(4)
-    ]
+        for i in range(3)
+    ] + [client.get("/auth/handles/someone").status_code]
     assert codes == [200, 200, 200, 429]
 
 
@@ -347,3 +488,20 @@ def test_disabled_handles_mount_nothing(platform):
     client = platform(enabled=False)
     _sign_in(client, "bob@example.com")
     assert client.get("/auth/handles/me").status_code == 404
+
+
+def test_deleting_an_account_erases_its_handle_even_with_handles_off(
+    platform, monkeypatch
+):
+    import enlace_auth.auth.accounts as accounts
+
+    seen = {}
+    real = accounts.make_account_deleter
+
+    def spy(**kw):
+        seen.update(kw)
+        return real(**kw)
+
+    monkeypatch.setattr(accounts, "make_account_deleter", spy)
+    platform(enabled=False)
+    assert seen["handles"] is not None  # turned off, it still erases what it kept
