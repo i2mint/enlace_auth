@@ -4,7 +4,7 @@ Date: 2026-11-27. What `enlace_auth.handles` implements, why, and where it depar
 
 ## Summary
 
-The account key stays the email; the handle is an alias resolved at read time, so apps store the account id and never a handle (Slack and GitHub both learned this the hard way [I-5] [I-3]). Handles are ASCII, lowercase, unique under a key that ignores separators and folds look-alike characters, claimed under a lock rather than check-then-insert, and never handed to someone else while recently released. The one product requirement that needed a design answer is "the default username is the email's local part": a handle made from an email leaks part of the address [D-1], and GDPR Art. 25(2) says personal data must not be made public by default without the person's own action [D-4]. So the default is **private and soft** until its owner confirms or changes it.
+The account key stays the email; the handle is an alias resolved at read time, so apps store the account id and never a handle (Slack and GitHub both learned this the hard way [I-5] [I-3]). Handles are ASCII, lowercase, unique under a key that ignores separators and folds look-alike characters, claimed under a lock rather than check-then-insert, and never handed to someone else while recently released. The one product requirement that needed a design answer is "the default username is the email's local part": a handle made from an email leaks part of the address [D-1], and GDPR Art. 25(2) says personal data must not be made public by default without the person's own action [D-4]. So the default is **private** until its owner confirms or changes it: it lives only on the account's own record.
 
 ## Decisions
 
@@ -16,12 +16,12 @@ The account key stays the email; the handle is an alias resolved at read time, s
 | Uniqueness key | separators removed, `0`→`o`, `1` and `i`→`l` (PyPI's "ultranormalised" idea) | [I-13], [I-14], [I-15] |
 | Reserved | routes and pages, roles and RFC 2142 mailboxes, protocol names (`wpad`, `autoconfig`, `.well-known`), words that read as nobody; plus the platform's `[auth.groups]` names; plus `[auth.handles] reserved` | [I-12], [I-19], [D-10] |
 | Default | local part, `+tag` dropped, accents folded, then `name`, `name1` ... `name10`, `name11`; `_` before the suffix when the name ends in a digit; a role mailbox (`info@`) falls back to `user`; random 4-digit suffixes after 99 | [D-6], product requirement |
-| Default visibility | private and soft until confirmed: lookups return nothing, the availability check calls the name free, a claim of it moves the default on | [D-1], [D-4] |
+| Default visibility | private until confirmed, kept only on the account's own record: lookups return nothing, the availability check calls the name free, other accounts' defaults ignore it (avoiding it would reveal that some email folds to that name), and two accounts may share one; confirming is a claim, which can find the name taken and offers suggestions | [D-1], [D-4], adversarial review |
 | First run | one screen: the prefilled handle, a live `@handle` preview, "made from your email address, others will see it", "Continue as @handle" or change it | [D-29], [D-32] |
 | Availability check | signed-in only, rate-limited per account, returns the normalised preview, the problem in words, and up to three suggestions; the server re-checks on submit | [D-30], [D-37], [I-29] |
 | Renames | first choice free; then once per 30 days; the old name stays with the account for 90 days and redirects | [I-2], [I-23], [I-24] |
 | Deletion | the name is held 90 days with no account attached (the email is erased); an unconfirmed default is freed at once | [D-15], [D-44] |
-| Races | every write under one lock (`flock` across the workers of a host); the read path ignores an entry its account no longer points back at, so an interrupted write never yields two owners | [I-26], [I-27], [I-29] |
+| Races | every write under one lock (`flock` across the workers of a host), with the account's existence checked inside it; a name is public only when the index entry and the account's chosen record agree, and writes are ordered (entry, old name into quarantine, record) so an interrupted write never yields two owners nor frees a name early | [I-26], [I-27], [I-29], adversarial review |
 
 ## Where the code departs from the reports, and why
 
