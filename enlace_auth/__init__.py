@@ -14,7 +14,10 @@ When ``config.auth.enabled`` is True the plugin mounts:
   account (change your own), forgot-password / reset-password
 - ``/_admin/api/*`` — admin user/app management (gated by admin allowlist)
 - ``/api/{app}/store/*`` — per-user data store
-- middleware: PlatformAuthMiddleware, CSRFMiddleware, StoreInjectionMiddleware
+- ``/auth/handles/*`` — usernames (``enlace_auth.handles``), and
+  ``request.state.handles`` for apps
+- middleware: PlatformAuthMiddleware, CSRFMiddleware, StoreInjectionMiddleware,
+  HandleDirectoryMiddleware
 
 When it's False the plugin is a no-op, so installing this package never
 changes platform behavior unless the operator opts in.

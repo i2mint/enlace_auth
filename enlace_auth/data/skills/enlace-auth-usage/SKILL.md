@@ -8,9 +8,10 @@ description: >-
   ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user,
   reset-link, grant, share, invite, [auth.signup], sign-up, "continue with
   email" or account deletion, passkeys, WebAuthn, Face ID or Touch ID sign-in,
-  a step-up confirmation or step-up proof; or wants to put login, self-service
-  sign-up, or a "confirm this action with your passkey" tap in front of apps
-  served by enlace.
+  a step-up confirmation or step-up proof, usernames or handles
+  (request.state.handles, /auth/handles, "by @name", set-handle); or wants to put
+  login, self-service sign-up, a username, or a "confirm this action with your
+  passkey" tap in front of apps served by enlace.
 metadata:
   audience: users
 ---
@@ -150,6 +151,31 @@ An app opts its own write paths into the check from its `app.toml`: `csrf = ["ed
 For `protected:user` apps (and public apps with `user_store = true`), read `request.state.user_id`, `request.state.user_email` and `request.state.store`, a `MutableMapping` scoped to that user and app. Never trust an `X-User-ID`-style header: the middleware strips them.
 
 To let only some signed-in people do something (edit a public app, say), read `request.state.user_groups`: a `frozenset[str]` of the account's `[auth.groups]` names, plus `"admins"` for a platform admin, set on every `public` and `protected:user` app whenever there is a session, empty otherwise (and always empty on a `protected:shared` app, which reads no user session). Write `"editors" in request.state.user_groups` and declare `editors = [...]` under `[auth.groups]` in `platform.toml`, rather than keeping an allowlist in the app: membership then has one source, and it matches `allowed_users = ["@editors"]` exactly. `GET /auth/whoami` returns the same names as `groups`, for a frontend deciding whether to show edit controls (the backend still checks). Make every gated write a POST, PUT or DELETE, never a GET, and set `csrf = true` (or list the write sub-paths) in the app's `app.toml`: without it the platform does not check CSRF under `/api/<app>/` (outside the per-user store), and `SameSite=Lax` does not stop a page on a sibling host from posting with the visitor's session. The check never covers GET, so a write that a link or top-level navigation can trigger stays open to any site.
+
+## 6. Usernames (handles): show "by @name", never an email
+
+Every account has a handle: lowercase `a-z0-9` with `.` `_` `-` as separators, 3 to 30 characters, unique ignoring case, separators and look-alikes (`th0r.whalen` is `thorwhalen`). The email stays the account key (`request.state.user_id`). The default handle is the email's local part (`ann.lee`, then `ann.lee1`, `ann.lee2` ...), and it is **private until the person confirms it**: no lookup returns it and the availability check calls its name free, because a name made from an email gives part of the address away.
+
+**In an app's server**, store the `user_id` of whoever made something and render the name when you show it:
+
+```python
+handles = request.state.handles               # read-only, on every request
+handles.handle_of(item["owner"])              # "thorwhalen", or None (no confirmed handle yet)
+handles.handles_of(owners)                    # {user_id: handle} for a list page
+handles.account_of("@ThorWhalen")             # user_id, for "everything by @x" (never send it on)
+handles.resolve("old-name")                   # {"handle": "new", "renamed_from": "old-name"} after a rename
+```
+
+Never store the handle itself (renames would leave it stale) and never send `user_id` or the email to the browser. Show nothing, or a neutral word, when `handle_of` is `None`.
+
+**In the browser** (signed-in only; no route returns an email):
+
+- `GET /auth/handles/me` gives `{"handle", "chosen"}`. While `chosen` is false, show a "choose your username" step: the prefilled default, where it came from, and one button "Continue as @name". A 404 means the platform has no handles: skip the step.
+- `GET /auth/handles/check?handle=<typed>` gives `{"handle", "available", "problem", "code", "suggestions"}` (`handle` is the normalised preview, `code` is `invalid`, `reserved` or `taken`). Call it debounced (about 350 ms) and drop replies to older drafts; it is rate-limited per account.
+- `POST /auth/handles/me {"handle"}` with the CSRF pair sets it, or confirms the default when it is the same name. Refusals are `{"detail": {"code", "message", "suggestions"}}`: 409 taken, 422 invalid or reserved, 429 a rename inside the cooldown (30 days after the last change; the first choice is free).
+- `GET /auth/handles/<name>` gives `{"handle"}` (or `{"handle", "renamed_from"}`), 404 when no account holds it publicly.
+
+**Admins**: `enlace-auth list-handles`, `enlace-auth set-handle EMAIL NAME [--force]` (force allows a reserved name and skips the cooldown, never takes another account's name), `enlace-auth assign-handles`. **Config**: `[auth.handles]` (`enabled`, `reserved`, `min_length`, `max_length`, `quarantine_days` 90, `rename_cooldown_days` 30, `check_per_minute`); `[auth.groups]` names are reserved automatically. A released name is held for the quarantine and a renamed one redirects meanwhile; deleting an account releases its name with the email erased.
 
 ## Gotchas
 
