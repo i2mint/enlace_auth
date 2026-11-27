@@ -43,7 +43,6 @@ import os
 import threading
 import time
 from collections.abc import Callable, Iterable, Iterator, MutableMapping
-from itertools import islice
 from pathlib import Path
 from typing import ContextManager, Optional
 
@@ -331,7 +330,7 @@ class HandleRegistry:
         that some other email's local part folds to that name."""
         base = base_from_email(account, policy=self.policy)
         tries = self.policy.max_sequential + 1 + self.policy.random_tries
-        for handle in islice(candidates(base, policy=self.policy), tries):
+        for handle in candidates(base, policy=self.policy, tries=tries):
             if self._holder(uniqueness_key(handle), now) is None:
                 return handle
         raise HandleError("exhausted", "Could not find a free username; try another.")
@@ -443,13 +442,18 @@ class HandleRegistry:
         }
         previous = list(current.get("previous", [])) if current else []
         old_key = uniqueness_key(current["handle"]) if current else None
-        renamed = public and old_key != key
-        if renamed:
-            old = self._entry(old_key)
-            if old and old.get("account") == account:
+        old = self._entry(old_key) if old_key and old_key != key else None
+        if old and old.get("account") == account:
+            # the old public name (or one a crash left quarantined) stays the
+            # account's for the quarantine, and is remembered to release it
+            if old.get("released_at") is None:
                 self.handles[old_key] = {**old, "at": now, "released_at": now}
-            previous = [k for k in previous if k != old_key][-(_MAX_PREVIOUS - 1) :]
-            previous.append(old_key)
+            previous = [k for k in previous if k != old_key] + [old_key]
+        for dropped in previous[:-_MAX_PREVIOUS]:  # forgotten: erase the account
+            entry = self._entry(dropped)
+            if entry and entry.get("account") == account:
+                self.handles[dropped] = {**entry, "account": None}
+        previous = previous[-_MAX_PREVIOUS:]
         same = public and old_key == key
         self.owners[account] = {
             "handle": handle,

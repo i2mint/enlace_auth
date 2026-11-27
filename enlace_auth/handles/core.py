@@ -117,6 +117,12 @@ class HandlePolicy:
 
     def __post_init__(self):
         room = len(self.fallback_base) + 1 + self.random_suffix_digits
+        if self.min_length > 1 + self.random_suffix_digits:
+            raise ValueError(
+                f"handles: min_length ({self.min_length}) must be at most "
+                f"{1 + self.random_suffix_digits}, or a one-letter email could "
+                "never get a default"
+            )
         if not (1 <= self.min_length <= self.max_length):
             raise ValueError(
                 f"handles: min_length ({self.min_length}) must be between 1 and "
@@ -276,10 +282,12 @@ def candidates(
     policy: HandlePolicy = DEFAULT_POLICY,
     limit: Optional[int] = None,
     rng: Optional[Callable[[int, int], int]] = None,
+    tries: Optional[int] = None,
 ) -> Iterator[str]:
     """Valid handles to try, in order: *base*, ``base1`` .. ``base<max_sequential>``,
-    then ``base`` plus a random number of *policy.random_suffix_digits* digits
-    (endless: callers take a bounded slice).
+    then ``base`` plus a random number of *policy.random_suffix_digits* digits.
+    Endless unless *tries* bounds the names generated (valid or not): a caller
+    that must terminate passes it.
 
     Invalid ones (too short, reserved) are skipped, so ``bo`` starts at ``bo1``. The
     base is cut so the suffix fits. Sequential suffixes are what people expect (the
@@ -310,7 +318,8 @@ def candidates(
         for _ in count():
             yield fit(str(draw(low, 10 * low - 1)))
 
-    valid = (c for c in sequence() if handle_problem(c, policy=policy) is None)
+    tried = sequence() if tries is None else islice(sequence(), tries)
+    valid = (c for c in tried if handle_problem(c, policy=policy) is None)
     return islice(valid, limit) if limit is not None else valid
 
 

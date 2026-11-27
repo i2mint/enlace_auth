@@ -24,6 +24,7 @@ Usage::
     enlace-auth list-handles [--json]
     enlace-auth set-handle <email> <handle> [--force]
     enlace-auth assign-handles
+    enlace-auth sweep-handles
 """
 
 from __future__ import annotations
@@ -1043,6 +1044,18 @@ def set_handle(
     print(f"{email.strip().lower()} is now @{record['handle']}.")
 
 
+def sweep_handles(*, toml: str = "platform.toml"):
+    """Free the released handles whose quarantine is over (erasing their account).
+
+    Run it now and then (a daily timer is plenty).
+
+    Args:
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    gone = _load_handles(Path(toml)).sweep()
+    print(f"Freed {gone} handle{'s' * (gone != 1)}.")
+
+
 def assign_handles(*, toml: str = "platform.toml"):
     """Give every account without a handle its default (email local part + suffix).
 
@@ -1094,6 +1107,7 @@ COMMANDS = [
     list_handles,
     set_handle,
     assign_handles,
+    sweep_handles,
 ]
 
 

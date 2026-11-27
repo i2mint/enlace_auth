@@ -332,7 +332,8 @@ def test_lookups_of_malformed_input_never_reach_the_store():
 
 
 @pytest.mark.parametrize(
-    "lengths", [{"min_length": 20, "max_length": 12}, {"max_length": 5}]
+    "lengths",
+    [{"min_length": 20, "max_length": 12}, {"max_length": 5}, {"min_length": 9}],
 )
 def test_lengths_the_search_could_not_satisfy_are_refused(lengths):
     from enlace_auth.config import coerce_auth_config
@@ -505,3 +506,21 @@ def test_deleting_an_account_erases_its_handle_even_with_handles_off(
     monkeypatch.setattr(accounts, "make_account_deleter", spy)
     platform(enabled=False)
     assert seen["handles"] is not None  # turned off, it still erases what it kept
+
+
+def test_a_long_minimum_with_a_short_local_part_ends_the_search():
+    from enlace_auth.handles import HandlePolicy
+
+    policy = HandlePolicy(min_length=7, max_sequential=3, random_tries=5)
+    reg = HandleRegistry({}, {}, policy=policy, account_exists=lambda a: True)
+    record = reg.ensure("bo@example.com")  # bo1..bo3 too short: the random tail fits
+    assert len(record["handle"]) >= 7
+
+
+def test_names_forgotten_after_many_renames_lose_their_account():
+    clock = Clock()
+    reg = _registry(clock, rename_cooldown_seconds=0)
+    for i in range(25):
+        reg.claim("ann@example.com", f"name{chr(97 + i)}x")
+    reg.release_account("ann@example.com")
+    assert all(e.get("account") is None for e in reg.handles.values())
