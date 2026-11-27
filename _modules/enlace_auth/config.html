@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../../_static/documentation_options.js?v=07ed7713"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.1.65" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1128,6 +1128,55 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<div class="viewcode-block" id="HandlesConfig">
+<a class="viewcode-back" href="../../_autosummary/enlace_auth.config.html#enlace_auth.HandlesConfig">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HandlesConfig</span><span class="p">(</span><span class="n">_StrictModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""``[auth.handles]``: usernames, the public name of each account.</span>
+
+<span class="sd">    On by default: every account gets a private default handle (its email's local</span>
+<span class="sd">    part, then ``1``, ``2`` ...), confirms or changes it once, and from then on apps</span>
+<span class="sd">    show it instead of the email. See :mod:`enlace_auth.handles`.</span>
+<span class="sd">    """</span>
+
+    <span class="n">enabled</span><span class="p">:</span> <span class="n">StrictBool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">reserved</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"Names no account may take, on top of the built-in list "</span>
+            <span class="s2">"(enlace_auth.handles.RESERVED) and the [auth.groups] names."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">min_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
+    <span class="n">max_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
+    <span class="n">quarantine_days</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span>
+        <span class="n">ge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"How long a released name (after a rename or an account deletion) "</span>
+            <span class="s2">"stays out of others' reach; a renamed one redirects meanwhile."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">rename_cooldown_days</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+        <span class="n">ge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"The least time between two renames (the first choice is free)."</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">check_per_minute</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>
+        <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"Availability checks per account per minute (as-you-type)."</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_lengths</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"HandlesConfig"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Refuse lengths the default search could never satisfy (it would loop)."""</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.handles.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">HandlePolicy</span>
+
+        <span class="n">HandlePolicy</span><span class="p">(</span><span class="n">min_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_length</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_length</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+
 <div class="viewcode-block" id="AuthConfig">
 <a class="viewcode-back" href="../../_autosummary/enlace_auth.config.html#enlace_auth.AuthConfig">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AuthConfig</span><span class="p">(</span><span class="n">_StrictModel</span><span class="p">):</span>
@@ -1216,6 +1265,7 @@ window.runMermaid = runMermaid;</script>
 
     <span class="n">signup</span><span class="p">:</span> <span class="n">SignupConfig</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">SignupConfig</span><span class="p">)</span>
     <span class="n">passkeys</span><span class="p">:</span> <span class="n">PasskeysConfig</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">PasskeysConfig</span><span class="p">)</span>
+    <span class="n">handles</span><span class="p">:</span> <span class="n">HandlesConfig</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">HandlesConfig</span><span class="p">)</span>
     <span class="n">groups</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span>
         <span class="n">description</span><span class="o">=</span><span class="p">(</span>

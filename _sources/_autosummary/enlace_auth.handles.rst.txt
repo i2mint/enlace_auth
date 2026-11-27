@@ -1,0 +1,44 @@
+enlace\_auth.handles
+====================
+
+.. automodule:: enlace_auth.handles
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      base_from_email
+      candidates
+      file_lock
+      handle_problem
+      make_handle_registry
+      normalize
+      suggestions
+      uniqueness_key
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      HandleDirectory
+      HandleDirectoryMiddleware
+      HandlePolicy
+      HandleRegistry
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      HandleError
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   core
+   directory
+   registry
+   routes

@@ -33,6 +33,11 @@
 - [enlace_auth.diagnostics](_autosummary/enlace_auth.diagnostics.html.md): Auth-specific doctor checks that plug into &#96;enlace.doctor.run_doctor&#96;.
 - [enlace_auth.emails](_autosummary/enlace_auth.emails.html.md): One normal form for an email address, wherever one is compared.
 - [enlace_auth.groups](_autosummary/enlace_auth.groups.html.md): Named groups of accounts: one list of emails, referenced as &#96;@name&#96; wherever an
+- [enlace_auth.handles](_autosummary/enlace_auth.handles.html.md): Handles (usernames): the public, unique, case-insensitive name of an account.
+- [enlace_auth.handles.core](_autosummary/enlace_auth.handles.core.html.md): What a handle is: its normal form, its rules, and the default made from an email.
+- [enlace_auth.handles.directory](_autosummary/enlace_auth.handles.directory.html.md): The read-only view of handles every app gets at &#96;request.state.handles&#96;.
+- [enlace_auth.handles.registry](_autosummary/enlace_auth.handles.registry.html.md): The handle registry: which account holds which handle, kept unique under a lock.
+- [enlace_auth.handles.routes](_autosummary/enlace_auth.handles.routes.html.md): &#96;/auth/handles/&#42;&#96;: the signed-in user’s handle, the availability check, lookups.
 - [enlace_auth.oauth_rules](_autosummary/enlace_auth.oauth_rules.html.md): The stateless rules of the OAuth 2.1 authorization server, importable alone.
 - [enlace_auth.passkeys](_autosummary/enlace_auth.passkeys.html.md): Passkeys (WebAuthn): sign-in, a step-up confirmation, and a per-account requirement.
 - [enlace_auth.passkeys.core](_autosummary/enlace_auth.passkeys.core.html.md): Passkey ceremonies, the step-up proof, and the passkey-required policy.
@@ -54,7 +59,7 @@
 - [enlace_auth.stores.prefixed](_autosummary/enlace_auth.stores.prefixed.html.md): PrefixedStore — MutableMapping wrapper that scopes keys under a prefix.
 - [enlace_auth.stores.validation](_autosummary/enlace_auth.stores.validation.html.md): Key sanitization for user-supplied store keys.
 - [For AI agents](ai-agents.html.md): &#96;enlace_auth&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-26 15:10 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-27 11:22 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
 
 ## Optional
 

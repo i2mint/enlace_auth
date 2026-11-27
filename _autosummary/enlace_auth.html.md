@@ -18,7 +18,10 @@ When `config.auth.enabled` is True the plugin mounts:
   account (change your own), forgot-password / reset-password
 - `/_admin/api/*` — admin user/app management (gated by admin allowlist)
 - `/api/{app}/store/*` — per-user data store
-- middleware: PlatformAuthMiddleware, CSRFMiddleware, StoreInjectionMiddleware
+- `/auth/handles/*` — usernames (`enlace_auth.handles`), and
+  `request.state.handles` for apps
+- middleware: PlatformAuthMiddleware, CSRFMiddleware, StoreInjectionMiddleware,
+  HandleDirectoryMiddleware
 
 When it’s False the plugin is a no-op, so installing this package never
 changes platform behavior unless the operator opts in.
@@ -41,7 +44,7 @@ changes platform behavior unless the operator opts in.
 | [`EnlaceAuthConfigError`](#enlace_auth.EnlaceAuthConfigError)   | Raised when auth configuration is unusable at startup.   |
 |--------------------------------------------------------------------------|----------------------------------------------------------|
 
-### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, cookie_domain=None, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, groups=<factory>)
+### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, cookie_domain=None, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, handles=<factory>, groups=<factory>)
 
 Bases: `_StrictModel`
 
@@ -112,6 +115,7 @@ Plugin entry point. Safe to call when auth is disabled — does nothing.
 | [`diagnostics`](enlace_auth.diagnostics.html.md#module-enlace_auth.diagnostics)         | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`.                         |
 | [`emails`](enlace_auth.emails.html.md#module-enlace_auth.emails)                   | One normal form for an email address, wherever one is compared.                                |
 | [`groups`](enlace_auth.groups.html.md#module-enlace_auth.groups)                   | Named groups of accounts: one list of emails, referenced as `@name` wherever an email list is. |
+| [`handles`](enlace_auth.handles.html.md#module-enlace_auth.handles)                 | Handles (usernames): the public, unique, case-insensitive name of an account.                  |
 | [`oauth_rules`](enlace_auth.oauth_rules.html.md#module-enlace_auth.oauth_rules)         | The stateless rules of the OAuth 2.1 authorization server, importable alone.                   |
 | [`passkeys`](enlace_auth.passkeys.html.md#module-enlace_auth.passkeys)               | Passkeys (WebAuthn): sign-in, a step-up confirmation, and a per-account requirement.           |
 | [`ratelimit`](enlace_auth.ratelimit.html.md#module-enlace_auth.ratelimit)             | A sliding-window rate limiter over any `MutableMapping`.                                       |

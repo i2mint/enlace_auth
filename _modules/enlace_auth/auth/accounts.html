@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../../../_static/documentation_options.js?v=07ed7713"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.1.65" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -984,6 +984,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">user_data</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">sign_ins</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">passkeys</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">handles</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">dict</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Return ``delete(email)``: remove an account and what hangs off it.</span>
 
@@ -992,7 +993,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    signed in. Then, each optional and each failing alone: the shares naming it,</span>
 <span class="sd">    its runtime grants (stored under exactly its key: the other spelling of the</span>
 <span class="sd">    address may be another account), its per-user data (every key under</span>
-<span class="sd">    ``{email}/`` in the base store), its last-sign-in time, and its passkeys. Raises</span>
+<span class="sd">    ``{email}/`` in the base store), its last-sign-in time, its passkeys, and its</span>
+<span class="sd">    handle (released into quarantine with the email erased). Raises</span>
 <span class="sd">    ``KeyError`` when there is no such account; a damaged grant or data key is</span>
 <span class="sd">    logged and skipped.</span>
 
@@ -1056,6 +1058,7 @@ window.runMermaid = runMermaid;</script>
             <span class="p">(</span><span class="s2">"user data"</span><span class="p">,</span> <span class="n">user_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_remove_user_data</span><span class="p">),</span>
             <span class="p">(</span><span class="s2">"last sign-in"</span><span class="p">,</span> <span class="n">sign_ins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_forget_sign_in</span><span class="p">),</span>
             <span class="p">(</span><span class="s2">"passkeys"</span><span class="p">,</span> <span class="n">passkeys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">passkeys</span><span class="o">.</span><span class="n">remove_account</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"handle"</span><span class="p">,</span> <span class="n">handles</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">handles</span><span class="o">.</span><span class="n">release_account</span><span class="p">),</span>
         <span class="p">]</span>
         <span class="n">removed</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">what</span><span class="p">,</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">:</span>

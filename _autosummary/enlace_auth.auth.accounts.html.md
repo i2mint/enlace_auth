@@ -105,7 +105,7 @@ True when *record* is a user record marked disabled.
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
-### enlace_auth.auth.accounts.make_account_deleter(, user_store, credentials_changed, share_store=None, grant_store=None, user_data=None, sign_ins=None, passkeys=None)
+### enlace_auth.auth.accounts.make_account_deleter(, user_store, credentials_changed, share_store=None, grant_store=None, user_data=None, sign_ins=None, passkeys=None, handles=None)
 
 Return `delete(email)`: remove an account and what hangs off it.
 
@@ -114,7 +114,8 @@ The record goes first, then its sessions and connector refresh families
 signed in. Then, each optional and each failing alone: the shares naming it,
 its runtime grants (stored under exactly its key: the other spelling of the
 address may be another account), its per-user data (every key under
-`{email}/` in the base store), its last-sign-in time, and its passkeys. Raises
+`{email}/` in the base store), its last-sign-in time, its passkeys, and its
+handle (released into quarantine with the email erased). Raises
 `KeyError` when there is no such account; a damaged grant or data key is
 logged and skipped.
 

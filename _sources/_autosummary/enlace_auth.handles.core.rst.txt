@@ -1,0 +1,23 @@
+enlace\_auth.handles.core
+=========================
+
+.. automodule:: enlace_auth.handles.core
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      base_from_email
+      candidates
+      handle_problem
+      normalize
+      suggestions
+      uniqueness_key
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      HandlePolicy
+   

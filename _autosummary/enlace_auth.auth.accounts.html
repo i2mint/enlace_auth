@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../_static/documentation_options.js?v=07ed7713"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.1.65" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -349,6 +349,13 @@
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.diagnostics.html">enlace_auth.diagnostics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.emails.html">enlace_auth.emails</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.groups.html">enlace_auth.groups</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.handles.html">enlace_auth.handles</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.handles.core.html">enlace_auth.handles.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.handles.directory.html">enlace_auth.handles.directory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.handles.registry.html">enlace_auth.handles.registry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.handles.routes.html">enlace_auth.handles.routes</a></li>
+</ul>
+</details></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_auth.oauth_rules.html">enlace_auth.oauth_rules</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.passkeys.html">enlace_auth.passkeys</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.core.html">enlace_auth.passkeys.core</a></li>
@@ -578,14 +585,15 @@ the record stays disabled (rewrites keep it) until an enable clears it.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_auth.auth.accounts.make_account_deleter">
-<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.accounts.</span></span><span class="sig-name descname"><span class="pre">make_account_deleter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">credentials_changed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">share_store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grant_store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sign_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">passkeys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/accounts.html#make_account_deleter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.accounts.make_account_deleter" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.auth.accounts.</span></span><span class="sig-name descname"><span class="pre">make_account_deleter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">credentials_changed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">share_store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grant_store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sign_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">passkeys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">handles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/auth/accounts.html#make_account_deleter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.auth.accounts.make_account_deleter" title="Link to this definition">#</a></dt>
 <dd><p>Return <code class="docutils literal notranslate"><span class="pre">delete(email)</span></code>: remove an account and what hangs off it.</p>
 <p>The record goes first, then its sessions and connector refresh families
 (<code class="docutils literal notranslate"><span class="pre">credentials_changed</span></code>), so a failure later cannot leave a deleted account
 signed in. Then, each optional and each failing alone: the shares naming it,
 its runtime grants (stored under exactly its key: the other spelling of the
 address may be another account), its per-user data (every key under
-<code class="docutils literal notranslate"><span class="pre">{email}/</span></code> in the base store), its last-sign-in time, and its passkeys. Raises
+<code class="docutils literal notranslate"><span class="pre">{email}/</span></code> in the base store), its last-sign-in time, its passkeys, and its
+handle (released into quarantine with the email erased). Raises
 <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> when there is no such account; a damaged grant or data key is
 logged and skipped.</p>
 <p>It returns what it removed: <code class="docutils literal notranslate"><span class="pre">{what:</span> <span class="pre">count}</span></code> for each store it was given,

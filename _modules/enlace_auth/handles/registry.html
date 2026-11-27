@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="alternate" type="text/markdown" href="registry.html.md">
+<link rel="describedby" href="../../../llms.txt" type="text/markdown">
+    <title>enlace_auth.handles.registry &#8212; enlace_auth</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx_autodoc_typehints.css?v=057ac668" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/epythet.css?v=d146b16c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../_static/documentation_options.js?v=07ed7713"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=fd10adb8"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = "pre.mermaid {\n    /* Same as .mermaid-container > pre */\n    display: block;\n    width: 100%;\n}\n\npre.mermaid > svg {\n    /* Same as .mermaid-container > pre > svg */\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}";
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = ".mermaid-container {\n    position: relative;\n    display: flex;\n    flex-direction: row;\n    width: 100%;\n}\n\n.mermaid-container > pre {\n    display: block;\n    width: 100%;\n}\n\n.mermaid-container > pre > svg {\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}\n\n.mermaid-fullscreen-btn {\n    position: absolute;\n    width: 28px;\n    height: 28px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.3);\n    border-radius: 4px;\n    cursor: pointer;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    transition: all 0.2s;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);\n    font-size: 14px;\n    line-height: 1;\n    padding: 0;\n    color: #333;\n}\n\n.mermaid-fullscreen-btn:hover {\n    opacity: 100% !important;\n    background: rgba(255, 255, 255, 1);\n    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-btn.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.3);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-btn.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal {\n    display: none;\n    position: fixed !important;\n    top: 0 !important;\n    left: 0 !important;\n    width: 95vw;\n    height: 100vh;\n    background: rgba(255, 255, 255, 0.98);\n    z-index: 9999;\n    padding: 20px;\n    overflow: auto;\n}\n\n.mermaid-fullscreen-modal.dark-theme {\n    background: rgba(0, 0, 0, 0.98);\n}\n\n.mermaid-fullscreen-modal.active {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen {\n    position: relative;\n    width: 95vw;\n    height: 90vh;\n    max-width: 95vw;\n    max-height: 90vh;\n    background: white;\n    border-radius: 8px;\n    padding: 20px;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);\n    overflow: auto;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen.dark-theme {\n    background: #1a1a1a;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);\n}\n\n.mermaid-container-fullscreen pre.mermaid {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen .mermaid svg {\n    height: 100% !important;\n    width: 100% !important;\n    cursor: grab;\n}\n\n.mermaid-fullscreen-close {\n    position: fixed !important;\n    top: 20px !important;\n    right: 20px !important;\n    width: 40px;\n    height: 40px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.2);\n    border-radius: 50%;\n    cursor: pointer;\n    z-index: 10000;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);\n    transition: all 0.2s;\n    font-size: 24px;\n    line-height: 1;\n    color: #333;\n}\n\n.mermaid-fullscreen-close:hover {\n    background: white;\n    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-close.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.2);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-close.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal .mermaid-fullscreen-btn {\n    display: none !important;\n}";
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+let _lazyObserver = null;
+let _renderQueue = Promise.resolve();
+let closeModal = () => {};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal?.classList.contains('active')) {
+        closeModal();
+    }
+});
+
+// Apply d3 zoom to each SVG. Idempotent: an SVG already wrapped is skipped,
+// so this is safe to call both for the initial batch and for diagrams that
+// render lazily once they become visible.
+const addZoomToSvgs = (svgs) => {
+    svgs.each(function() {
+        if (this.getAttribute('data-zoom-applied') === 'true') return;
+        var svg = d3.select(this);
+        svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+        var inner = svg.select("g");
+        var zoom = d3.zoom().on("zoom", function(event) {
+            inner.attr("transform", event.transform);
+        });
+        svg.call(zoom);
+        this.setAttribute('data-zoom-applied', 'true');
+    });
+};
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        // Disconnect any previous lazy rendering observer
+        if (_lazyObserver) {
+            _lazyObserver.disconnect();
+            _lazyObserver = null;
+        }
+
+        all_mermaids.forEach((el) => {
+            el.removeAttribute('data-mermaid-deferred');
+            el.removeAttribute('data-mermaid-render-failed');
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+
+        // Separate visible and hidden elements. Mermaid's layout engine measures
+        // text dimensions via the DOM, which fails for elements hidden by a parent
+        // (e.g., Reveal.js non-active slides, sphinx-design unopened tabs),
+        // producing broken SVGs. Render visible elements now, defer hidden ones.
+        const visible = [];
+        const hidden = [];
+        all_mermaids.forEach((el) => {
+            // offsetParent is null for display:none ancestors.
+            // getClientRects().length > 0 catches position:fixed elements
+            // (which also have null offsetParent but are still visible).
+            if (el.offsetParent !== null || el.getClientRects().length > 0) {
+                visible.push(el);
+            } else {
+                hidden.push(el);
+                el.setAttribute('data-mermaid-deferred', 'true');
+            }
+        });
+
+        if (visible.length > 0) {
+            try {
+                await mermaid.run({ nodes: visible });
+            } catch (e) {
+                console.error("Mermaid rendering failed:", e);
+            }
+        }
+
+        // Lazily render hidden elements when they become visible.
+        // Uses a promise chain (_renderQueue) to serialize rendering,
+        // since IntersectionObserver may report multiple entries at once
+        // and mermaid.run() is not safe to call concurrently.
+        if (hidden.length > 0) {
+            if (typeof IntersectionObserver === 'undefined') {
+                console.warn("IntersectionObserver not available; hidden mermaid diagrams will not render.");
+            } else {
+                _renderQueue = Promise.resolve();
+                _lazyObserver = new IntersectionObserver((entries) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting && entry.target.getAttribute("data-processed") !== "true") {
+                            _lazyObserver.unobserve(entry.target);
+                            const el = entry.target;
+                            _renderQueue = _renderQueue.then(async () => {
+                                try {
+                                    await mermaid.run({ nodes: [el] });
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    // Apply zoom to the now-rendered diagram, matching
+                                    // the decoration visible diagrams receive.
+                                    if (false) {
+                                        addZoomToSvgs(d3.selectAll("").select(function() {
+                                            return this.querySelector("svg");
+                                        }));
+                                    }
+                                } catch (e) {
+                                    console.error("Mermaid deferred rendering failed:", e);
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    el.setAttribute('data-mermaid-render-failed', 'true');
+                                }
+                            });
+                        }
+                    }
+                });
+                hidden.forEach((el) => _lazyObserver.observe(el));
+            }
+        }
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    // Exclude deferred (hidden) and render-failed elements from completion checks
+    const mermaids_active = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])");
+    const mermaids_processed = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])[data-processed='true']");
+
+    if (false) {
+        const mermaids_to_add_zoom = 0 === -1 ? mermaids_active.length : 0;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("").select(function() {
+                return this.querySelector("svg");
+            });
+            // Wait until every active (visible) diagram has rendered. Deferred
+            // diagrams are excluded, so a fixed d3_node_count that counts a
+            // hidden diagram no longer loops forever waiting for its SVG.
+            if(mermaids_active.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            }
+            addZoomToSvgs(svgs);
+        }
+    } else if(mermaids_active.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if (!true) return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = "\u26f6";
+        fullscreenBtn.style.opacity = "50%";
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scrollX, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.display = 'block';
+
+                if (false) {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+
+
+const load = async () => {
+    initStyles();
+
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...{"startOnLoad": false},
+                ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...{"startOnLoad": false},
+    ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/enlace_auth/handles/registry';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.65" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">enlace_auth</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../ai-agents.html">
+    For AI agents
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_auth" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../ai-agents.html">
+    For AI agents
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_auth" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">enlace_auth.handles.registry</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for enlace_auth.handles.registry</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""The handle registry: which account holds which handle, kept unique under a lock.</span>
+
+<span class="sd">Two mappings, each a plain ``MutableMapping`` (a ``dict`` in tests, the platform's</span>
+<span class="sd">file store in production):</span>
+
+<span class="sd">- ``handles``: uniqueness key -&gt; ``{"handle", "account", "at", "released_at"}``,</span>
+<span class="sd">  public names only. A live entry has ``released_at`` ``None``. A released one keeps</span>
+<span class="sd">  the name out of reach for *quarantine_seconds*: after a rename it still names its</span>
+<span class="sd">  old account (who may take it back, and whose old links resolve to the new name);</span>
+<span class="sd">  after an account deletion its ``account`` is ``None`` (the email is erased).</span>
+<span class="sd">- ``owners``: account -&gt; ``{"handle", "chosen", "at", "changed_at", "previous"}``.</span>
+<span class="sd">  ``chosen`` is ``False`` for a private default the account has not confirmed: a</span>
+<span class="sd">  frontend shows its "choose your username" step, and nobody else can see it.</span>
+
+<span class="sd">A name is public only while both halves agree: a live ``handles`` entry naming the</span>
+<span class="sd">account, and the account's chosen record naming that key. Writes are ordered so</span>
+<span class="sd">that an interrupted one leaves at most one half, which every read ignores: never</span>
+<span class="sd">two owners, never a name freed before its quarantine.</span>
+
+<span class="sd">Uniqueness: every write runs under *lock* (a context manager). The default is a</span>
+<span class="sd">process-local ``threading.Lock``; the platform passes :func:`file_lock`, which holds</span>
+<span class="sd">across worker processes on one host. A store with a conditional write (S3</span>
+<span class="sd">``If-None-Match``, a database unique index) is the replacement for a multi-host</span>
+<span class="sd">deployment.</span>
+
+<span class="sd">&gt;&gt;&gt; reg = HandleRegistry({}, {}, account_exists=lambda a: True, clock=lambda: 0.0)</span>
+<span class="sd">&gt;&gt;&gt; reg.ensure("ann.lee@example.com")</span>
+<span class="sd">{'handle': 'ann.lee', 'chosen': False}</span>
+<span class="sd">&gt;&gt;&gt; reg.ensure("annlee@example.org")["handle"]   # private defaults do not collide</span>
+<span class="sd">'annlee'</span>
+<span class="sd">&gt;&gt;&gt; reg.claim("annlee@example.org", "Ann_Music")</span>
+<span class="sd">{'handle': 'ann_music', 'chosen': True}</span>
+<span class="sd">&gt;&gt;&gt; reg.account_of("@annmusic")</span>
+<span class="sd">'annlee@example.org'</span>
+<span class="sd">&gt;&gt;&gt; reg.handle_of("ann.lee@example.com") is None   # an unconfirmed default is private</span>
+<span class="sd">True</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">MutableMapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">ContextManager</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.handles.core</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DEFAULT_POLICY</span><span class="p">,</span>
+    <span class="n">HandlePolicy</span><span class="p">,</span>
+    <span class="n">base_from_email</span><span class="p">,</span>
+    <span class="n">candidates</span><span class="p">,</span>
+    <span class="n">handle_problem</span><span class="p">,</span>
+    <span class="n">is_well_formed</span><span class="p">,</span>
+    <span class="n">normalize</span><span class="p">,</span>
+    <span class="n">suggestions</span><span class="p">,</span>
+    <span class="n">uniqueness_key</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>  <span class="c1"># POSIX</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">fcntl</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover - Windows</span>
+    <span class="n">fcntl</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># type: ignore[assignment]</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"HandleError"</span><span class="p">,</span> <span class="s2">"HandleRegistry"</span><span class="p">,</span> <span class="s2">"file_lock"</span><span class="p">,</span> <span class="s2">"make_handle_registry"</span><span class="p">]</span>
+
+<span class="n">DAY</span> <span class="o">=</span> <span class="mf">86400.0</span>
+
+
+<div class="viewcode-block" id="HandleError">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.HandleError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HandleError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A handle could not be set. *code* says why, *message* says it to a person.</span>
+
+<span class="sd">    Codes: ``invalid``, ``reserved``, ``taken``, ``cooldown``, ``no-account``,</span>
+<span class="sd">    ``exhausted``.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">code</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">suggestions</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">()):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">code</span> <span class="o">=</span> <span class="n">code</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">suggestions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">suggestions</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="file_lock">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.file_lock">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">file_lock</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">ContextManager</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""A lock factory over ``flock`` on *path*: exclusive across processes on a host.</span>
+
+<span class="sd">    Each call returns a fresh context manager. Without ``fcntl`` (Windows) it falls</span>
+<span class="sd">    back to a process-local lock.</span>
+<span class="sd">    """</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)))</span>
+    <span class="n">local</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+
+    <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hold</span><span class="p">():</span>
+        <span class="k">with</span> <span class="n">local</span><span class="p">:</span>  <span class="c1"># flock is per open file; threads in one process share it</span>
+            <span class="k">if</span> <span class="n">fcntl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+                <span class="k">yield</span>
+                <span class="k">return</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">fd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">os</span><span class="o">.</span><span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">O_RDWR</span><span class="p">,</span> <span class="mo">0o600</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">fcntl</span><span class="o">.</span><span class="n">flock</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">fcntl</span><span class="o">.</span><span class="n">LOCK_EX</span><span class="p">)</span>
+                <span class="k">yield</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>  <span class="c1"># releases the flock</span>
+
+    <span class="k">return</span> <span class="n">hold</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_thread_lock</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">ContextManager</span><span class="p">]:</span>
+    <span class="n">lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+    <span class="k">return</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">lock</span>
+
+
+<div class="viewcode-block" id="HandleRegistry">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.HandleRegistry">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HandleRegistry</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Handles of accounts: assign defaults, claim, rename, release, look up.</span>
+
+<span class="sd">    A default handle (made from the email) is *private* until its account confirms</span>
+<span class="sd">    or changes it: it lives only in the account's own ``owners`` record, never in</span>
+<span class="sd">    ``handles``. So lookups, the availability check, timings and other accounts'</span>
+<span class="sd">    defaults are all unaffected by it, two accounts may hold the same private</span>
+<span class="sd">    default, and confirming one is an ordinary claim that can find the name taken.</span>
+<span class="sd">    A handle made from an email gives part of the address away, so it is published</span>
+<span class="sd">    only by its owner's own action (GDPR Art. 25(2); see</span>
+<span class="sd">    ``misc/docs/research/general/usernames.md``).</span>
+
+<span class="sd">    :param handles: uniqueness key -&gt; public name entry (see the module docstring)</span>
+<span class="sd">    :param owners: account -&gt; its handle record</span>
+<span class="sd">    :param policy: the rules (:class:`~enlace_auth.handles.core.HandlePolicy`)</span>
+<span class="sd">    :param lock: a zero-argument factory of a context manager held around writes</span>
+<span class="sd">    :param account_exists: whether an account exists; checked under the lock, so</span>
+<span class="sd">        nothing is written for an account deleted meanwhile</span>
+<span class="sd">    :param quarantine_seconds: how long a released public name stays out of others'</span>
+<span class="sd">        reach (a renamed one redirects meanwhile)</span>
+<span class="sd">    :param rename_cooldown_seconds: the least time between two public names (the</span>
+<span class="sd">        first choice is free)</span>
+<span class="sd">    :param clock: the time, in epoch seconds</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">handles</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">,</span>
+        <span class="n">owners</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">policy</span><span class="p">:</span> <span class="n">HandlePolicy</span> <span class="o">=</span> <span class="n">DEFAULT_POLICY</span><span class="p">,</span>
+        <span class="n">lock</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">ContextManager</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">account_exists</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">account</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">quarantine_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">90</span> <span class="o">*</span> <span class="n">DAY</span><span class="p">,</span>
+        <span class="n">rename_cooldown_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">30</span> <span class="o">*</span> <span class="n">DAY</span><span class="p">,</span>
+        <span class="n">clock</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handles</span> <span class="o">=</span> <span class="n">handles</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">owners</span> <span class="o">=</span> <span class="n">owners</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">policy</span> <span class="o">=</span> <span class="n">policy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">lock</span> <span class="ow">or</span> <span class="n">_thread_lock</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_account_exists</span> <span class="o">=</span> <span class="n">account_exists</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">quarantine_seconds</span> <span class="o">=</span> <span class="n">quarantine_seconds</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rename_cooldown_seconds</span> <span class="o">=</span> <span class="n">rename_cooldown_seconds</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span> <span class="o">=</span> <span class="n">clock</span>
+
+    <span class="c1"># ------------------------------------------------------------------ reads</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_owner_record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">account</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">account</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">owners</span><span class="p">[</span><span class="n">account</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">record</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"handle"</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">handles</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">entry</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_live_owner</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""The account that holds *key* publicly now, checked both ways, or ``None``.</span>
+
+<span class="sd">        The entry must be live and name the account, AND the account's record must</span>
+<span class="sd">        be chosen and name the same key. Either half alone is a write that was</span>
+<span class="sd">        interrupted, and counts for nothing.</span>
+<span class="sd">        """</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">entry</span> <span class="ow">or</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"released_at"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">account</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"account"</span><span class="p">)</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_owner_record</span><span class="p">(</span><span class="n">account</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">record</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"chosen"</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">uniqueness_key</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s2">"handle"</span><span class="p">])</span> <span class="o">!=</span> <span class="n">key</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">account</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_holder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Who keeps *key* from others: its public owner, or its last owner while</span>
+<span class="sd">        the name is in quarantine (``""`` for a deleted account); ``None`` if free."""</span>
+        <span class="n">live</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_live_owner</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">live</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">live</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">entry</span> <span class="ow">or</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"released_at"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># free, or a stale half-write</span>
+        <span class="k">if</span> <span class="n">now</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">"released_at"</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quarantine_seconds</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"account"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_public</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">account</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span>
+            <span class="n">record</span>
+            <span class="ow">and</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"chosen"</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_live_owner</span><span class="p">(</span><span class="n">uniqueness_key</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s2">"handle"</span><span class="p">]))</span> <span class="o">==</span> <span class="n">account</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="HandleRegistry.record_of">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.HandleRegistry.record_of">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">record_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">account</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""``{"handle", "chosen"}`` of *account*, for the account itself.</span>
+
+<span class="sd">        ``chosen`` is true only while the name is really published (so a write</span>
+<span class="sd">        interrupted half-way shows as not chosen, and the account confirms again).</span>
+<span class="sd">        """</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_owner_record</span><span class="p">(</span><span class="n">account</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">record</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"handle"</span><span class="p">:</span> <span class="n">record</span><span class="p">[</span><span class="s2">"handle"</span><span class="p">],</span> <span class="s2">"chosen"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_public</span><span class="p">(</span><span class="n">account</span><span class="p">,</span> <span class="n">record</span><span class="p">)}</span></div>
+
+
+<div class="viewcode-block" id="HandleRegistry.handle_of">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.HandleRegistry.handle_of">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">handle_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">account</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""The public handle of *account*: ``None`` until it has confirmed one."""</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_owner_record</span><span class="p">(</span><span class="n">account</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">record</span><span class="p">[</span><span class="s2">"handle"</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_public</span><span class="p">(</span><span class="n">account</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="HandleRegistry.handles_of">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.HandleRegistry.handles_of">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">handles_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">accounts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""``{account: handle}`` for each of *accounts* with a public handle."""</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">account</span> <span class="ow">in</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">accounts</span><span class="p">):</span>
+            <span class="n">handle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">handle_of</span><span class="p">(</span><span class="n">account</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">handle</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">account</span><span class="p">]</span> <span class="o">=</span> <span class="n">handle</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="HandleRegistry.account_of">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.HandleRegistry.account_of">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">account_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handle</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""The account holding *handle* publicly (any spelling of it), or ``None``."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_well_formed</span><span class="p">(</span><span class="n">handle</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_live_owner</span><span class="p">(</span><span class="n">uniqueness_key</span><span class="p">(</span><span class="n">handle</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="HandleRegistry.resolve">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.HandleRegistry.resolve">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handle</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""``{"handle": current}`` for *handle*, following a recent rename.</span>
+
+<span class="sd">        A name its account renamed away from, still in quarantine, resolves to that</span>
+<span class="sd">        account's current handle with ``"renamed_from"``; a deleted account's name,</span>
+<span class="sd">        a private default, or an unknown one resolves to ``None``.</span>
+
+<span class="sd">        &gt;&gt;&gt; reg = HandleRegistry({}, {}, account_exists=lambda a: True)</span>
+<span class="sd">        &gt;&gt;&gt; _ = reg.claim("a@example.com", "first")</span>
+<span class="sd">        &gt;&gt;&gt; _ = reg.claim("a@example.com", "second", force=True)</span>
+<span class="sd">        &gt;&gt;&gt; reg.resolve("FIRST")</span>
+<span class="sd">        {'handle': 'second', 'renamed_from': 'first'}</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_well_formed</span><span class="p">(</span><span class="n">handle</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">uniqueness_key</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+        <span class="n">live</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_live_owner</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">live</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">"handle"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_owner_record</span><span class="p">(</span><span class="n">live</span><span class="p">)[</span><span class="s2">"handle"</span><span class="p">]}</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">entry</span>
+            <span class="ow">and</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"released_at"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span><span class="p">()</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">"released_at"</span><span class="p">])</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">quarantine_seconds</span>
+        <span class="p">):</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">handle_of</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"account"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">current</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">{</span><span class="s2">"handle"</span><span class="p">:</span> <span class="n">current</span><span class="p">,</span> <span class="s2">"renamed_from"</span><span class="p">:</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"handle"</span><span class="p">]}</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="HandleRegistry.is_free">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.HandleRegistry.is_free">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_free</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handle</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">account</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether *handle* could be claimed by *account* (by anyone, if ``None``)."""</span>
+        <span class="n">holder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_holder</span><span class="p">(</span><span class="n">uniqueness_key</span><span class="p">(</span><span class="n">handle</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">holder</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="n">account</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">holder</span> <span class="o">==</span> <span class="n">account</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HandleRegistry.check">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.HandleRegistry.check">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wanted</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">account</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""What a "choose your username" field shows while the person types.</span>
+
+<span class="sd">        ``{"handle", "available", "problem", "code", "suggestions"}``: *handle* is</span>
+<span class="sd">        the normalised form (show it as the preview), *problem* a sentence or</span>
+<span class="sd">        ``None``, *code* one of :class:`HandleError`'s codes or ``None``.</span>
+
+<span class="sd">        &gt;&gt;&gt; reg = HandleRegistry({}, {}, account_exists=lambda a: True)</span>
+<span class="sd">        &gt;&gt;&gt; _ = reg.claim("thorwhalen@example.com", "thorwhalen")</span>
+<span class="sd">        &gt;&gt;&gt; reg.check("Thor.Whalen")["suggestions"]</span>
+<span class="sd">        ['thor.whalen1', 'thor.whalen2', 'thor.whalen3']</span>
+<span class="sd">        """</span>
+        <span class="n">handle</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">wanted</span><span class="p">)</span>
+        <span class="n">problem</span> <span class="o">=</span> <span class="n">handle_problem</span><span class="p">(</span><span class="n">handle</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">)</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">problem</span><span class="p">:</span>
+            <span class="n">code</span> <span class="o">=</span> <span class="s2">"reserved"</span> <span class="k">if</span> <span class="n">problem</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"reserved."</span><span class="p">)</span> <span class="k">else</span> <span class="s2">"invalid"</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_free</span><span class="p">(</span><span class="n">handle</span><span class="p">,</span> <span class="n">account</span><span class="o">=</span><span class="n">account</span><span class="p">):</span>
+            <span class="n">problem</span><span class="p">,</span> <span class="n">code</span> <span class="o">=</span> <span class="s2">"This name is taken."</span><span class="p">,</span> <span class="s2">"taken"</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"handle"</span><span class="p">:</span> <span class="n">handle</span><span class="p">,</span>
+            <span class="s2">"available"</span><span class="p">:</span> <span class="n">problem</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"problem"</span><span class="p">:</span> <span class="n">problem</span><span class="p">,</span>
+            <span class="s2">"code"</span><span class="p">:</span> <span class="n">code</span><span class="p">,</span>
+            <span class="s2">"suggestions"</span><span class="p">:</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_suggest</span><span class="p">(</span><span class="n">handle</span><span class="p">,</span> <span class="n">account</span><span class="p">)</span> <span class="k">if</span> <span class="n">code</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"taken"</span><span class="p">,</span> <span class="s2">"reserved"</span><span class="p">)</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="p">),</span>
+        <span class="p">}</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_suggest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handle</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">account</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">suggestions</span><span class="p">(</span>
+            <span class="n">handle</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">h</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_free</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">account</span><span class="o">=</span><span class="n">account</span><span class="p">),</span> <span class="n">policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""``(account, handle, chosen)`` for each account with a handle."""</span>
+        <span class="k">for</span> <span class="n">account</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">owners</span><span class="p">):</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">record_of</span><span class="p">(</span><span class="n">account</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">record</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">account</span><span class="p">,</span> <span class="n">record</span><span class="p">[</span><span class="s2">"handle"</span><span class="p">],</span> <span class="n">record</span><span class="p">[</span><span class="s2">"chosen"</span><span class="p">]</span>
+
+    <span class="c1"># ----------------------------------------------------------------- writes</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_default_for</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">account</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The first default for *account* not held publicly. Private defaults of</span>
+<span class="sd">        other accounts are ignored on purpose: avoiding them would tell this account</span>
+<span class="sd">        that some other email's local part folds to that name."""</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">base_from_email</span><span class="p">(</span><span class="n">account</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">)</span>
+        <span class="n">tries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">max_sequential</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">random_tries</span>
+        <span class="k">for</span> <span class="n">handle</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">,</span> <span class="n">tries</span><span class="o">=</span><span class="n">tries</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_holder</span><span class="p">(</span><span class="n">uniqueness_key</span><span class="p">(</span><span class="n">handle</span><span class="p">),</span> <span class="n">now</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">handle</span>
+        <span class="k">raise</span> <span class="n">HandleError</span><span class="p">(</span><span class="s2">"exhausted"</span><span class="p">,</span> <span class="s2">"Could not find a free username; try another."</span><span class="p">)</span>
+
+<div class="viewcode-block" id="HandleRegistry.ensure">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.HandleRegistry.ensure">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ensure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">account</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">missing_ok</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""The handle record of *account*, giving it a private default if needed.</span>
+
+<span class="sd">        The default is the email's local part, then ``1``, ``2`` ... until a name no</span>
+<span class="sd">        one holds publicly (:func:`~enlace_auth.handles.core.candidates`). A private</span>
+<span class="sd">        default that someone has since published is replaced by the next one. An</span>
+<span class="sd">        account that does not exist gets nothing: ``None`` with *missing_ok*, else</span>
+<span class="sd">        :class:`HandleError` ``no-account``.</span>
+<span class="sd">        """</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">record_of</span><span class="p">(</span><span class="n">account</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">record</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">record</span><span class="p">[</span><span class="s2">"chosen"</span><span class="p">]</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_free</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s2">"handle"</span><span class="p">],</span> <span class="n">account</span><span class="o">=</span><span class="n">account</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">record</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_account_exists</span><span class="p">(</span><span class="n">account</span><span class="p">):</span>  <span class="c1"># under the lock: not mid-deletion</span>
+                <span class="k">if</span> <span class="n">missing_ok</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">None</span>
+                <span class="k">raise</span> <span class="n">HandleError</span><span class="p">(</span><span class="s2">"no-account"</span><span class="p">,</span> <span class="s2">"There is no such account."</span><span class="p">)</span>
+            <span class="n">now</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span><span class="p">()</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_owner_record</span><span class="p">(</span><span class="n">account</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">record</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_is_public</span><span class="p">(</span><span class="n">account</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_holder</span><span class="p">(</span><span class="n">uniqueness_key</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s2">"handle"</span><span class="p">]),</span> <span class="n">now</span><span class="p">)</span>
+                <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">account</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">record_of</span><span class="p">(</span><span class="n">account</span><span class="p">)</span>
+            <span class="n">previous</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"previous"</span><span class="p">,</span> <span class="p">[]))</span> <span class="k">if</span> <span class="n">record</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="n">handle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_for</span><span class="p">(</span><span class="n">account</span><span class="p">,</span> <span class="n">now</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">owners</span><span class="p">[</span><span class="n">account</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"handle"</span><span class="p">:</span> <span class="n">handle</span><span class="p">,</span>
+                <span class="s2">"chosen"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">"at"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"at"</span><span class="p">,</span> <span class="n">now</span><span class="p">)</span> <span class="k">if</span> <span class="n">record</span> <span class="k">else</span> <span class="n">now</span><span class="p">,</span>
+                <span class="s2">"changed_at"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"changed_at"</span><span class="p">)</span> <span class="k">if</span> <span class="n">record</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">"previous"</span><span class="p">:</span> <span class="n">previous</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">"handle"</span><span class="p">:</span> <span class="n">handle</span><span class="p">,</span> <span class="s2">"chosen"</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="HandleRegistry.claim">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.HandleRegistry.claim">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">claim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">account</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">wanted</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Publish *wanted* as *account*'s handle (also: confirm its default).</span>
+
+<span class="sd">        The first public name is free; changing it waits</span>
+<span class="sd">        *rename_cooldown_seconds* after the last change, and the old name stays</span>
+<span class="sd">        with the account for the quarantine (it redirects). *force* (an admin)</span>
+<span class="sd">        skips the reserved list, the cooldown and a quarantine, never a public</span>
+<span class="sd">        owner. Raises :class:`HandleError`; a ``taken`` one carries suggestions.</span>
+<span class="sd">        """</span>
+        <span class="n">handle</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">wanted</span><span class="p">)</span>
+        <span class="n">problem</span> <span class="o">=</span> <span class="n">handle_problem</span><span class="p">(</span><span class="n">handle</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">problem</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">force</span> <span class="ow">and</span> <span class="n">problem</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"reserved."</span><span class="p">)):</span>
+            <span class="n">code</span> <span class="o">=</span> <span class="s2">"reserved"</span> <span class="k">if</span> <span class="n">problem</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"reserved."</span><span class="p">)</span> <span class="k">else</span> <span class="s2">"invalid"</span>
+            <span class="k">raise</span> <span class="n">HandleError</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">problem</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">uniqueness_key</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_account_exists</span><span class="p">(</span><span class="n">account</span><span class="p">):</span>  <span class="c1"># under the lock: not mid-deletion</span>
+                <span class="k">raise</span> <span class="n">HandleError</span><span class="p">(</span><span class="s2">"no-account"</span><span class="p">,</span> <span class="s2">"There is no such account."</span><span class="p">)</span>
+            <span class="n">now</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span><span class="p">()</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_owner_record</span><span class="p">(</span><span class="n">account</span><span class="p">)</span>
+            <span class="n">public</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_public</span><span class="p">(</span><span class="n">account</span><span class="p">,</span> <span class="n">current</span><span class="p">)</span>
+            <span class="n">live</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_live_owner</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">holder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_holder</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">now</span><span class="p">)</span>
+            <span class="n">taken</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">live</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">account</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="n">holder</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">account</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="ow">not</span> <span class="n">force</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">taken</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">public</span> <span class="ow">and</span> <span class="n">live</span> <span class="o">!=</span> <span class="n">account</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
+                    <span class="n">wait</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="nb">float</span><span class="p">(</span><span class="n">current</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"changed_at"</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+                        <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">rename_cooldown_seconds</span>
+                        <span class="o">-</span> <span class="n">now</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">wait</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">days</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="o">-</span><span class="n">wait</span> <span class="o">//</span> <span class="n">DAY</span><span class="p">)))</span>
+                        <span class="k">raise</span> <span class="n">HandleError</span><span class="p">(</span>
+                            <span class="s2">"cooldown"</span><span class="p">,</span>
+                            <span class="s2">"You changed your username recently. "</span>
+                            <span class="sa">f</span><span class="s2">"You can change it again in </span><span class="si">{</span><span class="n">days</span><span class="si">}</span><span class="s2"> "</span>
+                            <span class="sa">f</span><span class="s2">"day</span><span class="si">{</span><span class="s1">'s'</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">days</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="si">}</span><span class="s2">."</span><span class="p">,</span>
+                        <span class="p">)</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_publish</span><span class="p">(</span><span class="n">account</span><span class="p">,</span> <span class="n">handle</span><span class="p">,</span> <span class="n">current</span><span class="p">,</span> <span class="n">public</span><span class="p">,</span> <span class="n">now</span><span class="p">)</span>
+        <span class="c1"># computed outside the lock: up to a few hundred lookups</span>
+        <span class="k">raise</span> <span class="n">HandleError</span><span class="p">(</span>
+            <span class="s2">"taken"</span><span class="p">,</span> <span class="s2">"This name is taken."</span><span class="p">,</span> <span class="n">suggestions</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_suggest</span><span class="p">(</span><span class="n">handle</span><span class="p">,</span> <span class="n">account</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_publish</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">account</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">handle</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">current</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span> <span class="n">public</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">now</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Write a public name. Under the lock; the order bounds a crash's harm.</span>
+
+<span class="sd">        1. the new entry (alone, it is a stale half-write: reads ignore it);</span>
+<span class="sd">        2. the old public name into quarantine, still the account's (alone, the</span>
+<span class="sd">           account looks unconfirmed and confirms again; the name is never freed</span>
+<span class="sd">           early);</span>
+<span class="sd">        3. the account's record (now both halves agree).</span>
+<span class="sd">        """</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">uniqueness_key</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handles</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"handle"</span><span class="p">:</span> <span class="n">handle</span><span class="p">,</span>
+            <span class="s2">"account"</span><span class="p">:</span> <span class="n">account</span><span class="p">,</span>
+            <span class="s2">"at"</span><span class="p">:</span> <span class="n">now</span><span class="p">,</span>
+            <span class="s2">"released_at"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">current</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"previous"</span><span class="p">,</span> <span class="p">[]))</span> <span class="k">if</span> <span class="n">current</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="n">old_key</span> <span class="o">=</span> <span class="n">uniqueness_key</span><span class="p">(</span><span class="n">current</span><span class="p">[</span><span class="s2">"handle"</span><span class="p">])</span> <span class="k">if</span> <span class="n">current</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">old</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry</span><span class="p">(</span><span class="n">old_key</span><span class="p">)</span> <span class="k">if</span> <span class="n">old_key</span> <span class="ow">and</span> <span class="n">old_key</span> <span class="o">!=</span> <span class="n">key</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">old</span> <span class="ow">and</span> <span class="n">old</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"account"</span><span class="p">)</span> <span class="o">==</span> <span class="n">account</span><span class="p">:</span>
+            <span class="c1"># the old public name (or one a crash left quarantined) stays the</span>
+            <span class="c1"># account's for the quarantine, and is remembered to release it</span>
+            <span class="k">if</span> <span class="n">old</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"released_at"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">handles</span><span class="p">[</span><span class="n">old_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">old</span><span class="p">,</span> <span class="s2">"at"</span><span class="p">:</span> <span class="n">now</span><span class="p">,</span> <span class="s2">"released_at"</span><span class="p">:</span> <span class="n">now</span><span class="p">}</span>
+            <span class="n">previous</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">previous</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="n">old_key</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">old_key</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">dropped</span> <span class="ow">in</span> <span class="n">previous</span><span class="p">[:</span><span class="o">-</span><span class="n">_MAX_PREVIOUS</span><span class="p">]:</span>  <span class="c1"># forgotten: erase the account</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry</span><span class="p">(</span><span class="n">dropped</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">entry</span> <span class="ow">and</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"account"</span><span class="p">)</span> <span class="o">==</span> <span class="n">account</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">handles</span><span class="p">[</span><span class="n">dropped</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">entry</span><span class="p">,</span> <span class="s2">"account"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="n">previous</span><span class="p">[</span><span class="o">-</span><span class="n">_MAX_PREVIOUS</span><span class="p">:]</span>
+        <span class="n">same</span> <span class="o">=</span> <span class="n">public</span> <span class="ow">and</span> <span class="n">old_key</span> <span class="o">==</span> <span class="n">key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">owners</span><span class="p">[</span><span class="n">account</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"handle"</span><span class="p">:</span> <span class="n">handle</span><span class="p">,</span>
+            <span class="s2">"chosen"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">"at"</span><span class="p">:</span> <span class="n">current</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"at"</span><span class="p">,</span> <span class="n">now</span><span class="p">)</span> <span class="k">if</span> <span class="n">current</span> <span class="k">else</span> <span class="n">now</span><span class="p">,</span>
+            <span class="s2">"changed_at"</span><span class="p">:</span> <span class="n">current</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"changed_at"</span><span class="p">)</span> <span class="k">if</span> <span class="n">same</span> <span class="k">else</span> <span class="n">now</span><span class="p">,</span>
+            <span class="s2">"previous"</span><span class="p">:</span> <span class="n">previous</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"handle"</span><span class="p">:</span> <span class="n">handle</span><span class="p">,</span> <span class="s2">"chosen"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+
+<div class="viewcode-block" id="HandleRegistry.release_account">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.HandleRegistry.release_account">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">release_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">account</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Forget *account*'s handles (the account is being deleted); return 1 or 0.</span>
+
+<span class="sd">        Its public name, and the names it renamed away from, stay out of others'</span>
+<span class="sd">        reach for the quarantine with no account attached (the email is erased);</span>
+<span class="sd">        then they are free. Only entries that name this account are touched, and</span>
+<span class="sd">        the record goes last, so an interrupted release never frees a name early.</span>
+<span class="sd">        """</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">():</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_owner_record</span><span class="p">(</span><span class="n">account</span><span class="p">)</span>
+            <span class="n">now</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span><span class="p">()</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"previous"</span><span class="p">,</span> <span class="p">[]))</span> <span class="k">if</span> <span class="n">record</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="n">record</span><span class="p">:</span>
+                <span class="n">keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">uniqueness_key</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s2">"handle"</span><span class="p">]))</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">entry</span> <span class="ow">and</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"account"</span><span class="p">)</span> <span class="o">==</span> <span class="n">account</span><span class="p">:</span>
+                    <span class="n">released</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"released_at"</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">handles</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="o">**</span><span class="n">entry</span><span class="p">,</span>
+                        <span class="s2">"account"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="s2">"released_at"</span><span class="p">:</span> <span class="n">now</span> <span class="k">if</span> <span class="n">released</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">released</span><span class="p">,</span>
+                    <span class="p">}</span>
+            <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">suppress</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">owners</span><span class="p">[</span><span class="n">account</span><span class="p">]</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">record</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HandleRegistry.sweep">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.HandleRegistry.sweep">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sweep</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Remove released entries whose quarantine is over; return how many."""</span>
+        <span class="n">now</span><span class="p">,</span> <span class="n">gone</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span><span class="p">(),</span> <span class="mi">0</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">handles</span><span class="p">):</span>
+                <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">entry</span>
+                    <span class="ow">and</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"released_at"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="ow">and</span> <span class="n">now</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">"released_at"</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quarantine_seconds</span>
+                <span class="p">):</span>
+                    <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">suppress</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+                        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">handles</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                        <span class="n">gone</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">gone</span></div>
+</div>
+
+
+
+<span class="c1">#: how many earlier public names an account's record remembers (to release them)</span>
+<span class="n">_MAX_PREVIOUS</span> <span class="o">=</span> <span class="mi">20</span>
+
+
+<div class="viewcode-block" id="make_handle_registry">
+<a class="viewcode-back" href="../../../_autosummary/enlace_auth.handles.registry.html#enlace_auth.handles.make_handle_registry">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_handle_registry</span><span class="p">(</span>
+    <span class="n">handles_cfg</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">store_factory</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">MutableMapping</span><span class="p">],</span>
+    <span class="n">store_root</span><span class="p">,</span>
+    <span class="n">account_exists</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">],</span>
+    <span class="n">groups</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+    <span class="n">lock</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">ContextManager</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HandleRegistry</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The platform's registry, from ``[auth.handles]`` (a ``HandlesConfig``).</span>
+
+<span class="sd">    The two mappings are the platform store's ``handles`` and ``handle_owners``, and</span>
+<span class="sd">    the lock is a ``flock`` on ``&lt;store_root&gt;/handles.lock``, so the gunicorn</span>
+<span class="sd">    workers of one host agree (pass *lock* for stores shared across hosts). The</span>
+<span class="sd">    names of *groups* (``[auth.groups]``) are reserved too, so no account can be</span>
+<span class="sd">    called ``@family``.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">replace</span>
+
+    <span class="n">policy</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span>
+        <span class="n">DEFAULT_POLICY</span><span class="p">,</span>
+        <span class="n">min_length</span><span class="o">=</span><span class="n">handles_cfg</span><span class="o">.</span><span class="n">min_length</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="n">handles_cfg</span><span class="o">.</span><span class="n">max_length</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">with_reserved</span><span class="p">([</span><span class="o">*</span><span class="n">handles_cfg</span><span class="o">.</span><span class="n">reserved</span><span class="p">,</span> <span class="o">*</span><span class="n">groups</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">HandleRegistry</span><span class="p">(</span>
+        <span class="n">store_factory</span><span class="p">(</span><span class="s2">"handles"</span><span class="p">),</span>
+        <span class="n">store_factory</span><span class="p">(</span><span class="s2">"handle_owners"</span><span class="p">),</span>
+        <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span>
+        <span class="n">lock</span><span class="o">=</span><span class="n">lock</span>
+        <span class="ow">or</span> <span class="n">file_lock</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">store_root</span><span class="p">)))</span> <span class="o">/</span> <span class="s2">"handles.lock"</span><span class="p">),</span>
+        <span class="n">account_exists</span><span class="o">=</span><span class="n">account_exists</span><span class="p">,</span>
+        <span class="n">quarantine_seconds</span><span class="o">=</span><span class="n">handles_cfg</span><span class="o">.</span><span class="n">quarantine_days</span> <span class="o">*</span> <span class="n">DAY</span><span class="p">,</span>
+        <span class="n">rename_cooldown_seconds</span><span class="o">=</span><span class="n">handles_cfg</span><span class="o">.</span><span class="n">rename_cooldown_days</span> <span class="o">*</span> <span class="n">DAY</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

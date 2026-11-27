@@ -27,6 +27,7 @@ we just deserialize them into typed objects here when the plugin runs.
 
 | [`AuthConfig`](#enlace_auth.config.AuthConfig)(\*[, enabled, ...])                     | Platform-wide authentication configuration.                                |
 |-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| [`HandlesConfig`](#enlace_auth.config.HandlesConfig)(\*[, enabled, reserved, ...])        | `[auth.handles]`: usernames, the public name of each account.              |
 | [`OAuthProviderConfig`](#enlace_auth.config.OAuthProviderConfig)(\*, client_id_env, ...[, ...]) | Configuration for a single OAuth2/OIDC provider.                           |
 | [`OAuthServerConfig`](#enlace_auth.config.OAuthServerConfig)(\*[, enabled, issuer, ...])      | OAuth 2.1 authorization-server settings (for MCP connectors).              |
 | [`PasskeysConfig`](#enlace_auth.config.PasskeysConfig)(\*[, enabled, rp_id, rp_name, ...]) | `[auth.passkeys]`: sign-in and step-up confirmation by passkey (WebAuthn). |
@@ -34,7 +35,7 @@ we just deserialize them into typed objects here when the plugin runs.
 | [`SignupLimitsConfig`](#enlace_auth.config.SignupLimitsConfig)(\*[, window_seconds, ...])      | Rate limits on the endpoints that send mail or check a code.               |
 | [`StoreBackendConfig`](#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.                   |
 
-### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, cookie_domain=None, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, groups=<factory>)
+### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, cookie_domain=None, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, handles=<factory>, groups=<factory>)
 
 Bases: `_StrictModel`
 
@@ -50,6 +51,20 @@ The effective platform-wide sign-up policy.
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### *class* enlace_auth.config.HandlesConfig(\*, enabled=True, reserved=<factory>, min_length=3, max_length=30, quarantine_days=90, rename_cooldown_days=30, check_per_minute=120)
+
+Bases: `_StrictModel`
+
+`[auth.handles]`: usernames, the public name of each account.
+
+On by default: every account gets a private default handle (its email’s local
+part, then `1`, `2` …), confirms or changes it once, and from then on apps
+show it instead of the email. See [`enlace_auth.handles`](enlace_auth.handles.html.md#module-enlace_auth.handles).
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
 ### *class* enlace_auth.config.OAuthProviderConfig(\*, client_id_env, client_secret_env, scopes=<factory>, authorize_url=None, token_url=None, userinfo_url=None, server_metadata_url=None, trust_unverified_email=False)
 

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../../_static/documentation_options.js?v=07ed7713"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.1.65" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1904,6 +1904,19 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># One deleter for the self-service deletion and the admin's (#92): both</span>
     <span class="c1"># remove the account and everything that hangs off it.</span>
+    <span class="c1"># Handles (usernames): the public name of each account; emails stay private.</span>
+    <span class="c1"># Built even when [auth.handles] is off, so deleting an account still releases</span>
+    <span class="c1"># (and erases the email from) handles kept while it was on.</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.handles</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_handle_registry</span>
+
+    <span class="n">handles_registry</span> <span class="o">=</span> <span class="n">make_handle_registry</span><span class="p">(</span>
+        <span class="n">auth_cfg</span><span class="o">.</span><span class="n">handles</span><span class="p">,</span>
+        <span class="n">store_factory</span><span class="o">=</span><span class="n">platform_factory</span><span class="p">,</span>
+        <span class="n">store_root</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">stores</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+        <span class="n">account_exists</span><span class="o">=</span><span class="k">lambda</span> <span class="n">account</span><span class="p">:</span> <span class="n">account</span> <span class="ow">in</span> <span class="n">user_backend</span><span class="p">,</span>
+        <span class="n">groups</span><span class="o">=</span><span class="p">[</span><span class="o">*</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span> <span class="s2">"admins"</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="n">handles</span> <span class="o">=</span> <span class="n">handles_registry</span> <span class="k">if</span> <span class="n">auth_cfg</span><span class="o">.</span><span class="n">handles</span><span class="o">.</span><span class="n">enabled</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="n">delete_account</span> <span class="o">=</span> <span class="n">make_account_deleter</span><span class="p">(</span>
         <span class="n">user_store</span><span class="o">=</span><span class="n">user_backend</span><span class="p">,</span>
         <span class="n">credentials_changed</span><span class="o">=</span><span class="n">on_credentials_changed</span><span class="p">,</span>
@@ -1912,7 +1925,19 @@ window.runMermaid = runMermaid;</script>
         <span class="n">user_data</span><span class="o">=</span><span class="n">user_data_backend</span><span class="p">,</span>
         <span class="n">sign_ins</span><span class="o">=</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">"sign_ins"</span><span class="p">),</span>
         <span class="n">passkeys</span><span class="o">=</span><span class="n">passkeys</span><span class="p">[</span><span class="s2">"service"</span><span class="p">]</span> <span class="k">if</span> <span class="n">passkeys</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">handles</span><span class="o">=</span><span class="n">handles_registry</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="k">if</span> <span class="n">handles</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.handles.routes</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_handle_router</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.ratelimit</span><span class="w"> </span><span class="kn">import</span> <span class="n">SlidingWindowLimiter</span>
+
+        <span class="n">parent</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span>
+            <span class="n">make_handle_router</span><span class="p">(</span>
+                <span class="n">registry</span><span class="o">=</span><span class="n">handles</span><span class="p">,</span>
+                <span class="n">rate_limiter</span><span class="o">=</span><span class="n">SlidingWindowLimiter</span><span class="p">(</span><span class="n">platform_factory</span><span class="p">(</span><span class="s2">"rate_limits"</span><span class="p">)),</span>
+                <span class="n">check_limit</span><span class="o">=</span><span class="n">auth_cfg</span><span class="o">.</span><span class="n">handles</span><span class="o">.</span><span class="n">check_per_minute</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
     <span class="n">signup</span> <span class="o">=</span> <span class="n">_wire_signup</span><span class="p">(</span>
         <span class="n">config</span><span class="p">,</span>
         <span class="n">auth_cfg</span><span class="p">,</span>
@@ -2183,6 +2208,13 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># outermost = first added last. FastAPI/Starlette runs middleware in</span>
     <span class="c1"># reverse insertion order, so the last `add_middleware` call is the</span>
     <span class="c1"># outermost wrapper. We want: auth (outermost) -&gt; store -&gt; csrf -&gt; app.</span>
+    <span class="k">if</span> <span class="n">handles</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">enlace_auth.handles</span><span class="w"> </span><span class="kn">import</span> <span class="n">HandleDirectory</span><span class="p">,</span> <span class="n">HandleDirectoryMiddleware</span>
+
+        <span class="c1"># request.state.handles: the read-only lookup every app uses for "by @name".</span>
+        <span class="n">parent</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span>
+            <span class="n">HandleDirectoryMiddleware</span><span class="p">,</span> <span class="n">directory</span><span class="o">=</span><span class="n">HandleDirectory</span><span class="p">(</span><span class="n">handles</span><span class="p">)</span>
+        <span class="p">)</span>
     <span class="n">parent</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span>
         <span class="n">CSRFMiddleware</span><span class="p">,</span>
         <span class="n">signing_key</span><span class="o">=</span><span class="n">signing_key</span><span class="p">,</span>

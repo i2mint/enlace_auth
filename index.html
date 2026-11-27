@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="_static/documentation_options.js?v=a395f30a"></script>
+    <script src="_static/documentation_options.js?v=07ed7713"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.1.65" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -438,6 +438,7 @@ skill<span class="w"> </span>link-skills<span class="w"> </span><span class="s2"
 <li><p><code class="docutils literal notranslate"><span class="pre">/auth/forgot-password</span></code>: self-service reset by emailed link</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">/_admin/api/*</span></code>: list, create and delete users, mint a password-reset link, set a password directly, view app policy, and <strong>grant or revoke per-app access at runtime</strong> (optional expiry). Gated by an admin allowlist.</p></li>
 <li><p>per-user data injection via <code class="docutils literal notranslate"><span class="pre">request.state.store</span></code></p></li>
+<li><p>usernames (handles): a public, unique, case-insensitive name per account while the email stays private; <code class="docutils literal notranslate"><span class="pre">request.state.handles</span></code> for apps (“by &#64;name”), <code class="docutils literal notranslate"><span class="pre">/auth/handles/*</span></code> for a “choose your username” step, <code class="docutils literal notranslate"><span class="pre">enlace-auth</span> <span class="pre">set-handle</span></code> for admins. The default is the email’s local part plus a number and stays private until the person confirms it. Details in the consumer skill; research in <code class="docutils literal notranslate"><span class="pre">misc/docs/research/general/usernames.md</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">PlatformAuthMiddleware</span></code> and <code class="docutils literal notranslate"><span class="pre">CSRFMiddleware</span></code></p></li>
 <li><p>optional OAuth2 / OIDC login via Authlib, and an OAuth 2.1 authorization server for MCP connectors</p></li>
 </ul>
@@ -756,7 +757,7 @@ python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> <
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-26 15:10 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/a03f00e6fa1ac17a680b084b63962b43c2be3d86">a03f00e</a> (main) · enlace_auth 0.1.64 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-27 11:22 UTC from <a href="https://github.com/i2mint/enlace_auth/commit/a106189ba2c30486e493f88158fb5bc2a8b079c2">a106189</a> (main) · enlace_auth 0.1.65 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               

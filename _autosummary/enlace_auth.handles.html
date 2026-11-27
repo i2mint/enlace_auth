@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<link rel="alternate" type="text/markdown" href="enlace_auth.handles.html.md">
+<link rel="describedby" href="../llms.txt" type="text/markdown">
+<link rel="alternate" type="text/markdown" href="enlace_auth.handles.html.md">
+<link rel="describedby" href="llms.txt">
+    <title>enlace_auth.handles &#8212; enlace_auth</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=d146b16c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../_static/documentation_options.js?v=07ed7713"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=fd10adb8"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_autosummary/enlace_auth.handles';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="enlace_auth.handles.core" href="enlace_auth.handles.core.html" />
+    <link rel="prev" title="enlace_auth.groups" href="enlace_auth.groups.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.65" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">enlace_auth</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../ai-agents.html">
+    For AI agents
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_auth" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../ai-agents.html">
+    For AI agents
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_auth" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="enlace_auth.html">enlace_auth</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.admin.html">enlace_auth.admin</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.admin.routes.html">enlace_auth.admin.routes</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_auth.appmeta.html">enlace_auth.appmeta</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.auth.html">enlace_auth.auth</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.accounts.html">enlace_auth.auth.accounts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.cookie_policy.html">enlace_auth.auth.cookie_policy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.cookies.html">enlace_auth.auth.cookies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.email.html">enlace_auth.auth.email</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.grants.html">enlace_auth.auth.grants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.middleware.html">enlace_auth.auth.middleware</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.oauth.html">enlace_auth.auth.oauth</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.oauth_server.html">enlace_auth.auth.oauth_server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.pages.html">enlace_auth.auth.pages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.passwords.html">enlace_auth.auth.passwords</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.reset_tokens.html">enlace_auth.auth.reset_tokens</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.revocation.html">enlace_auth.auth.revocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.routes.html">enlace_auth.auth.routes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.sessions.html">enlace_auth.auth.sessions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.share_routes.html">enlace_auth.auth.share_routes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.shares.html">enlace_auth.auth.shares</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.auth.step_up.html">enlace_auth.auth.step_up</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_auth.config.html">enlace_auth.config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_auth.diagnostics.html">enlace_auth.diagnostics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_auth.emails.html">enlace_auth.emails</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_auth.groups.html">enlace_auth.groups</a></li>
+<li class="toctree-l2 current active has-children"><a aria-current="page" class="current reference internal" href="#">enlace_auth.handles</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.handles.core.html">enlace_auth.handles.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.handles.directory.html">enlace_auth.handles.directory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.handles.registry.html">enlace_auth.handles.registry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.handles.routes.html">enlace_auth.handles.routes</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_auth.oauth_rules.html">enlace_auth.oauth_rules</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.passkeys.html">enlace_auth.passkeys</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.core.html">enlace_auth.passkeys.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.pages.html">enlace_auth.passkeys.pages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.routes.html">enlace_auth.passkeys.routes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.passkeys.texts.html">enlace_auth.passkeys.texts</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_auth.ratelimit.html">enlace_auth.ratelimit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_auth.resource_policy.html">enlace_auth.resource_policy</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.signup.html">enlace_auth.signup</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.signup.botcheck.html">enlace_auth.signup.botcheck</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.signup.codes.html">enlace_auth.signup.codes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.signup.pages.html">enlace_auth.signup.pages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.signup.policy.html">enlace_auth.signup.policy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.signup.routes.html">enlace_auth.signup.routes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.signup.texts.html">enlace_auth.signup.texts</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="enlace_auth.stores.html">enlace_auth.stores</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.stores.backends.html">enlace_auth.stores.backends</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.stores.middleware.html">enlace_auth.stores.middleware</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.stores.prefixed.html">enlace_auth.stores.prefixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="enlace_auth.stores.validation.html">enlace_auth.stores.validation</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../api.html" class="nav-link">API reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="enlace_auth.html" class="nav-link">enlace_auth</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">enlace_auth.handles</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-enlace_auth.handles">
+<span id="enlace-auth-handles"></span><h1>enlace_auth.handles<a class="headerlink" href="#module-enlace_auth.handles" title="Link to this heading">#</a></h1>
+<p>Handles (usernames): the public, unique, case-insensitive name of an account.</p>
+<p>The email stays the account’s private key; the handle is what other people and
+apps see (“by &#64;thorwhalen”). Three layers, imported one way:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="enlace_auth.handles.core.html#module-enlace_auth.handles.core" title="enlace_auth.handles.core"><code class="xref py py-mod docutils literal notranslate"><span class="pre">core</span></code></a>: the rules (normal form, validity, reserved
+names, the default from an email, suggestions). Pure; no web or storage imports.</p></li>
+<li><p><a class="reference internal" href="enlace_auth.handles.registry.html#module-enlace_auth.handles.registry" title="enlace_auth.handles.registry"><code class="xref py py-mod docutils literal notranslate"><span class="pre">registry</span></code></a>: <a class="reference internal" href="#enlace_auth.handles.HandleRegistry" title="enlace_auth.handles.HandleRegistry"><code class="xref py py-class docutils literal notranslate"><span class="pre">HandleRegistry</span></code></a>, which account holds
+which handle, over two <code class="docutils literal notranslate"><span class="pre">MutableMapping</span></code> s, unique under a lock.</p></li>
+<li><p><a class="reference internal" href="enlace_auth.handles.directory.html#module-enlace_auth.handles.directory" title="enlace_auth.handles.directory"><code class="xref py py-mod docutils literal notranslate"><span class="pre">directory</span></code></a>: <a class="reference internal" href="#enlace_auth.handles.HandleDirectory" title="enlace_auth.handles.HandleDirectory"><code class="xref py py-class docutils literal notranslate"><span class="pre">HandleDirectory</span></code></a>, the read-only
+view every app gets at <code class="docutils literal notranslate"><span class="pre">request.state.handles</span></code> (set by
+<a class="reference internal" href="#enlace_auth.handles.HandleDirectoryMiddleware" title="enlace_auth.handles.HandleDirectoryMiddleware"><code class="xref py py-class docutils literal notranslate"><span class="pre">HandleDirectoryMiddleware</span></code></a>).</p></li>
+<li><p><a class="reference internal" href="enlace_auth.handles.routes.html#module-enlace_auth.handles.routes" title="enlace_auth.handles.routes"><code class="xref py py-mod docutils literal notranslate"><span class="pre">routes</span></code></a>: <code class="docutils literal notranslate"><span class="pre">/auth/handles/*</span></code> for the browser.</p></li>
+</ul>
+<p>An app’s server shows “by &lt;handle&gt;” with <code class="docutils literal notranslate"><span class="pre">request.state.handles.handle_of(owner)</span></code>,
+where <em>owner</em> is the <code class="docutils literal notranslate"><span class="pre">request.state.user_id</span></code> it stored; it never sends emails to
+the browser. See <code class="docutils literal notranslate"><span class="pre">misc/docs/research/general/usernames.md</span></code> for the rules’ sources.</p>
+<p class="rubric">Functions</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.handles.base_from_email" title="enlace_auth.handles.base_from_email"><code class="xref py py-obj docutils literal notranslate"><span class="pre">base_from_email</span></code></a>(email, *[, policy])</p></td>
+<td><p>The base of a default handle: the email's local part, made into a handle.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.handles.candidates" title="enlace_auth.handles.candidates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">candidates</span></code></a>(base, *[, policy, limit, rng, tries])</p></td>
+<td><p>Valid handles to try, in order: <em>base</em>, <code class="docutils literal notranslate"><span class="pre">base1</span></code> .</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.handles.file_lock" title="enlace_auth.handles.file_lock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">file_lock</span></code></a>(path)</p></td>
+<td><p>A lock factory over <code class="docutils literal notranslate"><span class="pre">flock</span></code> on <em>path</em>: exclusive across processes on a host.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.handles.handle_problem" title="enlace_auth.handles.handle_problem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_problem</span></code></a>(handle, *[, policy])</p></td>
+<td><p>Why <em>handle</em> (already normalised) cannot be a handle, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if it can.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.handles.make_handle_registry" title="enlace_auth.handles.make_handle_registry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_handle_registry</span></code></a>(handles_cfg, *, ...[, ...])</p></td>
+<td><p>The platform's registry, from <code class="docutils literal notranslate"><span class="pre">[auth.handles]</span></code> (a <code class="docutils literal notranslate"><span class="pre">HandlesConfig</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.handles.normalize" title="enlace_auth.handles.normalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize</span></code></a>(text)</p></td>
+<td><p>The stored form of what a person typed: NFKC, case-folded, trimmed, no <code class="docutils literal notranslate"><span class="pre">&#64;</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.handles.suggestions" title="enlace_auth.handles.suggestions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">suggestions</span></code></a>(wanted, is_free, *[, policy, n, ...])</p></td>
+<td><p>Up to <em>n</em> free handles close to <em>wanted</em>, for a name that is taken or invalid.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.handles.uniqueness_key" title="enlace_auth.handles.uniqueness_key"><code class="xref py py-obj docutils literal notranslate"><span class="pre">uniqueness_key</span></code></a>(handle)</p></td>
+<td><p>The form two handles are compared by: normalised, without separators, with look-alike characters folded (<code class="docutils literal notranslate"><span class="pre">0</span></code> as <code class="docutils literal notranslate"><span class="pre">o</span></code>; <code class="docutils literal notranslate"><span class="pre">1</span></code> and <code class="docutils literal notranslate"><span class="pre">i</span></code> as <code class="docutils literal notranslate"><span class="pre">l</span></code>).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Classes</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.handles.HandleDirectory" title="enlace_auth.handles.HandleDirectory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HandleDirectory</span></code></a>(registry)</p></td>
+<td><p>Look handles up by account and accounts up by handle; nothing else.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.handles.HandleDirectoryMiddleware" title="enlace_auth.handles.HandleDirectoryMiddleware"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HandleDirectoryMiddleware</span></code></a>(app, *, directory)</p></td>
+<td><p>Pure-ASGI middleware that sets <code class="docutils literal notranslate"><span class="pre">request.state.handles</span></code> on every request.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.handles.HandlePolicy" title="enlace_auth.handles.HandlePolicy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HandlePolicy</span></code></a>([min_length, max_length, ...])</p></td>
+<td><p>The knobs of the handle rules.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_auth.handles.HandleRegistry" title="enlace_auth.handles.HandleRegistry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HandleRegistry</span></code></a>(handles, owners, *[, policy, ...])</p></td>
+<td><p>Handles of accounts: assign defaults, claim, rename, release, look up.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Exceptions</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_auth.handles.HandleError" title="enlace_auth.handles.HandleError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HandleError</span></code></a>(code, message, *[, suggestions])</p></td>
+<td><p>A handle could not be set.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleDirectory">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.handles.</span></span><span class="sig-name descname"><span class="pre">HandleDirectory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registry</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/directory.html#HandleDirectory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleDirectory" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Look handles up by account and accounts up by handle; nothing else.</p>
+<p>Only confirmed handles: an account that has not yet confirmed its default (made
+from its email) has none to show, and <code class="docutils literal notranslate"><span class="pre">handle_of</span></code> returns <code class="docutils literal notranslate"><span class="pre">None</span></code>. An app
+then shows no name, or sends its user to its “choose your username” step.</p>
+<p>This is a convenience for trusted server code, not a boundary between apps:
+every app server on the platform runs in the platform’s process and already
+sees its own users’ emails. What must never happen is an email reaching a
+browser; that is the app’s duty, and this view makes it easy by dealing in
+handles.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleDirectory.account_of">
+<span class="sig-name descname"><span class="pre">account_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/directory.html#HandleDirectory.account_of"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleDirectory.account_of" title="Link to this definition">#</a></dt>
+<dd><p>The account holding <em>handle</em> (any spelling, <code class="docutils literal notranslate"><span class="pre">&#64;</span></code> or not), or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<p>For server code only (filtering “everything by &#64;x”); never send it on.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleDirectory.handle_of">
+<span class="sig-name descname"><span class="pre">handle_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/directory.html#HandleDirectory.handle_of"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleDirectory.handle_of" title="Link to this definition">#</a></dt>
+<dd><p>The public handle of <em>account</em> (a <code class="docutils literal notranslate"><span class="pre">request.state.user_id</span></code>), or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleDirectory.handles_of">
+<span class="sig-name descname"><span class="pre">handles_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">accounts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/directory.html#HandleDirectory.handles_of"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleDirectory.handles_of" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">{account:</span> <span class="pre">handle}</span></code> for many accounts at once (a list page).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleDirectory.resolve">
+<span class="sig-name descname"><span class="pre">resolve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/directory.html#HandleDirectory.resolve"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleDirectory.resolve" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">{&quot;handle&quot;}</span></code>, or <code class="docutils literal notranslate"><span class="pre">{&quot;handle&quot;,</span> <span class="pre">&quot;renamed_from&quot;}</span></code> after a recent rename.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleDirectoryMiddleware">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.handles.</span></span><span class="sig-name descname"><span class="pre">HandleDirectoryMiddleware</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">app</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">directory</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/directory.html#HandleDirectoryMiddleware"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleDirectoryMiddleware" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Pure-ASGI middleware that sets <code class="docutils literal notranslate"><span class="pre">request.state.handles</span></code> on every request.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.handles.</span></span><span class="sig-name descname"><span class="pre">HandleError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">suggestions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#HandleError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleError" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></a></p>
+<p>A handle could not be set. <em>code</em> says why, <em>message</em> says it to a person.</p>
+<p>Codes: <code class="docutils literal notranslate"><span class="pre">invalid</span></code>, <code class="docutils literal notranslate"><span class="pre">reserved</span></code>, <code class="docutils literal notranslate"><span class="pre">taken</span></code>, <code class="docutils literal notranslate"><span class="pre">cooldown</span></code>, <code class="docutils literal notranslate"><span class="pre">no-account</span></code>,
+<code class="docutils literal notranslate"><span class="pre">exhausted</span></code>.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandlePolicy">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.handles.</span></span><span class="sig-name descname"><span class="pre">HandlePolicy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">min_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reserved</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">frozenset({'about',</span> <span class="pre">'abuse',</span> <span class="pre">'account',</span> <span class="pre">'accounts',</span> <span class="pre">'admin',</span> <span class="pre">'administrator',</span> <span class="pre">'admins',</span> <span class="pre">'all',</span> <span class="pre">'anonymous',</span> <span class="pre">'api',</span> <span class="pre">'app',</span> <span class="pre">'apps',</span> <span class="pre">'auth',</span> <span class="pre">'autoconfig',</span> <span class="pre">'autodiscover',</span> <span class="pre">'blog',</span> <span class="pre">'callback',</span> <span class="pre">'check',</span> <span class="pre">'contact',</span> <span class="pre">'csrf',</span> <span class="pre">'dashboard',</span> <span class="pre">'deleted',</span> <span class="pre">'docs',</span> <span class="pre">'everyone',</span> <span class="pre">'false',</span> <span class="pre">'favicon',</span> <span class="pre">'guest',</span> <span class="pre">'help',</span> <span class="pre">'here',</span> <span class="pre">'home',</span> <span class="pre">'hostmaster',</span> <span class="pre">'info',</span> <span class="pre">'localhost',</span> <span class="pre">'login',</span> <span class="pre">'logout',</span> <span class="pre">'mail',</span> <span class="pre">'mailer-daemon',</span> <span class="pre">'me',</span> <span class="pre">'mod',</span> <span class="pre">'moderator',</span> <span class="pre">'mods',</span> <span class="pre">'new',</span> <span class="pre">'no-reply',</span> <span class="pre">'nobody',</span> <span class="pre">'noc',</span> <span class="pre">'none',</span> <span class="pre">'noreply',</span> <span class="pre">'null',</span> <span class="pre">'oauth',</span> <span class="pre">'official',</span> <span class="pre">'operator',</span> <span class="pre">'owner',</span> <span class="pre">'postmaster',</span> <span class="pre">'privacy',</span> <span class="pre">'register',</span> <span class="pre">'removed',</span> <span class="pre">'robots',</span> <span class="pre">'root',</span> <span class="pre">'search',</span> <span class="pre">'security',</span> <span class="pre">'settings',</span> <span class="pre">'signin',</span> <span class="pre">'signout',</span> <span class="pre">'signup',</span> <span class="pre">'staff',</span> <span class="pre">'static',</span> <span class="pre">'status',</span> <span class="pre">'store',</span> <span class="pre">'superuser',</span> <span class="pre">'support',</span> <span class="pre">'sysadmin',</span> <span class="pre">'system',</span> <span class="pre">'team',</span> <span class="pre">'terms',</span> <span class="pre">'test',</span> <span class="pre">'true',</span> <span class="pre">'undefined',</span> <span class="pre">'unknown',</span> <span class="pre">'user',</span> <span class="pre">'users',</span> <span class="pre">'webmaster',</span> <span class="pre">'well-known',</span> <span class="pre">'wpad',</span> <span class="pre">'www',</span> <span class="pre">'xrpc',</span> <span class="pre">'you'})</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fallback_base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'user'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_sequential</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_suffix_digits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_tries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/core.html#HandlePolicy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandlePolicy" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>The knobs of the handle rules. The defaults are the platform’s.</p>
+<p><em>reserved</em> is compared by <a class="reference internal" href="#enlace_auth.handles.uniqueness_key" title="enlace_auth.handles.uniqueness_key"><code class="xref py py-func docutils literal notranslate"><span class="pre">uniqueness_key()</span></code></a>, so reserving <code class="docutils literal notranslate"><span class="pre">no-reply</span></code> also
+reserves <code class="docutils literal notranslate"><span class="pre">noreply</span></code> and <code class="docutils literal notranslate"><span class="pre">no.reply</span></code>.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandlePolicy.fallback_base">
+<span class="sig-name descname"><span class="pre">fallback_base</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'user'</span></span><a class="headerlink" href="#enlace_auth.handles.HandlePolicy.fallback_base" title="Link to this definition">#</a></dt>
+<dd><p>the base of a default handle when the email gives nothing usable</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandlePolicy.max_sequential">
+<span class="sig-name descname"><span class="pre">max_sequential</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">99</span></span><a class="headerlink" href="#enlace_auth.handles.HandlePolicy.max_sequential" title="Link to this definition">#</a></dt>
+<dd><p>sequential suffixes tried (<code class="docutils literal notranslate"><span class="pre">name1</span></code> .. <code class="docutils literal notranslate"><span class="pre">name&lt;N&gt;</span></code>) before random ones</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandlePolicy.random_suffix_digits">
+<span class="sig-name descname"><span class="pre">random_suffix_digits</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6</span></span><a class="headerlink" href="#enlace_auth.handles.HandlePolicy.random_suffix_digits" title="Link to this definition">#</a></dt>
+<dd><p>digits of the random suffix used once the sequential ones are spent</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandlePolicy.random_tries">
+<span class="sig-name descname"><span class="pre">random_tries</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1000</span></span><a class="headerlink" href="#enlace_auth.handles.HandlePolicy.random_tries" title="Link to this definition">#</a></dt>
+<dd><p>random suffixes tried before giving up (a crowded base, a tiny max_length)</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandlePolicy.reserved_keys">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">reserved_keys</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)"><span class="pre">frozenset</span></a></span><a class="headerlink" href="#enlace_auth.handles.HandlePolicy.reserved_keys" title="Link to this definition">#</a></dt>
+<dd><p>The uniqueness keys of the reserved names.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandlePolicy.with_reserved">
+<span class="sig-name descname"><span class="pre">with_reserved</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extra</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/core.html#HandlePolicy.with_reserved"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandlePolicy.with_reserved" title="Link to this definition">#</a></dt>
+<dd><p>This policy with <em>extra</em> names reserved too (a host’s group names).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="s2">"acme"</span> <span class="ow">in</span> <span class="n">DEFAULT_POLICY</span><span class="o">.</span><span class="n">with_reserved</span><span class="p">([</span><span class="s2">"Acme"</span><span class="p">])</span><span class="o">.</span><span class="n">reserved_keys</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="enlace_auth.handles.core.html#enlace_auth.handles.core.HandlePolicy" title="enlace_auth.handles.core.HandlePolicy"><code class="xref py py-class docutils literal notranslate"><span class="pre">HandlePolicy</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleRegistry">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_auth.handles.</span></span><span class="sig-name descname"><span class="pre">HandleRegistry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">owners</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">HandlePolicy(min_length=3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reserved</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">frozenset({'mods'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'mod'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'about'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'sysadmin'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'test'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'check'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'signout'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'superuser'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'auth'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'favicon'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'undefined'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'wpad'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'oauth'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'anonymous'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'mailer-daemon'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'status'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'csrf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'noc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'none'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'postmaster'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'app'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'accounts'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'static'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'removed'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'root'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'me'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'autoconfig'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'store'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'register'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'user'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'account'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'admin'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'users'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'administrator'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'new'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'contact'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'deleted'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'hostmaster'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'callback'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'terms'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'xrpc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'well-known'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'home'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'security'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'nobody'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'false'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'admins'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'you'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'login'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'settings'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'signin'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'logout'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'blog'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'robots'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'noreply'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'guest'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'docs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'support'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'webmaster'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'signup'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'everyone'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'no-reply'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'info'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'staff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'moderator'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'localhost'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'help'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'null'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'operator'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'abuse'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'official'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'all'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'www'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'owner'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'autodiscover'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'privacy'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'apps'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'api'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'dashboard'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'search'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'mail'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'team'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'system'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'true'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'here'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'unknown'})</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fallback_base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'user'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_sequential</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_suffix_digits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_tries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">account_exists</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">HandleRegistry.&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quarantine_seconds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">7776000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rename_cooldown_seconds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2592000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">time&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#HandleRegistry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleRegistry" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Handles of accounts: assign defaults, claim, rename, release, look up.</p>
+<p>A default handle (made from the email) is <em>private</em> until its account confirms
+or changes it: it lives only in the account’s own <code class="docutils literal notranslate"><span class="pre">owners</span></code> record, never in
+<code class="docutils literal notranslate"><span class="pre">handles</span></code>. So lookups, the availability check, timings and other accounts’
+defaults are all unaffected by it, two accounts may hold the same private
+default, and confirming one is an ordinary claim that can find the name taken.
+A handle made from an email gives part of the address away, so it is published
+only by its owner’s own action (GDPR Art. 25(2); see
+<code class="docutils literal notranslate"><span class="pre">misc/docs/research/general/usernames.md</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handles</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">MutableMapping</span></code></a></span>) – uniqueness key -&gt; public name entry (see the module docstring)</p></li>
+<li><p><strong>owners</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">MutableMapping</span></code></a></span>) – account -&gt; its handle record</p></li>
+<li><p><strong>policy</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="enlace_auth.handles.core.html#enlace_auth.handles.core.HandlePolicy" title="enlace_auth.handles.core.HandlePolicy"><code class="xref py py-class docutils literal notranslate"><span class="pre">HandlePolicy</span></code></a></span>) – the rules (<a class="reference internal" href="enlace_auth.handles.core.html#enlace_auth.handles.core.HandlePolicy" title="enlace_auth.handles.core.HandlePolicy"><code class="xref py py-class docutils literal notranslate"><span class="pre">HandlePolicy</span></code></a>)</p></li>
+<li><p><strong>lock</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></a>[[], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.ContextManager" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContextManager</span></code></a>]]</span>) – a zero-argument factory of a context manager held around writes</p></li>
+<li><p><strong>account_exists</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>]</span>) – whether an account exists; checked under the lock, so
+nothing is written for an account deleted meanwhile</p></li>
+<li><p><strong>quarantine_seconds</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – how long a released public name stays out of others’
+reach (a renamed one redirects meanwhile)</p></li>
+<li><p><strong>rename_cooldown_seconds</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – the least time between two public names (the
+first choice is free)</p></li>
+<li><p><strong>clock</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></a>[[], <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]</span>) – the time, in epoch seconds</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleRegistry.account_of">
+<span class="sig-name descname"><span class="pre">account_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#HandleRegistry.account_of"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleRegistry.account_of" title="Link to this definition">#</a></dt>
+<dd><p>The account holding <em>handle</em> publicly (any spelling of it), or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleRegistry.check">
+<span class="sig-name descname"><span class="pre">check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wanted</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">account</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#HandleRegistry.check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleRegistry.check" title="Link to this definition">#</a></dt>
+<dd><p>What a “choose your username” field shows while the person types.</p>
+<p><code class="docutils literal notranslate"><span class="pre">{&quot;handle&quot;,</span> <span class="pre">&quot;available&quot;,</span> <span class="pre">&quot;problem&quot;,</span> <span class="pre">&quot;code&quot;,</span> <span class="pre">&quot;suggestions&quot;}</span></code>: <em>handle</em> is
+the normalised form (show it as the preview), <em>problem</em> a sentence or
+<code class="docutils literal notranslate"><span class="pre">None</span></code>, <em>code</em> one of <a class="reference internal" href="#enlace_auth.handles.HandleError" title="enlace_auth.handles.HandleError"><code class="xref py py-class docutils literal notranslate"><span class="pre">HandleError</span></code></a>’s codes or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">reg</span> <span class="o">=</span> <span class="n">HandleRegistry</span><span class="p">({},</span> <span class="p">{},</span> <span class="n">account_exists</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">claim</span><span class="p">(</span><span class="s2">"thorwhalen@example.com"</span><span class="p">,</span> <span class="s2">"thorwhalen"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">reg</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="s2">"Thor.Whalen"</span><span class="p">)[</span><span class="s2">"suggestions"</span><span class="p">]</span>
+<span class="go">['thor.whalen1', 'thor.whalen2', 'thor.whalen3']</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleRegistry.claim">
+<span class="sig-name descname"><span class="pre">claim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wanted</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#HandleRegistry.claim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleRegistry.claim" title="Link to this definition">#</a></dt>
+<dd><p>Publish <em>wanted</em> as <em>account</em>’s handle (also: confirm its default).</p>
+<p>The first public name is free; changing it waits
+<em>rename_cooldown_seconds</em> after the last change, and the old name stays
+with the account for the quarantine (it redirects). <em>force</em> (an admin)
+skips the reserved list, the cooldown and a quarantine, never a public
+owner. Raises <a class="reference internal" href="#enlace_auth.handles.HandleError" title="enlace_auth.handles.HandleError"><code class="xref py py-class docutils literal notranslate"><span class="pre">HandleError</span></code></a>; a <code class="docutils literal notranslate"><span class="pre">taken</span></code> one carries suggestions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleRegistry.ensure">
+<span class="sig-name descname"><span class="pre">ensure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_ok</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#HandleRegistry.ensure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleRegistry.ensure" title="Link to this definition">#</a></dt>
+<dd><p>The handle record of <em>account</em>, giving it a private default if needed.</p>
+<p>The default is the email’s local part, then <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">2</span></code> … until a name no
+one holds publicly (<a class="reference internal" href="enlace_auth.handles.core.html#enlace_auth.handles.core.candidates" title="enlace_auth.handles.core.candidates"><code class="xref py py-func docutils literal notranslate"><span class="pre">candidates()</span></code></a>). A private
+default that someone has since published is replaced by the next one. An
+account that does not exist gets nothing: <code class="docutils literal notranslate"><span class="pre">None</span></code> with <em>missing_ok</em>, else
+<a class="reference internal" href="#enlace_auth.handles.HandleError" title="enlace_auth.handles.HandleError"><code class="xref py py-class docutils literal notranslate"><span class="pre">HandleError</span></code></a> <code class="docutils literal notranslate"><span class="pre">no-account</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleRegistry.handle_of">
+<span class="sig-name descname"><span class="pre">handle_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#HandleRegistry.handle_of"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleRegistry.handle_of" title="Link to this definition">#</a></dt>
+<dd><p>The public handle of <em>account</em>: <code class="docutils literal notranslate"><span class="pre">None</span></code> until it has confirmed one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleRegistry.handles_of">
+<span class="sig-name descname"><span class="pre">handles_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">accounts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#HandleRegistry.handles_of"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleRegistry.handles_of" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">{account:</span> <span class="pre">handle}</span></code> for each of <em>accounts</em> with a public handle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleRegistry.is_free">
+<span class="sig-name descname"><span class="pre">is_free</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">account</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#HandleRegistry.is_free"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleRegistry.is_free" title="Link to this definition">#</a></dt>
+<dd><p>Whether <em>handle</em> could be claimed by <em>account</em> (by anyone, if <code class="docutils literal notranslate"><span class="pre">None</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleRegistry.record_of">
+<span class="sig-name descname"><span class="pre">record_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#HandleRegistry.record_of"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleRegistry.record_of" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">{&quot;handle&quot;,</span> <span class="pre">&quot;chosen&quot;}</span></code> of <em>account</em>, for the account itself.</p>
+<p><code class="docutils literal notranslate"><span class="pre">chosen</span></code> is true only while the name is really published (so a write
+interrupted half-way shows as not chosen, and the account confirms again).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleRegistry.release_account">
+<span class="sig-name descname"><span class="pre">release_account</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#HandleRegistry.release_account"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleRegistry.release_account" title="Link to this definition">#</a></dt>
+<dd><p>Forget <em>account</em>’s handles (the account is being deleted); return 1 or 0.</p>
+<p>Its public name, and the names it renamed away from, stay out of others’
+reach for the quarantine with no account attached (the email is erased);
+then they are free. Only entries that name this account are touched, and
+the record goes last, so an interrupted release never frees a name early.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleRegistry.resolve">
+<span class="sig-name descname"><span class="pre">resolve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#HandleRegistry.resolve"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleRegistry.resolve" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">{&quot;handle&quot;:</span> <span class="pre">current}</span></code> for <em>handle</em>, following a recent rename.</p>
+<p>A name its account renamed away from, still in quarantine, resolves to that
+account’s current handle with <code class="docutils literal notranslate"><span class="pre">&quot;renamed_from&quot;</span></code>; a deleted account’s name,
+a private default, or an unknown one resolves to <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">reg</span> <span class="o">=</span> <span class="n">HandleRegistry</span><span class="p">({},</span> <span class="p">{},</span> <span class="n">account_exists</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">claim</span><span class="p">(</span><span class="s2">"a@example.com"</span><span class="p">,</span> <span class="s2">"first"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">claim</span><span class="p">(</span><span class="s2">"a@example.com"</span><span class="p">,</span> <span class="s2">"second"</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">reg</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s2">"FIRST"</span><span class="p">)</span>
+<span class="go">{'handle': 'second', 'renamed_from': 'first'}</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_auth.handles.HandleRegistry.sweep">
+<span class="sig-name descname"><span class="pre">sweep</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#HandleRegistry.sweep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.HandleRegistry.sweep" title="Link to this definition">#</a></dt>
+<dd><p>Remove released entries whose quarantine is over; return how many.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.handles.base_from_email">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.handles.</span></span><span class="sig-name descname"><span class="pre">base_from_email</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">email</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">HandlePolicy(min_length=3,</span> <span class="pre">max_length=30,</span> <span class="pre">reserved=frozenset({'mods',</span> <span class="pre">'mod',</span> <span class="pre">'about',</span> <span class="pre">'sysadmin',</span> <span class="pre">'test',</span> <span class="pre">'check',</span> <span class="pre">'signout',</span> <span class="pre">'superuser',</span> <span class="pre">'auth',</span> <span class="pre">'favicon',</span> <span class="pre">'undefined',</span> <span class="pre">'wpad',</span> <span class="pre">'oauth',</span> <span class="pre">'anonymous',</span> <span class="pre">'mailer-daemon',</span> <span class="pre">'status',</span> <span class="pre">'csrf',</span> <span class="pre">'noc',</span> <span class="pre">'none',</span> <span class="pre">'postmaster',</span> <span class="pre">'app',</span> <span class="pre">'accounts',</span> <span class="pre">'static',</span> <span class="pre">'removed',</span> <span class="pre">'root',</span> <span class="pre">'me',</span> <span class="pre">'autoconfig',</span> <span class="pre">'store',</span> <span class="pre">'register',</span> <span class="pre">'user',</span> <span class="pre">'account',</span> <span class="pre">'admin',</span> <span class="pre">'users',</span> <span class="pre">'administrator',</span> <span class="pre">'new',</span> <span class="pre">'contact',</span> <span class="pre">'deleted',</span> <span class="pre">'hostmaster',</span> <span class="pre">'callback',</span> <span class="pre">'terms',</span> <span class="pre">'xrpc',</span> <span class="pre">'well-known',</span> <span class="pre">'home',</span> <span class="pre">'security',</span> <span class="pre">'nobody',</span> <span class="pre">'false',</span> <span class="pre">'admins',</span> <span class="pre">'you',</span> <span class="pre">'login',</span> <span class="pre">'settings',</span> <span class="pre">'signin',</span> <span class="pre">'logout',</span> <span class="pre">'blog',</span> <span class="pre">'robots',</span> <span class="pre">'noreply',</span> <span class="pre">'guest',</span> <span class="pre">'docs',</span> <span class="pre">'support',</span> <span class="pre">'webmaster',</span> <span class="pre">'signup',</span> <span class="pre">'everyone',</span> <span class="pre">'no-reply',</span> <span class="pre">'info',</span> <span class="pre">'staff',</span> <span class="pre">'moderator',</span> <span class="pre">'localhost',</span> <span class="pre">'help',</span> <span class="pre">'null',</span> <span class="pre">'operator',</span> <span class="pre">'abuse',</span> <span class="pre">'official',</span> <span class="pre">'all',</span> <span class="pre">'www',</span> <span class="pre">'owner',</span> <span class="pre">'autodiscover',</span> <span class="pre">'privacy',</span> <span class="pre">'apps',</span> <span class="pre">'api',</span> <span class="pre">'dashboard',</span> <span class="pre">'search',</span> <span class="pre">'mail',</span> <span class="pre">'team',</span> <span class="pre">'system',</span> <span class="pre">'true',</span> <span class="pre">'here',</span> <span class="pre">'unknown'}),</span> <span class="pre">fallback_base='user',</span> <span class="pre">max_sequential=99,</span> <span class="pre">random_suffix_digits=6,</span> <span class="pre">random_tries=1000)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/core.html#base_from_email"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.base_from_email" title="Link to this definition">#</a></dt>
+<dd><p>The base of a default handle: the email’s local part, made into a handle.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">+tag</span></code> of plus-addressing is dropped (it is private routing, and often
+names the site), accents are folded, other characters removed, separator runs
+collapsed, and the result cut so a suffix still fits. When nothing usable is
+left, or the local part is a reserved word (<code class="docutils literal notranslate"><span class="pre">info&#64;</span></code>, <code class="docutils literal notranslate"><span class="pre">admin&#64;</span></code>: role
+mailboxes), <em>policy.fallback_base</em>. The base may still be too short:
+<a class="reference internal" href="#enlace_auth.handles.candidates" title="enlace_auth.handles.candidates"><code class="xref py py-func docutils literal notranslate"><span class="pre">candidates()</span></code></a> then starts at the first suffix.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">base_from_email</span><span class="p">(</span><span class="s2">"José.Ñúñez@example.com"</span><span class="p">)</span>
+<span class="go">'jose.nunez'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">base_from_email</span><span class="p">(</span><span class="s2">"o'brien@example.com"</span><span class="p">)</span>
+<span class="go">'obrien'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">base_from_email</span><span class="p">(</span><span class="s2">"--@example.com"</span><span class="p">),</span> <span class="n">base_from_email</span><span class="p">(</span><span class="s2">"info@example.com"</span><span class="p">)</span>
+<span class="go">('user', 'user')</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.handles.candidates">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.handles.</span></span><span class="sig-name descname"><span class="pre">candidates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">HandlePolicy(min_length=3,</span> <span class="pre">max_length=30,</span> <span class="pre">reserved=frozenset({'mods',</span> <span class="pre">'mod',</span> <span class="pre">'about',</span> <span class="pre">'sysadmin',</span> <span class="pre">'test',</span> <span class="pre">'check',</span> <span class="pre">'signout',</span> <span class="pre">'superuser',</span> <span class="pre">'auth',</span> <span class="pre">'favicon',</span> <span class="pre">'undefined',</span> <span class="pre">'wpad',</span> <span class="pre">'oauth',</span> <span class="pre">'anonymous',</span> <span class="pre">'mailer-daemon',</span> <span class="pre">'status',</span> <span class="pre">'csrf',</span> <span class="pre">'noc',</span> <span class="pre">'none',</span> <span class="pre">'postmaster',</span> <span class="pre">'app',</span> <span class="pre">'accounts',</span> <span class="pre">'static',</span> <span class="pre">'removed',</span> <span class="pre">'root',</span> <span class="pre">'me',</span> <span class="pre">'autoconfig',</span> <span class="pre">'store',</span> <span class="pre">'register',</span> <span class="pre">'user',</span> <span class="pre">'account',</span> <span class="pre">'admin',</span> <span class="pre">'users',</span> <span class="pre">'administrator',</span> <span class="pre">'new',</span> <span class="pre">'contact',</span> <span class="pre">'deleted',</span> <span class="pre">'hostmaster',</span> <span class="pre">'callback',</span> <span class="pre">'terms',</span> <span class="pre">'xrpc',</span> <span class="pre">'well-known',</span> <span class="pre">'home',</span> <span class="pre">'security',</span> <span class="pre">'nobody',</span> <span class="pre">'false',</span> <span class="pre">'admins',</span> <span class="pre">'you',</span> <span class="pre">'login',</span> <span class="pre">'settings',</span> <span class="pre">'signin',</span> <span class="pre">'logout',</span> <span class="pre">'blog',</span> <span class="pre">'robots',</span> <span class="pre">'noreply',</span> <span class="pre">'guest',</span> <span class="pre">'docs',</span> <span class="pre">'support',</span> <span class="pre">'webmaster',</span> <span class="pre">'signup',</span> <span class="pre">'everyone',</span> <span class="pre">'no-reply',</span> <span class="pre">'info',</span> <span class="pre">'staff',</span> <span class="pre">'moderator',</span> <span class="pre">'localhost',</span> <span class="pre">'help',</span> <span class="pre">'null',</span> <span class="pre">'operator',</span> <span class="pre">'abuse',</span> <span class="pre">'official',</span> <span class="pre">'all',</span> <span class="pre">'www',</span> <span class="pre">'owner',</span> <span class="pre">'autodiscover',</span> <span class="pre">'privacy',</span> <span class="pre">'apps',</span> <span class="pre">'api',</span> <span class="pre">'dashboard',</span> <span class="pre">'search',</span> <span class="pre">'mail',</span> <span class="pre">'team',</span> <span class="pre">'system',</span> <span class="pre">'true',</span> <span class="pre">'here',</span> <span class="pre">'unknown'}),</span> <span class="pre">fallback_base='user',</span> <span class="pre">max_sequential=99,</span> <span class="pre">random_suffix_digits=6,</span> <span class="pre">random_tries=1000)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/core.html#candidates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.candidates" title="Link to this definition">#</a></dt>
+<dd><p>Valid handles to try, in order: <em>base</em>, <code class="docutils literal notranslate"><span class="pre">base1</span></code> .. <code class="docutils literal notranslate"><span class="pre">base&lt;max_sequential&gt;</span></code>,
+then <code class="docutils literal notranslate"><span class="pre">base</span></code> plus a random number of <em>policy.random_suffix_digits</em> digits.
+Endless unless <em>tries</em> bounds the names generated (valid or not): a caller
+that must terminate passes it.</p>
+<p>Invalid ones (too short, reserved) are skipped, so <code class="docutils literal notranslate"><span class="pre">bo</span></code> starts at <code class="docutils literal notranslate"><span class="pre">bo1</span></code>. The
+base is cut so the suffix fits. Sequential suffixes are what people expect (the
+first <code class="docutils literal notranslate"><span class="pre">john</span></code> is <code class="docutils literal notranslate"><span class="pre">john</span></code>, the next <code class="docutils literal notranslate"><span class="pre">john1</span></code>); the random tail keeps a crowded
+base from costing a hundred lookups.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">candidates</span><span class="p">(</span><span class="s2">"thorwhalen"</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">3</span><span class="p">))</span>
+<span class="go">['thorwhalen', 'thorwhalen1', 'thorwhalen2']</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">candidates</span><span class="p">(</span><span class="s2">"agent007"</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+<span class="go">['agent007', 'agent007_1']</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">no_sequence</span> <span class="o">=</span> <span class="n">HandlePolicy</span><span class="p">(</span><span class="n">max_sequential</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">candidates</span><span class="p">(</span><span class="s2">"xyz"</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">no_sequence</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="mi">424242</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+<span class="go">['xyz', 'xyz424242']</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.handles.file_lock">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.handles.</span></span><span class="sig-name descname"><span class="pre">file_lock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#file_lock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.file_lock" title="Link to this definition">#</a></dt>
+<dd><p>A lock factory over <code class="docutils literal notranslate"><span class="pre">flock</span></code> on <em>path</em>: exclusive across processes on a host.</p>
+<p>Each call returns a fresh context manager. Without <code class="docutils literal notranslate"><span class="pre">fcntl</span></code> (Windows) it falls
+back to a process-local lock.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></a>[[], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.ContextManager" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContextManager</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.handles.handle_problem">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.handles.</span></span><span class="sig-name descname"><span class="pre">handle_problem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">HandlePolicy(min_length=3,</span> <span class="pre">max_length=30,</span> <span class="pre">reserved=frozenset({'mods',</span> <span class="pre">'mod',</span> <span class="pre">'about',</span> <span class="pre">'sysadmin',</span> <span class="pre">'test',</span> <span class="pre">'check',</span> <span class="pre">'signout',</span> <span class="pre">'superuser',</span> <span class="pre">'auth',</span> <span class="pre">'favicon',</span> <span class="pre">'undefined',</span> <span class="pre">'wpad',</span> <span class="pre">'oauth',</span> <span class="pre">'anonymous',</span> <span class="pre">'mailer-daemon',</span> <span class="pre">'status',</span> <span class="pre">'csrf',</span> <span class="pre">'noc',</span> <span class="pre">'none',</span> <span class="pre">'postmaster',</span> <span class="pre">'app',</span> <span class="pre">'accounts',</span> <span class="pre">'static',</span> <span class="pre">'removed',</span> <span class="pre">'root',</span> <span class="pre">'me',</span> <span class="pre">'autoconfig',</span> <span class="pre">'store',</span> <span class="pre">'register',</span> <span class="pre">'user',</span> <span class="pre">'account',</span> <span class="pre">'admin',</span> <span class="pre">'users',</span> <span class="pre">'administrator',</span> <span class="pre">'new',</span> <span class="pre">'contact',</span> <span class="pre">'deleted',</span> <span class="pre">'hostmaster',</span> <span class="pre">'callback',</span> <span class="pre">'terms',</span> <span class="pre">'xrpc',</span> <span class="pre">'well-known',</span> <span class="pre">'home',</span> <span class="pre">'security',</span> <span class="pre">'nobody',</span> <span class="pre">'false',</span> <span class="pre">'admins',</span> <span class="pre">'you',</span> <span class="pre">'login',</span> <span class="pre">'settings',</span> <span class="pre">'signin',</span> <span class="pre">'logout',</span> <span class="pre">'blog',</span> <span class="pre">'robots',</span> <span class="pre">'noreply',</span> <span class="pre">'guest',</span> <span class="pre">'docs',</span> <span class="pre">'support',</span> <span class="pre">'webmaster',</span> <span class="pre">'signup',</span> <span class="pre">'everyone',</span> <span class="pre">'no-reply',</span> <span class="pre">'info',</span> <span class="pre">'staff',</span> <span class="pre">'moderator',</span> <span class="pre">'localhost',</span> <span class="pre">'help',</span> <span class="pre">'null',</span> <span class="pre">'operator',</span> <span class="pre">'abuse',</span> <span class="pre">'official',</span> <span class="pre">'all',</span> <span class="pre">'www',</span> <span class="pre">'owner',</span> <span class="pre">'autodiscover',</span> <span class="pre">'privacy',</span> <span class="pre">'apps',</span> <span class="pre">'api',</span> <span class="pre">'dashboard',</span> <span class="pre">'search',</span> <span class="pre">'mail',</span> <span class="pre">'team',</span> <span class="pre">'system',</span> <span class="pre">'true',</span> <span class="pre">'here',</span> <span class="pre">'unknown'}),</span> <span class="pre">fallback_base='user',</span> <span class="pre">max_sequential=99,</span> <span class="pre">random_suffix_digits=6,</span> <span class="pre">random_tries=1000)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/core.html#handle_problem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.handle_problem" title="Link to this definition">#</a></dt>
+<dd><p>Why <em>handle</em> (already normalised) cannot be a handle, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if it can.</p>
+<p>The message is written for the person choosing the name.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handle_problem</span><span class="p">(</span><span class="s2">"ab"</span><span class="p">)</span>
+<span class="go">'Use at least 3 characters.'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handle_problem</span><span class="p">(</span><span class="s2">"josé"</span><span class="p">)</span>
+<span class="go">'Use only letters a-z, digits, and . _ -'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handle_problem</span><span class="p">(</span><span class="s2">"12345"</span><span class="p">)</span>
+<span class="go">'Use at least one letter.'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handle_problem</span><span class="p">(</span><span class="s2">"admin"</span><span class="p">)</span>
+<span class="go">'This name is reserved.'</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.handles.make_handle_registry">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.handles.</span></span><span class="sig-name descname"><span class="pre">make_handle_registry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handles_cfg</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">store_factory</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store_root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">account_exists</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groups</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/registry.html#make_handle_registry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.make_handle_registry" title="Link to this definition">#</a></dt>
+<dd><p>The platform’s registry, from <code class="docutils literal notranslate"><span class="pre">[auth.handles]</span></code> (a <code class="docutils literal notranslate"><span class="pre">HandlesConfig</span></code>).</p>
+<p>The two mappings are the platform store’s <code class="docutils literal notranslate"><span class="pre">handles</span></code> and <code class="docutils literal notranslate"><span class="pre">handle_owners</span></code>, and
+the lock is a <code class="docutils literal notranslate"><span class="pre">flock</span></code> on <code class="docutils literal notranslate"><span class="pre">&lt;store_root&gt;/handles.lock</span></code>, so the gunicorn
+workers of one host agree (pass <em>lock</em> for stores shared across hosts). The
+names of <em>groups</em> (<code class="docutils literal notranslate"><span class="pre">[auth.groups]</span></code>) are reserved too, so no account can be
+called <code class="docutils literal notranslate"><span class="pre">&#64;family</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="enlace_auth.handles.registry.html#enlace_auth.handles.registry.HandleRegistry" title="enlace_auth.handles.registry.HandleRegistry"><code class="xref py py-class docutils literal notranslate"><span class="pre">HandleRegistry</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.handles.normalize">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.handles.</span></span><span class="sig-name descname"><span class="pre">normalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/core.html#normalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.normalize" title="Link to this definition">#</a></dt>
+<dd><p>The stored form of what a person typed: NFKC, case-folded, trimmed, no <code class="docutils literal notranslate"><span class="pre">&#64;</span></code>.</p>
+<p>It does not validate: <a class="reference internal" href="#enlace_auth.handles.handle_problem" title="enlace_auth.handles.handle_problem"><code class="xref py py-func docutils literal notranslate"><span class="pre">handle_problem()</span></code></a> does, on this form.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">normalize</span><span class="p">(</span><span class="s2">"  @Ｔhor_Whalen"</span><span class="p">)</span>
+<span class="go">'thor_whalen'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">normalize</span><span class="p">(</span><span class="s2">"Straße"</span><span class="p">)</span>
+<span class="go">'strasse'</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.handles.suggestions">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.handles.</span></span><span class="sig-name descname"><span class="pre">suggestions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wanted</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_free</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">HandlePolicy(min_length=3,</span> <span class="pre">max_length=30,</span> <span class="pre">reserved=frozenset({'mods',</span> <span class="pre">'mod',</span> <span class="pre">'about',</span> <span class="pre">'sysadmin',</span> <span class="pre">'test',</span> <span class="pre">'check',</span> <span class="pre">'signout',</span> <span class="pre">'superuser',</span> <span class="pre">'auth',</span> <span class="pre">'favicon',</span> <span class="pre">'undefined',</span> <span class="pre">'wpad',</span> <span class="pre">'oauth',</span> <span class="pre">'anonymous',</span> <span class="pre">'mailer-daemon',</span> <span class="pre">'status',</span> <span class="pre">'csrf',</span> <span class="pre">'noc',</span> <span class="pre">'none',</span> <span class="pre">'postmaster',</span> <span class="pre">'app',</span> <span class="pre">'accounts',</span> <span class="pre">'static',</span> <span class="pre">'removed',</span> <span class="pre">'root',</span> <span class="pre">'me',</span> <span class="pre">'autoconfig',</span> <span class="pre">'store',</span> <span class="pre">'register',</span> <span class="pre">'user',</span> <span class="pre">'account',</span> <span class="pre">'admin',</span> <span class="pre">'users',</span> <span class="pre">'administrator',</span> <span class="pre">'new',</span> <span class="pre">'contact',</span> <span class="pre">'deleted',</span> <span class="pre">'hostmaster',</span> <span class="pre">'callback',</span> <span class="pre">'terms',</span> <span class="pre">'xrpc',</span> <span class="pre">'well-known',</span> <span class="pre">'home',</span> <span class="pre">'security',</span> <span class="pre">'nobody',</span> <span class="pre">'false',</span> <span class="pre">'admins',</span> <span class="pre">'you',</span> <span class="pre">'login',</span> <span class="pre">'settings',</span> <span class="pre">'signin',</span> <span class="pre">'logout',</span> <span class="pre">'blog',</span> <span class="pre">'robots',</span> <span class="pre">'noreply',</span> <span class="pre">'guest',</span> <span class="pre">'docs',</span> <span class="pre">'support',</span> <span class="pre">'webmaster',</span> <span class="pre">'signup',</span> <span class="pre">'everyone',</span> <span class="pre">'no-reply',</span> <span class="pre">'info',</span> <span class="pre">'staff',</span> <span class="pre">'moderator',</span> <span class="pre">'localhost',</span> <span class="pre">'help',</span> <span class="pre">'null',</span> <span class="pre">'operator',</span> <span class="pre">'abuse',</span> <span class="pre">'official',</span> <span class="pre">'all',</span> <span class="pre">'www',</span> <span class="pre">'owner',</span> <span class="pre">'autodiscover',</span> <span class="pre">'privacy',</span> <span class="pre">'apps',</span> <span class="pre">'api',</span> <span class="pre">'dashboard',</span> <span class="pre">'search',</span> <span class="pre">'mail',</span> <span class="pre">'team',</span> <span class="pre">'system',</span> <span class="pre">'true',</span> <span class="pre">'here',</span> <span class="pre">'unknown'}),</span> <span class="pre">fallback_base='user',</span> <span class="pre">max_sequential=99,</span> <span class="pre">random_suffix_digits=6,</span> <span class="pre">random_tries=1000)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_tries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/core.html#suggestions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.suggestions" title="Link to this definition">#</a></dt>
+<dd><p>Up to <em>n</em> free handles close to <em>wanted</em>, for a name that is taken or invalid.</p>
+<p><em>wanted</em> is first made into a base the way an email’s local part is, so
+<code class="docutils literal notranslate"><span class="pre">Thor</span> <span class="pre">Whalen!</span></code> suggests <code class="docutils literal notranslate"><span class="pre">thorwhalen1</span></code> and so on.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">taken</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"thorwhalen"</span><span class="p">,</span> <span class="s2">"thorwhalen1"</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">suggestions</span><span class="p">(</span><span class="s2">"ThorWhalen"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">h</span><span class="p">:</span> <span class="n">h</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">taken</span><span class="p">)</span>
+<span class="go">['thorwhalen2', 'thorwhalen3', 'thorwhalen4']</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_auth.handles.uniqueness_key">
+<span class="sig-prename descclassname"><span class="pre">enlace_auth.handles.</span></span><span class="sig-name descname"><span class="pre">uniqueness_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_auth/handles/core.html#uniqueness_key"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_auth.handles.uniqueness_key" title="Link to this definition">#</a></dt>
+<dd><p>The form two handles are compared by: normalised, without separators, with
+look-alike characters folded (<code class="docutils literal notranslate"><span class="pre">0</span></code> as <code class="docutils literal notranslate"><span class="pre">o</span></code>; <code class="docutils literal notranslate"><span class="pre">1</span></code> and <code class="docutils literal notranslate"><span class="pre">i</span></code> as <code class="docutils literal notranslate"><span class="pre">l</span></code>).</p>
+<p>So <code class="docutils literal notranslate"><span class="pre">th0r.whalen</span></code> cannot pose as <code class="docutils literal notranslate"><span class="pre">thorwhalen</span></code>. It is a key, never shown.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">uniqueness_key</span><span class="p">(</span><span class="s2">"@Thor.Whalen"</span><span class="p">)</span> <span class="o">==</span> <span class="n">uniqueness_key</span><span class="p">(</span><span class="s2">"th0r-whalen"</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">uniqueness_key</span><span class="p">(</span><span class="s2">"bill"</span><span class="p">)</span> <span class="o">==</span> <span class="n">uniqueness_key</span><span class="p">(</span><span class="s2">"b1ll"</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Modules</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.handles.core.html#module-enlace_auth.handles.core" title="enlace_auth.handles.core"><code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code></a></p></td>
+<td><p>What a handle is: its normal form, its rules, and the default made from an email.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.handles.directory.html#module-enlace_auth.handles.directory" title="enlace_auth.handles.directory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">directory</span></code></a></p></td>
+<td><p>The read-only view of handles every app gets at <code class="docutils literal notranslate"><span class="pre">request.state.handles</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_auth.handles.registry.html#module-enlace_auth.handles.registry" title="enlace_auth.handles.registry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">registry</span></code></a></p></td>
+<td><p>The handle registry: which account holds which handle, kept unique under a lock.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_auth.handles.routes.html#module-enlace_auth.handles.routes" title="enlace_auth.handles.routes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">routes</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/auth/handles/*</span></code>: the signed-in user's handle, the availability check, lookups.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="enlace_auth.groups.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">enlace_auth.groups</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="enlace_auth.handles.core.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">enlace_auth.handles.core</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleDirectory"><code class="docutils literal notranslate"><span class="pre">HandleDirectory</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleDirectory.account_of"><code class="docutils literal notranslate"><span class="pre">HandleDirectory.account_of()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleDirectory.handle_of"><code class="docutils literal notranslate"><span class="pre">HandleDirectory.handle_of()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleDirectory.handles_of"><code class="docutils literal notranslate"><span class="pre">HandleDirectory.handles_of()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleDirectory.resolve"><code class="docutils literal notranslate"><span class="pre">HandleDirectory.resolve()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleDirectoryMiddleware"><code class="docutils literal notranslate"><span class="pre">HandleDirectoryMiddleware</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleError"><code class="docutils literal notranslate"><span class="pre">HandleError</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandlePolicy"><code class="docutils literal notranslate"><span class="pre">HandlePolicy</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandlePolicy.fallback_base"><code class="docutils literal notranslate"><span class="pre">HandlePolicy.fallback_base</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandlePolicy.max_sequential"><code class="docutils literal notranslate"><span class="pre">HandlePolicy.max_sequential</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandlePolicy.random_suffix_digits"><code class="docutils literal notranslate"><span class="pre">HandlePolicy.random_suffix_digits</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandlePolicy.random_tries"><code class="docutils literal notranslate"><span class="pre">HandlePolicy.random_tries</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandlePolicy.reserved_keys"><code class="docutils literal notranslate"><span class="pre">HandlePolicy.reserved_keys</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandlePolicy.with_reserved"><code class="docutils literal notranslate"><span class="pre">HandlePolicy.with_reserved()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleRegistry"><code class="docutils literal notranslate"><span class="pre">HandleRegistry</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleRegistry.account_of"><code class="docutils literal notranslate"><span class="pre">HandleRegistry.account_of()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleRegistry.check"><code class="docutils literal notranslate"><span class="pre">HandleRegistry.check()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleRegistry.claim"><code class="docutils literal notranslate"><span class="pre">HandleRegistry.claim()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleRegistry.ensure"><code class="docutils literal notranslate"><span class="pre">HandleRegistry.ensure()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleRegistry.handle_of"><code class="docutils literal notranslate"><span class="pre">HandleRegistry.handle_of()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleRegistry.handles_of"><code class="docutils literal notranslate"><span class="pre">HandleRegistry.handles_of()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleRegistry.is_free"><code class="docutils literal notranslate"><span class="pre">HandleRegistry.is_free()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleRegistry.record_of"><code class="docutils literal notranslate"><span class="pre">HandleRegistry.record_of()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleRegistry.release_account"><code class="docutils literal notranslate"><span class="pre">HandleRegistry.release_account()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleRegistry.resolve"><code class="docutils literal notranslate"><span class="pre">HandleRegistry.resolve()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.HandleRegistry.sweep"><code class="docutils literal notranslate"><span class="pre">HandleRegistry.sweep()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.base_from_email"><code class="docutils literal notranslate"><span class="pre">base_from_email()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.candidates"><code class="docutils literal notranslate"><span class="pre">candidates()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.file_lock"><code class="docutils literal notranslate"><span class="pre">file_lock()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.handle_problem"><code class="docutils literal notranslate"><span class="pre">handle_problem()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.make_handle_registry"><code class="docutils literal notranslate"><span class="pre">make_handle_registry()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.normalize"><code class="docutils literal notranslate"><span class="pre">normalize()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.suggestions"><code class="docutils literal notranslate"><span class="pre">suggestions()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_auth.handles.uniqueness_key"><code class="docutils literal notranslate"><span class="pre">uniqueness_key()</span></code></a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../_sources/_autosummary/enlace_auth.handles.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

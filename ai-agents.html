@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="_static/documentation_options.js?v=a395f30a"></script>
+    <script src="_static/documentation_options.js?v=07ed7713"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.1.65" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -384,7 +384,7 @@ machine-readable copies of this documentation.</p>
 <p>Skills are folders holding a <code class="docutils literal notranslate"><span class="pre">SKILL.md</span></code> (the <a class="reference external" href="https://agentskills.io">Agent Skills</a> format): a description that tells an agent when to use it and a body with the procedure. Install one into your agent with <code class="docutils literal notranslate"><span class="pre">gh</span> <span class="pre">skill</span></code> (any host: <code class="docutils literal notranslate"><span class="pre">--agent</span> <span class="pre">claude-code</span></code>, <code class="docutils literal notranslate"><span class="pre">copilot</span></code>, <code class="docutils literal notranslate"><span class="pre">cursor</span></code>, <code class="docutils literal notranslate"><span class="pre">codex</span></code>, <code class="docutils literal notranslate"><span class="pre">gemini</span></code>), or use the copy bundled in the wheel.</p>
 <section id="enlace-auth-usage">
 <h3><code class="docutils literal notranslate"><span class="pre">enlace-auth-usage</span></code><a class="headerlink" href="#enlace-auth-usage" title="Link to this heading">#</a></h3>
-<p>How to add sign-in, sessions, CSRF protection, admin accounts, per-app access levels, runtime grants and per-user storage to an enlace multi-app platform with the enlace_auth plugin. Use when the user mentions enlace_auth, the enlace-auth CLI, protected:user or protected:shared apps, ENLACE_SIGNING_KEY, ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user, reset-link, grant, share, invite, [auth.signup], sign-up, “continue with email” or account deletion, passkeys, WebAuthn, Face ID or Touch ID sign-in, a step-up confirmation or step-up proof; or wants to put login, self-service sign-up, or a “confirm this action with your passkey” tap in front of apps served by enlace.</p>
+<p>How to add sign-in, sessions, CSRF protection, admin accounts, per-app access levels, runtime grants and per-user storage to an enlace multi-app platform with the enlace_auth plugin. Use when the user mentions enlace_auth, the enlace-auth CLI, protected:user or protected:shared apps, ENLACE_SIGNING_KEY, ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user, reset-link, grant, share, invite, [auth.signup], sign-up, “continue with email” or account deletion, passkeys, WebAuthn, Face ID or Touch ID sign-in, a step-up confirmation or step-up proof, usernames or handles (request.state.handles, /auth/handles, “by &#64;name”, set-handle); or wants to put login, self-service sign-up, a username, or a “confirm this action with your passkey” tap in front of apps served by enlace.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>gh<span class="w"> </span>skill<span class="w"> </span>install<span class="w"> </span>i2mint/enlace_auth<span class="w"> </span>enlace-auth-usage<span class="w"> </span>--agent<span class="w"> </span>claude-code
 </pre></div>
 </div>

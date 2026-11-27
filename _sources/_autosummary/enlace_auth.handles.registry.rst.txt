@@ -1,0 +1,25 @@
+enlace\_auth.handles.registry
+=============================
+
+.. automodule:: enlace_auth.handles.registry
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      file_lock
+      make_handle_registry
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      HandleRegistry
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      HandleError
+   

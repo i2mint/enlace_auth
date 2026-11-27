@@ -1,4 +1,4 @@
-> built 2026-11-26 15:10 UTC from a03f00e (main) · enlace_auth 0.1.64. Details: build_info.json
+> built 2026-11-27 11:22 UTC from a106189 (main) · enlace_auth 0.1.65. Details: build_info.json
 
 # index.html.md
 
@@ -100,6 +100,7 @@ print(client.get("/auth/whoami").json())
 - `/auth/forgot-password`: self-service reset by emailed link
 - `/_admin/api/*`: list, create and delete users, mint a password-reset link, set a password directly, view app policy, and **grant or revoke per-app access at runtime** (optional expiry). Gated by an admin allowlist.
 - per-user data injection via `request.state.store`
+- usernames (handles): a public, unique, case-insensitive name per account while the email stays private; `request.state.handles` for apps (“by @name”), `/auth/handles/*` for a “choose your username” step, `enlace-auth set-handle` for admins. The default is the email’s local part plus a number and stays private until the person confirms it. Details in the consumer skill; research in `misc/docs/research/general/usernames.md`
 - `PlatformAuthMiddleware` and `CSRFMiddleware`
 - optional OAuth2 / OIDC login via Authlib, and an OAuth 2.1 authorization server for MCP connectors
 
@@ -801,7 +802,7 @@ True when *record* is a user record marked disabled.
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
-### enlace_auth.auth.accounts.make_account_deleter(, user_store, credentials_changed, share_store=None, grant_store=None, user_data=None, sign_ins=None, passkeys=None)
+### enlace_auth.auth.accounts.make_account_deleter(, user_store, credentials_changed, share_store=None, grant_store=None, user_data=None, sign_ins=None, passkeys=None, handles=None)
 
 Return `delete(email)`: remove an account and what hangs off it.
 
@@ -810,7 +811,8 @@ The record goes first, then its sessions and connector refresh families
 signed in. Then, each optional and each failing alone: the shares naming it,
 its runtime grants (stored under exactly its key: the other spelling of the
 address may be another account), its per-user data (every key under
-`{email}/` in the base store), its last-sign-in time, and its passkeys. Raises
+`{email}/` in the base store), its last-sign-in time, its passkeys, and its
+handle (released into quarantine with the email erased). Raises
 `KeyError` when there is no such account; a damaged grant or data key is
 logged and skipped.
 
@@ -3109,6 +3111,7 @@ we just deserialize them into typed objects here when the plugin runs.
 
 | [`AuthConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.AuthConfig)(\*[, enabled, ...])                     | Platform-wide authentication configuration.                                |
 |-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| [`HandlesConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.HandlesConfig)(\*[, enabled, reserved, ...])        | `[auth.handles]`: usernames, the public name of each account.              |
 | [`OAuthProviderConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthProviderConfig)(\*, client_id_env, ...[, ...]) | Configuration for a single OAuth2/OIDC provider.                           |
 | [`OAuthServerConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.OAuthServerConfig)(\*[, enabled, issuer, ...])      | OAuth 2.1 authorization-server settings (for MCP connectors).              |
 | [`PasskeysConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.PasskeysConfig)(\*[, enabled, rp_id, rp_name, ...]) | `[auth.passkeys]`: sign-in and step-up confirmation by passkey (WebAuthn). |
@@ -3116,7 +3119,7 @@ we just deserialize them into typed objects here when the plugin runs.
 | [`SignupLimitsConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.SignupLimitsConfig)(\*[, window_seconds, ...])      | Rate limits on the endpoints that send mail or check a code.               |
 | [`StoreBackendConfig`](_autosummary/enlace_auth.config.html.md#enlace_auth.config.StoreBackendConfig)(\*[, backend, path])            | Backend configuration for a MutableMapping-backed store.                   |
 
-### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, cookie_domain=None, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, groups=<factory>)
+### *class* enlace_auth.config.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, cookie_domain=None, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, handles=<factory>, groups=<factory>)
 
 Bases: `_StrictModel`
 
@@ -3132,6 +3135,20 @@ The effective platform-wide sign-up policy.
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### *class* enlace_auth.config.HandlesConfig(\*, enabled=True, reserved=<factory>, min_length=3, max_length=30, quarantine_days=90, rename_cooldown_days=30, check_per_minute=120)
+
+Bases: `_StrictModel`
+
+`[auth.handles]`: usernames, the public name of each account.
+
+On by default: every account gets a private default handle (its email’s local
+part, then `1`, `2` …), confirms or changes it once, and from then on apps
+show it instead of the email. See [`enlace_auth.handles`](_autosummary/enlace_auth.handles.html.md#module-enlace_auth.handles).
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid'}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
 ### *class* enlace_auth.config.OAuthProviderConfig(\*, client_id_env, client_secret_env, scopes=<factory>, authorize_url=None, token_url=None, userinfo_url=None, server_metadata_url=None, trust_unverified_email=False)
 
@@ -3703,6 +3720,1038 @@ never empty, since an `allowed_users` that expanded to nothing admits everyone.
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]
 
 
+# _autosummary/enlace_auth.handles.core.html.md
+
+# enlace_auth.handles.core
+
+What a handle is: its normal form, its rules, and the default made from an email.
+
+A *handle* (a username) is the public name of an account: unique, case-insensitive,
+shown as `@name`. The account itself stays keyed by its email, which no other user
+and no browser of another user ever sees. This module is pure (no web, no storage
+imports), so the rules can move unchanged; `registry.py` holds the state.
+
+The rules, and why (the research behind each is in
+`misc/docs/research/general/usernames.md`):
+
+- **ASCII only**: lowercase `a-z`, digits, and the separators `.`, `_`, `-`.
+  Input is NFKC-normalised and case-folded first, so `ThorWhalen` and fullwidth
+  `ｔｈｏｒ` are accepted and stored as `thorwhalen` / `thor`. Restricting the
+  stored form to ASCII removes the Unicode confusables problem (UTS #39) instead of
+  detecting it.
+- **Case-insensitive by construction**: the stored form is lowercase, so the
+  display form and the comparison form are the same string.
+- **Separators and look-alikes do not distinguish**: `john.smith`, `john_smith`,
+  `johnsmith` and `j0hnsmith` have one [`uniqueness_key()`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.uniqueness_key), so a name cannot
+  be impersonated by moving a dot or swapping `o` for `0`.
+  A separator may not start or end a handle, nor follow another one (so a trailing
+  dot is never swallowed as punctuation after `@name.`).
+- **Not all digits**: an all-digit handle reads as an id.
+- **Reserved words** (`RESERVED`): routes, roles and system words that would
+  let an account pass for the platform. A host adds its own (its group names).
+
+```pycon
+>>> normalize("@ThorWhalen ")
+'thorwhalen'
+>>> handle_problem("thorwhalen") is None
+True
+>>> handle_problem("thor..whalen")
+'A dot, dash or underscore cannot follow another one.'
+>>> {uniqueness_key(h) for h in ("john.smith", "john_smith", "j0hnsmith")}
+{'johnsmlth'}
+>>> base_from_email("John.Smith+news@example.com")
+'john.smith'
+>>> list(candidates("bo", limit=3))
+['bo1', 'bo2', 'bo3']
+```
+
+### Functions
+
+| [`base_from_email`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.base_from_email)(email, \*[, policy])               | The base of a default handle: the email's local part, made into a handle.                                                                 |
+|-----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| [`candidates`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.candidates)(base, \*[, policy, limit, rng, tries])  | Valid handles to try, in order: *base*, `base1` .                                                                                         |
+| [`handle_problem`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.handle_problem)(handle, \*[, policy])               | Why *handle* (already normalised) cannot be a handle, or `None` if it can.                                                                |
+| [`normalize`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.normalize)(text)                                    | The stored form of what a person typed: NFKC, case-folded, trimmed, no `@`.                                                               |
+| [`suggestions`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.suggestions)(wanted, is_free, \*[, policy, n, ...]) | Up to *n* free handles close to *wanted*, for a name that is taken or invalid.                                                            |
+| [`uniqueness_key`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.uniqueness_key)(handle)                             | The form two handles are compared by: normalised, without separators, with look-alike characters folded (`0` as `o`; `1` and `i` as `l`). |
+
+### Classes
+
+| [`HandlePolicy`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.HandlePolicy)([min_length, max_length, ...])   | The knobs of the handle rules.   |
+|------------------------------------------------------------------------------------------------|----------------------------------|
+
+### *class* enlace_auth.handles.core.HandlePolicy(min_length=3, max_length=30, reserved=frozenset({'about', 'abuse', 'account', 'accounts', 'admin', 'administrator', 'admins', 'all', 'anonymous', 'api', 'app', 'apps', 'auth', 'autoconfig', 'autodiscover', 'blog', 'callback', 'check', 'contact', 'csrf', 'dashboard', 'deleted', 'docs', 'everyone', 'false', 'favicon', 'guest', 'help', 'here', 'home', 'hostmaster', 'info', 'localhost', 'login', 'logout', 'mail', 'mailer-daemon', 'me', 'mod', 'moderator', 'mods', 'new', 'no-reply', 'nobody', 'noc', 'none', 'noreply', 'null', 'oauth', 'official', 'operator', 'owner', 'postmaster', 'privacy', 'register', 'removed', 'robots', 'root', 'search', 'security', 'settings', 'signin', 'signout', 'signup', 'staff', 'static', 'status', 'store', 'superuser', 'support', 'sysadmin', 'system', 'team', 'terms', 'test', 'true', 'undefined', 'unknown', 'user', 'users', 'webmaster', 'well-known', 'wpad', 'www', 'xrpc', 'you'}), fallback_base='user', max_sequential=99, random_suffix_digits=6, random_tries=1000)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+The knobs of the handle rules. The defaults are the platform’s.
+
+*reserved* is compared by [`uniqueness_key()`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.uniqueness_key), so reserving `no-reply` also
+reserves `noreply` and `no.reply`.
+
+#### fallback_base *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)* *= 'user'*
+
+the base of a default handle when the email gives nothing usable
+
+#### max_sequential *: [int](https://docs.python.org/3/builtins/functions.html#int)* *= 99*
+
+sequential suffixes tried (`name1` .. `name<N>`) before random ones
+
+#### random_suffix_digits *: [int](https://docs.python.org/3/builtins/functions.html#int)* *= 6*
+
+digits of the random suffix used once the sequential ones are spent
+
+#### random_tries *: [int](https://docs.python.org/3/builtins/functions.html#int)* *= 1000*
+
+random suffixes tried before giving up (a crowded base, a tiny max_length)
+
+#### *property* reserved_keys *: [frozenset](https://docs.python.org/3/builtins/stdtypes.html#frozenset)*
+
+The uniqueness keys of the reserved names.
+
+#### with_reserved(extra)
+
+This policy with *extra* names reserved too (a host’s group names).
+
+```pycon
+>>> "acme" in DEFAULT_POLICY.with_reserved(["Acme"]).reserved_keys
+True
+```
+
+* **Return type:**
+  [`HandlePolicy`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.HandlePolicy)
+
+### enlace_auth.handles.core.base_from_email(email, , policy=HandlePolicy(min_length=3, max_length=30, reserved=frozenset({'contact', 'webmaster', 'mail', 'none', 'postmaster', 'about', 'superuser', 'noreply', 'unknown', 'deleted', 'status', 'favicon', 'accounts', 'here', 'search', 'admins', 'autodiscover', 'blog', 'app', 'help', 'info', 'csrf', 'you', 'system', 'official', 'team', 'anonymous', 'root', 'static', 'new', 'logout', 'www', 'null', 'moderator', 'apps', 'signup', 'test', 'robots', 'signin', 'guest', 'abuse', 'api', 'docs', 'check', 'user', 'security', 'sysadmin', 'wpad', 'no-reply', 'signout', 'hostmaster', 'removed', 'privacy', 'callback', 'mods', 'users', 'owner', 'everyone', 'mailer-daemon', 'undefined', 'localhost', 'staff', 'operator', 'support', 'all', 'noc', 'me', 'nobody', 'store', 'mod', 'true', 'xrpc', 'admin', 'administrator', 'dashboard', 'login', 'auth', 'register', 'settings', 'home', 'well-known', 'autoconfig', 'account', 'false', 'terms', 'oauth'}), fallback_base='user', max_sequential=99, random_suffix_digits=6, random_tries=1000))
+
+The base of a default handle: the email’s local part, made into a handle.
+
+The `+tag` of plus-addressing is dropped (it is private routing, and often
+names the site), accents are folded, other characters removed, separator runs
+collapsed, and the result cut so a suffix still fits. When nothing usable is
+left, or the local part is a reserved word (`info@`, `admin@`: role
+mailboxes), *policy.fallback_base*. The base may still be too short:
+[`candidates()`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.candidates) then starts at the first suffix.
+
+```pycon
+>>> base_from_email("José.Ñúñez@example.com")
+'jose.nunez'
+>>> base_from_email("o'brien@example.com")
+'obrien'
+>>> base_from_email("--@example.com"), base_from_email("info@example.com")
+('user', 'user')
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.handles.core.candidates(base, , policy=HandlePolicy(min_length=3, max_length=30, reserved=frozenset({'contact', 'webmaster', 'mail', 'none', 'postmaster', 'about', 'superuser', 'noreply', 'unknown', 'deleted', 'status', 'favicon', 'accounts', 'here', 'search', 'admins', 'autodiscover', 'blog', 'app', 'help', 'info', 'csrf', 'you', 'system', 'official', 'team', 'anonymous', 'root', 'static', 'new', 'logout', 'www', 'null', 'moderator', 'apps', 'signup', 'test', 'robots', 'signin', 'guest', 'abuse', 'api', 'docs', 'check', 'user', 'security', 'sysadmin', 'wpad', 'no-reply', 'signout', 'hostmaster', 'removed', 'privacy', 'callback', 'mods', 'users', 'owner', 'everyone', 'mailer-daemon', 'undefined', 'localhost', 'staff', 'operator', 'support', 'all', 'noc', 'me', 'nobody', 'store', 'mod', 'true', 'xrpc', 'admin', 'administrator', 'dashboard', 'login', 'auth', 'register', 'settings', 'home', 'well-known', 'autoconfig', 'account', 'false', 'terms', 'oauth'}), fallback_base='user', max_sequential=99, random_suffix_digits=6, random_tries=1000), limit=None, rng=None, tries=None)
+
+Valid handles to try, in order: *base*, `base1` .. `base<max_sequential>`,
+then `base` plus a random number of *policy.random_suffix_digits* digits.
+Endless unless *tries* bounds the names generated (valid or not): a caller
+that must terminate passes it.
+
+Invalid ones (too short, reserved) are skipped, so `bo` starts at `bo1`. The
+base is cut so the suffix fits. Sequential suffixes are what people expect (the
+first `john` is `john`, the next `john1`); the random tail keeps a crowded
+base from costing a hundred lookups.
+
+```pycon
+>>> list(candidates("thorwhalen", limit=3))
+['thorwhalen', 'thorwhalen1', 'thorwhalen2']
+>>> list(candidates("agent007", limit=2))
+['agent007', 'agent007_1']
+>>> no_sequence = HandlePolicy(max_sequential=0)
+>>> list(candidates("xyz", policy=no_sequence, rng=lambda a, b: 424242, limit=2))
+['xyz', 'xyz424242']
+```
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.handles.core.handle_problem(handle, , policy=HandlePolicy(min_length=3, max_length=30, reserved=frozenset({'contact', 'webmaster', 'mail', 'none', 'postmaster', 'about', 'superuser', 'noreply', 'unknown', 'deleted', 'status', 'favicon', 'accounts', 'here', 'search', 'admins', 'autodiscover', 'blog', 'app', 'help', 'info', 'csrf', 'you', 'system', 'official', 'team', 'anonymous', 'root', 'static', 'new', 'logout', 'www', 'null', 'moderator', 'apps', 'signup', 'test', 'robots', 'signin', 'guest', 'abuse', 'api', 'docs', 'check', 'user', 'security', 'sysadmin', 'wpad', 'no-reply', 'signout', 'hostmaster', 'removed', 'privacy', 'callback', 'mods', 'users', 'owner', 'everyone', 'mailer-daemon', 'undefined', 'localhost', 'staff', 'operator', 'support', 'all', 'noc', 'me', 'nobody', 'store', 'mod', 'true', 'xrpc', 'admin', 'administrator', 'dashboard', 'login', 'auth', 'register', 'settings', 'home', 'well-known', 'autoconfig', 'account', 'false', 'terms', 'oauth'}), fallback_base='user', max_sequential=99, random_suffix_digits=6, random_tries=1000))
+
+Why *handle* (already normalised) cannot be a handle, or `None` if it can.
+
+The message is written for the person choosing the name.
+
+```pycon
+>>> handle_problem("ab")
+'Use at least 3 characters.'
+>>> handle_problem("josé")
+'Use only letters a-z, digits, and . _ -'
+>>> handle_problem("12345")
+'Use at least one letter.'
+>>> handle_problem("admin")
+'This name is reserved.'
+```
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.handles.core.normalize(text)
+
+The stored form of what a person typed: NFKC, case-folded, trimmed, no `@`.
+
+It does not validate: [`handle_problem()`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.handle_problem) does, on this form.
+
+```pycon
+>>> normalize("  @Ｔhor_Whalen")
+'thor_whalen'
+>>> normalize("Straße")
+'strasse'
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.handles.core.suggestions(wanted, is_free, , policy=HandlePolicy(min_length=3, max_length=30, reserved=frozenset({'contact', 'webmaster', 'mail', 'none', 'postmaster', 'about', 'superuser', 'noreply', 'unknown', 'deleted', 'status', 'favicon', 'accounts', 'here', 'search', 'admins', 'autodiscover', 'blog', 'app', 'help', 'info', 'csrf', 'you', 'system', 'official', 'team', 'anonymous', 'root', 'static', 'new', 'logout', 'www', 'null', 'moderator', 'apps', 'signup', 'test', 'robots', 'signin', 'guest', 'abuse', 'api', 'docs', 'check', 'user', 'security', 'sysadmin', 'wpad', 'no-reply', 'signout', 'hostmaster', 'removed', 'privacy', 'callback', 'mods', 'users', 'owner', 'everyone', 'mailer-daemon', 'undefined', 'localhost', 'staff', 'operator', 'support', 'all', 'noc', 'me', 'nobody', 'store', 'mod', 'true', 'xrpc', 'admin', 'administrator', 'dashboard', 'login', 'auth', 'register', 'settings', 'home', 'well-known', 'autoconfig', 'account', 'false', 'terms', 'oauth'}), fallback_base='user', max_sequential=99, random_suffix_digits=6, random_tries=1000), n=3, max_tries=200)
+
+Up to *n* free handles close to *wanted*, for a name that is taken or invalid.
+
+*wanted* is first made into a base the way an email’s local part is, so
+`Thor Whalen!` suggests `thorwhalen1` and so on.
+
+```pycon
+>>> taken = {"thorwhalen", "thorwhalen1"}
+>>> suggestions("ThorWhalen", lambda h: h not in taken)
+['thorwhalen2', 'thorwhalen3', 'thorwhalen4']
+```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.handles.core.uniqueness_key(handle)
+
+The form two handles are compared by: normalised, without separators, with
+look-alike characters folded (`0` as `o`; `1` and `i` as `l`).
+
+So `th0r.whalen` cannot pose as `thorwhalen`. It is a key, never shown.
+
+```pycon
+>>> uniqueness_key("@Thor.Whalen") == uniqueness_key("th0r-whalen")
+True
+>>> uniqueness_key("bill") == uniqueness_key("b1ll")
+True
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+
+# _autosummary/enlace_auth.handles.directory.html.md
+
+# enlace_auth.handles.directory
+
+The read-only view of handles every app gets at `request.state.handles`.
+
+An app’s server stores the account of whoever made something (its
+`request.state.user_id`) and shows their handle with
+`request.state.handles.handle_of(account)`. Accounts go in; only handles go out
+to the browser. Renames need nothing from the app: it looks the handle up when it
+shows it, so it never stores a stale one.
+
+```pycon
+>>> from enlace_auth.handles.registry import HandleRegistry
+>>> reg = HandleRegistry({}, {}, account_exists=lambda a: True)
+>>> _ = reg.claim("thorwhalen@example.com", "thorwhalen")
+>>> _ = reg.ensure("ann@example.com")            # a default, not confirmed yet
+>>> d = HandleDirectory(reg)
+>>> d.handles_of(["thorwhalen@example.com", "ann@example.com"])
+{'thorwhalen@example.com': 'thorwhalen'}
+>>> d.account_of("@ThorWhalen")
+'thorwhalen@example.com'
+>>> hasattr(d, "claim")   # read-only: apps cannot rename anyone
+False
+```
+
+### Classes
+
+| [`HandleDirectory`](_autosummary/enlace_auth.handles.directory.html.md#enlace_auth.handles.directory.HandleDirectory)(registry)                     | Look handles up by account and accounts up by handle; nothing else.      |
+|------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| [`HandleDirectoryMiddleware`](_autosummary/enlace_auth.handles.directory.html.md#enlace_auth.handles.directory.HandleDirectoryMiddleware)(app, \*, directory) | Pure-ASGI middleware that sets `request.state.handles` on every request. |
+
+### *class* enlace_auth.handles.directory.HandleDirectory(registry)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Look handles up by account and accounts up by handle; nothing else.
+
+Only confirmed handles: an account that has not yet confirmed its default (made
+from its email) has none to show, and `handle_of` returns `None`. An app
+then shows no name, or sends its user to its “choose your username” step.
+
+This is a convenience for trusted server code, not a boundary between apps:
+every app server on the platform runs in the platform’s process and already
+sees its own users’ emails. What must never happen is an email reaching a
+browser; that is the app’s duty, and this view makes it easy by dealing in
+handles.
+
+#### account_of(handle)
+
+The account holding *handle* (any spelling, `@` or not), or `None`.
+
+For server code only (filtering “everything by @x”); never send it on.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### handle_of(account)
+
+The public handle of *account* (a `request.state.user_id`), or `None`.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### handles_of(accounts)
+
+`{account: handle}` for many accounts at once (a list page).
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### resolve(handle)
+
+`{"handle"}`, or `{"handle", "renamed_from"}` after a recent rename.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+### *class* enlace_auth.handles.directory.HandleDirectoryMiddleware(app, , directory)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Pure-ASGI middleware that sets `request.state.handles` on every request.
+
+
+# _autosummary/enlace_auth.handles.html.md
+
+# enlace_auth.handles
+
+Handles (usernames): the public, unique, case-insensitive name of an account.
+
+The email stays the account’s private key; the handle is what other people and
+apps see (“by @thorwhalen”). Three layers, imported one way:
+
+- [`core`](_autosummary/enlace_auth.handles.core.html.md#module-enlace_auth.handles.core): the rules (normal form, validity, reserved
+  names, the default from an email, suggestions). Pure; no web or storage imports.
+- [`registry`](_autosummary/enlace_auth.handles.registry.html.md#module-enlace_auth.handles.registry): [`HandleRegistry`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.HandleRegistry), which account holds
+  which handle, over two `MutableMapping` s, unique under a lock.
+- [`directory`](_autosummary/enlace_auth.handles.directory.html.md#module-enlace_auth.handles.directory): [`HandleDirectory`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.HandleDirectory), the read-only
+  view every app gets at `request.state.handles` (set by
+  [`HandleDirectoryMiddleware`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.HandleDirectoryMiddleware)).
+- [`routes`](_autosummary/enlace_auth.handles.routes.html.md#module-enlace_auth.handles.routes): `/auth/handles/*` for the browser.
+
+An app’s server shows “by <handle>” with `request.state.handles.handle_of(owner)`,
+where *owner* is the `request.state.user_id` it stored; it never sends emails to
+the browser. See `misc/docs/research/general/usernames.md` for the rules’ sources.
+
+### Functions
+
+| [`base_from_email`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.base_from_email)(email, \*[, policy])               | The base of a default handle: the email's local part, made into a handle.                                                                 |
+|-----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| [`candidates`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.candidates)(base, \*[, policy, limit, rng, tries])  | Valid handles to try, in order: *base*, `base1` .                                                                                         |
+| [`file_lock`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.file_lock)(path)                                    | A lock factory over `flock` on *path*: exclusive across processes on a host.                                                              |
+| [`handle_problem`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.handle_problem)(handle, \*[, policy])               | Why *handle* (already normalised) cannot be a handle, or `None` if it can.                                                                |
+| [`make_handle_registry`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.make_handle_registry)(handles_cfg, \*, ...[, ...])  | The platform's registry, from `[auth.handles]` (a `HandlesConfig`).                                                                       |
+| [`normalize`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.normalize)(text)                                    | The stored form of what a person typed: NFKC, case-folded, trimmed, no `@`.                                                               |
+| [`suggestions`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.suggestions)(wanted, is_free, \*[, policy, n, ...]) | Up to *n* free handles close to *wanted*, for a name that is taken or invalid.                                                            |
+| [`uniqueness_key`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.uniqueness_key)(handle)                             | The form two handles are compared by: normalised, without separators, with look-alike characters folded (`0` as `o`; `1` and `i` as `l`). |
+
+### Classes
+
+| [`HandleDirectory`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.HandleDirectory)(registry)                          | Look handles up by account and accounts up by handle; nothing else.      |
+|-----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| [`HandleDirectoryMiddleware`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.HandleDirectoryMiddleware)(app, \*, directory)      | Pure-ASGI middleware that sets `request.state.handles` on every request. |
+| [`HandlePolicy`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.HandlePolicy)([min_length, max_length, ...])        | The knobs of the handle rules.                                           |
+| [`HandleRegistry`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.HandleRegistry)(handles, owners, \*[, policy, ...]) | Handles of accounts: assign defaults, claim, rename, release, look up.   |
+
+### Exceptions
+
+| [`HandleError`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.HandleError)(code, message, \*[, suggestions])   | A handle could not be set.   |
+|--------------------------------------------------------------------------------------------------|------------------------------|
+
+### *class* enlace_auth.handles.HandleDirectory(registry)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Look handles up by account and accounts up by handle; nothing else.
+
+Only confirmed handles: an account that has not yet confirmed its default (made
+from its email) has none to show, and `handle_of` returns `None`. An app
+then shows no name, or sends its user to its “choose your username” step.
+
+This is a convenience for trusted server code, not a boundary between apps:
+every app server on the platform runs in the platform’s process and already
+sees its own users’ emails. What must never happen is an email reaching a
+browser; that is the app’s duty, and this view makes it easy by dealing in
+handles.
+
+#### account_of(handle)
+
+The account holding *handle* (any spelling, `@` or not), or `None`.
+
+For server code only (filtering “everything by @x”); never send it on.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### handle_of(account)
+
+The public handle of *account* (a `request.state.user_id`), or `None`.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### handles_of(accounts)
+
+`{account: handle}` for many accounts at once (a list page).
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### resolve(handle)
+
+`{"handle"}`, or `{"handle", "renamed_from"}` after a recent rename.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+### *class* enlace_auth.handles.HandleDirectoryMiddleware(app, , directory)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Pure-ASGI middleware that sets `request.state.handles` on every request.
+
+### *exception* enlace_auth.handles.HandleError(code, message, , suggestions=())
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+A handle could not be set. *code* says why, *message* says it to a person.
+
+Codes: `invalid`, `reserved`, `taken`, `cooldown`, `no-account`,
+`exhausted`.
+
+### *class* enlace_auth.handles.HandlePolicy(min_length=3, max_length=30, reserved=frozenset({'about', 'abuse', 'account', 'accounts', 'admin', 'administrator', 'admins', 'all', 'anonymous', 'api', 'app', 'apps', 'auth', 'autoconfig', 'autodiscover', 'blog', 'callback', 'check', 'contact', 'csrf', 'dashboard', 'deleted', 'docs', 'everyone', 'false', 'favicon', 'guest', 'help', 'here', 'home', 'hostmaster', 'info', 'localhost', 'login', 'logout', 'mail', 'mailer-daemon', 'me', 'mod', 'moderator', 'mods', 'new', 'no-reply', 'nobody', 'noc', 'none', 'noreply', 'null', 'oauth', 'official', 'operator', 'owner', 'postmaster', 'privacy', 'register', 'removed', 'robots', 'root', 'search', 'security', 'settings', 'signin', 'signout', 'signup', 'staff', 'static', 'status', 'store', 'superuser', 'support', 'sysadmin', 'system', 'team', 'terms', 'test', 'true', 'undefined', 'unknown', 'user', 'users', 'webmaster', 'well-known', 'wpad', 'www', 'xrpc', 'you'}), fallback_base='user', max_sequential=99, random_suffix_digits=6, random_tries=1000)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+The knobs of the handle rules. The defaults are the platform’s.
+
+*reserved* is compared by [`uniqueness_key()`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.uniqueness_key), so reserving `no-reply` also
+reserves `noreply` and `no.reply`.
+
+#### fallback_base *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)* *= 'user'*
+
+the base of a default handle when the email gives nothing usable
+
+#### max_sequential *: [int](https://docs.python.org/3/builtins/functions.html#int)* *= 99*
+
+sequential suffixes tried (`name1` .. `name<N>`) before random ones
+
+#### random_suffix_digits *: [int](https://docs.python.org/3/builtins/functions.html#int)* *= 6*
+
+digits of the random suffix used once the sequential ones are spent
+
+#### random_tries *: [int](https://docs.python.org/3/builtins/functions.html#int)* *= 1000*
+
+random suffixes tried before giving up (a crowded base, a tiny max_length)
+
+#### *property* reserved_keys *: [frozenset](https://docs.python.org/3/builtins/stdtypes.html#frozenset)*
+
+The uniqueness keys of the reserved names.
+
+#### with_reserved(extra)
+
+This policy with *extra* names reserved too (a host’s group names).
+
+```pycon
+>>> "acme" in DEFAULT_POLICY.with_reserved(["Acme"]).reserved_keys
+True
+```
+
+* **Return type:**
+  [`HandlePolicy`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.HandlePolicy)
+
+### *class* enlace_auth.handles.HandleRegistry(handles, owners, \*, policy=HandlePolicy(min_length=3, max_length=30, reserved=frozenset({'contact', 'webmaster', 'mail', 'none', 'postmaster', 'about', 'superuser', 'noreply', 'unknown', 'deleted', 'status', 'favicon', 'accounts', 'here', 'search', 'admins', 'autodiscover', 'blog', 'app', 'help', 'info', 'csrf', 'you', 'system', 'official', 'team', 'anonymous', 'root', 'static', 'new', 'logout', 'www', 'null', 'moderator', 'apps', 'signup', 'test', 'robots', 'signin', 'guest', 'abuse', 'api', 'docs', 'check', 'user', 'security', 'sysadmin', 'wpad', 'no-reply', 'signout', 'hostmaster', 'removed', 'privacy', 'callback', 'mods', 'users', 'owner', 'everyone', 'mailer-daemon', 'undefined', 'localhost', 'staff', 'operator', 'support', 'all', 'noc', 'me', 'nobody', 'store', 'mod', 'true', 'xrpc', 'admin', 'administrator', 'dashboard', 'login', 'auth', 'register', 'settings', 'home', 'well-known', 'autoconfig', 'account', 'false', 'terms', 'oauth'}), fallback_base='user', max_sequential=99, random_suffix_digits=6, random_tries=1000), lock=None, account_exists=<function HandleRegistry.<lambda>>, quarantine_seconds=7776000.0, rename_cooldown_seconds=2592000.0, clock=<built-in function time>)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Handles of accounts: assign defaults, claim, rename, release, look up.
+
+A default handle (made from the email) is *private* until its account confirms
+or changes it: it lives only in the account’s own `owners` record, never in
+`handles`. So lookups, the availability check, timings and other accounts’
+defaults are all unaffected by it, two accounts may hold the same private
+default, and confirming one is an ordinary claim that can find the name taken.
+A handle made from an email gives part of the address away, so it is published
+only by its owner’s own action (GDPR Art. 25(2); see
+`misc/docs/research/general/usernames.md`).
+
+* **Parameters:**
+  * **handles** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)) – uniqueness key -> public name entry (see the module docstring)
+  * **owners** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)) – account -> its handle record
+  * **policy** ([`HandlePolicy`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.HandlePolicy)) – the rules ([`HandlePolicy`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.HandlePolicy))
+  * **lock** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`ContextManager`](https://docs.python.org/3/library/typing.html#typing.ContextManager)]]) – a zero-argument factory of a context manager held around writes
+  * **account_exists** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]) – whether an account exists; checked under the lock, so
+    nothing is written for an account deleted meanwhile
+  * **quarantine_seconds** ([`float`](https://docs.python.org/3/builtins/functions.html#float)) – how long a released public name stays out of others’
+    reach (a renamed one redirects meanwhile)
+  * **rename_cooldown_seconds** ([`float`](https://docs.python.org/3/builtins/functions.html#float)) – the least time between two public names (the
+    first choice is free)
+  * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – the time, in epoch seconds
+
+#### account_of(handle)
+
+The account holding *handle* publicly (any spelling of it), or `None`.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### check(wanted, , account=None)
+
+What a “choose your username” field shows while the person types.
+
+`{"handle", "available", "problem", "code", "suggestions"}`: *handle* is
+the normalised form (show it as the preview), *problem* a sentence or
+`None`, *code* one of [`HandleError`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.HandleError)’s codes or `None`.
+
+```pycon
+>>> reg = HandleRegistry({}, {}, account_exists=lambda a: True)
+>>> _ = reg.claim("thorwhalen@example.com", "thorwhalen")
+>>> reg.check("Thor.Whalen")["suggestions"]
+['thor.whalen1', 'thor.whalen2', 'thor.whalen3']
+```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### claim(account, wanted, , force=False)
+
+Publish *wanted* as *account*’s handle (also: confirm its default).
+
+The first public name is free; changing it waits
+*rename_cooldown_seconds* after the last change, and the old name stays
+with the account for the quarantine (it redirects). *force* (an admin)
+skips the reserved list, the cooldown and a quarantine, never a public
+owner. Raises [`HandleError`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.HandleError); a `taken` one carries suggestions.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### ensure(account, , missing_ok=False)
+
+The handle record of *account*, giving it a private default if needed.
+
+The default is the email’s local part, then `1`, `2` … until a name no
+one holds publicly ([`candidates()`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.candidates)). A private
+default that someone has since published is replaced by the next one. An
+account that does not exist gets nothing: `None` with *missing_ok*, else
+[`HandleError`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.HandleError) `no-account`.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### handle_of(account)
+
+The public handle of *account*: `None` until it has confirmed one.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### handles_of(accounts)
+
+`{account: handle}` for each of *accounts* with a public handle.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### is_free(handle, , account=None)
+
+Whether *handle* could be claimed by *account* (by anyone, if `None`).
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+#### record_of(account)
+
+`{"handle", "chosen"}` of *account*, for the account itself.
+
+`chosen` is true only while the name is really published (so a write
+interrupted half-way shows as not chosen, and the account confirms again).
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### release_account(account)
+
+Forget *account*’s handles (the account is being deleted); return 1 or 0.
+
+Its public name, and the names it renamed away from, stay out of others’
+reach for the quarantine with no account attached (the email is erased);
+then they are free. Only entries that name this account are touched, and
+the record goes last, so an interrupted release never frees a name early.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### resolve(handle)
+
+`{"handle": current}` for *handle*, following a recent rename.
+
+A name its account renamed away from, still in quarantine, resolves to that
+account’s current handle with `"renamed_from"`; a deleted account’s name,
+a private default, or an unknown one resolves to `None`.
+
+```pycon
+>>> reg = HandleRegistry({}, {}, account_exists=lambda a: True)
+>>> _ = reg.claim("a@example.com", "first")
+>>> _ = reg.claim("a@example.com", "second", force=True)
+>>> reg.resolve("FIRST")
+{'handle': 'second', 'renamed_from': 'first'}
+```
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### sweep()
+
+Remove released entries whose quarantine is over; return how many.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+### enlace_auth.handles.base_from_email(email, , policy=HandlePolicy(min_length=3, max_length=30, reserved=frozenset({'contact', 'webmaster', 'mail', 'none', 'postmaster', 'about', 'superuser', 'noreply', 'unknown', 'deleted', 'status', 'favicon', 'accounts', 'here', 'search', 'admins', 'autodiscover', 'blog', 'app', 'help', 'info', 'csrf', 'you', 'system', 'official', 'team', 'anonymous', 'root', 'static', 'new', 'logout', 'www', 'null', 'moderator', 'apps', 'signup', 'test', 'robots', 'signin', 'guest', 'abuse', 'api', 'docs', 'check', 'user', 'security', 'sysadmin', 'wpad', 'no-reply', 'signout', 'hostmaster', 'removed', 'privacy', 'callback', 'mods', 'users', 'owner', 'everyone', 'mailer-daemon', 'undefined', 'localhost', 'staff', 'operator', 'support', 'all', 'noc', 'me', 'nobody', 'store', 'mod', 'true', 'xrpc', 'admin', 'administrator', 'dashboard', 'login', 'auth', 'register', 'settings', 'home', 'well-known', 'autoconfig', 'account', 'false', 'terms', 'oauth'}), fallback_base='user', max_sequential=99, random_suffix_digits=6, random_tries=1000))
+
+The base of a default handle: the email’s local part, made into a handle.
+
+The `+tag` of plus-addressing is dropped (it is private routing, and often
+names the site), accents are folded, other characters removed, separator runs
+collapsed, and the result cut so a suffix still fits. When nothing usable is
+left, or the local part is a reserved word (`info@`, `admin@`: role
+mailboxes), *policy.fallback_base*. The base may still be too short:
+[`candidates()`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.candidates) then starts at the first suffix.
+
+```pycon
+>>> base_from_email("José.Ñúñez@example.com")
+'jose.nunez'
+>>> base_from_email("o'brien@example.com")
+'obrien'
+>>> base_from_email("--@example.com"), base_from_email("info@example.com")
+('user', 'user')
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.handles.candidates(base, , policy=HandlePolicy(min_length=3, max_length=30, reserved=frozenset({'contact', 'webmaster', 'mail', 'none', 'postmaster', 'about', 'superuser', 'noreply', 'unknown', 'deleted', 'status', 'favicon', 'accounts', 'here', 'search', 'admins', 'autodiscover', 'blog', 'app', 'help', 'info', 'csrf', 'you', 'system', 'official', 'team', 'anonymous', 'root', 'static', 'new', 'logout', 'www', 'null', 'moderator', 'apps', 'signup', 'test', 'robots', 'signin', 'guest', 'abuse', 'api', 'docs', 'check', 'user', 'security', 'sysadmin', 'wpad', 'no-reply', 'signout', 'hostmaster', 'removed', 'privacy', 'callback', 'mods', 'users', 'owner', 'everyone', 'mailer-daemon', 'undefined', 'localhost', 'staff', 'operator', 'support', 'all', 'noc', 'me', 'nobody', 'store', 'mod', 'true', 'xrpc', 'admin', 'administrator', 'dashboard', 'login', 'auth', 'register', 'settings', 'home', 'well-known', 'autoconfig', 'account', 'false', 'terms', 'oauth'}), fallback_base='user', max_sequential=99, random_suffix_digits=6, random_tries=1000), limit=None, rng=None, tries=None)
+
+Valid handles to try, in order: *base*, `base1` .. `base<max_sequential>`,
+then `base` plus a random number of *policy.random_suffix_digits* digits.
+Endless unless *tries* bounds the names generated (valid or not): a caller
+that must terminate passes it.
+
+Invalid ones (too short, reserved) are skipped, so `bo` starts at `bo1`. The
+base is cut so the suffix fits. Sequential suffixes are what people expect (the
+first `john` is `john`, the next `john1`); the random tail keeps a crowded
+base from costing a hundred lookups.
+
+```pycon
+>>> list(candidates("thorwhalen", limit=3))
+['thorwhalen', 'thorwhalen1', 'thorwhalen2']
+>>> list(candidates("agent007", limit=2))
+['agent007', 'agent007_1']
+>>> no_sequence = HandlePolicy(max_sequential=0)
+>>> list(candidates("xyz", policy=no_sequence, rng=lambda a, b: 424242, limit=2))
+['xyz', 'xyz424242']
+```
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.handles.file_lock(path)
+
+A lock factory over `flock` on *path*: exclusive across processes on a host.
+
+Each call returns a fresh context manager. Without `fcntl` (Windows) it falls
+back to a process-local lock.
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`ContextManager`](https://docs.python.org/3/library/typing.html#typing.ContextManager)]
+
+### enlace_auth.handles.handle_problem(handle, , policy=HandlePolicy(min_length=3, max_length=30, reserved=frozenset({'contact', 'webmaster', 'mail', 'none', 'postmaster', 'about', 'superuser', 'noreply', 'unknown', 'deleted', 'status', 'favicon', 'accounts', 'here', 'search', 'admins', 'autodiscover', 'blog', 'app', 'help', 'info', 'csrf', 'you', 'system', 'official', 'team', 'anonymous', 'root', 'static', 'new', 'logout', 'www', 'null', 'moderator', 'apps', 'signup', 'test', 'robots', 'signin', 'guest', 'abuse', 'api', 'docs', 'check', 'user', 'security', 'sysadmin', 'wpad', 'no-reply', 'signout', 'hostmaster', 'removed', 'privacy', 'callback', 'mods', 'users', 'owner', 'everyone', 'mailer-daemon', 'undefined', 'localhost', 'staff', 'operator', 'support', 'all', 'noc', 'me', 'nobody', 'store', 'mod', 'true', 'xrpc', 'admin', 'administrator', 'dashboard', 'login', 'auth', 'register', 'settings', 'home', 'well-known', 'autoconfig', 'account', 'false', 'terms', 'oauth'}), fallback_base='user', max_sequential=99, random_suffix_digits=6, random_tries=1000))
+
+Why *handle* (already normalised) cannot be a handle, or `None` if it can.
+
+The message is written for the person choosing the name.
+
+```pycon
+>>> handle_problem("ab")
+'Use at least 3 characters.'
+>>> handle_problem("josé")
+'Use only letters a-z, digits, and . _ -'
+>>> handle_problem("12345")
+'Use at least one letter.'
+>>> handle_problem("admin")
+'This name is reserved.'
+```
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.handles.make_handle_registry(handles_cfg, , store_factory, store_root, account_exists, groups=(), lock=None)
+
+The platform’s registry, from `[auth.handles]` (a `HandlesConfig`).
+
+The two mappings are the platform store’s `handles` and `handle_owners`, and
+the lock is a `flock` on `<store_root>/handles.lock`, so the gunicorn
+workers of one host agree (pass *lock* for stores shared across hosts). The
+names of *groups* (`[auth.groups]`) are reserved too, so no account can be
+called `@family`.
+
+* **Return type:**
+  [`HandleRegistry`](_autosummary/enlace_auth.handles.registry.html.md#enlace_auth.handles.registry.HandleRegistry)
+
+### enlace_auth.handles.normalize(text)
+
+The stored form of what a person typed: NFKC, case-folded, trimmed, no `@`.
+
+It does not validate: [`handle_problem()`](_autosummary/enlace_auth.handles.html.md#enlace_auth.handles.handle_problem) does, on this form.
+
+```pycon
+>>> normalize("  @Ｔhor_Whalen")
+'thor_whalen'
+>>> normalize("Straße")
+'strasse'
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### enlace_auth.handles.suggestions(wanted, is_free, , policy=HandlePolicy(min_length=3, max_length=30, reserved=frozenset({'contact', 'webmaster', 'mail', 'none', 'postmaster', 'about', 'superuser', 'noreply', 'unknown', 'deleted', 'status', 'favicon', 'accounts', 'here', 'search', 'admins', 'autodiscover', 'blog', 'app', 'help', 'info', 'csrf', 'you', 'system', 'official', 'team', 'anonymous', 'root', 'static', 'new', 'logout', 'www', 'null', 'moderator', 'apps', 'signup', 'test', 'robots', 'signin', 'guest', 'abuse', 'api', 'docs', 'check', 'user', 'security', 'sysadmin', 'wpad', 'no-reply', 'signout', 'hostmaster', 'removed', 'privacy', 'callback', 'mods', 'users', 'owner', 'everyone', 'mailer-daemon', 'undefined', 'localhost', 'staff', 'operator', 'support', 'all', 'noc', 'me', 'nobody', 'store', 'mod', 'true', 'xrpc', 'admin', 'administrator', 'dashboard', 'login', 'auth', 'register', 'settings', 'home', 'well-known', 'autoconfig', 'account', 'false', 'terms', 'oauth'}), fallback_base='user', max_sequential=99, random_suffix_digits=6, random_tries=1000), n=3, max_tries=200)
+
+Up to *n* free handles close to *wanted*, for a name that is taken or invalid.
+
+*wanted* is first made into a base the way an email’s local part is, so
+`Thor Whalen!` suggests `thorwhalen1` and so on.
+
+```pycon
+>>> taken = {"thorwhalen", "thorwhalen1"}
+>>> suggestions("ThorWhalen", lambda h: h not in taken)
+['thorwhalen2', 'thorwhalen3', 'thorwhalen4']
+```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_auth.handles.uniqueness_key(handle)
+
+The form two handles are compared by: normalised, without separators, with
+look-alike characters folded (`0` as `o`; `1` and `i` as `l`).
+
+So `th0r.whalen` cannot pose as `thorwhalen`. It is a key, never shown.
+
+```pycon
+>>> uniqueness_key("@Thor.Whalen") == uniqueness_key("th0r-whalen")
+True
+>>> uniqueness_key("bill") == uniqueness_key("b1ll")
+True
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### Modules
+
+| [`core`](_autosummary/enlace_auth.handles.core.html.md#module-enlace_auth.handles.core)           | What a handle is: its normal form, its rules, and the default made from an email.   |
+|-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| [`directory`](_autosummary/enlace_auth.handles.directory.html.md#module-enlace_auth.handles.directory) | The read-only view of handles every app gets at `request.state.handles`.            |
+| [`registry`](_autosummary/enlace_auth.handles.registry.html.md#module-enlace_auth.handles.registry)   | The handle registry: which account holds which handle, kept unique under a lock.    |
+| [`routes`](_autosummary/enlace_auth.handles.routes.html.md#module-enlace_auth.handles.routes)       | `/auth/handles/*`: the signed-in user's handle, the availability check, lookups.    |
+
+
+# _autosummary/enlace_auth.handles.registry.html.md
+
+# enlace_auth.handles.registry
+
+The handle registry: which account holds which handle, kept unique under a lock.
+
+Two mappings, each a plain `MutableMapping` (a `dict` in tests, the platform’s
+file store in production):
+
+- `handles`: uniqueness key -> `{"handle", "account", "at", "released_at"}`,
+  public names only. A live entry has `released_at` `None`. A released one keeps
+  the name out of reach for *quarantine_seconds*: after a rename it still names its
+  old account (who may take it back, and whose old links resolve to the new name);
+  after an account deletion its `account` is `None` (the email is erased).
+- `owners`: account -> `{"handle", "chosen", "at", "changed_at", "previous"}`.
+  `chosen` is `False` for a private default the account has not confirmed: a
+  frontend shows its “choose your username” step, and nobody else can see it.
+
+A name is public only while both halves agree: a live `handles` entry naming the
+account, and the account’s chosen record naming that key. Writes are ordered so
+that an interrupted one leaves at most one half, which every read ignores: never
+two owners, never a name freed before its quarantine.
+
+Uniqueness: every write runs under *lock* (a context manager). The default is a
+process-local `threading.Lock`; the platform passes [`file_lock()`](_autosummary/enlace_auth.handles.registry.html.md#enlace_auth.handles.registry.file_lock), which holds
+across worker processes on one host. A store with a conditional write (S3
+`If-None-Match`, a database unique index) is the replacement for a multi-host
+deployment.
+
+```pycon
+>>> reg = HandleRegistry({}, {}, account_exists=lambda a: True, clock=lambda: 0.0)
+>>> reg.ensure("ann.lee@example.com")
+{'handle': 'ann.lee', 'chosen': False}
+>>> reg.ensure("annlee@example.org")["handle"]   # private defaults do not collide
+'annlee'
+>>> reg.claim("annlee@example.org", "Ann_Music")
+{'handle': 'ann_music', 'chosen': True}
+>>> reg.account_of("@annmusic")
+'annlee@example.org'
+>>> reg.handle_of("ann.lee@example.com") is None   # an unconfirmed default is private
+True
+```
+
+### Functions
+
+| [`file_lock`](_autosummary/enlace_auth.handles.registry.html.md#enlace_auth.handles.registry.file_lock)(path)                                   | A lock factory over `flock` on *path*: exclusive across processes on a host.   |
+|----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| [`make_handle_registry`](_autosummary/enlace_auth.handles.registry.html.md#enlace_auth.handles.registry.make_handle_registry)(handles_cfg, \*, ...[, ...]) | The platform's registry, from `[auth.handles]` (a `HandlesConfig`).            |
+
+### Classes
+
+| [`HandleRegistry`](_autosummary/enlace_auth.handles.registry.html.md#enlace_auth.handles.registry.HandleRegistry)(handles, owners, \*[, policy, ...])   | Handles of accounts: assign defaults, claim, rename, release, look up.   |
+|-------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+
+### Exceptions
+
+| [`HandleError`](_autosummary/enlace_auth.handles.registry.html.md#enlace_auth.handles.registry.HandleError)(code, message, \*[, suggestions])   | A handle could not be set.   |
+|--------------------------------------------------------------------------------------------------|------------------------------|
+
+### *exception* enlace_auth.handles.registry.HandleError(code, message, , suggestions=())
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+A handle could not be set. *code* says why, *message* says it to a person.
+
+Codes: `invalid`, `reserved`, `taken`, `cooldown`, `no-account`,
+`exhausted`.
+
+### *class* enlace_auth.handles.registry.HandleRegistry(handles, owners, \*, policy=HandlePolicy(min_length=3, max_length=30, reserved=frozenset({'contact', 'webmaster', 'mail', 'none', 'postmaster', 'about', 'superuser', 'noreply', 'unknown', 'deleted', 'status', 'favicon', 'accounts', 'here', 'search', 'admins', 'autodiscover', 'blog', 'app', 'help', 'info', 'csrf', 'you', 'system', 'official', 'team', 'anonymous', 'root', 'static', 'new', 'logout', 'www', 'null', 'moderator', 'apps', 'signup', 'test', 'robots', 'signin', 'guest', 'abuse', 'api', 'docs', 'check', 'user', 'security', 'sysadmin', 'wpad', 'no-reply', 'signout', 'hostmaster', 'removed', 'privacy', 'callback', 'mods', 'users', 'owner', 'everyone', 'mailer-daemon', 'undefined', 'localhost', 'staff', 'operator', 'support', 'all', 'noc', 'me', 'nobody', 'store', 'mod', 'true', 'xrpc', 'admin', 'administrator', 'dashboard', 'login', 'auth', 'register', 'settings', 'home', 'well-known', 'autoconfig', 'account', 'false', 'terms', 'oauth'}), fallback_base='user', max_sequential=99, random_suffix_digits=6, random_tries=1000), lock=None, account_exists=<function HandleRegistry.<lambda>>, quarantine_seconds=7776000.0, rename_cooldown_seconds=2592000.0, clock=<built-in function time>)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Handles of accounts: assign defaults, claim, rename, release, look up.
+
+A default handle (made from the email) is *private* until its account confirms
+or changes it: it lives only in the account’s own `owners` record, never in
+`handles`. So lookups, the availability check, timings and other accounts’
+defaults are all unaffected by it, two accounts may hold the same private
+default, and confirming one is an ordinary claim that can find the name taken.
+A handle made from an email gives part of the address away, so it is published
+only by its owner’s own action (GDPR Art. 25(2); see
+`misc/docs/research/general/usernames.md`).
+
+* **Parameters:**
+  * **handles** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)) – uniqueness key -> public name entry (see the module docstring)
+  * **owners** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)) – account -> its handle record
+  * **policy** ([`HandlePolicy`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.HandlePolicy)) – the rules ([`HandlePolicy`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.HandlePolicy))
+  * **lock** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`ContextManager`](https://docs.python.org/3/library/typing.html#typing.ContextManager)]]) – a zero-argument factory of a context manager held around writes
+  * **account_exists** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`bool`](https://docs.python.org/3/builtins/functions.html#bool)]) – whether an account exists; checked under the lock, so
+    nothing is written for an account deleted meanwhile
+  * **quarantine_seconds** ([`float`](https://docs.python.org/3/builtins/functions.html#float)) – how long a released public name stays out of others’
+    reach (a renamed one redirects meanwhile)
+  * **rename_cooldown_seconds** ([`float`](https://docs.python.org/3/builtins/functions.html#float)) – the least time between two public names (the
+    first choice is free)
+  * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – the time, in epoch seconds
+
+#### account_of(handle)
+
+The account holding *handle* publicly (any spelling of it), or `None`.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### check(wanted, , account=None)
+
+What a “choose your username” field shows while the person types.
+
+`{"handle", "available", "problem", "code", "suggestions"}`: *handle* is
+the normalised form (show it as the preview), *problem* a sentence or
+`None`, *code* one of [`HandleError`](_autosummary/enlace_auth.handles.registry.html.md#enlace_auth.handles.registry.HandleError)’s codes or `None`.
+
+```pycon
+>>> reg = HandleRegistry({}, {}, account_exists=lambda a: True)
+>>> _ = reg.claim("thorwhalen@example.com", "thorwhalen")
+>>> reg.check("Thor.Whalen")["suggestions"]
+['thor.whalen1', 'thor.whalen2', 'thor.whalen3']
+```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### claim(account, wanted, , force=False)
+
+Publish *wanted* as *account*’s handle (also: confirm its default).
+
+The first public name is free; changing it waits
+*rename_cooldown_seconds* after the last change, and the old name stays
+with the account for the quarantine (it redirects). *force* (an admin)
+skips the reserved list, the cooldown and a quarantine, never a public
+owner. Raises [`HandleError`](_autosummary/enlace_auth.handles.registry.html.md#enlace_auth.handles.registry.HandleError); a `taken` one carries suggestions.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### ensure(account, , missing_ok=False)
+
+The handle record of *account*, giving it a private default if needed.
+
+The default is the email’s local part, then `1`, `2` … until a name no
+one holds publicly ([`candidates()`](_autosummary/enlace_auth.handles.core.html.md#enlace_auth.handles.core.candidates)). A private
+default that someone has since published is replaced by the next one. An
+account that does not exist gets nothing: `None` with *missing_ok*, else
+[`HandleError`](_autosummary/enlace_auth.handles.registry.html.md#enlace_auth.handles.registry.HandleError) `no-account`.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### handle_of(account)
+
+The public handle of *account*: `None` until it has confirmed one.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### handles_of(accounts)
+
+`{account: handle}` for each of *accounts* with a public handle.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+#### is_free(handle, , account=None)
+
+Whether *handle* could be claimed by *account* (by anyone, if `None`).
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+#### record_of(account)
+
+`{"handle", "chosen"}` of *account*, for the account itself.
+
+`chosen` is true only while the name is really published (so a write
+interrupted half-way shows as not chosen, and the account confirms again).
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### release_account(account)
+
+Forget *account*’s handles (the account is being deleted); return 1 or 0.
+
+Its public name, and the names it renamed away from, stay out of others’
+reach for the quarantine with no account attached (the email is erased);
+then they are free. Only entries that name this account are touched, and
+the record goes last, so an interrupted release never frees a name early.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### resolve(handle)
+
+`{"handle": current}` for *handle*, following a recent rename.
+
+A name its account renamed away from, still in quarantine, resolves to that
+account’s current handle with `"renamed_from"`; a deleted account’s name,
+a private default, or an unknown one resolves to `None`.
+
+```pycon
+>>> reg = HandleRegistry({}, {}, account_exists=lambda a: True)
+>>> _ = reg.claim("a@example.com", "first")
+>>> _ = reg.claim("a@example.com", "second", force=True)
+>>> reg.resolve("FIRST")
+{'handle': 'second', 'renamed_from': 'first'}
+```
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+#### sweep()
+
+Remove released entries whose quarantine is over; return how many.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+### enlace_auth.handles.registry.file_lock(path)
+
+A lock factory over `flock` on *path*: exclusive across processes on a host.
+
+Each call returns a fresh context manager. Without `fcntl` (Windows) it falls
+back to a process-local lock.
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`ContextManager`](https://docs.python.org/3/library/typing.html#typing.ContextManager)]
+
+### enlace_auth.handles.registry.make_handle_registry(handles_cfg, , store_factory, store_root, account_exists, groups=(), lock=None)
+
+The platform’s registry, from `[auth.handles]` (a `HandlesConfig`).
+
+The two mappings are the platform store’s `handles` and `handle_owners`, and
+the lock is a `flock` on `<store_root>/handles.lock`, so the gunicorn
+workers of one host agree (pass *lock* for stores shared across hosts). The
+names of *groups* (`[auth.groups]`) are reserved too, so no account can be
+called `@family`.
+
+* **Return type:**
+  [`HandleRegistry`](_autosummary/enlace_auth.handles.registry.html.md#enlace_auth.handles.registry.HandleRegistry)
+
+
+# _autosummary/enlace_auth.handles.routes.html.md
+
+# enlace_auth.handles.routes
+
+`/auth/handles/*`: the signed-in user’s handle, the availability check, lookups.
+
+Every route needs a signed-in account (a handle is public to the platform’s users,
+not to the open web) and none of them ever returns an email.
+
+- `GET  /auth/handles/me` -> `{"handle", "chosen"}`; assigns the default on
+  first call. While `chosen` is false, a frontend offers its “choose your
+  username” step.
+- `GET  /auth/handles/check?handle=<typed>` -> `{"handle", "available",
+  "problem", "code", "suggestions"}`. Called as the person types.
+- `POST /auth/handles/me` body `{"handle"}` -> `{"handle", "chosen"}`; posting
+  the current handle confirms it. Errors are `{"detail": {"code", "message",
+  "suggestions"}}` with 409 (taken), 429 (cooldown) or 422 (invalid, reserved).
+  Under `/auth/`, so the platform’s double-submit CSRF check covers it.
+- `GET  /auth/handles/{handle}` -> `{"handle"}` or `{"handle",
+  "renamed_from"}` (a recent rename), 404 when no account holds it publicly.
+
+Every route but `GET /me` is rate-limited per account (429): the check and the
+lookup at *check_limit* per *check_window_seconds*, a claim at *claim_limit*.
+
+### Functions
+
+| [`make_handle_router`](_autosummary/enlace_auth.handles.routes.html.md#enlace_auth.handles.routes.make_handle_router)(\*, registry[, ...])   | Build the `/auth/handles` router over *registry*.   |
+|--------------------------------------------------------------------------------------------|-----------------------------------------------------|
+
+### enlace_auth.handles.routes.make_handle_router(, registry, rate_limiter=None, check_limit=120, check_window_seconds=60.0, claim_limit=20)
+
+Build the `/auth/handles` router over *registry*.
+
+*rate_limiter* (`allow(key, *, limit, window)`) bounds the availability
+check and the lookup to *check_limit* calls per account per
+*check_window_seconds*, and claims to *claim_limit*; the default counts in
+memory, per process.
+
+* **Return type:**
+  `APIRouter`
+
+
 # _autosummary/enlace_auth.html.md
 
 # enlace_auth
@@ -3725,7 +4774,10 @@ When `config.auth.enabled` is True the plugin mounts:
   account (change your own), forgot-password / reset-password
 - `/_admin/api/*` — admin user/app management (gated by admin allowlist)
 - `/api/{app}/store/*` — per-user data store
-- middleware: PlatformAuthMiddleware, CSRFMiddleware, StoreInjectionMiddleware
+- `/auth/handles/*` — usernames (`enlace_auth.handles`), and
+  `request.state.handles` for apps
+- middleware: PlatformAuthMiddleware, CSRFMiddleware, StoreInjectionMiddleware,
+  HandleDirectoryMiddleware
 
 When it’s False the plugin is a no-op, so installing this package never
 changes platform behavior unless the operator opts in.
@@ -3748,7 +4800,7 @@ changes platform behavior unless the operator opts in.
 | [`EnlaceAuthConfigError`](_autosummary/enlace_auth.html.md#enlace_auth.EnlaceAuthConfigError)   | Raised when auth configuration is unusable at startup.   |
 |--------------------------------------------------------------------------|----------------------------------------------------------|
 
-### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, cookie_domain=None, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, groups=<factory>)
+### *class* enlace_auth.AuthConfig(\*, enabled=False, session_cookie_name='enlace_session', session_max_age_seconds=86400, signing_key_env='ENLACE_SIGNING_KEY', secure_cookies=True, cookie_domain=None, stores=<factory>, oauth=<factory>, oauth_server=<factory>, admin_emails=<factory>, admin_emails_env='ENLACE_ADMIN_EMAILS', registration_open=False, registration_allowlist_env='ENLACE_REGISTRATION_ALLOWLIST', signup=<factory>, passkeys=<factory>, handles=<factory>, groups=<factory>)
 
 Bases: `_StrictModel`
 
@@ -3819,6 +4871,7 @@ Plugin entry point. Safe to call when auth is disabled — does nothing.
 | [`diagnostics`](_autosummary/enlace_auth.diagnostics.html.md#module-enlace_auth.diagnostics)         | Auth-specific doctor checks that plug into `enlace.doctor.run_doctor`.                         |
 | [`emails`](_autosummary/enlace_auth.emails.html.md#module-enlace_auth.emails)                   | One normal form for an email address, wherever one is compared.                                |
 | [`groups`](_autosummary/enlace_auth.groups.html.md#module-enlace_auth.groups)                   | Named groups of accounts: one list of emails, referenced as `@name` wherever an email list is. |
+| [`handles`](_autosummary/enlace_auth.handles.html.md#module-enlace_auth.handles)                 | Handles (usernames): the public, unique, case-insensitive name of an account.                  |
 | [`oauth_rules`](_autosummary/enlace_auth.oauth_rules.html.md#module-enlace_auth.oauth_rules)         | The stateless rules of the OAuth 2.1 authorization server, importable alone.                   |
 | [`passkeys`](_autosummary/enlace_auth.passkeys.html.md#module-enlace_auth.passkeys)               | Passkeys (WebAuthn): sign-in, a step-up confirmation, and a per-account requirement.           |
 | [`ratelimit`](_autosummary/enlace_auth.ratelimit.html.md#module-enlace_auth.ratelimit)             | A sliding-window rate limiter over any `MutableMapping`.                                       |
@@ -5948,18 +7001,18 @@ a silently rewritten value.
 
 # About this build
 
-This documentation was built on **2026-11-26 15:10 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/a03f00e6fa1ac17a680b084b63962b43c2be3d86"><code>a03f00e</code></a> on branch <code>main</code>, for **enlace_auth 0.1.64** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-27 11:22 UTC** from commit <a href="https://github.com/i2mint/enlace_auth/commit/a106189ba2c30486e493f88158fb5bc2a8b079c2"><code>a106189</code></a> on branch <code>main</code>, for **enlace_auth 0.1.65** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.64) is behind the latest release on PyPI (0.1.65): `pip install enlace_auth` gives newer code than these docs describe.
+- The documented version (0.1.65) is behind the latest release on PyPI (0.1.66): `pip install enlace_auth` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/a03f00e6fa1ac17a680b084b63962b43c2be3d86"><code>a03f00e6fa1ac17a680b084b63962b43c2be3d86</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_auth/commit/a106189ba2c30486e493f88158fb5bc2a8b079c2"><code>a106189ba2c30486e493f88158fb5bc2a8b079c2</code></a> |
 | Branch              | <code>main</code>                                                                                                                                         |
 | Tags at this commit | none                                                                                                                                                      |
 | Working tree        | clean                                                                                                                                                     |
@@ -5970,9 +7023,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_auth</code>                                                            |
-| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/45845737688">45845737688</a>   |
+| Run          | <a href="https://github.com/i2mint/enlace_auth/actions/runs/45989362769">45989362769</a>   |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>a03f00e6fa1ac17a680b084b63962b43c2be3d86</code> (in the history of the built commit) |
+| Event commit | <code>a106189ba2c30486e493f88158fb5bc2a8b079c2</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -5997,13 +7050,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.65/">0.1.65</a>, newer than the documented version (0.1.64).
+Latest release: <a href="https://pypi.org/project/enlace_auth/0.1.66/">0.1.66</a>, newer than the documented version (0.1.65).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/enlace_auth && cd enlace_auth
-git checkout a03f00e6fa1ac17a680b084b63962b43c2be3d86
+git checkout a106189ba2c30486e493f88158fb5bc2a8b079c2
 pip install "epythet==0.2.25"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
@@ -6027,7 +7080,7 @@ Skills are folders holding a `SKILL.md` (the [Agent Skills](https://agentskills.
 
 ### `enlace-auth-usage`
 
-How to add sign-in, sessions, CSRF protection, admin accounts, per-app access levels, runtime grants and per-user storage to an enlace multi-app platform with the enlace_auth plugin. Use when the user mentions enlace_auth, the enlace-auth CLI, protected:user or protected:shared apps, ENLACE_SIGNING_KEY, ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user, reset-link, grant, share, invite, [auth.signup], sign-up, “continue with email” or account deletion, passkeys, WebAuthn, Face ID or Touch ID sign-in, a step-up confirmation or step-up proof; or wants to put login, self-service sign-up, or a “confirm this action with your passkey” tap in front of apps served by enlace.
+How to add sign-in, sessions, CSRF protection, admin accounts, per-app access levels, runtime grants and per-user storage to an enlace multi-app platform with the enlace_auth plugin. Use when the user mentions enlace_auth, the enlace-auth CLI, protected:user or protected:shared apps, ENLACE_SIGNING_KEY, ENLACE_ADMIN_EMAILS, X-CSRF-Token or /auth/csrf, request.state.store, add-user, reset-link, grant, share, invite, [auth.signup], sign-up, “continue with email” or account deletion, passkeys, WebAuthn, Face ID or Touch ID sign-in, a step-up confirmation or step-up proof, usernames or handles (request.state.handles, /auth/handles, “by @name”, set-handle); or wants to put login, self-service sign-up, a username, or a “confirm this action with your passkey” tap in front of apps served by enlace.
 
 ```bash
 gh skill install i2mint/enlace_auth enlace-auth-usage --agent claude-code

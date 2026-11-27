@@ -38,6 +38,7 @@
    diagnostics
    emails
    groups
+   handles
    oauth_rules
    passkeys
    ratelimit

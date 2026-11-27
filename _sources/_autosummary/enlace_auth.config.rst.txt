@@ -22,6 +22,7 @@ enlace\_auth.config
    .. autosummary::
    
       AuthConfig
+      HandlesConfig
       OAuthProviderConfig
       OAuthServerConfig
       PasskeysConfig
