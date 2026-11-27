@@ -1185,6 +1185,19 @@ def wire(parent: "FastAPI", config) -> None:
 
     # One deleter for the self-service deletion and the admin's (#92): both
     # remove the account and everything that hangs off it.
+    # Handles (usernames): the public name of each account; emails stay private.
+    # Built even when [auth.handles] is off, so deleting an account still releases
+    # (and erases the email from) handles kept while it was on.
+    from enlace_auth.handles import make_handle_registry
+
+    handles_registry = make_handle_registry(
+        auth_cfg.handles,
+        store_factory=platform_factory,
+        store_root=auth_cfg.stores.path,
+        account_exists=lambda account: account in user_backend,
+        groups=[*auth_cfg.groups, "admins"],
+    )
+    handles = handles_registry if auth_cfg.handles.enabled else None
     delete_account = make_account_deleter(
         user_store=user_backend,
         credentials_changed=on_credentials_changed,
@@ -1193,7 +1206,19 @@ def wire(parent: "FastAPI", config) -> None:
         user_data=user_data_backend,
         sign_ins=platform_factory("sign_ins"),
         passkeys=passkeys["service"] if passkeys else None,
+        handles=handles_registry,
     )
+    if handles is not None:
+        from enlace_auth.handles.routes import make_handle_router
+        from enlace_auth.ratelimit import SlidingWindowLimiter
+
+        parent.include_router(
+            make_handle_router(
+                registry=handles,
+                rate_limiter=SlidingWindowLimiter(platform_factory("rate_limits")),
+                check_limit=auth_cfg.handles.check_per_minute,
+            )
+        )
     signup = _wire_signup(
         config,
         auth_cfg,
@@ -1464,6 +1489,13 @@ def wire(parent: "FastAPI", config) -> None:
     # outermost = first added last. FastAPI/Starlette runs middleware in
     # reverse insertion order, so the last `add_middleware` call is the
     # outermost wrapper. We want: auth (outermost) -> store -> csrf -> app.
+    if handles is not None:
+        from enlace_auth.handles import HandleDirectory, HandleDirectoryMiddleware
+
+        # request.state.handles: the read-only lookup every app uses for "by @name".
+        parent.add_middleware(
+            HandleDirectoryMiddleware, directory=HandleDirectory(handles)
+        )
     parent.add_middleware(
         CSRFMiddleware,
         signing_key=signing_key,

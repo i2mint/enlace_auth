@@ -21,6 +21,10 @@ Usage::
     enlace-auth list-passkeys <email> [--json]
     enlace-auth remove-passkey <email> [--passkey-id ID | --all]
     enlace-auth step-up-key <audience>
+    enlace-auth list-handles [--json]
+    enlace-auth set-handle <email> <handle> [--force]
+    enlace-auth assign-handles
+    enlace-auth sweep-handles
 """
 
 from __future__ import annotations
@@ -388,6 +392,7 @@ def delete_user(email: str, *, keep_data: bool = False, toml: str = "platform.to
         user_data=None if keep_data else _load_user_data(toml_path),
         sign_ins=make_file_store_factory(auth.stores.path)("sign_ins"),
         passkeys=_load_passkeys(toml_path),
+        handles=_load_handles(toml_path),  # also when off: erase what it kept
     )
     removed = {**ended, **delete(key)}
     failed = [what for what, n in removed.items() if n is None]
@@ -976,6 +981,102 @@ def step_up_key(audience: str, *, toml: str = "platform.toml"):
         sys.exit(2)
 
 
+def _load_handles(toml_path: Path = Path("platform.toml")):
+    """The platform's handle registry, as the running server builds it."""
+    from enlace_auth.handles import make_handle_registry
+    from enlace_auth.stores import make_file_store_factory
+
+    auth = coerce_auth_config(PlatformConfig.from_toml(toml_path).auth)
+    users = _load_user_store(toml_path)
+    return make_handle_registry(
+        auth.handles,
+        store_factory=make_file_store_factory(auth.stores.path),
+        store_root=auth.stores.path,
+        account_exists=lambda account: account in users,
+        groups=[*auth.groups, "admins"],
+    )
+
+
+def list_handles(*, json: bool = False, toml: str = "platform.toml"):
+    """List every account's handle (username), and whether the account chose it.
+
+    Args:
+        json: Output as JSON.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    rows = [
+        {"account": account, "handle": handle, "chosen": chosen}
+        for account, handle, chosen in _load_handles(Path(toml))
+    ]
+    if json:
+        print(json_module.dumps(rows, indent=2))
+        return
+    if not rows:
+        print("No handles.")
+        return
+    for r in rows:
+        mark = "" if r["chosen"] else "  (default, not confirmed)"
+        print(f"@{r['handle']}  {r['account']}{mark}")
+
+
+def set_handle(
+    email: str, handle: str, *, force: bool = False, toml: str = "platform.toml"
+):
+    """Give the account *email* the handle *handle* (marks it chosen).
+
+    Args:
+        email: The account.
+        handle: The new handle (``@`` optional; any case).
+        force: Allow a reserved name, skip the rename cooldown and a released
+            name's quarantine. A name another account holds is never taken.
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    from enlace_auth.handles import HandleError
+
+    try:
+        record = _load_handles(Path(toml)).claim(
+            email.strip().lower(), handle, force=force
+        )
+    except HandleError as e:
+        hint = f" Try: {', '.join(e.suggestions)}" if e.suggestions else ""
+        print(f"{e.message}{hint}", file=sys.stderr)
+        sys.exit(1)
+    print(f"{email.strip().lower()} is now @{record['handle']}.")
+
+
+def sweep_handles(*, toml: str = "platform.toml"):
+    """Free the released handles whose quarantine is over (erasing their account).
+
+    Run it now and then (a daily timer is plenty).
+
+    Args:
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    gone = _load_handles(Path(toml)).sweep()
+    print(f"Freed {gone} handle{'s' * (gone != 1)}.")
+
+
+def assign_handles(*, toml: str = "platform.toml"):
+    """Give every account without a handle its default (email local part + suffix).
+
+    Accounts get one anyway on first use; this fills them in at once, so an app
+    listing older accounts' work shows names straight away.
+
+    Args:
+        toml: Path to platform.toml (default: ./platform.toml).
+    """
+    registry = _load_handles(Path(toml))
+    users = _load_user_store(Path(toml))
+    new = 0
+    for account in list(users):
+        if registry.record_of(account) is None:
+            record = registry.ensure(account, missing_ok=True)
+            if record:
+                new += 1
+                print(f"@{record['handle']}  {account}")
+    print(f"Assigned {new} handle{'s' * (new != 1)}.")
+
+
 #: The SSOT for the CLI surface: a verb that is not in this list does not exist.
 COMMANDS = [
     init,
@@ -1003,6 +1104,10 @@ COMMANDS = [
     list_passkeys,
     remove_passkey,
     step_up_key,
+    list_handles,
+    set_handle,
+    assign_handles,
+    sweep_handles,
 ]
 
 

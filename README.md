@@ -94,6 +94,7 @@ print(client.get("/auth/whoami").json())
 - `/auth/forgot-password`: self-service reset by emailed link
 - `/_admin/api/*`: list, create and delete users, mint a password-reset link, set a password directly, view app policy, and **grant or revoke per-app access at runtime** (optional expiry). Gated by an admin allowlist.
 - per-user data injection via `request.state.store`
+- usernames (handles): a public, unique, case-insensitive name per account while the email stays private; `request.state.handles` for apps ("by @name"), `/auth/handles/*` for a "choose your username" step, `enlace-auth set-handle` for admins. The default is the email's local part plus a number and stays private until the person confirms it. Details in the consumer skill; research in `misc/docs/research/general/usernames.md`
 - `PlatformAuthMiddleware` and `CSRFMiddleware`
 - optional OAuth2 / OIDC login via Authlib, and an OAuth 2.1 authorization server for MCP connectors
 
